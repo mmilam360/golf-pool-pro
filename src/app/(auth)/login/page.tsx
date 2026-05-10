@@ -35,7 +35,19 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      router.push('/dashboard')
+      const redirectParam = new URLSearchParams(window.location.search).get('redirect')
+      let redirectTo = '/dashboard'
+      if (redirectParam && !redirectParam.includes('\\')) {
+        try {
+          const url = new URL(redirectParam, window.location.origin)
+          if (url.origin === window.location.origin && url.pathname.startsWith('/')) {
+            redirectTo = `${url.pathname}${url.search}${url.hash}`
+          }
+        } catch {
+          redirectTo = '/dashboard'
+        }
+      }
+      router.push(redirectTo)
     }
   }
 

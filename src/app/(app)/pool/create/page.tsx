@@ -42,6 +42,12 @@ export default function CreatePoolPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('Not authenticated'); setLoading(false); return }
 
+    if (countScores > pickCount) {
+      setError('Scores to Count cannot be greater than Golfers to Pick')
+      setLoading(false)
+      return
+    }
+
     const uid = new ShortUniqueId({ length: 6 })
     const passcode = uid.randomUUID().toUpperCase()
 
@@ -65,6 +71,33 @@ export default function CreatePoolPage() {
       setError(insertError.message)
       setLoading(false)
     } else {
+      const { data: profile } = await supabase
+        .from('gpp_profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .single()
+
+      const { error: entryError } = await supabase
+        .from('gpp_entries')
+        .insert({
+          pool_id: data.id,
+          user_id: user.id,
+          display_name: profile?.display_name || user.email?.split('@')[0] || 'Player',
+          golfer_picks: [],
+          has_paid: buyIn === 0,
+        })
+
+      if (entryError) {
+        await supabase
+          .from('gpp_pools')
+          .delete()
+          .eq('id', data.id)
+          .eq('owner_id', user.id)
+        setError(entryError.message)
+        setLoading(false)
+        return
+      }
+
       router.push(`/pool/${data.id}`)
     }
   }
@@ -108,7 +141,7 @@ export default function CreatePoolPage() {
           <div>
             <label className="block text-zinc-300 text-sm font-medium mb-1">Scores to Count</label>
             <input type="number" value={countScores} onChange={e => setCountScores(parseInt(e.target.value) || 8)}
-              min={1} max={30}
+              min={1} max={pickCount}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500" />
           </div>
         </div>

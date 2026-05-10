@@ -58,9 +58,15 @@ export function rankEntries(entries: ScoredEntry[]): ScoredEntry[] {
     return a.totalScore - b.totalScore
   })
   ranked.forEach((e, i) => {
-    if (i === 0) e.rank = 1
-    else if (e.totalScore === ranked[i-1].totalScore) e.rank = ranked[i-1].rank
-    else e.rank = i + 1
+    if (e.totalScore === null) {
+      e.rank = null
+    } else if (i === 0 || ranked[i - 1].totalScore === null) {
+      e.rank = 1
+    } else if (e.totalScore === ranked[i - 1].totalScore) {
+      e.rank = ranked[i - 1].rank
+    } else {
+      e.rank = i + 1
+    }
   })
   return ranked
 }
