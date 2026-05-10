@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -16,6 +17,10 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
     setLoading(true)
     const { error } = await supabase.auth.signUp({
       email,
@@ -63,6 +68,17 @@ export default function SignupPage() {
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
+            required
+            minLength={6}
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
+          />
+        </div>
+        <div>
+          <label className="block text-zinc-400 text-sm mb-1">Confirm Password</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
             required
             minLength={6}
             className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
