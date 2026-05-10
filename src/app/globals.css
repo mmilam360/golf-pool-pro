@@ -1,14 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f3ea;
+  --background: #f6f0e3;
   --foreground: #1f2a24;
+  --golf-green: #0f3d2e;
+  --pin-red: #9f2d20;
+  --scorecard-line: rgba(60, 45, 25, 0.12);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: Arial, Helvetica, sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-script: "Segoe Print", "Bradley Hand", "Chalkboard SE", cursive;
   --font-mono: "Courier New", Courier, monospace;
 }
 
@@ -16,4 +21,24 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.font-display {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.font-script {
+  font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", cursive;
+}
+
+.scorecard-paper {
+  background-color: #fbf7ed;
+  background-image:
+    linear-gradient(to right, var(--scorecard-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--scorecard-line) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.championship-border {
+  border-image: linear-gradient(90deg, #0f3d2e, #c9a23f, #9f2d20) 1;
 }

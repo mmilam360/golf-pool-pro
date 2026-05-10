@@ -53,8 +53,9 @@ export default function LoginPage() {
 
   return (
     <div className="bg-white rounded-lg p-8 border border-stone-200 shadow-sm">
+      <p className="font-script text-2xl text-red-900 mb-1 -rotate-1">welcome back</p>
       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-700 mb-2">Clubhouse entry</p>
-      <h1 className="text-2xl font-bold text-emerald-950 mb-6">Sign In</h1>
+      <h1 className="font-display text-3xl font-bold text-emerald-950 mb-6">Sign In</h1>
       {error && (
         <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm border border-red-200">{error}</div>
       )}
