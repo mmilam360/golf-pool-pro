@@ -21,7 +21,7 @@ function PasswordInput({ value, onChange, label }: { value: string; onChange: (v
   const [show, setShow] = useState(false)
   return (
     <div>
-      <label className="block text-zinc-400 text-sm mb-1">{label}</label>
+      <label className="block text-stone-700 text-sm font-medium mb-1">{label}</label>
       <div className="relative">
         <input
           type={show ? 'text' : 'password'}
@@ -29,9 +29,9 @@ function PasswordInput({ value, onChange, label }: { value: string; onChange: (v
           onChange={e => onChange(e.target.value)}
           required
           minLength={6}
-          className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 pr-10 text-white focus:outline-none focus:border-emerald-500"
+          className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 pr-12 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
         />
-        <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white">
+        <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-500 hover:text-emerald-800 p-2">
           <EyeIcon visible={show} />
         </button>
       </div>
@@ -76,39 +76,40 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 text-center">
-        <h1 className="text-2xl font-bold text-white mb-4">Account Created</h1>
-        <p className="text-zinc-400 mb-4">Check your email to confirm your account, then sign in.</p>
-        <Link href="/login" className="text-emerald-400 hover:underline">Go to Sign In</Link>
+      <div className="bg-white rounded-lg p-8 border border-stone-200 text-center shadow-sm">
+        <h1 className="text-2xl font-bold text-emerald-950 mb-4">Account Created</h1>
+        <p className="text-stone-600 mb-4">Check your email to confirm your account, then sign in.</p>
+        <Link href="/login" className="text-emerald-800 font-semibold hover:underline">Go to Sign In</Link>
       </div>
     )
   }
 
   return (
-    <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800">
-      <h1 className="text-2xl font-bold text-white mb-6">Create Account</h1>
+    <div className="bg-white rounded-lg p-8 border border-stone-200 shadow-sm">
+      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-700 mb-2">Start a pool</p>
+      <h1 className="text-2xl font-bold text-emerald-950 mb-6">Create Account</h1>
       {error && (
-        <div className="bg-red-900/50 text-red-300 p-3 rounded-lg mb-4 text-sm">{error}</div>
+        <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm border border-red-200">{error}</div>
       )}
       <form onSubmit={handleSignup} className="space-y-4">
         <div>
-          <label className="block text-zinc-400 text-sm mb-1">Display Name</label>
+          <label className="block text-stone-700 text-sm font-medium mb-1">Display Name</label>
           <input
             type="text"
             value={displayName}
             onChange={e => setDisplayName(e.target.value)}
             required
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
+            className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
         <div>
-          <label className="block text-zinc-400 text-sm mb-1">Email</label>
+          <label className="block text-stone-700 text-sm font-medium mb-1">Email</label>
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
+            className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
         <PasswordInput label="Password" value={password} onChange={setPassword} />
@@ -116,14 +117,14 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
         >
           {loading ? 'Creating account...' : 'Sign Up'}
         </button>
       </form>
-      <p className="text-zinc-500 text-sm mt-4 text-center">
+      <p className="text-stone-600 text-sm mt-5 text-center">
         Already have an account?{' '}
-        <Link href="/login" className="text-emerald-400 hover:underline">Sign in</Link>
+        <Link href="/login" className="text-emerald-800 font-semibold hover:underline">Sign in</Link>
       </p>
     </div>
   )

@@ -2,24 +2,24 @@ import Link from 'next/link'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      <nav className="bg-zinc-900 border-b border-zinc-800 px-6 py-4">
+    <div className="min-h-screen bg-[#f7f3ea] text-stone-900">
+      <nav className="bg-white/90 border-b border-stone-200 px-6 py-4 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/dashboard" className="text-xl font-bold text-emerald-400">
+          <Link href="/dashboard" className="text-xl font-bold text-emerald-800">
             Golf Pool Pro
           </Link>
           <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="text-zinc-400 hover:text-white transition-colors text-sm">
+            <Link href="/dashboard" className="text-stone-600 hover:text-emerald-800 transition-colors text-sm font-medium">
               Dashboard
             </Link>
-            <Link href="/pool/create" className="text-zinc-400 hover:text-white transition-colors text-sm">
+            <Link href="/pool/create" className="text-stone-600 hover:text-emerald-800 transition-colors text-sm font-medium">
               Create Pool
             </Link>
-            <Link href="/pool/join" className="text-zinc-400 hover:text-white transition-colors text-sm">
+            <Link href="/pool/join" className="text-stone-600 hover:text-emerald-800 transition-colors text-sm font-medium">
               Join Pool
             </Link>
             <form action="/api/auth/logout" method="POST">
-              <button type="submit" className="text-zinc-500 hover:text-white transition-colors text-sm">
+              <button type="submit" className="text-stone-500 hover:text-emerald-800 transition-colors text-sm font-medium">
                 Sign Out
               </button>
             </form>
