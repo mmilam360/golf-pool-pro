@@ -23,7 +23,7 @@ function formatScore(score: number | null) {
 
 function scoreClass(score: number | null) {
   if (score === null) return 'text-stone-400'
-  return 'text-[#b21e23]'
+  return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
 }
 
 function shortName(name: string) {
@@ -291,13 +291,21 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             </div>
                           </div>
                           <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
-                          <div className="text-center text-[9px] font-black uppercase tracking-[0.08em] text-[#111]"><span className="group-open:hidden">Open</span><span className="hidden group-open:inline">Close</span></div>
+                          <div className="flex items-center justify-center text-[#111]">
+                            <svg className="h-4 w-4 group-open:hidden" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
+                            </svg>
+                            <svg className="hidden h-4 w-4 group-open:block" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                              <path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
+                            </svg>
+                            <span className="sr-only">Toggle entry</span>
+                          </div>
                         </summary>
                         <div className="grid grid-cols-4 border-t border-[#111] bg-[#fbfbf5]">
                           {Array.from({ length: pool.count_scores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <div key={i} className="border-r border-t border-[#111] px-1 py-2 text-center even:border-r-0">
+                              <div key={i} className="border-r border-t border-[#111] px-1 py-2 text-center [&:nth-child(4n)]:border-r-0">
                                 <div className="text-[8px] font-black uppercase tracking-[0.12em] text-[#555]">G{i + 1}</div>
                                 <div className={`mt-0.5 text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                 <div className="mt-1 truncate text-[10px] font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
