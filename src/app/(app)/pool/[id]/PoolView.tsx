@@ -15,6 +15,19 @@ interface Props {
 
 type Tab = 'leaderboard' | 'my-team' | 'admin'
 
+function formatScore(score: number | null) {
+  if (score === null) return '—'
+  if (score === 0) return 'E'
+  return score > 0 ? `+${score}` : String(score)
+}
+
+function scoreClass(score: number | null) {
+  if (score === null) return 'text-stone-400'
+  if (score < 0) return 'text-emerald-800'
+  if (score > 0) return 'text-red-700'
+  return 'text-stone-900'
+}
+
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId }: Props) {
   const [tab, setTab] = useState<Tab>(initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-team')
   const [entries, setEntries] = useState(initialEntries)
@@ -145,17 +158,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
   }
 
-  // Toggle paid status (admin)
-  async function togglePaid(entryId: string, currentPaid: boolean) {
-    const { error } = await supabase
-      .from('gpp_entries')
-      .update({ has_paid: !currentPaid })
-      .eq('id', entryId)
-    if (!error) {
-      setEntries(entries.map(e => e.id === entryId ? { ...e, has_paid: !currentPaid } : e))
-    }
-  }
-
   // Lock/unlock pool (admin)
   async function setPoolLock(locked: boolean) {
     const { error } = await supabase
@@ -182,13 +184,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }))
   )
 
-  // Payout calculator
-  const paidEntries = activeEntries.filter(e => e.has_paid)
-  const totalPot = paidEntries.length * (pool.buy_in_amount || 0)
-  const payoutStructure = (pool.payout_structure as { place: number; percent: number }[]) || [
-    { place: 1, percent: 50 }, { place: 2, percent: 30 }, { place: 3, percent: 20 },
-  ]
-
   return (
     <div>
       {/* Header */}
@@ -199,9 +194,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
           <span className="text-stone-600">Field: {field.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.length || 0)} golfers</span>
-          {pool.buy_in_amount > 0 && <span className="text-stone-600">${pool.buy_in_amount} buy-in</span>}
-          {isLocked && <span className="text-amber-400">Picks locked</span>}
-          {pool.is_completed && <span className="text-emerald-400">Final results</span>}
+          {isLocked && <span className="text-amber-700">Picks locked</span>}
+          {pool.is_completed && <span className="text-emerald-700">Final results</span>}
         </div>
       </div>
 
@@ -256,46 +250,60 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <p className="text-stone-600">No entries yet. Share passcode <span className="text-emerald-700 font-mono">{pool.passcode}</span></p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-sm">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-stone-200 bg-stone-50 text-stone-600 text-sm">
-                    <th className="text-left px-4 py-3 w-16">#</th>
-                    <th className="text-left px-4 py-3">Player</th>
-                    <th className="text-center px-4 py-3">Score</th>
-                    <th className="text-center px-4 py-3">Counting</th>
-                    {pool.buy_in_amount > 0 && <th className="text-center px-4 py-3">Paid</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {scoredEntries.map(entry => {
-                    const original = activeEntries.find(e => e.id === entry.entryId)
-                    const isMe = entry.entryId === myEntry?.id
-                    return (
-                      <tr key={entry.entryId} className={`border-b border-stone-100 ${isMe ? 'bg-emerald-50' : ''}`}>
-                        <td className="px-4 py-3 font-mono text-stone-500">{entry.rank || '-'}</td>
-                        <td className="px-4 py-3 font-medium text-stone-900">{entry.displayName} {isMe && <span className="text-emerald-700 text-xs">(you)</span>}</td>
-                        <td className="px-4 py-3 text-center font-mono">
-                          {entry.totalScore !== null ? (
-                            <span className={entry.totalScore < 0 ? 'text-emerald-700' : entry.totalScore > 0 ? 'text-red-700' : 'text-stone-900'}>
-                              {entry.totalScore > 0 ? '+' : ''}{entry.totalScore}
-                            </span>
-                          ) : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm text-stone-600">
-                          {scoringIsLive ? entry.pickScores.filter(p => p.counted && !p.isObStandIn).length : 0}/{pool.count_scores}
-                          {entry.obStandIns > 0 && <span className="text-amber-700 ml-1">(+{entry.obStandIns} OB)</span>}
-                        </td>
-                        {pool.buy_in_amount > 0 && (
-                          <td className="px-4 py-3 text-center">
-                            {original?.has_paid ? <span className="text-emerald-700 text-sm">Yes</span> : <span className="text-stone-400 text-sm">No</span>}
+            <div className="overflow-hidden rounded-xl border border-stone-300 bg-[#fbf7ed] shadow-sm">
+              <div className="border-b border-stone-300 bg-white/80 px-4 py-3 text-center">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-900">Pool leaders</p>
+                <p className="mt-1 text-sm text-stone-600">Best {pool.count_scores} of {pool.pick_count} scores count</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-stone-400 bg-[#f3ead6] text-[11px] uppercase tracking-[0.12em] text-stone-700">
+                      <th className="sticky left-0 z-20 border-r border-stone-300 bg-[#f3ead6] px-3 py-2 text-center">Rank</th>
+                      <th className="sticky left-[56px] z-20 min-w-44 border-r border-stone-300 bg-[#f3ead6] px-3 py-2 text-left">Entry</th>
+                      <th className="border-r border-stone-300 px-3 py-2 text-center">Total</th>
+                      <th className="border-r border-stone-300 px-3 py-2 text-center">Cnt</th>
+                      {Array.from({ length: pool.pick_count }, (_, i) => (
+                        <th key={i} className="min-w-16 border-r border-stone-300 px-2 py-2 text-center">G{i + 1}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scoredEntries.map(entry => {
+                      const isMe = entry.entryId === myEntry?.id
+                      return (
+                        <tr key={entry.entryId} className={`border-b border-stone-300 ${isMe ? 'bg-emerald-50/80' : 'bg-white/55'}`}>
+                          <td className="sticky left-0 z-10 border-r border-stone-300 bg-inherit px-3 py-2 text-center font-mono text-base font-semibold text-red-700">
+                            {entry.rank || '—'}
                           </td>
-                        )}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                          <td className="sticky left-[56px] z-10 border-r border-stone-300 bg-inherit px-3 py-2 font-semibold text-stone-900">
+                            <div className="whitespace-nowrap">{entry.displayName} {isMe && <span className="text-xs font-normal text-emerald-700">(you)</span>}</div>
+                          </td>
+                          <td className={`border-r border-stone-300 px-3 py-2 text-center font-mono text-base font-bold ${scoreClass(entry.totalScore)}`}>
+                            {formatScore(entry.totalScore)}
+                          </td>
+                          <td className="border-r border-stone-300 px-3 py-2 text-center font-mono text-stone-700">
+                            {scoringIsLive ? entry.pickScores.filter(p => p.counted && !p.isObStandIn).length : 0}/{pool.count_scores}
+                            {entry.obStandIns > 0 && <span className="block text-[10px] text-amber-700">+{entry.obStandIns} OB</span>}
+                          </td>
+                          {Array.from({ length: pool.pick_count }, (_, i) => {
+                            const pick = entry.pickScores[i]
+                            return (
+                              <td key={i} title={pick?.name || ''} className={`border-r border-stone-300 px-2 py-2 text-center font-mono ${pick?.counted ? 'bg-amber-50' : ''} ${scoreClass(pick?.scoreToPar ?? null)}`}>
+                                <div className="text-[13px] font-bold">{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                                <div className="max-w-14 truncate text-[10px] font-sans text-stone-500">{pick?.name?.split(' ').slice(-1)[0] || ''}</div>
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {!scoringIsLive && (
+                <p className="border-t border-stone-300 bg-white/70 px-4 py-3 text-xs text-stone-600">Live scoring appears here when the tournament starts.</p>
+              )}
             </div>
           )}
         </div>
@@ -392,28 +400,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </div>
           </div>
 
-          {/* Payout Calculator */}
-          {pool.buy_in_amount > 0 && (
-            <div className="bg-white rounded-xl p-5 border border-stone-200 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 text-emerald-950">Payout calculator</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between text-stone-600">
-                  <span>Paid entries: {paidEntries.length} / {activeEntries.length}</span>
-                  <span>Total pot: ${totalPot.toFixed(2)}</span>
-                </div>
-                {payoutStructure.map(p => {
-                  const winner = scoredEntries[p.place - 1]
-                  return (
-                    <div key={p.place} className="flex justify-between py-1 border-t border-stone-200">
-                      <span className="text-stone-700">Place {p.place}: {winner?.displayName || 'TBD'}</span>
-                      <span className="text-emerald-700">${(totalPot * p.percent / 100).toFixed(2)}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Entries management */}
           <div className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-sm">
             <div className="px-5 py-4 border-b border-stone-200 bg-stone-50">
@@ -429,12 +415,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {pool.buy_in_amount > 0 && !entry.is_removed && (
-                    <button onClick={() => togglePaid(entry.id, entry.has_paid)}
-                      className={`text-xs px-3 py-1 rounded-full border ${entry.has_paid ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-stone-100 text-stone-600 border-stone-200'}`}>
-                      {entry.has_paid ? 'Paid' : 'Unpaid'}
-                    </button>
-                  )}
                   {!entry.is_removed && entry.user_id !== userId && (
                     <button onClick={() => setRemoveTarget(entry.id)}
                       className="text-xs text-red-700 hover:text-red-800 px-2">Remove</button>
@@ -454,7 +434,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   type="text"
                   value={removeReason}
                   onChange={e => setRemoveReason(e.target.value)}
-                  placeholder="Reason, like didn't pay"
+                  placeholder="Reason"
                   className="w-full bg-white border border-stone-300 rounded-lg px-4 py-2 text-stone-900 text-sm mb-4 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
                 />
                 <div className="flex gap-3 justify-end">

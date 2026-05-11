@@ -16,7 +16,6 @@ export default function CreatePoolPage() {
   const [countScores, setCountScores] = useState(8)
   const [obEnabled, setObEnabled] = useState(true)
   const [obPenalty, setObPenalty] = useState(2)
-  const [buyIn, setBuyIn] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -62,7 +61,6 @@ export default function CreatePoolPage() {
         count_scores: countScores,
         ob_rule_enabled: obEnabled,
         ob_penalty_strokes: obPenalty,
-        buy_in_amount: buyIn,
       })
       .select('id')
       .single()
@@ -84,7 +82,6 @@ export default function CreatePoolPage() {
           user_id: user.id,
           display_name: profile?.display_name || user.email?.split('@')[0] || 'Player',
           golfer_picks: [],
-          has_paid: buyIn === 0,
         })
 
       if (entryError) {
@@ -168,14 +165,6 @@ export default function CreatePoolPage() {
               ? `Golfers missing the cut get replaced by OB stand-ins (${obPenalty} strokes worse than last-place finisher)`
               : 'Only golfers who make the cut count toward your score'}
           </p>
-        </div>
-
-        <div>
-          <label className="block text-stone-700 text-sm font-medium mb-1">Buy-in Amount ($)</label>
-          <input type="number" value={buyIn} onChange={e => setBuyIn(parseFloat(e.target.value) || 0)}
-            min={0} step={0.01}
-            className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
-          <p className="text-stone-500 text-xs mt-1">Set to 0 for free pools</p>
         </div>
 
         <button type="submit" disabled={loading || !selectedTournament}

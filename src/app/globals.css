@@ -13,8 +13,13 @@
   --color-foreground: var(--foreground);
   --font-sans: Arial, Helvetica, sans-serif;
   --font-display: Georgia, "Times New Roman", serif;
-  --font-script: "Segoe Print", "Bradley Hand", "Chalkboard SE", cursive;
   --font-mono: "Courier New", Courier, monospace;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -25,10 +30,6 @@ body {
 
 .font-display {
   font-family: Georgia, "Times New Roman", serif;
-}
-
-.font-script {
-  font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", cursive;
 }
 
 .scorecard-paper {

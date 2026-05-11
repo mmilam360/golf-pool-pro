@@ -76,19 +76,18 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="bg-white rounded-lg p-8 border border-stone-200 text-center shadow-sm">
-        <h1 className="text-2xl font-bold text-emerald-950 mb-4">Account Created</h1>
+      <div className="rounded-lg border border-[#d8cab0] bg-white p-8 text-center shadow-sm">
+        <h1 className="mb-4 text-2xl font-bold text-[#0f2f25]">Account created</h1>
         <p className="text-stone-600 mb-4">Check your email to confirm your account, then sign in.</p>
-        <Link href="/login" className="text-emerald-800 font-semibold hover:underline">Go to Sign In</Link>
+        <Link href="/login" className="font-semibold text-[#123c2f] hover:underline">Go to sign in</Link>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg p-8 border border-stone-200 shadow-sm">
-      <p className="font-script text-2xl text-red-900 mb-1 -rotate-1">start a pool</p>
-      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-700 mb-2">Tournament week starts here</p>
-      <h1 className="font-display text-3xl font-bold text-emerald-950 mb-6">Create Account</h1>
+    <div className="rounded-lg border border-[#d8cab0] bg-white p-8 shadow-sm">
+      <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">New account</p>
+      <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Create account</h1>
       {error && (
         <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm border border-red-200">{error}</div>
       )}
@@ -120,7 +119,7 @@ export default function SignupPage() {
           disabled={loading}
           className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
         >
-          {loading ? 'Creating account...' : 'Sign Up'}
+          {loading ? 'Creating account...' : 'Sign up'}
         </button>
       </form>
       <p className="text-stone-600 text-sm mt-5 text-center">
