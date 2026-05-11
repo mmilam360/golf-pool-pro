@@ -25,12 +25,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [loadingScores, setLoadingScores] = useState(false)
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [emailRecipients, setEmailRecipients] = useState('')
+  const [emailSending, setEmailSending] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
   const [removeReason, setRemoveReason] = useState('')
   const supabase = createClient()
 
   const activeEntries = entries.filter(e => !e.is_removed)
   const isLocked = pool.is_locked
+  const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
 
   // Fetch live leaderboard
   const fetchScores = useCallback(async () => {
@@ -55,13 +58,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (tournament?.field_json) {
       setField(tournament.field_json as GolfPlayer[])
     }
-    if (tournament?.leaderboard_json) {
+    if (scoringIsLive && tournament?.leaderboard_json) {
       setLeaderboard(tournament.leaderboard_json as GolfPlayer[])
     }
     fetchScores()
     const interval = setInterval(fetchScores, 60000) // refresh every minute
     return () => clearInterval(interval)
-  }, [fetchScores, tournament])
+  }, [fetchScores, tournament, scoringIsLive])
 
   // Save picks
   async function savePicks() {
@@ -84,6 +87,40 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     navigator.clipboard?.writeText(url)
     setStatusMessage('Invite link copied.')
     setTimeout(() => setStatusMessage(''), 2500)
+  }
+
+  async function sendInvites() {
+    const recipients = emailRecipients.split(/[\s,;]+/).map(email => email.trim()).filter(Boolean)
+    if (recipients.length === 0) {
+      setStatusMessage('Add at least one email address.')
+      return
+    }
+
+    setEmailSending(true)
+    const inviteUrl = `${window.location.origin}/pool/join?code=${pool.passcode}`
+    const res = await fetch('/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        poolId: pool.id,
+        recipients,
+        subject: `Join ${pool.name}`,
+        body: `You're invited to join ${pool.name}.\n\nUse code ${pool.passcode} or open this link:\n${inviteUrl}`,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setEmailSending(false)
+
+    if (!res.ok) {
+      setStatusMessage(data.error === 'Email service not configured'
+        ? 'Email is wired up, but RESEND_API_KEY is missing in Vercel.'
+        : data.error || 'Email failed.')
+      return
+    }
+
+    setEmailRecipients('')
+    setStatusMessage(`Invite sent to ${recipients.length} ${recipients.length === 1 ? 'person' : 'people'}.`)
+    setTimeout(() => setStatusMessage(''), 3500)
   }
 
   // Toggle golfer in picks
@@ -136,7 +173,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     activeEntries.map(entry => ({
       ...scoreEntry(
         (entry.golfer_picks as string[]) || [],
-        leaderboard,
+        scoringIsLive ? leaderboard : [],
         { countScores: pool.count_scores, obRuleEnabled: pool.ob_rule_enabled, obPenaltyStrokes: pool.ob_penalty_strokes }
       ),
       entryId: entry.id,
@@ -169,7 +206,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       {statusMessage && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
 
-      <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-emerald-950">Invite players</p>
@@ -179,6 +216,22 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             Copy invite link
           </button>
         </div>
+        {isOwner && (
+          <div className="mt-4 border-t border-amber-200 pt-4">
+            <label className="block text-sm font-medium text-stone-700 mb-2">Email invites</label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                value={emailRecipients}
+                onChange={e => setEmailRecipients(e.target.value)}
+                placeholder="Emails separated by commas"
+                className="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+              <button onClick={sendInvites} disabled={emailSending} className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-stone-800 disabled:opacity-50">
+                {emailSending ? 'Sending...' : 'Send invites'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -196,16 +249,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {/* Leaderboard Tab */}
       {tab === 'leaderboard' && (
         <div>
-          {loadingScores && <p className="text-zinc-500 text-sm mb-4">Loading scores...</p>}
+          {loadingScores && <p className="text-stone-500 text-sm mb-4">Loading scores...</p>}
           {scoredEntries.length === 0 ? (
             <div className="bg-white rounded-xl p-8 border border-stone-200 text-center">
               <p className="text-stone-600">No entries yet. Share passcode <span className="text-emerald-700 font-mono">{pool.passcode}</span></p>
             </div>
           ) : (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
+            <div className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-sm">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-zinc-800 text-zinc-400 text-sm">
+                  <tr className="border-b border-stone-200 bg-stone-50 text-stone-600 text-sm">
                     <th className="text-left px-4 py-3 w-16">#</th>
                     <th className="text-left px-4 py-3">Player</th>
                     <th className="text-center px-4 py-3">Score</th>
@@ -218,23 +271,23 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     const original = activeEntries.find(e => e.id === entry.entryId)
                     const isMe = entry.entryId === myEntry?.id
                     return (
-                      <tr key={entry.entryId} className={`border-b border-zinc-800/50 ${isMe ? 'bg-emerald-950/20' : ''}`}>
-                        <td className="px-4 py-3 font-mono text-zinc-400">{entry.rank || '-'}</td>
-                        <td className="px-4 py-3 font-medium">{entry.displayName} {isMe && <span className="text-emerald-400 text-xs">(you)</span>}</td>
+                      <tr key={entry.entryId} className={`border-b border-stone-100 ${isMe ? 'bg-emerald-50' : ''}`}>
+                        <td className="px-4 py-3 font-mono text-stone-500">{entry.rank || '-'}</td>
+                        <td className="px-4 py-3 font-medium text-stone-900">{entry.displayName} {isMe && <span className="text-emerald-700 text-xs">(you)</span>}</td>
                         <td className="px-4 py-3 text-center font-mono">
                           {entry.totalScore !== null ? (
-                            <span className={entry.totalScore < 0 ? 'text-emerald-400' : entry.totalScore > 0 ? 'text-red-400' : 'text-white'}>
+                            <span className={entry.totalScore < 0 ? 'text-emerald-700' : entry.totalScore > 0 ? 'text-red-700' : 'text-stone-900'}>
                               {entry.totalScore > 0 ? '+' : ''}{entry.totalScore}
                             </span>
                           ) : '—'}
                         </td>
-                        <td className="px-4 py-3 text-center text-sm text-zinc-400">
-                          {entry.pickScores.filter(p => p.counted && !p.isObStandIn).length}/{pool.count_scores}
-                          {entry.obStandIns > 0 && <span className="text-amber-400 ml-1">(+{entry.obStandIns} OB)</span>}
+                        <td className="px-4 py-3 text-center text-sm text-stone-600">
+                          {scoringIsLive ? entry.pickScores.filter(p => p.counted && !p.isObStandIn).length : 0}/{pool.count_scores}
+                          {entry.obStandIns > 0 && <span className="text-amber-700 ml-1">(+{entry.obStandIns} OB)</span>}
                         </td>
                         {pool.buy_in_amount > 0 && (
                           <td className="px-4 py-3 text-center">
-                            {original?.has_paid ? <span className="text-emerald-400 text-sm">Yes</span> : <span className="text-zinc-600 text-sm">No</span>}
+                            {original?.has_paid ? <span className="text-emerald-700 text-sm">Yes</span> : <span className="text-stone-400 text-sm">No</span>}
                           </td>
                         )}
                       </tr>
@@ -251,8 +304,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {tab === 'my-team' && (
         <div>
           {!myEntry ? (
-            <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 text-center">
-              <p className="text-zinc-500">You haven't joined this pool yet.</p>
+            <div className="bg-white rounded-xl p-8 border border-stone-200 text-center">
+              <p className="text-stone-600">You haven't joined this pool yet.</p>
             </div>
           ) : (
             <>
@@ -276,7 +329,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {myPicks.map(name => (
-                    <span key={name} className="bg-emerald-900/40 text-emerald-300 px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                    <span key={name} className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-1 rounded-full text-sm flex items-center gap-1">
                       {name}
                       {!isLocked && (
                         <button onClick={() => togglePick(name)} className="text-emerald-500 hover:text-red-400 ml-1">x</button>
@@ -325,8 +378,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {tab === 'admin' && isOwner && (
         <div className="space-y-6">
           {/* Pool controls */}
-          <div className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
-            <h3 className="text-lg font-semibold mb-4">Pool Controls</h3>
+          <div className="bg-white rounded-xl p-5 border border-stone-200 shadow-sm">
+            <h3 className="text-lg font-semibold mb-4 text-emerald-950">Pool controls</h3>
             <div className="flex gap-3">
               {!isLocked && (
                 <button onClick={lockPool}
@@ -339,19 +392,19 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
           {/* Payout Calculator */}
           {pool.buy_in_amount > 0 && (
-            <div className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
-              <h3 className="text-lg font-semibold mb-4">Payout Calculator</h3>
+            <div className="bg-white rounded-xl p-5 border border-stone-200 shadow-sm">
+              <h3 className="text-lg font-semibold mb-4 text-emerald-950">Payout calculator</h3>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between text-zinc-400">
+                <div className="flex justify-between text-stone-600">
                   <span>Paid entries: {paidEntries.length} / {activeEntries.length}</span>
                   <span>Total pot: ${totalPot.toFixed(2)}</span>
                 </div>
                 {payoutStructure.map(p => {
                   const winner = scoredEntries[p.place - 1]
                   return (
-                    <div key={p.place} className="flex justify-between py-1 border-t border-zinc-800">
-                      <span className="text-zinc-300">Place {p.place}: {winner?.displayName || 'TBD'}</span>
-                      <span className="text-emerald-400">${(totalPot * p.percent / 100).toFixed(2)}</span>
+                    <div key={p.place} className="flex justify-between py-1 border-t border-stone-200">
+                      <span className="text-stone-700">Place {p.place}: {winner?.displayName || 'TBD'}</span>
+                      <span className="text-emerald-700">${(totalPot * p.percent / 100).toFixed(2)}</span>
                     </div>
                   )
                 })}
@@ -360,29 +413,29 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           )}
 
           {/* Entries management */}
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-800">
-              <h3 className="text-lg font-semibold">Manage Entries ({activeEntries.length})</h3>
+          <div className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-stone-200 bg-stone-50">
+              <h3 className="text-lg font-semibold text-emerald-950">Manage entries ({activeEntries.length})</h3>
             </div>
             {entries.map(entry => (
-              <div key={entry.id} className={`px-5 py-3 border-b border-zinc-800/50 flex items-center justify-between ${entry.is_removed ? 'opacity-40' : ''}`}>
+              <div key={entry.id} className={`px-5 py-3 border-b border-stone-100 flex items-center justify-between ${entry.is_removed ? 'opacity-40' : ''}`}>
                 <div>
-                  <p className="font-medium">{entry.display_name}</p>
-                  <p className="text-zinc-500 text-xs">
+                  <p className="font-medium text-stone-900">{entry.display_name}</p>
+                  <p className="text-stone-500 text-xs">
                     {((entry.golfer_picks as string[]) || []).length} picks
-                    {entry.is_removed && <span className="text-red-400 ml-2">Removed: {entry.removed_reason}</span>}
+                    {entry.is_removed && <span className="text-red-700 ml-2">Removed: {entry.removed_reason}</span>}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {pool.buy_in_amount > 0 && !entry.is_removed && (
                     <button onClick={() => togglePaid(entry.id, entry.has_paid)}
-                      className={`text-xs px-3 py-1 rounded-full ${entry.has_paid ? 'bg-emerald-900/40 text-emerald-300' : 'bg-zinc-800 text-zinc-400'}`}>
+                      className={`text-xs px-3 py-1 rounded-full border ${entry.has_paid ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-stone-100 text-stone-600 border-stone-200'}`}>
                       {entry.has_paid ? 'Paid' : 'Unpaid'}
                     </button>
                   )}
                   {!entry.is_removed && entry.user_id !== userId && (
                     <button onClick={() => setRemoveTarget(entry.id)}
-                      className="text-xs text-red-400 hover:text-red-300 px-2">Remove</button>
+                      className="text-xs text-red-700 hover:text-red-800 px-2">Remove</button>
                   )}
                 </div>
               </div>
@@ -391,20 +444,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
           {/* Remove confirmation modal */}
           {removeTarget && (
-            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-              <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 max-w-sm w-full mx-4">
-                <h3 className="text-lg font-semibold mb-3">Remove Entry</h3>
-                <p className="text-zinc-400 text-sm mb-4">Remove this person from the pool? They won't be able to rejoin.</p>
+            <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl p-6 border border-stone-200 max-w-sm w-full mx-4 shadow-2xl">
+                <h3 className="text-lg font-semibold mb-3 text-emerald-950">Remove entry</h3>
+                <p className="text-stone-600 text-sm mb-4">Remove this person from the pool? They won't be able to rejoin.</p>
                 <input
                   type="text"
                   value={removeReason}
                   onChange={e => setRemoveReason(e.target.value)}
-                  placeholder="Reason (e.g. didn't pay)"
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white text-sm mb-4 focus:outline-none focus:border-emerald-500"
+                  placeholder="Reason, like didn't pay"
+                  className="w-full bg-white border border-stone-300 rounded-lg px-4 py-2 text-stone-900 text-sm mb-4 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
                 />
                 <div className="flex gap-3 justify-end">
                   <button onClick={() => { setRemoveTarget(null); setRemoveReason('') }}
-                    className="text-zinc-400 hover:text-white px-4 py-2 text-sm">Cancel</button>
+                    className="text-stone-600 hover:text-stone-900 px-4 py-2 text-sm">Cancel</button>
                   <button onClick={() => removeEntry(removeTarget)}
                     className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm">Remove</button>
                 </div>

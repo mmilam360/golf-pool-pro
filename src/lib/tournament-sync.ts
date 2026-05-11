@@ -167,11 +167,13 @@ export async function syncTournaments({
       result.fieldsUpdated++
     }
 
-    if (doLive && (status === 'live' || players.length > 0)) {
-      const leaderboard = status === 'live' ? await getLeaderboard(externalId).catch(() => null) : null
-      row.leaderboard_json = leaderboard?.leaderboard?.length ? leaderboard.leaderboard : players
-      row.last_scores_fetch = new Date().toISOString()
-      result.leaderboardsUpdated++
+    if (doLive && status === 'live') {
+      const leaderboard = await getLeaderboard(externalId).catch(() => null)
+      if (leaderboard?.leaderboard?.length) {
+        row.leaderboard_json = leaderboard.leaderboard
+        row.last_scores_fetch = new Date().toISOString()
+        result.leaderboardsUpdated++
+      }
     }
 
     if (existing) {
