@@ -21,8 +21,9 @@ export async function middleware(request: NextRequest) {
   const protectedPaths = ['/dashboard', '/pool/create', '/pool/join']
   const isProtected = protectedPaths.some(p => request.nextUrl.pathname.startsWith(p))
   if (!user && isProtected) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'; url.searchParams.set('redirect', request.nextUrl.pathname)
+    const url = new URL('/login', request.url)
+    const redirectTo = `${request.nextUrl.pathname}${request.nextUrl.search}`
+    url.searchParams.set('redirect', redirectTo)
     return NextResponse.redirect(url)
   }
   if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {

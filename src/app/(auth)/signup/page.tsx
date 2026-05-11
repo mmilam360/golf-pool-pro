@@ -42,7 +42,6 @@ function PasswordInput({ value, onChange, label }: { value: string; onChange: (v
 export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -53,21 +52,30 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
     setLoading(true)
+    const trimmedName = displayName.trim()
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName } },
+      options: { data: { display_name: trimmedName } },
     })
     if (error) {
       setError(error.message)
       setLoading(false)
     } else if (data.session) {
-      router.push('/dashboard')
+      const redirectParam = new URLSearchParams(window.location.search).get('redirect')
+      let redirectTo = '/dashboard'
+      if (redirectParam && !redirectParam.includes('\\')) {
+        try {
+          const url = new URL(redirectParam, window.location.origin)
+          if (url.origin === window.location.origin && url.pathname.startsWith('/')) {
+            redirectTo = `${url.pathname}${url.search}${url.hash}`
+          }
+        } catch {
+          redirectTo = '/dashboard'
+        }
+      }
+      router.push(redirectTo)
     } else {
       setSuccess(true)
       setLoading(false)
@@ -93,7 +101,7 @@ export default function SignupPage() {
       )}
       <form onSubmit={handleSignup} className="space-y-4">
         <div>
-          <label className="block text-stone-700 text-sm font-medium mb-1">Display Name</label>
+          <label className="block text-stone-700 text-sm font-medium mb-1">Name</label>
           <input
             type="text"
             value={displayName}
@@ -113,7 +121,6 @@ export default function SignupPage() {
           />
         </div>
         <PasswordInput label="Password" value={password} onChange={setPassword} />
-        <PasswordInput label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} />
         <button
           type="submit"
           disabled={loading}
