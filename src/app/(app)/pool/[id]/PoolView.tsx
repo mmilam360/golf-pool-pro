@@ -39,6 +39,15 @@ function thruLabel(thru?: string) {
   return value === 'F' ? 'F' : `THRU ${value}`
 }
 
+function CopyIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M7 7V4.75C7 3.78 7.78 3 8.75 3h6.5C16.22 3 17 3.78 17 4.75v6.5c0 .97-.78 1.75-1.75 1.75H13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />
+      <path d="M3 8.75C3 7.78 3.78 7 4.75 7h6.5c.97 0 1.75.78 1.75 1.75v6.5c0 .97-.78 1.75-1.75 1.75h-6.5C3.78 17 3 16.22 3 15.25v-6.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />
+    </svg>
+  )
+}
+
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId }: Props) {
   const [tab, setTab] = useState<Tab>(initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-team')
   const [entries, setEntries] = useState(initialEntries)
@@ -49,7 +58,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [loadingScores, setLoadingScores] = useState(false)
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
-  const [inviteText, setInviteText] = useState('')
+  const [inviteUrl, setInviteUrl] = useState('')
   const [emailRecipients, setEmailRecipients] = useState('')
   const [emailSending, setEmailSending] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
@@ -61,9 +70,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
 
   useEffect(() => {
-    const url = `${window.location.origin}/pool/join?code=${pool.passcode}`
-    setInviteText(`Join ${pool.name} on Golf Pool Pro.\nInvite code: ${pool.passcode}\nLink: ${url}`)
-  }, [pool.name, pool.passcode])
+    setInviteUrl(`${window.location.origin}/pool/join?code=${pool.passcode}`)
+  }, [pool.passcode])
 
   // Fetch live leaderboard
   const fetchScores = useCallback(async () => {
@@ -112,17 +120,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     setSaving(false)
   }
 
-  function copyInvite() {
-    const url = `${window.location.origin}/pool/join?code=${pool.passcode}`
-    navigator.clipboard?.writeText(inviteText || `Join ${pool.name} on Golf Pool Pro.\nInvite code: ${pool.passcode}\nLink: ${url}`)
-    setStatusMessage('Invite text copied.')
+  function copyToClipboard(value: string, message: string) {
+    navigator.clipboard?.writeText(value)
+    setStatusMessage(message)
     setTimeout(() => setStatusMessage(''), 2500)
   }
 
+  function copyInviteLink() {
+    copyToClipboard(inviteUrl || `${window.location.origin}/pool/join?code=${pool.passcode}`, 'Invite link copied.')
+  }
+
   function copyInviteCode() {
-    navigator.clipboard?.writeText(pool.passcode)
-    setStatusMessage('Invite code copied.')
-    setTimeout(() => setStatusMessage(''), 2500)
+    copyToClipboard(pool.passcode, 'Invite code copied.')
   }
 
   async function sendInvites() {
@@ -225,27 +234,30 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {statusMessage && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
 
       <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-emerald-950">Invite players</p>
-            <p className="text-sm text-stone-700">Copy and paste this quick invite. It includes the code and direct join link.</p>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <button onClick={copyInviteCode} className="rounded-lg border border-emerald-700 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 shadow-sm hover:bg-emerald-50">
-              Copy code
+        <div className="mb-3">
+          <p className="text-sm font-semibold text-emerald-950">Invite players</p>
+          <p className="text-sm text-stone-700">Send the code or the direct join link.</p>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-white px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">Code</p>
+              <p className="font-mono text-base font-semibold tracking-[0.08em] text-emerald-900">{pool.passcode}</p>
+            </div>
+            <button onClick={copyInviteCode} className="shrink-0 rounded-md border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite code">
+              <CopyIcon />
             </button>
-            <button onClick={copyInvite} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800">
-              Copy invite
+          </div>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-white px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">Link</p>
+              <p className="truncate font-mono text-xs text-stone-900">{inviteUrl || `/pool/join?code=${pool.passcode}`}</p>
+            </div>
+            <button onClick={copyInviteLink} className="shrink-0 rounded-md border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite link">
+              <CopyIcon />
             </button>
           </div>
         </div>
-        <textarea
-          readOnly
-          value={inviteText || `Invite code: ${pool.passcode}`}
-          onFocus={e => e.currentTarget.select()}
-          className="mt-3 h-32 w-full resize-none rounded-lg border border-amber-200 bg-white px-3 py-2 font-mono text-xs leading-5 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-          aria-label="Copy and paste invite text"
-        />
         {isOwner && (
           <div className="mt-4 border-t border-amber-200 pt-4">
             <label className="block text-sm font-medium text-stone-700 mb-2">Email invites</label>
