@@ -156,14 +156,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
   }
 
-  // Lock pool (admin)
-  async function lockPool() {
+  // Lock/unlock pool (admin)
+  async function setPoolLock(locked: boolean) {
     const { error } = await supabase
       .from('gpp_pools')
-      .update({ is_locked: true })
+      .update({ is_locked: locked })
       .eq('id', pool.id)
     if (!error) {
-      pool.is_locked = true
+      pool.is_locked = locked
+      setStatusMessage(locked ? 'Pool locked. Picks are closed.' : 'Pool unlocked. Entries and picks are open.')
       window.location.reload()
     }
   }
@@ -380,13 +381,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           {/* Pool controls */}
           <div className="bg-white rounded-xl p-5 border border-stone-200 shadow-sm">
             <h3 className="text-lg font-semibold mb-4 text-emerald-950">Pool controls</h3>
-            <div className="flex gap-3">
-              {!isLocked && (
-                <button onClick={lockPool}
-                  className="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-5 py-2 rounded-lg text-sm transition-colors">
-                  Lock Picks
-                </button>
-              )}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-stone-600">
+                {isLocked ? 'Pool is locked. Unlock it if you need late entries or pick changes.' : 'Pool is open. Lock it when entries and picks are final.'}
+              </p>
+              <button onClick={() => setPoolLock(!isLocked)}
+                className={`${isLocked ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-amber-600 hover:bg-amber-500'} text-white font-semibold px-5 py-2 rounded-lg text-sm transition-colors`}>
+                {isLocked ? 'Unlock Pool' : 'Lock Picks'}
+              </button>
             </div>
           </div>
 

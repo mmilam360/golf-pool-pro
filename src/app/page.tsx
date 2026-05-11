@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 
 export default function Home() {
@@ -13,6 +14,7 @@ export default function Home() {
       <main className="max-w-6xl mx-auto px-6 py-16 md:py-20">
         <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-10 items-center mb-16">
           <section>
+            <Image src="/brand/golf-pool-pro-logo.png" alt="Golf Pool Pro logo" width={220} height={220} priority className="mb-8 h-32 w-auto max-w-full object-contain" />
             <p className="font-script text-2xl text-red-900 mb-3 -rotate-1">major week, handled</p>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700 mb-4">Clubhouse pools for tournament week</p>
             <h1 className="font-display text-5xl md:text-7xl font-bold mb-5 tracking-tight text-emerald-950">Golf Pool Pro</h1>
