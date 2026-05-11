@@ -16,7 +16,7 @@ interface Props {
 type Tab = 'leaderboard' | 'my-team' | 'admin'
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId }: Props) {
-  const [tab, setTab] = useState<Tab>('leaderboard')
+  const [tab, setTab] = useState<Tab>(initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-team')
   const [entries, setEntries] = useState(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>([])
@@ -24,6 +24,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [myPicks, setMyPicks] = useState<string[]>(initialMyEntry?.golfer_picks || [])
   const [loadingScores, setLoadingScores] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [statusMessage, setStatusMessage] = useState('')
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
   const [removeReason, setRemoveReason] = useState('')
   const supabase = createClient()
@@ -39,8 +40,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const res = await fetch(`/api/tournaments/leaderboard?id=${tournament.external_id}`)
       if (res.ok) {
         const data = await res.json()
-        setLeaderboard(data.leaderboard || [])
-        setField(data.leaderboard || [])
+        const liveLeaderboard = data.leaderboard || []
+        if (liveLeaderboard.length > 0) {
+          setLeaderboard(liveLeaderboard)
+          setField(liveLeaderboard)
+        }
       }
     } catch {}
     setLoadingScores(false)
@@ -69,8 +73,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       .eq('id', myEntry.id)
     if (!error) {
       setMyEntry({ ...myEntry, golfer_picks: myPicks })
+      setStatusMessage('Picks saved.')
+      setTimeout(() => setStatusMessage(''), 2500)
     }
     setSaving(false)
+  }
+
+  function copyInvite() {
+    const url = `${window.location.origin}/pool/join?code=${pool.passcode}`
+    navigator.clipboard?.writeText(url)
+    setStatusMessage('Invite link copied.')
+    setTimeout(() => setStatusMessage(''), 2500)
   }
 
   // Toggle golfer in picks
@@ -143,22 +156,37 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold">{pool.name}</h1>
-        <p className="text-zinc-400 mt-1">{tournament?.name || 'Tournament'} at {tournament?.course || 'TBD'}</p>
+        <p className="text-stone-600 mt-1">{tournament?.name || 'Tournament'} at {tournament?.course || 'TBD'}</p>
         <div className="flex items-center gap-4 mt-2 text-sm">
-          <span className="text-zinc-500">Passcode: <span className="text-emerald-400 font-mono">{pool.passcode}</span></span>
-          <span className="text-zinc-500">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
-          {pool.buy_in_amount > 0 && <span className="text-zinc-500">${pool.buy_in_amount} buy-in</span>}
+          <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
+          <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
+          <span className="text-stone-600">Field: {field.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.length || 0)} golfers</span>
+          {pool.buy_in_amount > 0 && <span className="text-stone-600">${pool.buy_in_amount} buy-in</span>}
           {isLocked && <span className="text-amber-400">Picks locked</span>}
           {pool.is_completed && <span className="text-emerald-400">Final results</span>}
         </div>
       </div>
 
+      {statusMessage && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
+
+      <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-emerald-950">Invite players</p>
+            <p className="text-sm text-stone-700">Send the join code <span className="font-mono font-semibold text-emerald-800">{pool.passcode}</span> or copy the invite link.</p>
+          </div>
+          <button onClick={copyInvite} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800">
+            Copy invite link
+          </button>
+        </div>
+      </div>
+
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-zinc-900 rounded-lg p-1 inline-flex">
+      <div className="flex gap-1 mb-6 bg-stone-100 rounded-lg p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-team', ...(isOwner ? ['admin'] as Tab[] : [])] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              tab === t ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'
+              tab === t ? 'bg-white text-emerald-900 shadow-sm' : 'text-stone-600 hover:text-emerald-800'
             }`}>
             {t === 'leaderboard' ? 'Leaderboard' : t === 'my-team' ? 'My Team' : 'Admin'}
           </button>
@@ -170,8 +198,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         <div>
           {loadingScores && <p className="text-zinc-500 text-sm mb-4">Loading scores...</p>}
           {scoredEntries.length === 0 ? (
-            <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 text-center">
-              <p className="text-zinc-500">No entries yet. Share passcode <span className="text-emerald-400 font-mono">{pool.passcode}</span></p>
+            <div className="bg-white rounded-xl p-8 border border-stone-200 text-center">
+              <p className="text-stone-600">No entries yet. Share passcode <span className="text-emerald-700 font-mono">{pool.passcode}</span></p>
             </div>
           ) : (
             <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
@@ -229,7 +257,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           ) : (
             <>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-zinc-400 text-sm">
+                <p className="text-stone-600 text-sm">
                   Pick {pool.pick_count} golfers. Best {pool.count_scores} scores count.
                   {isLocked && <span className="text-amber-400 ml-2">Picks are locked.</span>}
                 </p>
@@ -242,8 +270,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
 
               {/* Selected picks */}
-              <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800 mb-4">
-                <h3 className="text-sm font-medium text-zinc-400 mb-2">
+              <div className="bg-white rounded-xl p-4 border border-stone-200 mb-4">
+                <h3 className="text-sm font-medium text-stone-700 mb-2">
                   Your Picks ({myPicks.length}/{pool.pick_count})
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -255,13 +283,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       )}
                     </span>
                   ))}
-                  {myPicks.length === 0 && <span className="text-zinc-600 text-sm">No golfers selected yet</span>}
+                  {myPicks.length === 0 && <span className="text-stone-500 text-sm">No golfers selected yet</span>}
                 </div>
               </div>
 
               {/* Golfer list */}
               {!isLocked && field.length > 0 && (
-                <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
+                <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
                   <div className="max-h-96 overflow-y-auto">
                     {field.sort((a, b) => a.name.localeCompare(b.name)).map(player => {
                       const selected = myPicks.includes(player.name)
@@ -269,10 +297,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         <button key={player.id}
                           onClick={() => togglePick(player.name)}
                           disabled={!selected && myPicks.length >= pool.pick_count}
-                          className={`w-full text-left px-4 py-2 flex items-center justify-between border-b border-zinc-800/50 transition-colors ${
-                            selected ? 'bg-emerald-950/30 text-emerald-300' :
-                            myPicks.length >= pool.pick_count ? 'text-zinc-600 cursor-not-allowed' :
-                            'text-zinc-300 hover:bg-zinc-800'
+                          className={`w-full text-left px-4 py-2 flex items-center justify-between border-b border-stone-100 transition-colors ${
+                            selected ? 'bg-emerald-50 text-emerald-900' :
+                            myPicks.length >= pool.pick_count ? 'text-stone-400 cursor-not-allowed' :
+                            'text-stone-800 hover:bg-stone-50'
                           }`}>
                           <span className="text-sm">{player.name}</span>
                           {selected && <span className="text-emerald-400 text-xs">Selected</span>}
@@ -284,8 +312,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               )}
 
               {field.length === 0 && (
-                <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 text-center">
-                  <p className="text-zinc-500">Tournament field not loaded yet. Check back when the tournament is closer.</p>
+                <div className="bg-white rounded-xl p-8 border border-stone-200 text-center">
+                  <p className="text-stone-600">Tournament field not loaded yet. Check back when the tournament is closer.</p>
                 </div>
               )}
             </>

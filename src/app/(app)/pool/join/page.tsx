@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -9,6 +9,11 @@ export default function JoinPoolPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('code')
+    if (code) setPasscode(code.toUpperCase())
+  }, [])
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,11 +81,11 @@ export default function JoinPoolPage() {
   return (
     <div className="max-w-lg mx-auto">
       <h1 className="text-3xl font-bold mb-8">Join a Pool</h1>
-      {error && <div className="bg-red-900/50 text-red-300 p-3 rounded-lg mb-4 text-sm">{error}</div>}
+      {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm border border-red-200">{error}</div>}
 
-      <form onSubmit={handleJoin} className="space-y-6 bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+      <form onSubmit={handleJoin} className="space-y-6 bg-white rounded-xl p-6 border border-stone-200 shadow-sm">
         <div>
-          <label className="block text-zinc-300 text-sm font-medium mb-1">Pool Passcode</label>
+          <label className="block text-stone-700 text-sm font-medium mb-1">Pool Passcode</label>
           <input
             type="text"
             value={passcode}
@@ -88,7 +93,7 @@ export default function JoinPoolPage() {
             required
             maxLength={8}
             placeholder="Enter the 6-character passcode"
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white text-center text-2xl font-mono tracking-widest focus:outline-none focus:border-emerald-500"
+            className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 text-center text-2xl font-mono tracking-widest focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
         <button
