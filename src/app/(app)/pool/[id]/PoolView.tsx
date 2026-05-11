@@ -134,6 +134,22 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     copyToClipboard(pool.passcode, 'Invite code copied.')
   }
 
+  async function importCsvEmails(file: File | undefined) {
+    if (!file) return
+    const text = await file.text()
+    const found = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []
+    if (found.length === 0) {
+      setStatusMessage('No email addresses found in that CSV.')
+      return
+    }
+
+    const existing = emailRecipients.split(/[\s,;]+/).map(email => email.trim()).filter(Boolean)
+    const merged = Array.from(new Set([...existing, ...found].map(email => email.toLowerCase())))
+    setEmailRecipients(merged.join(', '))
+    setStatusMessage(`${found.length} ${found.length === 1 ? 'email' : 'emails'} found in CSV.`)
+    setTimeout(() => setStatusMessage(''), 3000)
+  }
+
   async function sendInvites() {
     const recipients = emailRecipients.split(/[\s,;]+/).map(email => email.trim()).filter(Boolean)
     if (recipients.length === 0) {
@@ -268,6 +284,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 placeholder="Emails separated by commas"
                 className="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               />
+              <label className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-center text-sm font-semibold text-stone-800 shadow-sm hover:bg-stone-50">
+                Import CSV
+                <input
+                  type="file"
+                  accept=".csv,text/csv,text/plain"
+                  className="sr-only"
+                  onChange={async e => {
+                    await importCsvEmails(e.target.files?.[0])
+                    e.currentTarget.value = ''
+                  }}
+                />
+              </label>
               <button onClick={sendInvites} disabled={emailSending} className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-stone-800 disabled:opacity-50">
                 {emailSending ? 'Sending...' : 'Send invites'}
               </button>
