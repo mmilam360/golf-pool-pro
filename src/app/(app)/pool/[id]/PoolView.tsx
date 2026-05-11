@@ -326,7 +326,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           ) : (
             <>
             <div 
-              className="relative rounded-sm border-[10px] border-[#005b3c] bg-[#005b3c] shadow-[0_22px_0_#003622,0_34px_48px_rgba(15,47,37,0.32)] md:border-[16px]"
+              className="relative rounded-sm border-[10px] border-[#005b3c] bg-[#005b3c] shadow-[14px_10px_0_#003622,0_28px_44px_rgba(15,47,37,0.28)] md:border-[16px]"
               style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
             >
               <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
@@ -452,7 +452,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <p className="mt-2 border-2 border-[#111] bg-[#f7f7f2] px-4 py-3 text-xs font-bold uppercase tracking-[0.08em] text-[#111]">Live scoring appears here when the tournament starts.</p>
               )}
             </div>
-            <div className="mx-auto min-h-[92vh] w-16 border-x-4 border-[#003622] bg-[#005b3c] shadow-[12px_0_0_#003622] md:w-20" />
+            <div className="mx-auto h-36 w-16 border-x-4 border-[#003622] bg-[#005b3c] shadow-[12px_0_0_#003622] md:h-44 md:w-20" />
             </>
           )}
         </div>
