@@ -28,6 +28,26 @@ function scoreClass(score: number | null) {
   return 'text-stone-900'
 }
 
+function scoreBoxClass(score: number | null) {
+  if (score === null) return 'border-stone-200 bg-stone-50 text-stone-400'
+  if (score < 0) return 'border-emerald-200 bg-emerald-50 text-emerald-900'
+  if (score > 0) return 'border-red-200 bg-red-50 text-red-700'
+  return 'border-stone-300 bg-white text-stone-900'
+}
+
+function shortName(name: string) {
+  const clean = name.replace(/^OB Stand-in #/, 'OB ')
+  if (clean.startsWith('OB ')) return clean
+  const parts = clean.split(' ').filter(Boolean)
+  return parts.length > 1 ? parts[parts.length - 1] : clean
+}
+
+function thruLabel(thru?: string) {
+  if (!thru) return '—'
+  const value = String(thru).toUpperCase()
+  return value === 'F' ? 'F' : `THRU ${value}`
+}
+
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId }: Props) {
   const [tab, setTab] = useState<Tab>(initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-team')
   const [entries, setEntries] = useState(initialEntries)
@@ -253,53 +273,78 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             <div className="overflow-hidden rounded-xl border border-stone-300 bg-[#fbf7ed] shadow-sm">
               <div className="border-b border-stone-300 bg-white/80 px-4 py-3 text-center">
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-900">Pool leaders</p>
-                <p className="mt-1 text-sm text-stone-600">Best {pool.count_scores} of {pool.pick_count} scores count</p>
+                <p className="mt-1 text-sm text-stone-600">Top {pool.count_scores} scores to par currently counting for each entry.</p>
               </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-stone-400 bg-[#f3ead6] text-[11px] uppercase tracking-[0.12em] text-stone-700">
-                      <th className="sticky left-0 z-20 border-r border-stone-300 bg-[#f3ead6] px-3 py-2 text-center">Rank</th>
-                      <th className="sticky left-[56px] z-20 min-w-44 border-r border-stone-300 bg-[#f3ead6] px-3 py-2 text-left">Entry</th>
-                      <th className="border-r border-stone-300 px-3 py-2 text-center">Total</th>
-                      <th className="border-r border-stone-300 px-3 py-2 text-center">Cnt</th>
-                      {Array.from({ length: pool.pick_count }, (_, i) => (
-                        <th key={i} className="min-w-16 border-r border-stone-300 px-2 py-2 text-center">G{i + 1}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scoredEntries.map(entry => {
-                      const isMe = entry.entryId === myEntry?.id
-                      return (
-                        <tr key={entry.entryId} className={`border-b border-stone-300 ${isMe ? 'bg-emerald-50/80' : 'bg-white/55'}`}>
-                          <td className="sticky left-0 z-10 border-r border-stone-300 bg-inherit px-3 py-2 text-center font-mono text-base font-semibold text-red-700">
-                            {entry.rank || '—'}
-                          </td>
-                          <td className="sticky left-[56px] z-10 border-r border-stone-300 bg-inherit px-3 py-2 font-semibold text-stone-900">
-                            <div className="whitespace-nowrap">{entry.displayName} {isMe && <span className="text-xs font-normal text-emerald-700">(you)</span>}</div>
-                          </td>
-                          <td className={`border-r border-stone-300 px-3 py-2 text-center font-mono text-base font-bold ${scoreClass(entry.totalScore)}`}>
-                            {formatScore(entry.totalScore)}
-                          </td>
-                          <td className="border-r border-stone-300 px-3 py-2 text-center font-mono text-stone-700">
-                            {scoringIsLive ? entry.pickScores.filter(p => p.counted && !p.isObStandIn).length : 0}/{pool.count_scores}
-                            {entry.obStandIns > 0 && <span className="block text-[10px] text-amber-700">+{entry.obStandIns} OB</span>}
-                          </td>
-                          {Array.from({ length: pool.pick_count }, (_, i) => {
-                            const pick = entry.pickScores[i]
-                            return (
-                              <td key={i} title={pick?.name || ''} className={`border-r border-stone-300 px-2 py-2 text-center font-mono ${pick?.counted ? 'bg-amber-50' : ''} ${scoreClass(pick?.scoreToPar ?? null)}`}>
-                                <div className="text-[13px] font-bold">{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className="max-w-14 truncate text-[10px] font-sans text-stone-500">{pick?.name?.split(' ').slice(-1)[0] || ''}</div>
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <div className="border-b border-stone-300 bg-[#f3ead6] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-stone-700">
+                <div className="hidden grid-cols-[54px_160px_70px_1fr_150px] items-center gap-2 lg:grid">
+                  <span className="text-center">Rank</span>
+                  <span>Entry</span>
+                  <span className="text-center">Total</span>
+                  <span>Counting golfers</span>
+                  <span>Next out</span>
+                </div>
+                <div className="grid grid-cols-[44px_1fr_64px] items-center gap-2 lg:hidden">
+                  <span className="text-center">Rank</span>
+                  <span>Entry / counting golfers</span>
+                  <span className="text-center">Total</span>
+                </div>
+              </div>
+              <div className="divide-y divide-stone-300">
+                {scoredEntries.map(entry => {
+                  const isMe = entry.entryId === myEntry?.id
+                  const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
+                  const nextOut = entry.pickScores.filter(pick => !pick.counted && pick.scoreToPar !== null).slice(0, 2)
+                  const countedReal = countingPicks.filter(pick => !pick.isObStandIn).length
+                  return (
+                    <div key={entry.entryId} className={`grid gap-3 px-3 py-3 lg:grid-cols-[54px_160px_70px_1fr_150px] lg:items-center lg:gap-2 ${isMe ? 'bg-emerald-50/80' : 'bg-white/60'}`}>
+                      <div className="hidden text-center font-mono text-lg font-black text-red-700 lg:block">{entry.rank || '—'}</div>
+                      <div className="hidden lg:block">
+                        <p className="font-semibold text-stone-950">{entry.displayName} {isMe && <span className="text-xs font-normal text-emerald-700">(you)</span>}</p>
+                        <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-stone-500">
+                          {scoringIsLive ? `${countedReal}/${pool.count_scores} counting` : 'Waiting for live scoring'}
+                          {entry.obStandIns > 0 && <span className="text-amber-700"> · {entry.obStandIns} OB</span>}
+                        </p>
+                      </div>
+                      <div className={`hidden text-center font-mono text-xl font-black lg:block ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
+
+                      <div className="grid grid-cols-[44px_1fr_64px] items-start gap-2 lg:hidden">
+                        <div className="text-center font-mono text-lg font-black text-red-700">{entry.rank || '—'}</div>
+                        <div>
+                          <p className="font-semibold text-stone-950">{entry.displayName} {isMe && <span className="text-xs font-normal text-emerald-700">(you)</span>}</p>
+                          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-stone-500">
+                            {scoringIsLive ? `${countedReal}/${pool.count_scores} counting` : 'Waiting for live scoring'}
+                            {entry.obStandIns > 0 && <span className="text-amber-700"> · {entry.obStandIns} OB</span>}
+                          </p>
+                        </div>
+                        <div className={`text-center font-mono text-xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-1.5 lg:grid-cols-8">
+                        {Array.from({ length: pool.count_scores }, (_, i) => {
+                          const pick = countingPicks[i]
+                          return (
+                            <div key={i} title={pick?.name || ''} className={`min-h-[54px] rounded-sm border px-2 py-1.5 ${scoreBoxClass(pick?.scoreToPar ?? null)}`}>
+                              <div className="text-center">
+                                <div className="truncate text-[9px] font-bold uppercase leading-tight tracking-[0.02em]">{pick ? shortName(pick.name) : '—'}</div>
+                                <div className="font-mono text-sm font-black leading-tight">{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                              </div>
+                              <div className="mt-0.5 text-center font-mono text-[8px] font-semibold uppercase tracking-[0.06em] text-stone-500">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      <div className="hidden space-y-1 lg:block">
+                        {nextOut.length ? nextOut.map(pick => (
+                          <div key={`${entry.entryId}-${pick.name}`} className="flex items-center justify-between gap-2 border-b border-stone-200 pb-1 text-xs last:border-b-0">
+                            <span className="truncate text-stone-600">{shortName(pick.name)}</span>
+                            <span className={`font-mono font-bold ${scoreClass(pick.scoreToPar)}`}>{formatScore(pick.scoreToPar)}</span>
+                          </div>
+                        )) : <span className="text-xs text-stone-400">—</span>}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
               {!scoringIsLive && (
                 <p className="border-t border-stone-300 bg-white/70 px-4 py-3 text-xs text-stone-600">Live scoring appears here when the tournament starts.</p>
