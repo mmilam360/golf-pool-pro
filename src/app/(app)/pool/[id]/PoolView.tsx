@@ -273,10 +273,44 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <p className="border-b border-[#111] bg-[#efeee6] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
                   Top {pool.count_scores} scores to par counting · {scoringIsLive ? 'Live board' : 'Waiting for scoring'}
                 </p>
-                <p className="border-b border-[#111] bg-[#f7f7f2] px-3 py-2 text-[10px] font-black uppercase tracking-[0.08em] text-[#555] lg:hidden">
-                  Swipe sideways to view all golfer columns and total.
-                </p>
-                <div className="overflow-x-auto bg-[#f7f7f2]">
+                <div className="bg-[#f7f7f2] lg:hidden">
+                  {scoredEntries.map((entry, entryIndex) => {
+                    const isMe = entry.entryId === myEntry?.id
+                    const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
+                    const countedReal = countingPicks.filter(pick => !pick.isObStandIn).length
+                    return (
+                      <details key={entry.entryId} open={entryIndex === 0} className="group border-b-2 border-[#111]">
+                        <summary className="grid cursor-pointer list-none grid-cols-[44px_1fr_74px_20px] items-center gap-2 bg-[#f7f7f2] px-2 py-2 text-left [&::-webkit-details-marker]:hidden">
+                          <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</div>
+                            <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
+                              {scoringIsLive ? `${countedReal}/${pool.count_scores} counting` : 'Waiting'}
+                              {entry.obStandIns > 0 && <span className="text-[#b21e23]"> · {entry.obStandIns} OB</span>}
+                              {isMe && <span className="text-[#005b3c]"> · You</span>}
+                            </div>
+                          </div>
+                          <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
+                          <div className="text-center text-[9px] font-black uppercase tracking-[0.08em] text-[#111]"><span className="group-open:hidden">Open</span><span className="hidden group-open:inline">Close</span></div>
+                        </summary>
+                        <div className="grid grid-cols-4 border-t border-[#111] bg-[#fbfbf5]">
+                          {Array.from({ length: pool.count_scores }, (_, i) => {
+                            const pick = countingPicks[i]
+                            return (
+                              <div key={i} className="border-r border-t border-[#111] px-1 py-2 text-center even:border-r-0">
+                                <div className="text-[8px] font-black uppercase tracking-[0.12em] text-[#555]">G{i + 1}</div>
+                                <div className={`mt-0.5 text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                                <div className="mt-1 truncate text-[10px] font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                                <div className="mt-1 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </details>
+                    )
+                  })}
+                </div>
+                <div className="hidden overflow-x-auto bg-[#f7f7f2] lg:block">
                   <table className="min-w-[1180px] w-full border-collapse text-[12px] text-[#111]">
                     <thead>
                       <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
