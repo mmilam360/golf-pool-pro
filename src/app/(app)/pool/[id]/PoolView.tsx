@@ -452,8 +452,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <p className="mt-2 border-2 border-[#111] bg-[#f7f7f2] px-4 py-3 text-xs font-bold uppercase tracking-[0.08em] text-[#111]">Live scoring appears here when the tournament starts.</p>
               )}
             </div>
-            <div className="mx-auto h-12 w-7 border-x-2 border-[#003622] bg-[#005b3c] shadow-[7px_0_0_#003622]" />
-            <div className="mx-auto h-2 w-28 rounded-sm bg-[#003622] shadow-[0_8px_18px_rgba(15,47,37,0.24)]" />
+            <div className="mx-auto min-h-[92vh] w-16 border-x-4 border-[#003622] bg-[#005b3c] shadow-[12px_0_0_#003622] md:w-20" />
             </>
           )}
         </div>
