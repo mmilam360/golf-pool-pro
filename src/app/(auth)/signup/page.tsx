@@ -42,6 +42,7 @@ function PasswordInput({ value, onChange, label }: { value: string; onChange: (v
 export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -52,8 +53,12 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
     const trimmedName = displayName.trim()
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    setLoading(true)
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -121,6 +126,7 @@ export default function SignupPage() {
           />
         </div>
         <PasswordInput label="Password" value={password} onChange={setPassword} />
+        <PasswordInput label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} />
         <button
           type="submit"
           disabled={loading}

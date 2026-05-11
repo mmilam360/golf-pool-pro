@@ -49,6 +49,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [loadingScores, setLoadingScores] = useState(false)
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [inviteText, setInviteText] = useState('')
   const [emailRecipients, setEmailRecipients] = useState('')
   const [emailSending, setEmailSending] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
@@ -58,6 +59,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const activeEntries = entries.filter(e => !e.is_removed)
   const isLocked = pool.is_locked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
+
+  useEffect(() => {
+    const url = `${window.location.origin}/pool/join?code=${pool.passcode}`
+    setInviteText(`Join ${pool.name} on Golf Pool Pro.\nInvite code: ${pool.passcode}\nLink: ${url}`)
+  }, [pool.name, pool.passcode])
 
   // Fetch live leaderboard
   const fetchScores = useCallback(async () => {
@@ -108,8 +114,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   function copyInvite() {
     const url = `${window.location.origin}/pool/join?code=${pool.passcode}`
-    navigator.clipboard?.writeText(url)
-    setStatusMessage('Invite link copied.')
+    navigator.clipboard?.writeText(inviteText || `Join ${pool.name} on Golf Pool Pro.\nInvite code: ${pool.passcode}\nLink: ${url}`)
+    setStatusMessage('Invite text copied.')
+    setTimeout(() => setStatusMessage(''), 2500)
+  }
+
+  function copyInviteCode() {
+    navigator.clipboard?.writeText(pool.passcode)
+    setStatusMessage('Invite code copied.')
     setTimeout(() => setStatusMessage(''), 2500)
   }
 
@@ -213,15 +225,27 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {statusMessage && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
 
       <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-emerald-950">Invite players</p>
-            <p className="text-sm text-stone-700">Send the join code <span className="font-mono font-semibold text-emerald-800">{pool.passcode}</span> or copy the invite link.</p>
+            <p className="text-sm text-stone-700">Copy and paste this quick invite. It includes the code and direct join link.</p>
           </div>
-          <button onClick={copyInvite} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800">
-            Copy invite link
-          </button>
+          <div className="flex shrink-0 gap-2">
+            <button onClick={copyInviteCode} className="rounded-lg border border-emerald-700 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 shadow-sm hover:bg-emerald-50">
+              Copy code
+            </button>
+            <button onClick={copyInvite} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800">
+              Copy invite
+            </button>
+          </div>
         </div>
+        <textarea
+          readOnly
+          value={inviteText || `Invite code: ${pool.passcode}`}
+          onFocus={e => e.currentTarget.select()}
+          className="mt-3 h-32 w-full resize-none rounded-lg border border-amber-200 bg-white px-3 py-2 font-mono text-xs leading-5 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          aria-label="Copy and paste invite text"
+        />
         {isOwner && (
           <div className="mt-4 border-t border-amber-200 pt-4">
             <label className="block text-sm font-medium text-stone-700 mb-2">Email invites</label>
