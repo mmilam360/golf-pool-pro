@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Fragment, useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
@@ -420,13 +420,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     {refreshCountdown}s
                   </div>
                 </div>
-                <p className="border-b border-[#111] bg-[#efeee6] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
-                  Top {pool.count_scores} scores to par counting · {scoringIsLive ? 'Live board' : 'Waiting for scoring'}
-                </p>
                 <div className="bg-[#f7f7f2] lg:hidden">
                   {scoredEntries.map((entry, entryIndex) => {
                     const isMe = entry.entryId === myEntry?.id
                     const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
+                    const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                     return (
                       <details key={entry.entryId} open={entryIndex === 0} className="group border-b-2 border-[#111]">
                         <summary className="grid cursor-pointer list-none grid-cols-[44px_1fr_74px_20px] items-center gap-2 bg-[#f7f7f2] px-2 py-2 text-left [&::-webkit-details-marker]:hidden">
@@ -465,6 +463,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             )
                           })}
                         </div>
+                        {outOfBoundsPicks.length > 0 && (
+                          <div className="border-t-2 border-[#111] bg-[#efeee6] px-2 py-1.5 text-left">
+                            <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Out of Bounds Golfers</div>
+                            <div className="flex flex-wrap gap-1">
+                              {outOfBoundsPicks.map(pick => (
+                                <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                  <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </details>
                     )
                   })}
@@ -475,7 +485,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
                         <th className="w-[5%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
                         <th className="w-[19%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
-                        <th className="border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center" colSpan={pool.count_scores}>Counting golfers</th>
+                        <th className="border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center" colSpan={pool.count_scores}>Top {pool.count_scores} golfers</th>
                         <th className="w-[9%] border-b-2 border-[#111] px-1 py-1.5 text-center">Total</th>
                       </tr>
                     </thead>
@@ -483,36 +493,54 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       {scoredEntries.map(entry => {
                         const isMe = entry.entryId === myEntry?.id
                         const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
+                        const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                         return (
-                          <tr key={entry.entryId} className="bg-[#f7f7f2]">
-                            <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">
-                              {entry.rank || '—'}
-                            </td>
-                            <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
-                              <div className="flex min-w-0 items-center gap-1.5">
-                                {isMe && <span aria-label="Your entry" className="h-2 w-2 shrink-0 rounded-full bg-[#005b3c]" />}
-                                <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
-                              </div>
-                              {(!scoringIsLive || entry.obStandIns > 0) && (
-                                <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                                  {scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                          <Fragment key={entry.entryId}>
+                            <tr key={`${entry.entryId}-top`} className="bg-[#f7f7f2]">
+                              <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">
+                                {entry.rank || '—'}
+                              </td>
+                              <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                  {isMe && <span aria-label="Your entry" className="h-2 w-2 shrink-0 rounded-full bg-[#005b3c]" />}
+                                  <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
                                 </div>
-                              )}
-                            </td>
-                            {Array.from({ length: pool.count_scores }, (_, i) => {
-                              const pick = countingPicks[i]
-                              return (
-                                <td key={i} title={pick?.name || ''} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
-                                  <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                  <div className="mt-0.5 truncate text-xs font-black uppercase leading-none tracking-[0.01em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
-                                  <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                                {(!scoringIsLive || entry.obStandIns > 0) && (
+                                  <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
+                                    {scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                                  </div>
+                                )}
+                              </td>
+                              {Array.from({ length: pool.count_scores }, (_, i) => {
+                                const pick = countingPicks[i]
+                                return (
+                                  <td key={i} title={pick?.name || ''} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                                    <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                                    <div className="mt-0.5 truncate text-xs font-black uppercase leading-none tracking-[0.01em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                                  </td>
+                                )
+                              })}
+                              <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>
+                                {formatScore(entry.totalScore)}
+                              </td>
+                            </tr>
+                            {outOfBoundsPicks.length > 0 && (
+                              <tr key={`${entry.entryId}-out`} className="bg-[#efeee6]">
+                                <td className="border-b border-r-2 border-[#111] bg-[#efeee6]" />
+                                <td className="border-b border-r-2 border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Out of Bounds Golfers</td>
+                                <td className="border-b border-[#111] bg-[#efeee6] px-2 py-1 text-left" colSpan={pool.count_scores + 1}>
+                                  <div className="flex flex-wrap gap-1">
+                                    {outOfBoundsPicks.map(pick => (
+                                      <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                        <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                                      </span>
+                                    ))}
+                                  </div>
                                 </td>
-                              )
-                            })}
-                            <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>
-                              {formatScore(entry.totalScore)}
-                            </td>
-                          </tr>
+                              </tr>
+                            )}
+                          </Fragment>
                         )
                       })}
                     </tbody>
