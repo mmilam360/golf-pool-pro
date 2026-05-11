@@ -324,11 +324,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <p className="text-stone-600">No entries yet. Share passcode <span className="text-emerald-700 font-mono">{pool.passcode}</span></p>
             </div>
           ) : (
-            <div
-              className="overflow-hidden rounded-[2px] border-[6px] border-[#004b32] bg-[#005b3c] p-2 shadow-[0_18px_34px_rgba(0,0,0,0.28)] sm:p-3"
-              style={{ fontFamily: 'Arial Narrow, Roboto Condensed, Helvetica Condensed, Arial, sans-serif' }}
+            <>
+            <div 
+              className="relative rounded-sm border-[10px] border-[#005b3c] bg-[#005b3c] shadow-[0_22px_0_#003622,0_34px_48px_rgba(15,47,37,0.32)] md:border-[16px]"
+              style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
             >
-              <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]">
+              <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
                 <div className="border-b-2 border-[#111] px-3 py-2">
                   <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
                   <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">{pool.name}</p>
@@ -340,18 +341,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   {scoredEntries.map((entry, entryIndex) => {
                     const isMe = entry.entryId === myEntry?.id
                     const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
-                    const countedReal = countingPicks.filter(pick => !pick.isObStandIn).length
                     return (
                       <details key={entry.entryId} open={entryIndex === 0} className="group border-b-2 border-[#111]">
                         <summary className="grid cursor-pointer list-none grid-cols-[44px_1fr_74px_20px] items-center gap-2 bg-[#f7f7f2] px-2 py-2 text-left [&::-webkit-details-marker]:hidden">
                           <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</div>
-                            <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                              {scoringIsLive ? `${countedReal}/${pool.count_scores} counting` : 'Waiting'}
-                              {entry.obStandIns > 0 && <span className="text-[#b21e23]"> · {entry.obStandIns} OB</span>}
-                              {isMe && <span className="text-[#005b3c]"> · You</span>}
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              {isMe && <span aria-label="Your entry" className="h-2 w-2 shrink-0 rounded-full bg-[#005b3c]" />}
+                              <span className="truncate text-sm font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</span>
                             </div>
+                            {(!scoringIsLive || entry.obStandIns > 0) && (
+                              <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
+                                {scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                              </div>
+                            )}
                           </div>
                           <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
                           <div className="flex items-center justify-center text-[#111]">
@@ -399,19 +402,21 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         const isMe = entry.entryId === myEntry?.id
                         const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
                         const otherPicks = entry.pickScores.filter(pick => !pick.counted)
-                        const countedReal = countingPicks.filter(pick => !pick.isObStandIn).length
                         return (
                           <tr key={entry.entryId} className="bg-[#f7f7f2]">
                             <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2 text-center text-lg font-black text-[#b21e23]">
                               {entry.rank || '—'}
                             </td>
                             <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-left">
-                              <div className="truncate font-black uppercase tracking-[0.04em] text-[#111]" title={entry.displayName}>{entry.displayName}</div>
-                              <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                                {scoringIsLive ? `${countedReal}/${pool.count_scores} counting` : 'Waiting'}
-                                {entry.obStandIns > 0 && <span className="text-[#b21e23]"> · {entry.obStandIns} OB</span>}
-                                {isMe && <span className="text-[#005b3c]"> · You</span>}
+                              <div className="flex min-w-0 items-center gap-1.5">
+                                {isMe && <span aria-label="Your entry" className="h-2 w-2 shrink-0 rounded-full bg-[#005b3c]" />}
+                                <span className="truncate font-black uppercase tracking-[0.04em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
                               </div>
+                              {(!scoringIsLive || entry.obStandIns > 0) && (
+                                <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
+                                  {scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                                </div>
+                              )}
                             </td>
                             {Array.from({ length: pool.count_scores }, (_, i) => {
                               const pick = countingPicks[i]
@@ -426,8 +431,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             <td className="border-b border-r-2 border-[#111] bg-[#fbfbf5] px-1 py-1 align-middle">
                               <div className="flex flex-col gap-0.5 text-left">
                                 {otherPicks.length > 0 ? otherPicks.map((pick, i) => (
-                                  <div key={`${pick.name}-${i}`} title={pick.name} className="grid grid-cols-[28px_1fr] gap-1 leading-none">
-                                    <span className={`text-right text-[9px] font-black ${scoreClass(pick.scoreToPar)}`}>{formatScore(pick.scoreToPar)}</span>
+                                  <div key={`${pick.name}-${i}`} title={`${pick.name}${pick.status !== 'active' ? ` · ${pick.status.toUpperCase()}` : ''}`} className="grid grid-cols-[28px_1fr] gap-1 leading-none">
+                                    <span className={`text-right text-[9px] font-black ${pick.status !== 'active' ? 'text-[#b21e23]' : scoreClass(pick.scoreToPar)}`}>{pick.status !== 'active' ? pick.status.toUpperCase() : formatScore(pick.scoreToPar)}</span>
                                     <span className="truncate text-[8px] font-black uppercase tracking-[0.02em] text-[#111]">{shortName(pick.name)}</span>
                                   </div>
                                 )) : <span className="text-center text-[9px] font-black uppercase text-[#555]">—</span>}
@@ -446,8 +451,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               {!scoringIsLive && (
                 <p className="mt-2 border-2 border-[#111] bg-[#f7f7f2] px-4 py-3 text-xs font-bold uppercase tracking-[0.08em] text-[#111]">Live scoring appears here when the tournament starts.</p>
               )}
-              <div className="mt-2 h-8 border-t-2 border-[#00402b] bg-[#004b32] shadow-[inset_0_6px_10px_rgba(0,0,0,0.18)]" />
             </div>
+            <div className="mx-auto h-12 w-7 border-x-2 border-[#003622] bg-[#005b3c] shadow-[7px_0_0_#003622]" />
+            <div className="mx-auto h-2 w-28 rounded-sm bg-[#003622] shadow-[0_8px_18px_rgba(15,47,37,0.24)]" />
+            </>
           )}
         </div>
       )}
