@@ -9,6 +9,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Image src="/brand/golf-pool-pro-wordmark.png" alt="Golf Pool Pro" width={328} height={101} priority className="h-11 w-auto object-contain" />
         </Link>
         {children}
+        <p className="mt-6 text-center text-xs text-stone-500">
+          <Link href="/privacy" className="font-semibold text-emerald-800 hover:underline">Privacy Policy</Link>
+          <span className="mx-2">/</span>
+          <Link href="/terms" className="font-semibold text-emerald-800 hover:underline">Terms</Link>
+        </p>
       </div>
     </div>
   )

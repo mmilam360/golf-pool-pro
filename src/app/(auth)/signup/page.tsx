@@ -44,6 +44,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [marketingOptIn, setMarketingOptIn] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -62,7 +63,7 @@ export default function SignupPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: trimmedName } },
+      options: { data: { display_name: trimmedName, marketing_emails: marketingOptIn } },
     })
     if (error) {
       setError(error.message)
@@ -127,6 +128,18 @@ export default function SignupPage() {
         </div>
         <PasswordInput label="Password" value={password} onChange={setPassword} />
         <PasswordInput label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} />
+        <label className="flex items-start gap-3 rounded-lg border border-stone-200 bg-stone-50 p-3 text-sm text-stone-700">
+          <input
+            type="checkbox"
+            checked={marketingOptIn}
+            onChange={e => setMarketingOptIn(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-stone-300 text-emerald-700 focus:ring-emerald-600"
+          />
+          <span>Send me Golf Pool Pro product updates and tournament reminders. I can unsubscribe later.</span>
+        </label>
+        <p className="text-xs leading-5 text-stone-500">
+          By creating an account, you agree to the <Link href="/terms" className="font-semibold text-emerald-800 hover:underline">Terms</Link> and <Link href="/privacy" className="font-semibold text-emerald-800 hover:underline">Privacy Policy</Link>.
+        </p>
         <button
           type="submit"
           disabled={loading}

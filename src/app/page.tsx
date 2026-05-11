@@ -143,6 +143,11 @@ export default function Home() {
           </div>
         </section>
       </main>
+      <footer className="border-t border-[#d8cab0] px-5 py-6 text-center text-sm text-[#657168]">
+        <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
+        <span className="mx-3">/</span>
+        <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>
+      </footer>
     </div>
   )
 }

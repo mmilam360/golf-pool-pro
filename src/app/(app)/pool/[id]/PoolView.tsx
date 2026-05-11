@@ -1,5 +1,6 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
 import type { GolfPlayer } from '@/lib/golf-api'
@@ -48,13 +49,19 @@ function CopyIcon() {
   )
 }
 
+const REFRESH_SECONDS = 60
+
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId }: Props) {
+  const router = useRouter()
   const [tab, setTab] = useState<Tab>(initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-team')
   const [entries, setEntries] = useState(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
+  const [poolName, setPoolName] = useState(pool.name)
+  const [poolLocked, setPoolLocked] = useState(pool.is_locked)
   const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>([])
   const [field, setField] = useState<GolfPlayer[]>([])
   const [myPicks, setMyPicks] = useState<string[]>(initialMyEntry?.golfer_picks || [])
+  const [refreshCountdown, setRefreshCountdown] = useState(REFRESH_SECONDS)
   const [loadingScores, setLoadingScores] = useState(false)
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
@@ -63,12 +70,26 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [emailSending, setEmailSending] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
   const [removeReason, setRemoveReason] = useState('')
-  const supabase = createClient()
+  const [renameValue, setRenameValue] = useState(pool.name)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+  const supabase = useMemo(() => createClient(), [])
 
   const activeEntries = entries.filter(e => !e.is_removed)
-  const isLocked = pool.is_locked
+  const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
   const canInvitePlayers = !isLocked && !scoringIsLive
+
+  const refreshPoolEntries = useCallback(async () => {
+    const { data } = await supabase
+      .from('gpp_entries')
+      .select('*')
+      .eq('pool_id', pool.id)
+      .order('created_at', { ascending: true })
+    if (data) {
+      setEntries(data)
+      setMyEntry(data.find(entry => entry.user_id === userId && !entry.is_removed) || null)
+    }
+  }, [pool.id, supabase, userId])
 
   useEffect(() => {
     setInviteUrl(`${window.location.origin}/pool/join?code=${pool.passcode}`)
@@ -88,9 +109,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           setField(liveLeaderboard)
         }
       }
+      await refreshPoolEntries()
     } catch {}
+    setRefreshCountdown(REFRESH_SECONDS)
     setLoadingScores(false)
-  }, [tournament?.external_id])
+  }, [refreshPoolEntries, tournament?.external_id])
 
   useEffect(() => {
     // Load field from tournament data if available
@@ -102,7 +125,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
     fetchScores()
     const interval = setInterval(fetchScores, 60000) // refresh every minute
-    return () => clearInterval(interval)
+    const countdown = setInterval(() => {
+      setRefreshCountdown(prev => (prev <= 1 ? REFRESH_SECONDS : prev - 1))
+    }, 1000)
+    return () => {
+      clearInterval(interval)
+      clearInterval(countdown)
+    }
   }, [fetchScores, tournament, scoringIsLive])
 
   // Save picks
@@ -114,7 +143,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       .update({ golfer_picks: myPicks })
       .eq('id', myEntry.id)
     if (!error) {
-      setMyEntry({ ...myEntry, golfer_picks: myPicks })
+      const updatedEntry = { ...myEntry, golfer_picks: myPicks }
+      setMyEntry(updatedEntry)
+      setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setStatusMessage('Picks saved.')
       setTimeout(() => setStatusMessage(''), 2500)
     }
@@ -166,8 +197,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       body: JSON.stringify({
         poolId: pool.id,
         recipients,
-        subject: `Join ${pool.name}`,
-        body: `You're invited to join ${pool.name}.\n\nUse code ${pool.passcode} or open this link:\n${inviteUrl}`,
+        subject: `Join ${poolName}`,
+        body: `You're invited to join ${poolName}.\n\nUse code ${pool.passcode} or open this link:\n${inviteUrl}`,
       }),
     })
     const data = await res.json().catch(() => ({}))
@@ -209,15 +240,52 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   // Lock/unlock pool (admin)
   async function setPoolLock(locked: boolean) {
+    if (scoringIsLive) return
     const { error } = await supabase
       .from('gpp_pools')
       .update({ is_locked: locked })
       .eq('id', pool.id)
     if (!error) {
-      pool.is_locked = locked
+      setPoolLocked(locked)
       setStatusMessage(locked ? 'Pool locked. Picks are closed.' : 'Pool unlocked. Entries and picks are open.')
-      window.location.reload()
     }
+  }
+
+  async function renamePool() {
+    const nextName = renameValue.trim()
+    if (!nextName) {
+      setStatusMessage('Pool name cannot be blank.')
+      return
+    }
+    const { error } = await supabase
+      .from('gpp_pools')
+      .update({ name: nextName })
+      .eq('id', pool.id)
+    if (error) {
+      setStatusMessage('Could not update pool name.')
+      return
+    }
+    setPoolName(nextName)
+    setStatusMessage('Pool name updated.')
+    setTimeout(() => setStatusMessage(''), 2500)
+  }
+
+  async function deletePool() {
+    if (deleteConfirm !== 'DELETE') {
+      setStatusMessage('Type DELETE to confirm.')
+      return
+    }
+    const { error: entriesError } = await supabase.from('gpp_entries').delete().eq('pool_id', pool.id)
+    if (entriesError) {
+      setStatusMessage('Could not delete pool entries.')
+      return
+    }
+    const { error } = await supabase.from('gpp_pools').delete().eq('id', pool.id)
+    if (error) {
+      setStatusMessage('Could not delete pool.')
+      return
+    }
+    router.push('/dashboard')
   }
 
   // Compute scored entries
@@ -237,7 +305,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">{pool.name}</h1>
+        <h1 className="text-3xl font-bold">{poolName}</h1>
         <p className="text-stone-600 mt-1">{tournament?.name || 'Tournament'} at {tournament?.course || 'TBD'}</p>
         <div className="flex items-center gap-4 mt-2 text-sm">
           <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
@@ -341,9 +409,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               />
               <div className="relative z-10 border-[10px] border-[#005b3c] bg-[#005b3c] md:border-[16px]">
               <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
-                <div className="border-b-2 border-[#111] px-3 py-2">
+                <div className="relative border-b-2 border-[#111] px-3 py-2">
                   <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">{pool.name}</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">{poolName}</p>
+                  <div className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c]" title="Auto-refresh countdown">
+                    <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M13 8a5 5 0 1 1-1.46-3.54" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />
+                      <path d="M13 3v4H9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" strokeLinejoin="miter" />
+                    </svg>
+                    {refreshCountdown}s
+                  </div>
                 </div>
                 <p className="border-b border-[#111] bg-[#efeee6] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
                   Top {pool.count_scores} scores to par counting · {scoringIsLive ? 'Live board' : 'Waiting for scoring'}
@@ -359,7 +434,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           <div className="min-w-0">
                             <div className="flex min-w-0 items-center gap-1.5">
                               {isMe && <span aria-label="Your entry" className="h-2 w-2 shrink-0 rounded-full bg-[#005b3c]" />}
-                              <span className="truncate text-sm font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</span>
+                              <span className="truncate text-base font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</span>
                             </div>
                             {(!scoringIsLive || entry.obStandIns > 0) && (
                               <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
@@ -382,11 +457,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           {Array.from({ length: pool.count_scores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <div key={i} className="border-r border-t border-[#111] px-1 py-2 text-center [&:nth-child(4n)]:border-r-0">
-                                <div className="text-[8px] font-black uppercase tracking-[0.12em] text-[#555]">G{i + 1}</div>
-                                <div className={`mt-0.5 text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className="mt-1 truncate text-[10px] font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
-                                <div className="mt-1 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                              <div key={i} className="border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
+                                <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                                <div className="mt-1 truncate text-xs font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                               </div>
                             )
                           })}
@@ -396,32 +470,28 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   })}
                 </div>
                 <div className="hidden bg-[#f7f7f2] lg:block">
-                  <table className="w-full table-fixed border-collapse text-[11px] text-[#111]">
+                  <table className="w-full table-fixed border-collapse text-[12px] text-[#111]">
                     <thead>
                       <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
-                        <th className="w-[4%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2 text-center">Rank</th>
-                        <th className="w-[14%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-left">Entry</th>
-                        {Array.from({ length: pool.count_scores }, (_, i) => (
-                          <th key={i} className="w-[8%] border-b-2 border-r border-[#111] px-1 py-2 text-center">G{i + 1}</th>
-                        ))}
-                        <th className="w-[10%] border-b-2 border-r-2 border-[#111] px-1 py-2 text-center">Other</th>
-                        <th className="w-[8%] border-b-2 border-[#111] px-1 py-2 text-center">Total</th>
+                        <th className="w-[5%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
+                        <th className="w-[19%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
+                        <th className="border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center" colSpan={pool.count_scores}>Counting golfers</th>
+                        <th className="w-[9%] border-b-2 border-[#111] px-1 py-1.5 text-center">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {scoredEntries.map(entry => {
                         const isMe = entry.entryId === myEntry?.id
                         const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
-                        const otherPicks = entry.pickScores.filter(pick => !pick.counted)
                         return (
                           <tr key={entry.entryId} className="bg-[#f7f7f2]">
-                            <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2 text-center text-lg font-black text-[#b21e23]">
+                            <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">
                               {entry.rank || '—'}
                             </td>
-                            <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-left">
+                            <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
                               <div className="flex min-w-0 items-center gap-1.5">
                                 {isMe && <span aria-label="Your entry" className="h-2 w-2 shrink-0 rounded-full bg-[#005b3c]" />}
-                                <span className="truncate font-black uppercase tracking-[0.04em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
+                                <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
                               </div>
                               {(!scoringIsLive || entry.obStandIns > 0) && (
                                 <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
@@ -432,24 +502,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             {Array.from({ length: pool.count_scores }, (_, i) => {
                               const pick = countingPicks[i]
                               return (
-                                <td key={i} title={pick?.name || ''} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
-                                  <div className={`text-base font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                  <div className="mt-1 truncate text-[9px] font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
-                                  <div className="mt-1 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                                <td key={i} title={pick?.name || ''} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                                  <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                                  <div className="mt-0.5 truncate text-xs font-black uppercase leading-none tracking-[0.01em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                                  <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                                 </td>
                               )
                             })}
-                            <td className="border-b border-r-2 border-[#111] bg-[#fbfbf5] px-1 py-1 align-middle">
-                              <div className="flex flex-col gap-0.5 text-left">
-                                {otherPicks.length > 0 ? otherPicks.map((pick, i) => (
-                                  <div key={`${pick.name}-${i}`} title={`${pick.name}${pick.status !== 'active' ? ` · ${pick.status.toUpperCase()}` : ''}`} className="grid grid-cols-[28px_1fr] gap-1 leading-none">
-                                    <span className={`text-right text-[9px] font-black ${pick.status !== 'active' ? 'text-[#b21e23]' : scoreClass(pick.scoreToPar)}`}>{pick.status !== 'active' ? pick.status.toUpperCase() : formatScore(pick.scoreToPar)}</span>
-                                    <span className="truncate text-[8px] font-black uppercase tracking-[0.02em] text-[#111]">{shortName(pick.name)}</span>
-                                  </div>
-                                )) : <span className="text-center text-[9px] font-black uppercase text-[#555]">—</span>}
-                              </div>
-                            </td>
-                            <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-2 text-center text-2xl font-black ${scoreClass(entry.totalScore)}`}>
+                            <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>
                               {formatScore(entry.totalScore)}
                             </td>
                           </tr>
@@ -550,14 +610,52 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           {/* Pool controls */}
           <div className="bg-white rounded-xl p-5 border border-stone-200 shadow-sm">
             <h3 className="text-lg font-semibold mb-4 text-emerald-950">Pool controls</h3>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-stone-600">
-                {isLocked ? 'Pool is locked. Unlock it if you need late entries or pick changes.' : 'Pool is open. Lock it when entries and picks are final.'}
-              </p>
-              <button onClick={() => setPoolLock(!isLocked)}
-                className={`${isLocked ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-amber-600 hover:bg-amber-500'} text-white font-semibold px-5 py-2 rounded-lg text-sm transition-colors`}>
-                {isLocked ? 'Unlock Pool' : 'Lock Picks'}
-              </button>
+            <div className="space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">Pool name</label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    value={renameValue}
+                    onChange={e => setRenameValue(e.target.value)}
+                    className="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  />
+                  <button onClick={renamePool} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+                    Save name
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 border-t border-stone-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-stone-600">
+                  {scoringIsLive
+                    ? 'The event has started. The pool can no longer be unlocked.'
+                    : isLocked
+                      ? 'Pool is locked. Unlock it only before the event starts.'
+                      : 'Pool is open. Lock it when entries and picks are final.'}
+                </p>
+                {!scoringIsLive && (
+                  <button onClick={() => setPoolLock(!isLocked)}
+                    className={`${isLocked ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-amber-600 hover:bg-amber-500'} text-white font-semibold px-5 py-2 rounded-lg text-sm transition-colors`}>
+                    {isLocked ? 'Unlock Pool' : 'Lock Picks'}
+                  </button>
+                )}
+              </div>
+
+              <div className="border-t border-red-200 pt-4">
+                <p className="text-sm font-semibold text-red-800">Delete pool</p>
+                <p className="mt-1 text-sm text-stone-600">This removes the pool and its entries. Type DELETE to confirm.</p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    value={deleteConfirm}
+                    onChange={e => setDeleteConfirm(e.target.value)}
+                    placeholder="DELETE"
+                    className="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+                  />
+                  <button onClick={deletePool} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+                    Delete pool
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
