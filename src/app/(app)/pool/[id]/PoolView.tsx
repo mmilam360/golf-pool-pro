@@ -68,6 +68,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const activeEntries = entries.filter(e => !e.is_removed)
   const isLocked = pool.is_locked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
+  const canInvitePlayers = !isLocked && !scoringIsLive
 
   useEffect(() => {
     setInviteUrl(`${window.location.origin}/pool/join?code=${pool.passcode}`)
@@ -249,7 +250,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       {statusMessage && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
 
-      <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+      {canInvitePlayers && <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
         <div className="mb-3">
           <p className="text-sm font-semibold text-emerald-950">Invite players</p>
           <p className="text-sm text-stone-700">Send the code or the direct join link.</p>
@@ -302,9 +303,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </div>
           </div>
         )}
-      </div>
-
-      {/* Tabs */}
+      </div>}
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-lg p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-team', ...(isOwner ? ['admin'] as Tab[] : [])] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
@@ -382,31 +381,32 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     )
                   })}
                 </div>
-                <div className="hidden overflow-x-auto bg-[#f7f7f2] lg:block">
-                  <table className="min-w-[1180px] w-full border-collapse text-[12px] text-[#111]">
+                <div className="hidden bg-[#f7f7f2] lg:block">
+                  <table className="w-full table-fixed border-collapse text-[11px] text-[#111]">
                     <thead>
                       <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
-                        <th className="sticky left-0 z-30 w-12 border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-center">Rank</th>
-                        <th className="sticky left-12 z-30 w-44 border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-3 py-2 text-left">Entry</th>
+                        <th className="w-[4%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2 text-center">Rank</th>
+                        <th className="w-[14%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-left">Entry</th>
                         {Array.from({ length: pool.count_scores }, (_, i) => (
-                          <th key={i} className="w-24 border-b-2 border-r border-[#111] px-2 py-2 text-center">G{i + 1}</th>
+                          <th key={i} className="w-[8%] border-b-2 border-r border-[#111] px-1 py-2 text-center">G{i + 1}</th>
                         ))}
-                        <th className="w-20 border-b-2 border-r-2 border-[#111] px-2 py-2 text-center">Live</th>
-                        <th className="w-20 border-b-2 border-[#111] px-2 py-2 text-center">Total</th>
+                        <th className="w-[10%] border-b-2 border-r-2 border-[#111] px-1 py-2 text-center">Other</th>
+                        <th className="w-[8%] border-b-2 border-[#111] px-1 py-2 text-center">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {scoredEntries.map(entry => {
                         const isMe = entry.entryId === myEntry?.id
                         const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
+                        const otherPicks = entry.pickScores.filter(pick => !pick.counted)
                         const countedReal = countingPicks.filter(pick => !pick.isObStandIn).length
                         return (
                           <tr key={entry.entryId} className="bg-[#f7f7f2]">
-                            <td className="sticky left-0 z-20 border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-center text-lg font-black text-[#b21e23]">
+                            <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2 text-center text-lg font-black text-[#b21e23]">
                               {entry.rank || '—'}
                             </td>
-                            <td className="sticky left-12 z-20 border-b border-r-2 border-[#111] bg-[#f7f7f2] px-3 py-2 text-left">
-                              <div className="font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</div>
+                            <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-left">
+                              <div className="truncate font-black uppercase tracking-[0.04em] text-[#111]" title={entry.displayName}>{entry.displayName}</div>
                               <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
                                 {scoringIsLive ? `${countedReal}/${pool.count_scores} counting` : 'Waiting'}
                                 {entry.obStandIns > 0 && <span className="text-[#b21e23]"> · {entry.obStandIns} OB</span>}
@@ -416,17 +416,24 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             {Array.from({ length: pool.count_scores }, (_, i) => {
                               const pick = countingPicks[i]
                               return (
-                                <td key={i} title={pick?.name || ''} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1.5 py-1.5 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
-                                  <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                  <div className="mt-1 truncate text-[10px] font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                                <td key={i} title={pick?.name || ''} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                                  <div className={`text-base font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                                  <div className="mt-1 truncate text-[9px] font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
                                   <div className="mt-1 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                                 </td>
                               )
                             })}
-                            <td className="border-b border-r-2 border-[#111] bg-[#fbfbf5] px-2 py-2 text-center text-[10px] font-black uppercase tracking-[0.08em] text-[#005b3c]">
-                              {scoringIsLive ? 'Live' : '—'}
+                            <td className="border-b border-r-2 border-[#111] bg-[#fbfbf5] px-1 py-1 align-middle">
+                              <div className="flex flex-col gap-0.5 text-left">
+                                {otherPicks.length > 0 ? otherPicks.map((pick, i) => (
+                                  <div key={`${pick.name}-${i}`} title={pick.name} className="grid grid-cols-[28px_1fr] gap-1 leading-none">
+                                    <span className={`text-right text-[9px] font-black ${scoreClass(pick.scoreToPar)}`}>{formatScore(pick.scoreToPar)}</span>
+                                    <span className="truncate text-[8px] font-black uppercase tracking-[0.02em] text-[#111]">{shortName(pick.name)}</span>
+                                  </div>
+                                )) : <span className="text-center text-[9px] font-black uppercase text-[#555]">—</span>}
+                              </div>
                             </td>
-                            <td className={`border-b border-[#111] bg-[#fbfbf5] px-2 py-2 text-center text-2xl font-black ${scoreClass(entry.totalScore)}`}>
+                            <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-2 text-center text-2xl font-black ${scoreClass(entry.totalScore)}`}>
                               {formatScore(entry.totalScore)}
                             </td>
                           </tr>

@@ -2,16 +2,16 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 const leaderboardRows = [
-  { rank: '1', name: 'Miller group', thru: 'F', total: '-38', picks: ['-9', '-7', '-6', '-5', '-4'] },
-  { rank: '2', name: 'Sunday pins', thru: '17', total: '-35', picks: ['-8', '-6', '-6', '-4', '-3'] },
-  { rank: '3', name: 'Lake nine', thru: '16', total: '-33', picks: ['-7', '-7', '-5', '-4', '-2'] },
-  { rank: '4', name: 'Fairway room', thru: '15', total: '-31', picks: ['-8', '-5', '-5', '-3', 'E'] },
+  { rank: '1', name: 'Jeff Macpherson', thru: 'F', total: '-38', picks: ['-9', '-7', '-6', '-5', '-4'] },
+  { rank: '2', name: 'Dan McFarland', thru: '17', total: '-35', picks: ['-8', '-6', '-6', '-4', '-3'] },
+  { rank: '3', name: 'Heather Nowlan', thru: '16', total: '-33', picks: ['-7', '-7', '-5', '-4', '-2'] },
+  { rank: '4', name: 'Candace Kelly', thru: '15', total: '-31', picks: ['-8', '-5', '-5', '-3', 'E'] },
 ]
 
 const setupSteps = [
   ['01', 'Set the format', 'Choose the tournament, pick count, and scoring rules.'],
-  ['02', 'Send the code', 'Players join from their phone and enter their picks.'],
-  ['03', 'Check standings', 'Follow one leaderboard as tournament scores update.'],
+  ['02', 'Invite entrants', 'Players can join by code, direct link, or email invite.'],
+  ['03', 'Keep up with the standings', 'Follow the leaderboard as tournament scores update.'],
 ]
 
 export default function Home() {
@@ -40,17 +40,17 @@ export default function Home() {
               Golf pool manager
             </p>
             <h1 className="max-w-full font-display text-[3.25rem] font-bold leading-[0.94] tracking-[-0.045em] text-[#0f2f25] sm:text-6xl md:text-7xl">
-              Run a golf pool your group can follow.
+              Run the pool. Follow the leaderboard.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-[#4f5b52] sm:text-lg sm:leading-8">
-              Create a pool, share the code, collect picks, and track the standings in one place.
+              Create a pool, invite entrants, and track the leaderboard in one place.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/signup" className="rounded-md bg-[#123c2f] px-6 py-3 text-center font-semibold text-white shadow-sm transition-colors hover:bg-[#0f2f25]">
                 Create a pool
               </Link>
               <Link href="/login" className="rounded-md border border-[#cbb994] bg-white px-6 py-3 text-center font-semibold text-[#123c2f] transition-colors hover:bg-[#f7f0df]">
-                View standings
+                Sign in
               </Link>
             </div>
           </div>
@@ -59,7 +59,7 @@ export default function Home() {
             <div className="flex items-center justify-between border-b border-[#d8cab0] bg-[#123c2f] px-5 py-4 text-white md:px-6">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#d7c99f]">Pool leaders</p>
-                <h2 className="font-display text-2xl font-bold">PGA Championship pool</h2>
+                <h2 className="font-display text-2xl font-bold">Tiger's Tribe - PGA Championship pool</h2>
               </div>
               <div className="rounded-sm bg-[#f3df9c] px-3 py-2 text-sm font-black text-[#0f2f25]">R4</div>
             </div>
@@ -132,9 +132,9 @@ export default function Home() {
           <div className="grid gap-8 rounded-[18px] border border-[#d8cab0] bg-white p-6 shadow-sm md:grid-cols-[1fr_auto] md:items-center md:p-8">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Before the first tee time</p>
-              <h2 className="mt-3 font-display text-3xl font-bold text-[#0f2f25] md:text-4xl">Set up the pool and send the code.</h2>
+              <h2 className="mt-3 font-display text-3xl font-bold text-[#0f2f25] md:text-4xl">Set up the pool before the first tee time.</h2>
               <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
-                Players make their own picks. The standings page does the rest once scores are available.
+                Entrants make their picks. The leaderboard updates once scoring is available.
               </p>
             </div>
             <Link href="/signup" className="rounded-md bg-[#123c2f] px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-[#0f2f25]">
