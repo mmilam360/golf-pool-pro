@@ -329,9 +329,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               className="relative pr-[14px] pb-[10px]"
               style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
             >
-              <div aria-hidden="true" className="absolute left-[14px] top-[10px] right-0 bottom-0 rounded-sm bg-[#003622]" />
-              <div aria-hidden="true" className="absolute right-0 top-0 h-[10px] w-[14px] bg-[#003622] [clip-path:polygon(0_0,100%_100%,0_100%)]" />
-              <div aria-hidden="true" className="absolute bottom-0 left-0 h-[10px] w-[14px] bg-[#003622] [clip-path:polygon(0_0,100%_0,100%_100%)]" />
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-[#00452f]"
+                style={{ clipPath: 'polygon(calc(100% - 14px) 0, 100% 10px, 100% 100%, calc(100% - 14px) calc(100% - 10px))' }}
+              />
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-[#003622]"
+                style={{ clipPath: 'polygon(0 calc(100% - 10px), 14px 100%, 100% 100%, calc(100% - 14px) calc(100% - 10px))' }}
+              />
               <div className="relative z-10 rounded-sm border-[10px] border-[#005b3c] bg-[#005b3c] md:border-[16px]">
               <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
                 <div className="border-b-2 border-[#111] px-3 py-2">
