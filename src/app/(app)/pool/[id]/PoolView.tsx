@@ -339,7 +339,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 className="absolute inset-0 bg-[#003622]"
                 style={{ clipPath: 'polygon(0 calc(100% - 10px), 14px 100%, 100% 100%, calc(100% - 14px) calc(100% - 10px))' }}
               />
-              <div className="relative z-10 rounded-sm border-[10px] border-[#005b3c] bg-[#005b3c] md:border-[16px]">
+              <div className="relative z-10 border-[10px] border-[#005b3c] bg-[#005b3c] md:border-[16px]">
               <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
                 <div className="border-b-2 border-[#111] px-3 py-2">
                   <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
@@ -464,7 +464,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               )}
             </div>
             </div>
-            <div className="mx-auto h-36 w-16 border-x-4 border-[#003622] bg-[#005b3c] shadow-[12px_0_0_#003622] md:h-44 md:w-20" />
+            <div className="mx-auto -mb-8 h-36 w-16 border-x-4 border-[#003622] bg-[#005b3c] shadow-[12px_0_0_#003622] md:-mb-10 md:h-44 md:w-20" />
             </>
           )}
         </div>
