@@ -23,9 +23,7 @@ function formatScore(score: number | null) {
 
 function scoreClass(score: number | null) {
   if (score === null) return 'text-stone-400'
-  if (score < 0) return 'text-emerald-800'
-  if (score > 0) return 'text-red-700'
-  return 'text-stone-900'
+  return 'text-[#b21e23]'
 }
 
 function shortName(name: string) {
@@ -263,72 +261,79 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <p className="text-stone-600">No entries yet. Share passcode <span className="text-emerald-700 font-mono">{pool.passcode}</span></p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-sm border-2 border-stone-500 bg-[#fbf7ed] shadow-sm">
-              <div className="border-b-2 border-stone-500 bg-[#f8f1df] px-4 py-3 text-center">
-                <p className="text-lg font-black uppercase tracking-[0.22em] text-stone-950">{pool.name}</p>
-                <p className="mt-1 font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-stone-600">
-                  Pool leaders · top {pool.count_scores} scores to par counting
+            <div
+              className="overflow-hidden rounded-[2px] border-[6px] border-[#004b32] bg-[#005b3c] p-2 shadow-[0_18px_34px_rgba(0,0,0,0.28)] sm:p-3"
+              style={{ fontFamily: 'Arial Narrow, Roboto Condensed, Helvetica Condensed, Arial, sans-serif' }}
+            >
+              <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]">
+                <div className="border-b-2 border-[#111] px-3 py-2">
+                  <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">{pool.name}</p>
+                </div>
+                <p className="border-b border-[#111] bg-[#efeee6] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
+                  Top {pool.count_scores} scores to par counting · {scoringIsLive ? 'Live board' : 'Waiting for scoring'}
                 </p>
-              </div>
-              <p className="border-b border-stone-300 bg-[#f8f1df] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.08em] text-stone-500 lg:hidden">
-                Swipe sideways to view all golfer columns and total.
-              </p>
-              <div className="overflow-x-auto">
-                <table className="min-w-[1180px] w-full border-collapse text-[12px]">
-                  <thead>
-                    <tr className="border-b-2 border-stone-500 bg-[#efe2c3] font-mono text-[10px] font-black uppercase tracking-[0.12em] text-stone-800">
-                      <th className="sticky left-0 z-30 w-12 border-r-2 border-stone-500 bg-[#efe2c3] px-2 py-2 text-center">Rank</th>
-                      <th className="sticky left-12 z-30 w-44 border-r-2 border-stone-500 bg-[#efe2c3] px-3 py-2 text-left">Entry</th>
-                      {Array.from({ length: pool.count_scores }, (_, i) => (
-                        <th key={i} className="w-24 border-r border-stone-400 px-2 py-2 text-center">G{i + 1}</th>
-                      ))}
-                      <th className="w-20 border-r-2 border-stone-500 px-2 py-2 text-center">Live</th>
-                      <th className="w-20 px-2 py-2 text-center">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scoredEntries.map(entry => {
-                      const isMe = entry.entryId === myEntry?.id
-                      const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
-                      const countedReal = countingPicks.filter(pick => !pick.isObStandIn).length
-                      return (
-                        <tr key={entry.entryId} className={`border-b border-stone-400 ${isMe ? 'bg-emerald-50' : 'bg-white/70'}`}>
-                          <td className="sticky left-0 z-20 border-r-2 border-stone-500 bg-inherit px-2 py-2 text-center font-mono text-base font-black text-red-700">
-                            {entry.rank || '—'}
-                          </td>
-                          <td className="sticky left-12 z-20 border-r-2 border-stone-500 bg-inherit px-3 py-2">
-                            <div className="font-bold uppercase tracking-[0.04em] text-stone-950">{entry.displayName}</div>
-                            <div className="mt-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-stone-500">
-                              {scoringIsLive ? `${countedReal}/${pool.count_scores} counting` : 'Waiting'}
-                              {entry.obStandIns > 0 && <span className="text-amber-700"> · {entry.obStandIns} OB</span>}
-                              {isMe && <span className="text-emerald-700"> · You</span>}
-                            </div>
-                          </td>
-                          {Array.from({ length: pool.count_scores }, (_, i) => {
-                            const pick = countingPicks[i]
-                            return (
-                              <td key={i} title={pick?.name || ''} className="border-r border-stone-300 bg-inherit px-1.5 py-2 text-center align-middle">
-                                <div className={`font-mono text-base font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className="mt-1 truncate text-[10px] font-bold uppercase leading-none tracking-[0.02em] text-stone-800">{pick ? shortName(pick.name) : '—'}</div>
-                                <div className="mt-1 font-mono text-[8px] font-bold uppercase tracking-[0.06em] text-stone-500">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
-                              </td>
-                            )
-                          })}
-                          <td className="border-r-2 border-stone-500 px-2 py-2 text-center font-mono text-[11px] font-bold uppercase text-stone-600">
-                            {scoringIsLive ? 'Live' : '—'}
-                          </td>
-                          <td className={`px-2 py-2 text-center font-mono text-xl font-black ${scoreClass(entry.totalScore)}`}>
-                            {formatScore(entry.totalScore)}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                <p className="border-b border-[#111] bg-[#f7f7f2] px-3 py-2 text-[10px] font-black uppercase tracking-[0.08em] text-[#555] lg:hidden">
+                  Swipe sideways to view all golfer columns and total.
+                </p>
+                <div className="overflow-x-auto bg-[#f7f7f2]">
+                  <table className="min-w-[1180px] w-full border-collapse text-[12px] text-[#111]">
+                    <thead>
+                      <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
+                        <th className="sticky left-0 z-30 w-12 border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-center">Rank</th>
+                        <th className="sticky left-12 z-30 w-44 border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-3 py-2 text-left">Entry</th>
+                        {Array.from({ length: pool.count_scores }, (_, i) => (
+                          <th key={i} className="w-24 border-b-2 border-r border-[#111] px-2 py-2 text-center">G{i + 1}</th>
+                        ))}
+                        <th className="w-20 border-b-2 border-r-2 border-[#111] px-2 py-2 text-center">Live</th>
+                        <th className="w-20 border-b-2 border-[#111] px-2 py-2 text-center">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scoredEntries.map(entry => {
+                        const isMe = entry.entryId === myEntry?.id
+                        const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
+                        const countedReal = countingPicks.filter(pick => !pick.isObStandIn).length
+                        return (
+                          <tr key={entry.entryId} className="bg-[#f7f7f2]">
+                            <td className="sticky left-0 z-20 border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-center text-lg font-black text-[#b21e23]">
+                              {entry.rank || '—'}
+                            </td>
+                            <td className="sticky left-12 z-20 border-b border-r-2 border-[#111] bg-[#f7f7f2] px-3 py-2 text-left">
+                              <div className="font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</div>
+                              <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
+                                {scoringIsLive ? `${countedReal}/${pool.count_scores} counting` : 'Waiting'}
+                                {entry.obStandIns > 0 && <span className="text-[#b21e23]"> · {entry.obStandIns} OB</span>}
+                                {isMe && <span className="text-[#005b3c]"> · You</span>}
+                              </div>
+                            </td>
+                            {Array.from({ length: pool.count_scores }, (_, i) => {
+                              const pick = countingPicks[i]
+                              return (
+                                <td key={i} title={pick?.name || ''} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1.5 py-1.5 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                                  <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                                  <div className="mt-1 truncate text-[10px] font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                                  <div className="mt-1 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                                </td>
+                              )
+                            })}
+                            <td className="border-b border-r-2 border-[#111] bg-[#fbfbf5] px-2 py-2 text-center text-[10px] font-black uppercase tracking-[0.08em] text-[#005b3c]">
+                              {scoringIsLive ? 'Live' : '—'}
+                            </td>
+                            <td className={`border-b border-[#111] bg-[#fbfbf5] px-2 py-2 text-center text-2xl font-black ${scoreClass(entry.totalScore)}`}>
+                              {formatScore(entry.totalScore)}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
               {!scoringIsLive && (
-                <p className="border-t border-stone-300 bg-white/70 px-4 py-3 text-xs text-stone-600">Live scoring appears here when the tournament starts.</p>
+                <p className="mt-2 border-2 border-[#111] bg-[#f7f7f2] px-4 py-3 text-xs font-bold uppercase tracking-[0.08em] text-[#111]">Live scoring appears here when the tournament starts.</p>
               )}
+              <div className="mt-2 h-8 border-t-2 border-[#00402b] bg-[#004b32] shadow-[inset_0_6px_10px_rgba(0,0,0,0.18)]" />
             </div>
           )}
         </div>
