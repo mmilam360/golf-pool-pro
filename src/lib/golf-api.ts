@@ -1,3 +1,5 @@
+import { getPgaTourLeaderboardForEvent } from './pgatour-api'
+
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/golf'
 const ESPN_CORE_EVENTS = 'https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events'
 const ESPN_SCOREBOARD = `${ESPN_BASE}/pga/scoreboard`
@@ -104,6 +106,26 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     const event = (scoreboard.events || []).find((candidate: any) => String(candidate.id) === String(eventId))
     if (event) {
       const competition = event.competitions?.[0]
+      const pgaLeaderboard = await getPgaTourLeaderboardForEvent({
+        name: event.name,
+        date: event.date,
+        season: Number(String(event.date || '').slice(0, 4)) || undefined,
+      }).catch(() => null)
+
+      if (pgaLeaderboard?.leaderboard?.length) {
+        return {
+          ...pgaLeaderboard,
+          id: event.id,
+          name: event.name,
+          startDate: event.date,
+          endDate: event.endDate || event.date,
+          course: event.courses?.[0]?.name || event.venue?.fullName || pgaLeaderboard.course,
+          location: event.venue?.address?.city || event.courses?.[0]?.address?.city || pgaLeaderboard.location,
+          status: eventStatus(event),
+          round: pgaLeaderboard.round || event.status?.period || competition?.status?.period || 0,
+        }
+      }
+
       const players = (competition?.competitors || []).map(mapCompetitorToPlayer)
       return {
         id: event.id,
@@ -123,6 +145,26 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
   if (!res.ok) throw new Error(`ESPN event: ${res.status}`)
   const event = await res.json()
   const competition = event.competitions?.[0]
+  const pgaLeaderboard = await getPgaTourLeaderboardForEvent({
+    name: event.name,
+    date: event.date,
+    season: Number(String(event.date || '').slice(0, 4)) || undefined,
+  }).catch(() => null)
+
+  if (pgaLeaderboard?.leaderboard?.length) {
+    return {
+      ...pgaLeaderboard,
+      id: event.id,
+      name: event.name,
+      startDate: event.date,
+      endDate: event.endDate || event.date,
+      course: event.courses?.find?.((c: any) => c.host)?.name || event.courses?.[0]?.name || pgaLeaderboard.course,
+      location: event.courses?.[0]?.address?.city || pgaLeaderboard.location,
+      status: eventStatus(event),
+      round: pgaLeaderboard.round,
+    }
+  }
+
   const players = (competition?.competitors || []).map(mapCompetitorToPlayer)
 
   return {
