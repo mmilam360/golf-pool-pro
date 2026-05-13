@@ -98,7 +98,7 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="mx-auto grid max-w-7xl gap-8 px-4 pb-0 pt-8 sm:px-5 md:px-8 lg:min-h-[640px] lg:grid-cols-[0.86fr_1.14fr] lg:items-start lg:pt-8">
+        <section className="mx-auto grid max-w-7xl gap-8 px-4 pb-0 pt-8 sm:px-5 md:px-8 lg:min-h-0 lg:grid-cols-[0.86fr_1.14fr] lg:items-start lg:pt-8">
           <div className="pb-6 pt-6 lg:flex lg:flex-col lg:justify-center lg:pb-12 lg:pt-10">
             <p className="mb-4 w-fit max-w-full border-y border-[#b58a3a] py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a6724] sm:text-xs sm:tracking-[0.28em]">
               Golf pool manager
@@ -163,21 +163,21 @@ export default function Home() {
                   <table className="w-full table-fixed border-collapse text-[12px] text-[#111]">
                     <thead>
                       <tr className="bg-[#f7f7f2] text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">
-                        <th className="w-[6%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2 text-center">Rank</th>
-                        <th className="w-[20%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-left">Entry</th>
+                        <th className="w-[5%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2 text-center">Rank</th>
+                        <th className="w-[17%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-left">Entry</th>
                         <th className="border-b-2 border-r-2 border-[#111] px-1 py-2 text-center" colSpan={8}>Top 8 golfers</th>
-                        <th className="w-[9%] border-b-2 border-[#111] px-1 py-2 text-center">Total</th>
+                        <th className="w-[12%] border-b-2 border-[#111] px-3 py-2 text-center">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {leaderboardRows.map(entry => (
                         <tr key={entry.rank} className="bg-[#f7f7f2]">
-                          <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2.5 text-center text-2xl font-black text-[#b21e23]">{entry.rank}</td>
+                          <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2.5 text-center text-xl font-black text-[#b21e23]">{entry.rank}</td>
                           <td className="min-w-0 border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2.5 text-left">
                             <span className="block truncate text-sm font-black uppercase tracking-[0.02em] text-[#111]" title={entry.name}>{entry.name}</span>
                           </td>
                           {entry.golfers.map(golfer => <GolferCell key={`${entry.rank}-${golfer[1]}`} golfer={golfer} />)}
-                          <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-2.5 text-center text-3xl font-black ${scoreColor(entry.total)}`}>{entry.total}</td>
+                          <td className={`border-b border-[#111] bg-[#fbfbf5] px-3 py-2.5 text-center text-2xl font-black tabular-nums ${scoreColor(entry.total)}`}>{entry.total}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -192,7 +192,7 @@ export default function Home() {
               </div>
             </div>
             </div>
-            <div className="gpp-3d-post mx-auto -mt-[10px] h-40 w-14 border-x-4 border-[#003622] bg-[#006241] md:h-32 md:w-16" />
+            <div className="gpp-3d-post mx-auto -mt-[10px] h-24 w-14 border-x-4 border-[#003622] bg-[#006241] md:h-24 md:w-16" />
           </div>
         </section>
 
