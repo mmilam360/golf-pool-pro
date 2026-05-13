@@ -78,7 +78,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { display_name: trimmedName, marketing_emails: marketingOptIn },
+        data: { display_name: trimmedName, full_name: trimmedName, marketing_emails: marketingOptIn },
         emailRedirectTo: `${window.location.origin}/login?redirect=${encodeURIComponent(redirectTo)}`,
       },
     })
