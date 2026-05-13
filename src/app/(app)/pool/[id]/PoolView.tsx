@@ -594,7 +594,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           ) : (
             <>
             <div
-              className="gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]"
+              className="gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#000e0a] [--gpp-bottom-color:#000e0a] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]"
               style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
             >
               <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[16px]">

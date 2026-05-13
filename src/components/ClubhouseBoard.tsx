@@ -11,7 +11,7 @@ type ClubhouseBoardProps = {
 
 export function ClubhouseBoard({ label = 'Board', title, subtitle, children, footer, className = '' }: ClubhouseBoardProps) {
   return (
-    <div className={`gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px] ${className}`} style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
+    <div className={`gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#000e0a] [--gpp-bottom-color:#000e0a] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px] ${className}`} style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
       <div className="gpp-3d-face gpp-board-frame border-[9px] border-[#123c2f]">
         <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-[#111]">
           <div className="relative border-b-2 border-[#111] px-3 py-2 text-center">
