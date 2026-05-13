@@ -2,7 +2,6 @@
 import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { BoardMetric, ClubhouseBoard } from '@/components/ClubhouseBoard'
 import { scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus } from '@/lib/payments/pricing'
 import type { GolfPlayer } from '@/lib/golf-api'
@@ -904,64 +903,61 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {/* Admin Tab */}
       {tab === 'admin' && isOwner && (
         <div ref={adminSectionRef} className="scroll-mt-6 space-y-6">
-          <ClubhouseBoard title="Payment" label="Pool fee" subtitle="First 5 entries free" footer="72¢ per extra entry, capped at $25">
-            <div className="grid gap-0 sm:grid-cols-3">
-              <BoardMetric label="Entries" value={paymentQuote?.activeEntryCount ?? activeEntries.length} tone="green" />
-              <BoardMetric label="Rule" value={paymentQuote?.label || 'Loading'} tone="ink" />
-              <BoardMetric label="Due" value={formatCents(paymentQuote?.amountDueCents)} />
+          <section className="border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-800">Pool fee</p>
+                <h3 className="mt-1 text-xl font-bold text-emerald-950">{formatCents(paymentQuote?.amountDueCents)} due</h3>
+                <p className="mt-1 text-sm text-stone-600">
+                  {(paymentQuote?.activeEntryCount ?? activeEntries.length)} active {(paymentQuote?.activeEntryCount ?? activeEntries.length) === 1 ? 'entry' : 'entries'} · first 5 free · 72¢ after · $25 max
+                </p>
+              </div>
+              {paymentStatus === 'active' && (
+                <span className="inline-flex w-fit border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-emerald-800">Handled</span>
+              )}
             </div>
-            <div className="px-4 py-4">
-              <p className="text-sm font-bold leading-6 text-stone-700">
-                {paymentCollectionOpen
-                  ? 'Entries are closed. Pay the final pool fee to show results.'
-                  : 'This is only an estimate while entries are open. Payment opens after picks lock.'}
-              </p>
-                {paymentStatus === 'active' ? (
-                  <p className="mt-4 rounded-none border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Pool fee handled. Results access is enabled.</p>
-                ) : paymentQuote?.requiresCustomQuote ? (
-                  <p className="mt-4 rounded-none border border-amber-200 bg-white px-3 py-2 text-sm text-stone-700">Pools over 200 entries need manual pricing for now.</p>
+
+            {paymentStatus === 'active' ? (
+              <p className="mt-4 border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Payment is handled. Results are available.</p>
+            ) : paymentQuote?.requiresCustomQuote ? (
+              <p className="mt-4 border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">This pool needs manual pricing.</p>
+            ) : (
+              <div className="mt-4 space-y-4">
+                {!paymentCollectionOpen ? (
+                  <p className="border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Payment opens after you lock picks.</p>
                 ) : (
-                  <div className="mt-4 space-y-4">
-                    {!paymentCollectionOpen ? (
-                      <div className="border border-amber-200 bg-white px-3 py-3 text-sm text-stone-700">
-                        Keep adding and removing entries for now. The final fee is collected after picks lock.
-                      </div>
-                    ) : (
-                      <>
-                        {!!paymentQuote?.amountDueCents && paymentQuote.amountDueCents > 0 && (
-                          <div className="space-y-3">
-                            <div className="flex flex-wrap items-center gap-2 border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-3 text-xs font-bold text-stone-700">
-                              <span className="inline-flex items-center gap-1.5 text-emerald-800"><TrustCheckIcon /> Secure checkout</span>
-                              <span className="hidden h-4 w-px bg-stone-300 sm:block" />
-                              <SquareTrustMark />
-                              <span className="text-stone-600">Card details are encrypted and processed by Square.</span>
-                            </div>
-                            <div id="square-card-container" className="gpp-square-card-frame" />
-                            {!paymentCardReady && (
-                              <p className="text-xs font-semibold text-stone-600">Card form is loading.</p>
-                            )}
-                          </div>
+                  <>
+                    {!!paymentQuote?.amountDueCents && paymentQuote.amountDueCents > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2 border border-stone-200 bg-[#fbf7ed] px-3 py-2 text-xs font-semibold text-stone-700">
+                          <span className="inline-flex items-center gap-1.5 text-emerald-800"><TrustCheckIcon /> Secure Square checkout</span>
+                          <span className="hidden h-4 w-px bg-stone-300 sm:block" />
+                          <SquareTrustMark />
+                        </div>
+                        <div id="square-card-container" className="gpp-square-card-frame" />
+                        {!paymentCardReady && (
+                          <p className="text-xs font-semibold text-stone-600">Card form is loading.</p>
                         )}
-                        <button
-                          type="button"
-                          onClick={activatePool}
-                          disabled={paymentLoading || !paymentQuote || (!paymentCardReady && !!paymentQuote?.amountDueCents)}
-                          className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {paymentLoading ? 'Processing...' : paymentQuote?.amountDueCents === 0 ? 'Open results' : `Pay pool fee ${formatCents(paymentQuote?.amountDueCents)}`}
-                        </button>
-                      </>
+                      </div>
                     )}
-                    {paymentFeedback && (
-                      <p className={`border px-3 py-2 text-xs font-semibold ${paymentFeedback.includes('enabled') || paymentFeedback.includes('active') ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : paymentFeedback.includes('Processing') ? 'border-stone-300 bg-white text-stone-700' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
-                        {paymentFeedback}
-                      </p>
-                    )}
-                    {paymentCollectionOpen && <p className="pt-1 text-xs text-stone-600">Square securely handles card details. Golf Pools Pro never stores card numbers.</p>}
-                  </div>
+                    <button
+                      type="button"
+                      onClick={activatePool}
+                      disabled={paymentLoading || !paymentQuote || (!paymentCardReady && !!paymentQuote?.amountDueCents)}
+                      className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {paymentLoading ? 'Processing...' : paymentQuote?.amountDueCents === 0 ? 'Open results' : `Pay ${formatCents(paymentQuote?.amountDueCents)}`}
+                    </button>
+                  </>
+                )}
+                {paymentFeedback && (
+                  <p className={`border px-3 py-2 text-xs font-semibold ${paymentFeedback.includes('enabled') || paymentFeedback.includes('active') ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : paymentFeedback.includes('Processing') ? 'border-stone-300 bg-white text-stone-700' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
+                    {paymentFeedback}
+                  </p>
                 )}
               </div>
-          </ClubhouseBoard>
+            )}
+          </section>
           {/* Pool controls */}
           <div className="bg-white rounded-none p-5 border border-stone-200 shadow-[5px_5px_0_#d8cab0]">
             <h3 className="text-lg font-semibold mb-4 text-emerald-950">Pool controls</h3>
