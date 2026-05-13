@@ -32,8 +32,12 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: "/favicon.ico?v=2", sizes: "any" },
+      { url: "/icons/icon-192.png?v=2", sizes: "192x192", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico?v=2",
+    apple: "/apple-touch-icon.png?v=2",
   },
 };
 
