@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1200" viewBox="0 0 1800 1200">
+  <defs>
+    <style>
+      .bg { fill: #fbf7ed; }
+      .grid { stroke: rgba(60,45,25,.12); stroke-width: 2; }
+      .ink { fill: #111111; }
+      .green { fill: #123c2f; }
+      .fairway { fill: #006241; }
+      .pine { fill: #003622; }
+      .side { fill: #00442c; }
+      .gold { fill: #d5b45f; }
+      .cream { fill: #f7f7f2; }
+      .red { fill: #b21e23; }
+      .label { font-family: Arial, Helvetica, sans-serif; font-weight: 800; letter-spacing: .18em; font-size: 28px; fill: #8a6724; }
+      .word { font-family: Impact, 'Arial Black', Arial, sans-serif; font-weight: 900; letter-spacing: .03em; }
+      .small { font-family: Arial, Helvetica, sans-serif; font-weight: 900; letter-spacing: .2em; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1800" height="1200"/>
+  <g opacity="1">
+    <path class="grid" d="M0 80H1800M0 160H1800M0 240H1800M0 320H1800M0 400H1800M0 480H1800M0 560H1800M0 640H1800M0 720H1800M0 800H1800M0 880H1800M0 960H1800M0 1040H1800M0 1120H1800"/>
+    <path class="grid" d="M80 0V1200M160 0V1200M240 0V1200M320 0V1200M400 0V1200M480 0V1200M560 0V1200M640 0V1200M720 0V1200M800 0V1200M880 0V1200M960 0V1200M1040 0V1200M1120 0V1200M1200 0V1200M1280 0V1200M1360 0V1200M1440 0V1200M1520 0V1200M1600 0V1200M1680 0V1200M1760 0V1200"/>
+  </g>
+
+  <text x="110" y="95" class="label">OPTION 1 — SCOREBOARD LOCKUP</text>
+  <g transform="translate(110 145)">
+    <polygon class="side" points="40,38 858,38 890,70 72,70"/>
+    <polygon class="pine" points="72,70 890,70 890,240 858,208 858,38 72,38" opacity=".85"/>
+    <rect x="0" y="0" width="820" height="205" class="fairway" stroke="#003622" stroke-width="10"/>
+    <rect x="28" y="28" width="764" height="149" class="cream" stroke="#111" stroke-width="5"/>
+    <text x="72" y="103" class="word ink" font-size="76">GOLF POOL PRO</text>
+    <text x="75" y="145" class="small fairway" font-size="24">LEADERBOARD POOLS</text>
+    <rect x="640" y="54" width="108" height="52" class="gold" stroke="#c7a14b" stroke-width="3"/>
+    <text x="666" y="89" class="small ink" font-size="20">-12</text>
+  </g>
+
+  <text x="110" y="430" class="label">OPTION 2 — EXTRUDED WORDMARK</text>
+  <g transform="translate(110 490)">
+    <text x="12" y="118" class="word pine" font-size="116">GOLF POOL PRO</text>
+    <text x="0" y="106" class="word green" font-size="116" stroke="#003622" stroke-width="2">GOLF POOL PRO</text>
+    <path d="M18 128H840L872 160H50Z" class="pine" opacity=".95"/>
+    <text x="4" y="170" class="small" font-size="23" fill="#8a6724">CREATE THE POOL • SEND THE CODE • CHECK THE BOARD</text>
+  </g>
+
+  <text x="110" y="745" class="label">OPTION 3 — COMPACT APP HEADER</text>
+  <g transform="translate(110 810)">
+    <polygon class="side" points="22,25 586,25 610,49 46,49"/>
+    <polygon class="pine" points="46,49 610,49 610,146 586,122 586,25 46,25"/>
+    <rect x="0" y="0" width="560" height="120" class="green" stroke="#003622" stroke-width="8"/>
+    <rect x="22" y="22" width="74" height="76" class="cream" stroke="#111" stroke-width="4"/>
+    <text x="38" y="74" class="word red" font-size="42">1</text>
+    <text x="124" y="76" class="word cream" font-size="56">GOLF POOL PRO</text>
+    <text x="126" y="102" class="small gold" font-size="15">LIVE POOL LEADERBOARDS</text>
+  </g>
+
+  <g transform="translate(1000 120)">
+    <text x="0" y="0" class="label">SITE FIT CHECK</text>
+    <rect x="0" y="50" width="660" height="720" fill="#fffdf8" stroke="#123c2f" stroke-width="4"/>
+    <rect x="0" y="50" width="660" height="104" fill="#fbf7ed" stroke="#d8cab0" stroke-width="2"/>
+    <g transform="translate(32 82) scale(.48)">
+      <polygon class="side" points="40,38 858,38 890,70 72,70"/>
+      <polygon class="pine" points="72,70 890,70 890,240 858,208 858,38 72,38" opacity=".85"/>
+      <rect x="0" y="0" width="820" height="205" class="fairway" stroke="#003622" stroke-width="10"/>
+      <rect x="28" y="28" width="764" height="149" class="cream" stroke="#111" stroke-width="5"/>
+      <text x="72" y="103" class="word ink" font-size="76">GOLF POOL PRO</text>
+      <text x="75" y="145" class="small fairway" font-size="24">LEADERBOARD POOLS</text>
+      <rect x="640" y="54" width="108" height="52" class="gold" stroke="#c7a14b" stroke-width="3"/>
+      <text x="666" y="89" class="small ink" font-size="20">-12</text>
+    </g>
+    <text x="40" y="260" class="word green" font-size="82">RUN THE POOL.</text>
+    <text x="40" y="342" class="word green" font-size="82">FOLLOW THE BOARD.</text>
+    <text x="40" y="410" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#4f5b52">A logo that shares the same squared board language as the product UI.</text>
+    <g transform="translate(40 475)">
+      <polygon class="side" points="0,0 260,0 270,7 10,7"/>
+      <rect x="0" y="0" width="260" height="62" class="green" stroke="#123c2f" stroke-width="4"/>
+      <text x="44" y="40" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="900" fill="white">Create a pool</text>
+    </g>
+  </g>
+</svg>

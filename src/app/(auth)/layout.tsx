@@ -5,8 +5,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10 text-stone-900 scorecard-paper">
       <div className="w-full max-w-md">
-        <Link href="/" className="mx-auto mb-6 block w-fit" aria-label="Golf Pool Pro home">
-          <Image src="/brand/golf-pool-pro-wordmark.png" alt="Golf Pool Pro" width={328} height={101} priority className="h-11 w-auto object-contain" />
+        <Link href="/" className="mx-auto mb-6 block w-fit" aria-label="Golf Pools Pro home">
+          <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-20 w-auto object-contain" />
         </Link>
         {children}
         <p className="mt-6 text-center text-xs text-stone-500">

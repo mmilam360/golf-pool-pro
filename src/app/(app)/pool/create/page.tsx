@@ -1,11 +1,17 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { BoardMetric, ClubhouseBoard } from '@/components/ClubhouseBoard'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import ShortUniqueId from 'short-unique-id'
 
 interface Tournament {
   id: string; name: string; start_date: string; end_date: string; course: string; status: string
+}
+
+function formatDate(value?: string) {
+  if (!value) return 'Date TBA'
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(value))
 }
 
 export default function CreatePoolPage() {
@@ -20,6 +26,7 @@ export default function CreatePoolPage() {
   const [error, setError] = useState('')
   const router = useRouter()
   const supabase = createClient()
+  const tournament = tournaments.find(t => t.id === selectedTournament)
 
   useEffect(() => {
     loadTournaments()
@@ -61,6 +68,9 @@ export default function CreatePoolPage() {
         count_scores: countScores,
         ob_rule_enabled: obEnabled,
         ob_penalty_strokes: obPenalty,
+        payment_status: 'active',
+        paid_entry_limit: 5,
+        activated_at: new Date().toISOString(),
       })
       .select('id')
       .single()
@@ -100,78 +110,97 @@ export default function CreatePoolPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-700 mb-2">Tournament setup</p>
-      <h1 className="text-3xl font-bold mb-8 text-emerald-950">Create a Pool</h1>
-      {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm border border-red-200">{error}</div>}
+    <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-start">
+      <div>
+        <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Tournament setup</p>
+        <h1 className="mb-6 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Create a Pool</h1>
+        {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
-      <form onSubmit={handleCreate} className="space-y-6 bg-white rounded-lg p-6 border border-stone-200 shadow-sm">
-        <div>
-          <label className="block text-stone-700 text-sm font-medium mb-1">Pool Name</label>
-          <input type="text" value={poolName} onChange={e => setPoolName(e.target.value)} required
-            placeholder="e.g. Saturday Squads Masters Pool"
-            className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
-        </div>
-
-        <div>
-          <label className="block text-stone-700 text-sm font-medium mb-1">Tournament</label>
-          <select value={selectedTournament} onChange={e => setSelectedTournament(e.target.value)} required
-            className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100">
-            <option value="">Select a tournament...</option>
-            {tournaments.map(t => (
-              <option key={t.id} value={t.id}>
-                {t.name} - {t.course || 'TBD'} ({t.start_date})
-              </option>
-            ))}
-          </select>
-          {tournaments.length === 0 && (
-            <p className="text-stone-500 text-xs mt-1">No upcoming tournaments loaded. Sync tournaments first.</p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleCreate} className="space-y-6 rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
           <div>
-            <label className="block text-stone-700 text-sm font-medium mb-1">Golfers to Pick</label>
-            <input type="number" value={pickCount} onChange={e => setPickCount(parseInt(e.target.value) || 12)}
-              min={1} max={30}
-              className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+            <label className="mb-1 block text-sm font-medium text-stone-700">Pool Name</label>
+            <input type="text" value={poolName} onChange={e => setPoolName(e.target.value)} required
+              placeholder="e.g. Tiger's Tribe PGA Pool"
+              className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
           </div>
-          <div>
-            <label className="block text-stone-700 text-sm font-medium mb-1">Scores to Count</label>
-            <input type="number" value={countScores} onChange={e => setCountScores(parseInt(e.target.value) || 8)}
-              min={1} max={pickCount}
-              className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
-          </div>
-        </div>
 
-        <div className="bg-amber-50 rounded-lg p-4 space-y-3 border border-amber-100">
-          <div className="flex items-center justify-between">
-            <label className="text-stone-800 text-sm font-medium">Out of Bounds Rule</label>
-            <button type="button" onClick={() => setObEnabled(!obEnabled)}
-              className={`w-12 h-6 rounded-full transition-colors ${obEnabled ? 'bg-emerald-700' : 'bg-stone-300'}`}>
-              <div className={`w-5 h-5 bg-white rounded-full transition-transform ${obEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
-            </button>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-stone-700">Tournament</label>
+            <select value={selectedTournament} onChange={e => setSelectedTournament(e.target.value)} required
+              className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+              <option value="">Select a tournament...</option>
+              {tournaments.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.name} - {t.course || 'TBD'} ({t.start_date})
+                </option>
+              ))}
+            </select>
+            {tournaments.length === 0 && (
+              <p className="mt-1 text-xs text-stone-500">No upcoming tournaments loaded. Sync tournaments first.</p>
+            )}
           </div>
-          {obEnabled && (
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-stone-600 text-xs mb-1">OB Penalty Strokes</label>
-              <input type="number" value={obPenalty} onChange={e => setObPenalty(parseInt(e.target.value) || 2)}
-                min={1} max={10}
-                className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+              <label className="mb-1 block text-sm font-medium text-stone-700">Golfers to Pick</label>
+              <input type="number" value={pickCount} onChange={e => setPickCount(parseInt(e.target.value) || 12)}
+                min={1} max={30}
+                className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
             </div>
-          )}
-          <p className="text-stone-600 text-xs leading-5">
-            {obEnabled
-              ? `Golfers missing the cut get replaced by OB stand-ins (${obPenalty} strokes worse than last-place finisher)`
-              : 'Only golfers who make the cut count toward your score'}
-          </p>
-        </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-stone-700">Scores to Count</label>
+              <input type="number" value={countScores} onChange={e => setCountScores(parseInt(e.target.value) || 8)}
+                min={1} max={pickCount}
+                className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+            </div>
+          </div>
 
-        <button type="submit" disabled={loading || !selectedTournament}
-          className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 shadow-sm">
-          {loading ? 'Creating...' : 'Create Pool'}
-        </button>
-      </form>
+          <div className="rounded-none border border-amber-100 bg-amber-50 p-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-stone-800">Out of Bounds Rule</label>
+              <button type="button" onClick={() => setObEnabled(!obEnabled)}
+                className={`h-6 w-12 rounded-full transition-colors ${obEnabled ? 'bg-emerald-700' : 'bg-stone-300'}`}>
+                <div className={`h-5 w-5 rounded-full bg-white transition-transform ${obEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            {obEnabled && (
+              <div className="mt-3">
+                <label className="mb-1 block text-xs text-stone-600">OB Penalty Strokes</label>
+                <input type="number" value={obPenalty} onChange={e => setObPenalty(parseInt(e.target.value) || 2)}
+                  min={1} max={10}
+                  className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+              </div>
+            )}
+            <p className="mt-3 text-xs leading-5 text-stone-600">
+              {obEnabled
+                ? `Golfers missing the cut get replaced by OB stand-ins (${obPenalty} strokes worse than last-place finisher).`
+                : 'Only golfers who make the cut count toward your score.'}
+            </p>
+          </div>
+
+          <button type="submit" disabled={loading || !selectedTournament}
+            className="gpp-3d gpp-button-3d gpp-button-wrap w-full disabled:opacity-50">
+            <span className="gpp-button-face py-3">{loading ? 'Creating...' : 'Create Pool'}</span>
+          </button>
+        </form>
+      </div>
+
+      <div className="lg:sticky lg:top-24">
+        <ClubhouseBoard title="Preview" label="Pool board" subtitle={poolName || 'New pool'} footer="Players join by code or direct link">
+          <div className="grid grid-cols-2 border-b-2 border-[#111]">
+            <BoardMetric label="Pick" value={pickCount} tone="green" />
+            <BoardMetric label="Count" value={countScores} />
+          </div>
+          <div className="grid grid-cols-[1fr_90px] border-b border-[#111] bg-[#fbfbf5] text-sm font-black uppercase tracking-[0.04em] text-[#111]">
+            <div className="border-r-2 border-[#111] px-3 py-3">Tournament</div>
+            <div className="px-2 py-3 text-center text-[#b21e23]">{formatDate(tournament?.start_date)}</div>
+          </div>
+          <div className="px-3 py-4 text-center">
+            <p className="text-lg font-black uppercase leading-tight text-[#111]">{tournament?.name || 'Select a tournament'}</p>
+            <p className="mt-1 text-xs font-black uppercase tracking-[0.08em] text-[#005b3c]">{tournament?.course || 'Course shown here'}</p>
+          </div>
+        </ClubhouseBoard>
+      </div>
     </div>
   )
 }

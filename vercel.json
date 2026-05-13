@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/sync-tournaments?live=1",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/archive-unpaid-pools",
+      "schedule": "*/30 * * * *"
     }
   ]
 }

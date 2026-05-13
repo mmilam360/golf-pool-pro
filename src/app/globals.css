@@ -12,7 +12,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: Arial, Helvetica, sans-serif;
-  --font-display: Georgia, "Times New Roman", serif;
+  --font-display: "Arial Black", Impact, Arial, Helvetica, sans-serif;
   --font-mono: "Courier New", Courier, monospace;
 }
 
@@ -29,7 +29,9 @@ body {
 }
 
 .font-display {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Arial Black", Impact, Arial, Helvetica, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
 }
 
 .scorecard-paper {
@@ -42,4 +44,146 @@ body {
 
 .championship-border {
   border-image: linear-gradient(90deg, #0f3d2e, #c9a23f, #9f2d20) 1;
+}
+
+.gpp-3d {
+  --gpp-depth-x: 15px;
+  --gpp-depth-y: 10px;
+  --gpp-side-color: #00442c;
+  --gpp-bottom-color: #003622;
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.gpp-3d:not(.gpp-button-3d) {
+  margin-right: var(--gpp-depth-x);
+  margin-bottom: var(--gpp-depth-y);
+}
+
+.gpp-3d:not(.gpp-button-3d)::before,
+.gpp-3d:not(.gpp-button-3d)::after,
+.gpp-button-3d::before,
+.gpp-button-3d::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.gpp-3d:not(.gpp-button-3d)::before {
+  top: 0;
+  right: calc(var(--gpp-depth-x) * -1);
+  width: var(--gpp-depth-x);
+  height: 100%;
+  background: var(--gpp-side-color);
+  transform: skewY(34deg);
+  transform-origin: top left;
+}
+
+.gpp-3d:not(.gpp-button-3d)::after {
+  left: 0;
+  bottom: calc(var(--gpp-depth-y) * -1);
+  width: 100%;
+  height: var(--gpp-depth-y);
+  background: var(--gpp-bottom-color);
+  transform: skewX(56deg);
+  transform-origin: top left;
+}
+
+.gpp-3d-face {
+  position: relative;
+  z-index: 1;
+}
+
+.gpp-3d-post {
+  box-shadow: 12px 0 0 #003622;
+}
+
+.gpp-button-3d {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  text-align: center;
+  margin: 0;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.gpp-button-3d::before,
+.gpp-button-3d::after {
+  display: none;
+}
+
+@media (hover: hover) {
+  .gpp-button-3d:hover {
+    transform: none;
+  }
+}
+
+.gpp-button-3d-light {
+  --gpp-side-color: #d5c28d;
+  --gpp-bottom-color: #ad9661;
+  background: #fffdf8;
+  color: #123c2f;
+}
+
+.gpp-button-wrap {
+  align-items: stretch;
+  justify-content: stretch;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.gpp-button-face {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #123c2f;
+  background: #123c2f;
+  color: white;
+  font-weight: 800;
+}
+
+.gpp-button-wrap:hover .gpp-button-face {
+  background: #0f2f25;
+}
+
+.gpp-button-wrap:disabled .gpp-button-face,
+.gpp-button-wrap[aria-disabled="true"] .gpp-button-face {
+  cursor: not-allowed;
+}
+
+.gpp-button-wrap.gpp-button-3d-light {
+  background: transparent;
+}
+
+.gpp-button-wrap.gpp-button-3d-light .gpp-button-face {
+  background: #fffdf8;
+  color: #123c2f;
+}
+
+.gpp-button-wrap.gpp-button-3d-light:hover .gpp-button-face {
+  background: #f7f0df;
+}
+
+.gpp-square-card-frame {
+  min-height: 156px;
+  max-height: 168px;
+  overflow: hidden;
+  border: 2px solid #d8cab0;
+  background: #fffdf8;
+  padding: 10px 12px;
+}
+
+.gpp-square-card-frame iframe {
+  display: block !important;
+  width: 100% !important;
+  max-height: 146px !important;
 }

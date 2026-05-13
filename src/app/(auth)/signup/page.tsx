@@ -29,7 +29,7 @@ function PasswordInput({ value, onChange, label }: { value: string; onChange: (v
           onChange={e => onChange(e.target.value)}
           required
           minLength={6}
-          className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 pr-12 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+          className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 pr-12 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
         />
         <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-500 hover:text-emerald-800 p-2">
           <EyeIcon visible={show} />
@@ -90,7 +90,7 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="rounded-lg border border-[#d8cab0] bg-white p-8 text-center shadow-sm">
+      <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 text-center shadow-[6px_6px_0_#d8cab0]">
         <h1 className="mb-4 text-2xl font-bold text-[#0f2f25]">Account created</h1>
         <p className="text-stone-600 mb-4">Check your email to confirm your account, then sign in.</p>
         <Link href="/login" className="font-semibold text-[#123c2f] hover:underline">Go to sign in</Link>
@@ -99,11 +99,11 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="rounded-lg border border-[#d8cab0] bg-white p-8 shadow-sm">
+    <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 shadow-[6px_6px_0_#d8cab0]">
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">New account</p>
       <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Create account</h1>
       {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm border border-red-200">{error}</div>
+        <div className="bg-red-50 text-red-700 p-3 rounded-none mb-4 text-sm border border-red-200">{error}</div>
       )}
       <form onSubmit={handleSignup} className="space-y-4">
         <div>
@@ -113,7 +113,7 @@ export default function SignupPage() {
             value={displayName}
             onChange={e => setDisplayName(e.target.value)}
             required
-            className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
         <div>
@@ -123,19 +123,19 @@ export default function SignupPage() {
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
         <PasswordInput label="Password" value={password} onChange={setPassword} />
         <PasswordInput label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} />
-        <label className="flex items-start gap-3 rounded-lg border border-stone-200 bg-stone-50 p-3 text-sm text-stone-700">
+        <label className="flex items-start gap-3 rounded-none border border-stone-200 bg-stone-50 p-3 text-sm text-stone-700">
           <input
             type="checkbox"
             checked={marketingOptIn}
             onChange={e => setMarketingOptIn(e.target.checked)}
             className="mt-1 h-4 w-4 rounded border-stone-300 text-emerald-700 focus:ring-emerald-600"
           />
-          <span>Send me Golf Pool Pro product updates and tournament reminders. I can unsubscribe later.</span>
+          <span>Send me Golf Pools Pro product updates and tournament reminders. I can unsubscribe later.</span>
         </label>
         <p className="text-xs leading-5 text-stone-500">
           By creating an account, you agree to the <Link href="/terms" className="font-semibold text-emerald-800 hover:underline">Terms</Link> and <Link href="/privacy" className="font-semibold text-emerald-800 hover:underline">Privacy Policy</Link>.
@@ -143,7 +143,7 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-none transition-colors disabled:opacity-50"
         >
           {loading ? 'Creating account...' : 'Sign up'}
         </button>

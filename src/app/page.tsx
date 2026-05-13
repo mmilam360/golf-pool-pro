@@ -2,31 +2,95 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 const leaderboardRows = [
-  { rank: '1', name: 'Jeff Macpherson', thru: 'F', total: '-38', picks: ['-9', '-7', '-6', '-5', '-4'] },
-  { rank: '2', name: 'Dan McFarland', thru: '17', total: '-35', picks: ['-8', '-6', '-6', '-4', '-3'] },
-  { rank: '3', name: 'Heather Nowlan', thru: '16', total: '-33', picks: ['-7', '-7', '-5', '-4', '-2'] },
-  { rank: '4', name: 'Candace Kelly', thru: '15', total: '-31', picks: ['-8', '-5', '-5', '-3', 'E'] },
+  {
+    rank: '1',
+    name: 'Tiger\'s Tribe',
+    total: '-38',
+    golfers: [
+      ['-8', 'Scheffler', 'F'],
+      ['-6', 'McIlroy', '17'],
+      ['-6', 'Schauffele', 'F'],
+      ['-5', 'Morikawa', '16'],
+      ['-4', 'Åberg', '15'],
+      ['-4', 'Hovland', 'F'],
+      ['-3', 'Fleetwood', '14'],
+      ['-2', 'Thomas', 'F'],
+    ],
+    other: ['+2 Spieth F', '+4 Fowler F'],
+  },
+  {
+    rank: '2',
+    name: 'Jeff Mac',
+    total: '-34',
+    golfers: [
+      ['-7', 'McIlroy', '17'],
+      ['-6', 'Scheffler', 'F'],
+      ['-5', 'Cantlay', 'F'],
+      ['-5', 'Homa', '15'],
+      ['-4', 'Lowry', 'F'],
+      ['-3', 'Fleetwood', '14'],
+      ['-2', 'Hovland', 'F'],
+      ['-2', 'Burns', '16'],
+    ],
+    other: ['+3 Spieth F', '+5 Fowler F'],
+  },
+  {
+    rank: '3',
+    name: 'Dan Mc',
+    total: '-31',
+    golfers: [
+      ['-7', 'Schauffele', 'F'],
+      ['-5', 'Morikawa', '16'],
+      ['-4', 'Scheffler', 'F'],
+      ['-4', 'Åberg', '15'],
+      ['-3', 'Thomas', 'F'],
+      ['-3', 'Finau', '17'],
+      ['-3', 'Day', 'F'],
+      ['-2', 'Homa', '15'],
+    ],
+    other: ['+1 Spieth F', 'CUT Fowler'],
+  },
 ]
 
 const setupSteps = [
-  ['01', 'Set the format', 'Choose the tournament, pick count, and scoring rules.'],
-  ['02', 'Invite entrants', 'Players can join by code, direct link, or email invite.'],
-  ['03', 'Keep up with the standings', 'Follow the leaderboard as tournament scores update.'],
+  ['01', 'Create the pool', 'Pick the tournament, set the rules, and share the join link.'],
+  ['02', 'Collect picks', 'Players enter their own teams before the first tee time.'],
+  ['03', 'Follow the leaderboard', 'Lock entries, watch scores update, and settle arguments from one board.'],
 ]
+
+const readinessRows = [
+  ['Host setup', 'Tournament, pick count, scoring rule'],
+  ['Player entry', 'Code, link, team selection'],
+  ['Live board', 'Standings, cuts, counted scores'],
+]
+
+function scoreColor(score: string) {
+  return score.startsWith('-') ? 'text-[#b21e23]' : score === 'E' ? 'text-[#111]' : 'text-[#005b3c]'
+}
+
+function GolferCell({ golfer }: { golfer: string[] }) {
+  return (
+    <td className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+      <div className={`text-sm font-black leading-none sm:text-base ${scoreColor(golfer[0])}`}>{golfer[0]}</div>
+      <div className="mt-0.5 truncate text-[9px] font-black uppercase leading-none tracking-[0.01em] text-[#111] sm:text-[10px]">{golfer[1]}</div>
+      <div className="mt-0.5 text-[7px] font-black uppercase tracking-[0.06em] text-[#555] sm:text-[8px]">{golfer[2]}</div>
+    </td>
+  )
+}
 
 export default function Home() {
   return (
     <div className="min-h-screen scorecard-paper text-[#1f2a24]">
       <header className="border-b border-[#d8cab0] bg-[#fbf7ed]/90 backdrop-blur-sm">
         <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 md:px-8">
-          <Link href="/" className="flex items-center gap-3" aria-label="Golf Pool Pro home">
-            <Image src="/brand/golf-pool-pro-wordmark.png" alt="Golf Pool Pro" width={328} height={101} priority className="h-8 w-auto object-contain sm:h-10 md:h-11" />
+          <Link href="/" className="flex items-center gap-3" aria-label="Golf Pools Pro home">
+            <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-14 w-auto object-contain sm:h-16 md:h-20" />
           </Link>
           <div className="flex shrink-0 items-center gap-2 text-xs font-semibold sm:text-sm">
-            <Link href="/login" className="rounded-md border border-[#d8cab0] bg-white px-3 py-2 text-[#123c2f] transition-colors hover:bg-[#f7f0df] sm:px-4">
+            <Link href="/login" className="border border-[#123c2f] bg-white px-3 py-2 text-[#123c2f] transition-colors hover:bg-[#f7f0df] sm:px-4">
               Sign in
             </Link>
-            <Link href="/signup" className="rounded-md bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25] sm:px-4">
+            <Link href="/signup" className="border border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25] sm:px-4">
               Create a pool
             </Link>
           </div>
@@ -34,85 +98,101 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="mx-auto grid max-w-7xl gap-10 px-4 pb-14 pt-10 sm:px-5 md:px-8 md:pb-20 md:pt-16 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
-          <div>
+        <section className="mx-auto grid max-w-7xl gap-8 px-4 pb-0 pt-8 sm:px-5 md:px-8 lg:min-h-[640px] lg:grid-cols-[0.8fr_1.2fr] lg:items-stretch lg:pt-4">
+          <div className="pb-6 pt-6 lg:flex lg:flex-col lg:justify-center lg:pb-12 lg:pt-0">
             <p className="mb-4 w-fit max-w-full border-y border-[#b58a3a] py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a6724] sm:text-xs sm:tracking-[0.28em]">
               Golf pool manager
             </p>
-            <h1 className="max-w-full font-display text-[3.25rem] font-bold leading-[0.94] tracking-[-0.045em] text-[#0f2f25] sm:text-6xl md:text-7xl">
-              Run the pool. Follow the leaderboard.
+            <h1 className="max-w-full font-display text-[1.8rem] font-bold leading-[1.06] tracking-[-0.035em] text-[#0f2f25] sm:text-[2.4rem] md:text-[3.85rem]">
+              <span className="block">Golf pools without</span>
+              <span className="block">the spreadsheet.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-[#4f5b52] sm:text-lg sm:leading-8">
-              Create a pool, invite entrants, and track the leaderboard in one place.
+              Run a PGA golf pool, collect picks by link, lock entries at tee time, and show everyone the live leaderboard.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/signup" className="rounded-md bg-[#123c2f] px-6 py-3 text-center font-semibold text-white shadow-sm transition-colors hover:bg-[#0f2f25]">
+              <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white transition-colors hover:bg-[#0f2f25]">
                 Create a pool
               </Link>
-              <Link href="/login" className="rounded-md border border-[#cbb994] bg-white px-6 py-3 text-center font-semibold text-[#123c2f] transition-colors hover:bg-[#f7f0df]">
+              <Link href="/login" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-[#f7f0df]">
                 Sign in
               </Link>
             </div>
           </div>
 
-          <div className="rounded-[18px] border border-[#cdbd9d] bg-white shadow-[0_24px_70px_rgba(31,42,36,0.14)]">
-            <div className="flex items-center justify-between border-b border-[#d8cab0] bg-[#123c2f] px-5 py-4 text-white md:px-6">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#d7c99f]">Pool leaders</p>
-                <h2 className="font-display text-2xl font-bold">Tiger's Tribe - PGA Championship pool</h2>
-              </div>
-              <div className="rounded-sm bg-[#f3df9c] px-3 py-2 text-sm font-black text-[#0f2f25]">R4</div>
-            </div>
-
-            <div className="md:hidden">
-              <div className="grid grid-cols-[48px_1fr_54px_70px] border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#657168]">
-                <span>Pos</span>
-                <span>Entry</span>
-                <span>Thru</span>
-                <span>Total</span>
-              </div>
-              {leaderboardRows.map(row => (
-                <div key={row.rank} className="grid grid-cols-[48px_1fr_54px_70px] items-center border-b border-[#eadfca] px-4 py-4 text-sm last:border-b-0">
-                  <span className="font-mono text-[#657168]">{row.rank}</span>
-                  <span className="font-semibold text-[#1f2a24]">{row.name}</span>
-                  <span className="font-mono text-[#657168]">{row.thru}</span>
-                  <span className="font-mono text-lg font-black text-[#1f6b4a]">{row.total}</span>
+          <div className="relative flex flex-col justify-end pt-3" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
+            <div className="gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#00442c] [--gpp-bottom-color:#003622] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]">
+            <div className="gpp-3d-face border-[10px] border-[#006241] bg-[#006241] shadow-[0_24px_70px_rgba(31,42,36,0.2)] md:border-[14px]">
+              <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
+                <div className="relative border-b-2 border-[#111] px-3 py-2">
+                  <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">Tiger's Tribe - PGA Championship pool</p>
+                  <div className="absolute right-2 top-2 border border-[#d8cab0] bg-[#f3df9c] px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#0f2f25]">Demo</div>
                 </div>
-              ))}
-            </div>
 
-            <div className="hidden overflow-x-auto md:block">
-              <div className="min-w-[680px]">
-                <div className="grid grid-cols-[64px_1.3fr_70px_82px_repeat(5,58px)] border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-[#657168]">
-                  <span>Pos</span>
-                  <span>Entry</span>
-                  <span>Thru</span>
-                  <span>Total</span>
-                  <span>G1</span>
-                  <span>G2</span>
-                  <span>G3</span>
-                  <span>G4</span>
-                  <span>G5</span>
+                <div className="bg-[#f7f7f2] lg:hidden">
+                  {leaderboardRows.map((entry, entryIndex) => (
+                    <details key={entry.rank} open={entryIndex === 0} className="group border-b-2 border-[#111]">
+                      <summary className="grid cursor-pointer list-none grid-cols-[38px_1fr_70px_20px] items-center gap-2 bg-[#f7f7f2] px-2 py-2 text-left [&::-webkit-details-marker]:hidden">
+                        <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank}</div>
+                        <div className="min-w-0 truncate text-sm font-black uppercase tracking-[0.04em] text-[#111]">{entry.name}</div>
+                        <div className={`text-right text-2xl font-black ${scoreColor(entry.total)}`}>{entry.total}</div>
+                        <div className="flex items-center justify-center text-[#111]">
+                          <svg className="h-4 w-4 group-open:hidden" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
+                          </svg>
+                          <svg className="hidden h-4 w-4 group-open:block" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
+                          </svg>
+                        </div>
+                      </summary>
+                      <div className="grid grid-cols-4 border-t border-[#111] bg-[#fbfbf5]">
+                        {entry.golfers.map(golfer => (
+                          <div key={`${entry.rank}-${golfer[1]}`} className="border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
+                            <div className={`text-base font-black leading-none ${scoreColor(golfer[0])}`}>{golfer[0]}</div>
+                            <div className="mt-1 truncate text-[10px] font-black uppercase leading-none tracking-[0.02em] text-[#111]">{golfer[1]}</div>
+                            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{golfer[2]}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  ))}
                 </div>
-                {leaderboardRows.map(row => (
-                  <div key={row.rank} className="grid grid-cols-[64px_1.3fr_70px_82px_repeat(5,58px)] items-center border-b border-[#eadfca] px-5 py-4 text-sm last:border-b-0">
-                    <span className="font-mono text-[#657168]">{row.rank}</span>
-                    <span className="font-semibold text-[#1f2a24]">{row.name}</span>
-                    <span className="font-mono text-[#657168]">{row.thru}</span>
-                    <span className="font-mono text-lg font-black text-[#1f6b4a]">{row.total}</span>
-                    {row.picks.map((score, index) => (
-                      <span key={`${row.rank}-${index}`} className="font-mono font-bold text-[#b93a32]">{score}</span>
-                    ))}
-                  </div>
-                ))}
+
+                <div className="hidden bg-[#f7f7f2] lg:block">
+                  <table className="w-full table-fixed border-collapse text-[11px] text-[#111]">
+                    <thead>
+                      <tr className="bg-[#f7f7f2] text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">
+                        <th className="w-[6%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
+                        <th className="w-[20%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
+                        <th className="border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center" colSpan={8}>Top 8 golfers</th>
+                        <th className="w-[9%] border-b-2 border-[#111] px-1 py-1.5 text-center">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leaderboardRows.map(entry => (
+                        <tr key={entry.rank} className="bg-[#f7f7f2]">
+                          <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">{entry.rank}</td>
+                          <td className="min-w-0 border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
+                            <span className="block truncate text-sm font-black uppercase tracking-[0.02em] text-[#111]" title={entry.name}>{entry.name}</span>
+                          </td>
+                          {entry.golfers.map(golfer => <GolferCell key={`${entry.rank}-${golfer[1]}`} golfer={golfer} />)}
+                          <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-2xl font-black ${scoreColor(entry.total)}`}>{entry.total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="grid grid-cols-3 border-t-2 border-[#111] bg-[#efeee6] text-center text-[10px] font-black uppercase tracking-[0.08em] text-[#111] sm:text-xs">
+                  <div className="border-r-2 border-[#111] px-2 py-2">12 picks</div>
+                  <div className="border-r-2 border-[#111] px-2 py-2">Best 8 count</div>
+                  <div className="px-2 py-2">Live scoring</div>
+                </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-3 border-t border-[#d8cab0] bg-[#fbf7ed] text-center text-sm font-semibold text-[#1f2a24]">
-              <div className="border-r border-[#d8cab0] px-4 py-4">12 picks</div>
-              <div className="border-r border-[#d8cab0] px-4 py-4">Best 8 count</div>
-              <div className="px-4 py-4">Live standings</div>
             </div>
+            <div className="gpp-3d-post mx-auto -mt-[10px] h-40 w-14 border-x-4 border-[#003622] bg-[#006241] md:h-32 md:w-16" />
           </div>
         </section>
 
@@ -128,16 +208,37 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-5 py-14 md:px-8 md:py-20">
-          <div className="grid gap-8 rounded-[18px] border border-[#d8cab0] bg-white p-6 shadow-sm md:grid-cols-[1fr_auto] md:items-center md:p-8">
+        <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 md:grid-cols-[0.85fr_1.15fr] md:items-start md:px-8 md:py-20">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Simple pricing</p>
+            <h2 className="mt-3 font-display text-3xl font-bold leading-none text-[#0f2f25] md:text-5xl">Free to start. Capped when it grows.</h2>
+            <p className="mt-4 max-w-xl leading-7 text-[#657168]">
+              Built for office golf pools, Masters pools, PGA Championship pools, Ryder Cup pools, and weekend tournament groups where the host needs setup, picks, and standings to work.
+            </p>
+          </div>
+          <div className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
+            {readinessRows.map(([label, detail]) => (
+              <div key={label} className="grid grid-cols-[1fr_auto] items-center border-b-2 border-[#123c2f] px-5 py-4 last:border-b-0">
+                <span className="font-black uppercase tracking-[0.04em] text-[#1f2a24]">{label}</span>
+                <span className="max-w-[12rem] text-right text-sm font-bold leading-5 text-[#005b3c]">{detail}</span>
+              </div>
+            ))}
+            <div className="border-t-2 border-[#123c2f] bg-[#fbf7ed] px-5 py-4 text-sm font-semibold leading-6 text-[#4f5b52]">
+              Entries stay open until the host locks the pool or the tournament starts. After that, picks are closed and the leaderboard becomes the source of truth.
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-5 pb-14 md:px-8 md:pb-20">
+          <div className="grid gap-8 border-2 border-[#123c2f] bg-white p-6 shadow-[7px_7px_0_#d8cab0] md:grid-cols-[1fr_auto] md:items-center md:p-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Before the first tee time</p>
-              <h2 className="mt-3 font-display text-3xl font-bold text-[#0f2f25] md:text-4xl">Set up the pool before the first tee time.</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Golf pool app</p>
+              <h2 className="mt-3 font-display text-3xl font-bold text-[#0f2f25] md:text-4xl">Create the pool before the first tee time.</h2>
               <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
-                Entrants make their picks. The leaderboard updates once scoring is available.
+                No spreadsheet cleanup. No group-text standings. Players enter picks, and the leaderboard carries the pool once scoring starts.
               </p>
             </div>
-            <Link href="/signup" className="rounded-md bg-[#123c2f] px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-[#0f2f25]">
+            <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white transition-colors hover:bg-[#0f2f25]">
               Create pool
             </Link>
           </div>

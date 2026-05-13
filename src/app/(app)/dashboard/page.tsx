@@ -1,4 +1,5 @@
 export const runtime = 'edge';
+import { BoardMetric, ClubhouseBoard } from '@/components/ClubhouseBoard'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -82,7 +83,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[18px] border border-[#d8cab0] bg-white shadow-sm">
+      <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
         <div className="grid gap-6 border-b border-[#d8cab0] bg-[#fbf7ed] p-5 md:grid-cols-[1fr_auto] md:items-end md:p-7">
           <div>
             <p className="mb-3 w-fit border-y border-[#b58a3a] py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Clubhouse desk</p>
@@ -90,44 +91,39 @@ export default async function DashboardPage() {
             <p className="mt-3 max-w-2xl leading-7 text-[#657168]">Create the next pool, join one by passcode, or jump back into an active board.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/pool/create" className="rounded-md bg-[#123c2f] px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#0f2f25]">
-              Create pool
+            <Link href="/pool/create" className="gpp-3d gpp-button-3d gpp-button-wrap text-sm">
+              <span className="gpp-button-face px-5 py-3">Create pool</span>
             </Link>
-            <Link href="/pool/join" className="rounded-md border border-[#cbb994] bg-white px-5 py-3 text-center text-sm font-semibold text-[#123c2f] transition-colors hover:bg-[#f7f0df]">
-              Join pool
+            <Link href="/pool/join" className="gpp-3d gpp-button-3d gpp-button-wrap gpp-button-3d-light text-sm">
+              <span className="gpp-button-face px-5 py-3">Join pool</span>
             </Link>
           </div>
         </div>
-        <div className="grid grid-cols-3 divide-x divide-[#d8cab0] text-center">
-          <div className="p-4">
-            <p className="font-mono text-2xl font-black text-[#123c2f]">{owned.length}</p>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#657168]">Owned</p>
-          </div>
-          <div className="p-4">
-            <p className="font-mono text-2xl font-black text-[#123c2f]">{joined.length}</p>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#657168]">Joined</p>
-          </div>
-          <div className="p-4">
-            <p className="font-mono text-2xl font-black text-[#1f6b4a]">{activeCount}</p>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#657168]">Active</p>
-          </div>
+        <div className="p-4">
+          <ClubhouseBoard title="Desk" label="Clubhouse count" subtitle="Pools on your board">
+            <div className="grid grid-cols-3">
+              <BoardMetric label="Owned" value={owned.length} tone="green" />
+              <BoardMetric label="Joined" value={joined.length} tone="green" />
+              <BoardMetric label="Active" value={activeCount} />
+            </div>
+          </ClubhouseBoard>
         </div>
       </section>
 
-      <section className="rounded-[18px] border border-[#d8cab0] bg-white shadow-sm">
+      <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
         <div className="flex items-center justify-between border-b border-[#d8cab0] bg-[#123c2f] px-5 py-4 text-white">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Pool runner board</p>
             <h2 className="font-display text-2xl font-bold">Your pools</h2>
           </div>
-          <Link href="/pool/create" className="hidden rounded-sm bg-[#f3df9c] px-3 py-2 text-sm font-black text-[#0f2f25] sm:block">New pool</Link>
+          <Link href="/pool/create" className="hidden border border-[#d8cab0] bg-[#f3df9c] px-3 py-2 text-sm font-black text-[#0f2f25] sm:block">New pool</Link>
         </div>
 
         {!owned.length ? (
           <div className="scorecard-paper p-8 text-center">
             <h3 className="font-display text-2xl font-bold text-[#0f2f25]">No pools on your board yet.</h3>
             <p className="mx-auto mt-3 max-w-md leading-7 text-[#657168]">Start with one tournament and a passcode. The board fills in when your group joins.</p>
-            <Link href="/pool/create" className="mt-5 inline-flex rounded-md bg-[#123c2f] px-5 py-3 text-sm font-semibold text-white hover:bg-[#0f2f25]">Create pool</Link>
+            <Link href="/pool/create" className="gpp-3d gpp-button-3d gpp-button-wrap mt-5 text-sm"><span className="gpp-button-face px-5 py-3">Create pool</span></Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -147,7 +143,7 @@ export default async function DashboardPage() {
                     <span className="font-semibold text-[#1f2a24]">{pool.name}</span>
                     <span className="text-[#657168]">{tournament?.name || 'Tournament'}</span>
                     <span className="font-mono text-[#657168]">{formatDate(tournament?.start_date)}</span>
-                    <span><span className={`rounded-sm border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>{label}</span></span>
+                    <span><span className={`border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>{label}</span></span>
                     <span className="font-mono font-black text-[#123c2f]">{pool.passcode}</span>
                   </Link>
                 )
@@ -157,20 +153,20 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      <section className="rounded-[18px] border border-[#d8cab0] bg-white shadow-sm">
+      <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
         <div className="flex items-center justify-between border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#8a6724]">Player board</p>
             <h2 className="font-display text-2xl font-bold text-[#0f2f25]">Pools you joined</h2>
           </div>
-          <Link href="/pool/join" className="hidden rounded-md border border-[#cbb994] bg-white px-3 py-2 text-sm font-semibold text-[#123c2f] hover:bg-[#f7f0df] sm:block">Join another</Link>
+          <Link href="/pool/join" className="hidden border-2 border-[#123c2f] bg-white px-3 py-2 text-sm font-semibold text-[#123c2f] hover:bg-[#f7f0df] sm:block">Join another</Link>
         </div>
 
         {!joined.length ? (
           <div className="p-8 text-center">
             <h3 className="font-display text-2xl font-bold text-[#0f2f25]">No joined pools yet.</h3>
             <p className="mx-auto mt-3 max-w-md leading-7 text-[#657168]">Enter the passcode from your pool runner when tournament week opens.</p>
-            <Link href="/pool/join" className="mt-5 inline-flex rounded-md border border-[#cbb994] bg-white px-5 py-3 text-sm font-semibold text-[#123c2f] hover:bg-[#f7f0df]">Join pool</Link>
+            <Link href="/pool/join" className="gpp-3d gpp-button-3d gpp-button-wrap gpp-button-3d-light mt-5 text-sm"><span className="gpp-button-face px-5 py-3">Join pool</span></Link>
           </div>
         ) : (
           <div className="divide-y divide-[#eadfca]">
@@ -188,7 +184,7 @@ export default async function DashboardPage() {
                   </div>
                   <p className="text-sm text-[#657168]">{tournament?.name || 'Tournament'}</p>
                   <p className="font-mono text-sm font-bold text-[#123c2f]">{picks.length ? `${picks.length} picks` : 'Pick team'}</p>
-                  <p><span className={`rounded-sm border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>{label}</span></p>
+                  <p><span className={`border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>{label}</span></p>
                 </Link>
               )
             })}

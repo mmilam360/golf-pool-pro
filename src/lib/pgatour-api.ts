@@ -29,7 +29,7 @@ function pgaHeaders(extra: Record<string, string> = {}) {
     'x-pgat-platform': 'web',
     'Origin': 'https://www.pgatour.com',
     'Referer': 'https://www.pgatour.com/',
-    'User-Agent': 'Golf Pool Pro scoring sync',
+    'User-Agent': 'Golf Pools Pro scoring sync',
     ...extra,
   }
 }

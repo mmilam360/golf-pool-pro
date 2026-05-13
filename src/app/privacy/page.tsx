@@ -3,8 +3,8 @@ import Link from 'next/link'
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen scorecard-paper px-4 py-10 text-[#1f2a24] sm:px-6">
-      <div className="mx-auto max-w-3xl rounded-lg border border-[#d8cab0] bg-white p-6 shadow-sm sm:p-8">
-        <Link href="/" className="text-sm font-semibold text-emerald-800 hover:underline">Golf Pool Pro</Link>
+      <div className="mx-auto max-w-3xl rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0] sm:p-8">
+        <Link href="/" className="text-sm font-semibold text-emerald-800 hover:underline">Golf Pools Pro</Link>
         <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Legal</p>
         <h1 className="mt-2 text-3xl font-bold text-[#0f2f25]">Privacy Policy</h1>
         <p className="mt-2 text-sm text-stone-500">Last updated May 11, 2026</p>
@@ -22,7 +22,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-[#0f2f25]">Email</h2>
-            <p className="mt-2">Pool runners may send invitations to email addresses they provide. If you opt in to product updates or tournament reminders, we may email you about Golf Pool Pro. You can unsubscribe from marketing emails at any time.</p>
+            <p className="mt-2">Pool runners may send invitations to email addresses they provide. If you opt in to product updates or tournament reminders, we may email you about Golf Pools Pro. You can unsubscribe from marketing emails at any time.</p>
           </section>
 
           <section>
@@ -31,8 +31,8 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-[#0f2f25]">No payment or wagering data</h2>
-            <p className="mt-2">Golf Pool Pro does not collect buy-ins, payouts, wagers, or payment details. Pool runners handle any private arrangements outside the app.</p>
+            <h2 className="text-lg font-semibold text-[#0f2f25]">Pool arrangements stay outside the app</h2>
+            <p className="mt-2">Golf Pools Pro only stores the pool setup, entries, picks, and leaderboard data needed to run the board. Private group arrangements stay outside the product.</p>
           </section>
 
           <section>
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-[#0f2f25]">Contact</h2>
-            <p className="mt-2">For privacy requests, contact the Golf Pool Pro operator through the support channel listed in the app or on the site.</p>
+            <p className="mt-2">For privacy requests, contact the Golf Pools Pro operator through the support channel listed in the app or on the site.</p>
           </section>
         </div>
       </div>

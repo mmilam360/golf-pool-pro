@@ -3,8 +3,8 @@ import Link from 'next/link'
 export default function TermsPage() {
   return (
     <main className="min-h-screen scorecard-paper px-4 py-10 text-[#1f2a24] sm:px-6">
-      <div className="mx-auto max-w-3xl rounded-lg border border-[#d8cab0] bg-white p-6 shadow-sm sm:p-8">
-        <Link href="/" className="text-sm font-semibold text-emerald-800 hover:underline">Golf Pool Pro</Link>
+      <div className="mx-auto max-w-3xl rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0] sm:p-8">
+        <Link href="/" className="text-sm font-semibold text-emerald-800 hover:underline">Golf Pools Pro</Link>
         <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Legal</p>
         <h1 className="mt-2 text-3xl font-bold text-[#0f2f25]">Terms and Conditions</h1>
         <p className="mt-2 text-sm text-stone-500">Last updated May 11, 2026</p>
@@ -12,12 +12,12 @@ export default function TermsPage() {
         <div className="mt-8 space-y-6 text-sm leading-6 text-stone-700">
           <section>
             <h2 className="text-lg font-semibold text-[#0f2f25]">Use of the service</h2>
-            <p className="mt-2">Golf Pool Pro lets users create golf pools, invite entrants, collect golfer picks, and follow leaderboard scoring. You are responsible for the information you enter and for keeping your account secure.</p>
+            <p className="mt-2">Golf Pools Pro lets users create golf pools, invite entrants, collect golfer picks, and follow leaderboard scoring. You are responsible for the information you enter and for keeping your account secure.</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-[#0f2f25]">No wagering service</h2>
-            <p className="mt-2">Golf Pool Pro does not process wagers, payments, buy-ins, payouts, or prize distributions. Any private math or arrangements outside the app are the responsibility of the people running that pool.</p>
+            <h2 className="text-lg font-semibold text-[#0f2f25]">Golf pool management only</h2>
+            <p className="mt-2">Golf Pools Pro is for pool setup, entries, picks, and leaderboard scoring. Any private group arrangements outside those features are the responsibility of the people running that pool.</p>
           </section>
 
           <section>
@@ -37,7 +37,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-[#0f2f25]">Changes</h2>
-            <p className="mt-2">We may update these terms. Continued use of Golf Pool Pro after an update means you accept the new terms.</p>
+            <p className="mt-2">We may update these terms. Continued use of Golf Pools Pro after an update means you accept the new terms.</p>
           </section>
 
           <section>

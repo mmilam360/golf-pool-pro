@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Golf Pool Pro
+name: Golf Pools Pro
 description: Premium golf pool software with country-club scorecard clarity and fantasy-sports utility. The product should feel like a tournament clubhouse board, not generic SaaS.
 colors:
   primary: "#123c2f"
@@ -17,7 +17,7 @@ colors:
   danger: "#b93a32"
 typography:
   display:
-    fontFamily: "Georgia, 'Times New Roman', serif"
+    fontFamily: "'Arial Black', Impact, Arial, Helvetica, sans-serif"
     fontSize: "3rem"
     fontWeight: 700
     lineHeight: "1.05"
@@ -75,7 +75,7 @@ components:
 
 ## Overview
 
-Golf Pool Pro is not a crypto dashboard, generic SaaS admin panel, or startup landing page. It should feel like a polished golf clubhouse tool: Masters scorecard paper, tournament leaderboard boards, restrained country-club materials, and fast fantasy-sports decision making.
+Golf Pools Pro is not a crypto dashboard, generic SaaS admin panel, or startup landing page. It should feel like a polished golf clubhouse tool: Masters scorecard paper, tournament leaderboard boards, restrained country-club materials, and fast fantasy-sports decision making.
 
 The UI must prioritize speed: pool runners and players should understand standings, rules, picks, and next action within seconds.
 
@@ -92,7 +92,7 @@ Avoid purple, blue startup gradients, glass panels, neon glows, and gray-on-gray
 
 ## Typography
 
-Use serif display/headings sparingly for clubhouse/tournament character. Use sans body for forms, tables, and dense dashboard content. Numeric golf scores must be tabular where possible.
+Use heavy angular sans display/headings for the 90s physical-scoreboard direction. Avoid serif display type in the main app and landing pages unless a future approved lockup specifically calls for it. Use sans body for forms, tables, and dense dashboard content. Numeric golf scores must be tabular where possible.
 
 ## Layout
 

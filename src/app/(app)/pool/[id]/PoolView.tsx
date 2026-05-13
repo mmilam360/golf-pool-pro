@@ -1,9 +1,34 @@
 'use client'
-import { Fragment, useState, useEffect, useCallback, useMemo } from 'react'
+import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { BoardMetric, ClubhouseBoard } from '@/components/ClubhouseBoard'
 import { scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
+import { getPoolPaymentStatus } from '@/lib/payments/pricing'
 import type { GolfPlayer } from '@/lib/golf-api'
+
+type PaymentQuote = {
+  activeEntryCount: number
+  entryLimit: number | null
+  tierAmountCents: number | null
+  amountPaidCents: number
+  amountDueCents: number | null
+  label: string
+  requiresCustomQuote: boolean
+  paymentStatus: string
+  paidEntryLimit: number
+  square: {
+    applicationId: string
+    locationId: string
+    environment: string
+  }
+}
+
+declare global {
+  interface Window {
+    Square?: any
+  }
+}
 
 interface Props {
   pool: any
@@ -49,6 +74,25 @@ function CopyIcon() {
   )
 }
 
+function TrustCheckIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4 10.5 8 14l8-8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter" />
+    </svg>
+  )
+}
+
+function SquareTrustMark() {
+  return (
+    <span className="inline-flex items-center gap-2 border border-stone-300 bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-stone-800">
+      <span className="grid h-4 w-4 place-items-center border-2 border-stone-900">
+        <span className="h-1.5 w-1.5 bg-stone-900" />
+      </span>
+      Square
+    </span>
+  )
+}
+
 const REFRESH_SECONDS = 60
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId }: Props) {
@@ -66,17 +110,27 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [inviteUrl, setInviteUrl] = useState('')
-  const [emailRecipients, setEmailRecipients] = useState('')
-  const [emailSending, setEmailSending] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
   const [removeReason, setRemoveReason] = useState('')
   const [renameValue, setRenameValue] = useState(pool.name)
   const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [showLockConfirm, setShowLockConfirm] = useState(false)
+  const [paymentQuote, setPaymentQuote] = useState<PaymentQuote | null>(null)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentCardReady, setPaymentCardReady] = useState(false)
+  const [paymentFeedback, setPaymentFeedback] = useState('')
+  const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
+  const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
+  const paymentCardRef = useRef<any>(null)
+  const adminSectionRef = useRef<HTMLDivElement>(null)
   const supabase = useMemo(() => createClient(), [])
 
   const activeEntries = entries.filter(e => !e.is_removed)
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
+  const picksAreClosed = isLocked || scoringIsLive
+  const paymentCollectionOpen = isLocked || scoringIsLive
+  const leaderboardIsHidden = scoringIsLive && paymentStatus !== 'active'
   const canInvitePlayers = !isLocked && !scoringIsLive
 
   const refreshPoolEntries = useCallback(async () => {
@@ -94,6 +148,156 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   useEffect(() => {
     setInviteUrl(`${window.location.origin}/pool/join?code=${pool.passcode}`)
   }, [pool.passcode])
+
+  const refreshPaymentQuote = useCallback(async () => {
+    if (!isOwner) return
+    const res = await fetch('/api/payments/square/quote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ poolId: pool.id }),
+    })
+    if (!res.ok) return
+    const quote = await res.json()
+    setPaymentQuote(quote)
+    setPaymentStatus(quote.paymentStatus || 'draft')
+  }, [isOwner, pool.id])
+
+  useEffect(() => {
+    refreshPaymentQuote()
+  }, [refreshPaymentQuote, activeEntries.length])
+
+  function formatCents(cents: number | null | undefined) {
+    if (cents == null) return 'Custom'
+    if (cents === 0) return '$0'
+    return `$${(cents / 100).toFixed(2)}`
+  }
+
+  function reviewActivation() {
+    setTab('admin')
+    window.setTimeout(() => {
+      adminSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }
+
+  function squareScriptUrl(environment: string) {
+    return environment === 'production'
+      ? 'https://web.squarecdn.com/v1/square.js'
+      : 'https://sandbox.web.squarecdn.com/v1/square.js'
+  }
+
+  async function loadSquareScript(environment: string) {
+    if (window.Square) return
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = squareScriptUrl(environment)
+      script.async = true
+      script.onload = () => resolve()
+      script.onerror = () => reject(new Error('Could not load Square checkout'))
+      document.head.appendChild(script)
+    })
+  }
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function mountSquareCard() {
+      if (!isOwner || tab !== 'admin' || !paymentQuote || paymentQuote.paymentStatus === 'active') return
+      if (!paymentCollectionOpen) return
+      if (paymentQuote.requiresCustomQuote || !paymentQuote.amountDueCents || paymentQuote.amountDueCents <= 0) return
+      if (!paymentQuote.square.applicationId || !paymentQuote.square.locationId) return
+      if (paymentCardRef.current) return
+
+      try {
+        await loadSquareScript(paymentQuote.square.environment)
+        if (cancelled) return
+        const payments = window.Square.payments(paymentQuote.square.applicationId, paymentQuote.square.locationId)
+        const card = await payments.card()
+        await card.attach('#square-card-container')
+        if (cancelled) {
+          await card.destroy?.()
+          return
+        }
+        paymentCardRef.current = card
+        setPaymentCardReady(true)
+      } catch {
+        if (!cancelled) setPaymentFeedback('Square checkout could not be loaded yet.')
+      }
+    }
+
+    mountSquareCard()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isOwner, paymentQuote, paymentCollectionOpen, tab])
+
+  useEffect(() => {
+    if (tab === 'admin' && paymentQuote?.paymentStatus !== 'active' && paymentCollectionOpen) return
+    if (paymentCardRef.current) {
+      paymentCardRef.current.destroy?.()
+      paymentCardRef.current = null
+      setPaymentCardReady(false)
+    }
+  }, [tab, paymentQuote?.paymentStatus])
+
+  async function activatePool() {
+    if (!paymentQuote) {
+      setPaymentFeedback('Payment quote is still loading.')
+      return
+    }
+    if (paymentQuote.requiresCustomQuote) {
+      setPaymentFeedback('This pool needs a custom quote.')
+      return
+    }
+    if (!paymentQuote.square.applicationId || !paymentQuote.square.locationId) {
+      setPaymentFeedback('Square is not configured yet.')
+      return
+    }
+
+    if ((paymentQuote.amountDueCents || 0) > 0 && !paymentCollectionOpen) {
+      setPaymentFeedback('Payment opens after picks lock.')
+      return
+    }
+
+    setPaymentLoading(true)
+    setStatusMessage('')
+    setPaymentFeedback('Processing payment...')
+    try {
+      const amountDue = paymentQuote.amountDueCents || 0
+      let sourceId = 'free-entry-credit'
+
+      if (amountDue > 0) {
+        const card = paymentCardRef.current
+        if (!card) {
+          throw new Error('Enter payment details first.')
+        }
+        const result = await card.tokenize()
+
+        if (result.status !== 'OK') {
+          throw new Error(result.errors?.[0]?.message || 'Payment could not be started.')
+        }
+        sourceId = result.token
+      }
+
+      const res = await fetch('/api/payments/square/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poolId: pool.id, sourceId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Payment failed.')
+
+      setPaymentStatus('active')
+      const successMessage = data.amountDueCents === 0 ? 'Pool is active.' : 'Payment received. Pool is active.'
+      setPaymentFeedback(successMessage)
+      setStatusMessage(successMessage)
+      await refreshPaymentQuote()
+    } catch (error: any) {
+      setPaymentFeedback(error?.message || 'Payment failed.')
+    } finally {
+      setPaymentLoading(false)
+    }
+  }
 
   // Fetch live leaderboard
   const fetchScores = useCallback(async () => {
@@ -137,6 +341,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   // Save picks
   async function savePicks() {
     if (!myEntry) return
+    if (picksAreClosed) {
+      setStatusMessage('Picks are closed for this pool.')
+      setTimeout(() => setStatusMessage(''), 2500)
+      return
+    }
     setSaving(true)
     const { error } = await supabase
       .from('gpp_entries')
@@ -166,59 +375,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     copyToClipboard(pool.passcode, 'Invite code copied.')
   }
 
-  async function importCsvEmails(file: File | undefined) {
-    if (!file) return
-    const text = await file.text()
-    const found = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []
-    if (found.length === 0) {
-      setStatusMessage('No email addresses found in that CSV.')
-      return
-    }
-
-    const existing = emailRecipients.split(/[\s,;]+/).map(email => email.trim()).filter(Boolean)
-    const merged = Array.from(new Set([...existing, ...found].map(email => email.toLowerCase())))
-    setEmailRecipients(merged.join(', '))
-    setStatusMessage(`${found.length} ${found.length === 1 ? 'email' : 'emails'} found in CSV.`)
-    setTimeout(() => setStatusMessage(''), 3000)
-  }
-
-  async function sendInvites() {
-    const recipients = emailRecipients.split(/[\s,;]+/).map(email => email.trim()).filter(Boolean)
-    if (recipients.length === 0) {
-      setStatusMessage('Add at least one email address.')
-      return
-    }
-
-    setEmailSending(true)
-    const inviteUrl = `${window.location.origin}/pool/join?code=${pool.passcode}`
-    const res = await fetch('/api/email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        poolId: pool.id,
-        recipients,
-        subject: `Join ${poolName}`,
-        body: `You're invited to join ${poolName}.\n\nUse code ${pool.passcode} or open this link:\n${inviteUrl}`,
-      }),
-    })
-    const data = await res.json().catch(() => ({}))
-    setEmailSending(false)
-
-    if (!res.ok) {
-      setStatusMessage(data.error === 'Email service not configured'
-        ? 'Email is wired up, but RESEND_API_KEY is missing in Vercel.'
-        : data.error || 'Email failed.')
-      return
-    }
-
-    setEmailRecipients('')
-    setStatusMessage(`Invite sent to ${recipients.length} ${recipients.length === 1 ? 'person' : 'people'}.`)
-    setTimeout(() => setStatusMessage(''), 3500)
-  }
 
   // Toggle golfer in picks
   function togglePick(name: string) {
-    if (isLocked) return
+    if (picksAreClosed) return
     setMyPicks(prev => {
       if (prev.includes(name)) return prev.filter(n => n !== name)
       if (prev.length >= pool.pick_count) return prev
@@ -238,16 +398,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
   }
 
-  // Lock/unlock pool (admin)
-  async function setPoolLock(locked: boolean) {
-    if (scoringIsLive) return
+  // Lock pool permanently (admin)
+  async function lockPool() {
+    if (scoringIsLive || isLocked) return
     const { error } = await supabase
       .from('gpp_pools')
-      .update({ is_locked: locked })
+      .update({ is_locked: true })
       .eq('id', pool.id)
     if (!error) {
-      setPoolLocked(locked)
-      setStatusMessage(locked ? 'Pool locked. Picks are closed.' : 'Pool unlocked. Entries and picks are open.')
+      setPoolLocked(true)
+      setShowLockConfirm(false)
+      setStatusMessage('Pool locked. New entries and pick changes are closed.')
+      refreshPaymentQuote()
+    } else {
+      setStatusMessage('Could not lock pool.')
     }
   }
 
@@ -311,72 +475,62 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
           <span className="text-stone-600">Field: {field.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.length || 0)} golfers</span>
-          {isLocked && <span className="text-amber-700">Picks locked</span>}
+          {picksAreClosed && <span className="text-amber-700">Picks closed</span>}
           {pool.is_completed && <span className="text-emerald-700">Final results</span>}
         </div>
       </div>
 
-      {statusMessage && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
+      {statusMessage && <div className="mb-4 rounded-none border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
 
-      {canInvitePlayers && <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+      {isOwner && paymentStatus !== 'active' && (
+        <div className="mb-6 rounded-none border-2 border-amber-300 bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-display text-lg font-bold text-emerald-950">{paymentCollectionOpen ? 'Pool fee due' : 'Estimated pool fee'}</p>
+              <p className="text-sm text-stone-700">
+                {paymentCollectionOpen
+                  ? 'Pay once, based on the final entry count, to show results.'
+                  : 'Keep entries open for now. Payment opens after picks lock.'}
+              </p>
+            </div>
+            <button onClick={reviewActivation} className="gpp-3d gpp-button-3d gpp-button-wrap text-sm">
+              <span className="gpp-button-face px-4 py-2">{paymentCollectionOpen ? 'Pay pool fee' : 'Review estimate'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {canInvitePlayers && <div className="mb-6 rounded-none border border-amber-200 bg-amber-50 p-4 shadow-[5px_5px_0_#d8cab0]">
         <div className="mb-3">
           <p className="text-sm font-semibold text-emerald-950">Invite players</p>
           <p className="text-sm text-stone-700">Send the code or the direct join link.</p>
         </div>
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-white px-3 py-2">
+          <div className="flex items-center justify-between gap-3 rounded-none border border-amber-200 bg-white px-3 py-2">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">Code</p>
               <p className="font-mono text-base font-semibold tracking-[0.08em] text-emerald-900">{pool.passcode}</p>
             </div>
-            <button onClick={copyInviteCode} className="shrink-0 rounded-md border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite code">
+            <button onClick={copyInviteCode} className="shrink-0 rounded-none border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite code">
               <CopyIcon />
             </button>
           </div>
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-white px-3 py-2">
+          <div className="flex items-center justify-between gap-3 rounded-none border border-amber-200 bg-white px-3 py-2">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">Link</p>
               <p className="truncate font-mono text-xs text-stone-900">{inviteUrl || `/pool/join?code=${pool.passcode}`}</p>
             </div>
-            <button onClick={copyInviteLink} className="shrink-0 rounded-md border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite link">
+            <button onClick={copyInviteLink} className="shrink-0 rounded-none border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite link">
               <CopyIcon />
             </button>
           </div>
         </div>
-        {isOwner && (
-          <div className="mt-4 border-t border-amber-200 pt-4">
-            <label className="block text-sm font-medium text-stone-700 mb-2">Email invites</label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                value={emailRecipients}
-                onChange={e => setEmailRecipients(e.target.value)}
-                placeholder="Emails separated by commas"
-                className="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-              />
-              <label className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-center text-sm font-semibold text-stone-800 shadow-sm hover:bg-stone-50">
-                Import CSV
-                <input
-                  type="file"
-                  accept=".csv,text/csv,text/plain"
-                  className="sr-only"
-                  onChange={async e => {
-                    await importCsvEmails(e.target.files?.[0])
-                    e.currentTarget.value = ''
-                  }}
-                />
-              </label>
-              <button onClick={sendInvites} disabled={emailSending} className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-stone-800 disabled:opacity-50">
-                {emailSending ? 'Sending...' : 'Send invites'}
-              </button>
-            </div>
-          </div>
-        )}
       </div>}
-      <div className="flex gap-1 mb-6 bg-stone-100 rounded-lg p-1 inline-flex border border-stone-200">
+      <div className="flex gap-1 mb-6 bg-stone-100 rounded-none p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-team', ...(isOwner ? ['admin'] as Tab[] : [])] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              tab === t ? 'bg-white text-emerald-900 shadow-sm' : 'text-stone-600 hover:text-emerald-800'
+            className={`px-4 py-2 rounded-none text-sm font-medium transition-colors ${
+              tab === t ? 'bg-white text-emerald-900' : 'text-stone-600 hover:text-emerald-800'
             }`}>
             {t === 'leaderboard' ? 'Leaderboard' : t === 'my-team' ? 'My Team' : 'Admin'}
           </button>
@@ -387,27 +541,29 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {tab === 'leaderboard' && (
         <div>
           {loadingScores && <p className="text-stone-500 text-sm mb-4">Loading scores...</p>}
-          {scoredEntries.length === 0 ? (
-            <div className="bg-white rounded-xl p-8 border border-stone-200 text-center">
+          {leaderboardIsHidden ? (
+            <div className="rounded-none border-2 border-amber-300 bg-[#fbf7ed] p-8 text-center shadow-[5px_5px_0_#d8cab0]">
+              <p className="font-display text-2xl font-bold text-emerald-950">Leaderboard hidden until pool is activated</p>
+              <p className="mx-auto mt-2 max-w-xl text-sm text-stone-700">
+                Entries are safe. The host can activate this pool from the Admin tab to restore live standings.
+              </p>
+              {isOwner && (
+                <button onClick={reviewActivation} className="gpp-3d gpp-button-3d gpp-button-wrap mt-5 text-sm">
+                  <span className="gpp-button-face px-5 py-2">Activate pool</span>
+                </button>
+              )}
+            </div>
+          ) : scoredEntries.length === 0 ? (
+            <div className="bg-white rounded-none p-8 border border-stone-200 text-center">
               <p className="text-stone-600">No entries yet. Share passcode <span className="text-emerald-700 font-mono">{pool.passcode}</span></p>
             </div>
           ) : (
             <>
             <div
-              className="relative pr-[14px] pb-[10px]"
+              className="gpp-3d [--gpp-depth-x:10px] [--gpp-depth-y:8px] [--gpp-side-color:#00442c] [--gpp-bottom-color:#003622] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]"
               style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
             >
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-[#00452f]"
-                style={{ clipPath: 'polygon(calc(100% - 14px) 0, 100% 10px, 100% 100%, calc(100% - 14px) calc(100% - 10px))' }}
-              />
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-[#003622]"
-                style={{ clipPath: 'polygon(0 calc(100% - 10px), 14px 100%, 100% 100%, calc(100% - 14px) calc(100% - 10px))' }}
-              />
-              <div className="relative z-10 border-[10px] border-[#005b3c] bg-[#005b3c] md:border-[16px]">
+              <div className="gpp-3d-face border-[10px] border-[#006241] bg-[#006241] md:border-[16px]">
               <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
                 <div className="relative border-b-2 border-[#111] px-3 py-2">
                   <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
@@ -552,7 +708,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               )}
             </div>
             </div>
-            <div className="mx-auto -mb-8 h-36 w-16 border-x-4 border-[#003622] bg-[#005b3c] shadow-[12px_0_0_#003622] md:-mb-10 md:h-44 md:w-20" />
+            <div className="gpp-3d-post mx-auto -mb-8 -mt-[10px] h-36 w-16 border-x-4 border-[#003622] bg-[#006241] md:-mb-10 md:h-44 md:w-20" />
             </>
           )}
         </div>
@@ -562,7 +718,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {tab === 'my-team' && (
         <div>
           {!myEntry ? (
-            <div className="bg-white rounded-xl p-8 border border-stone-200 text-center">
+            <div className="bg-white rounded-none p-8 border border-stone-200 text-center">
               <p className="text-stone-600">You haven't joined this pool yet.</p>
             </div>
           ) : (
@@ -570,18 +726,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div className="flex items-center justify-between mb-4">
                 <p className="text-stone-600 text-sm">
                   Pick {pool.pick_count} golfers. Best {pool.count_scores} scores count.
-                  {isLocked && <span className="text-amber-400 ml-2">Picks are locked.</span>}
+                  {picksAreClosed && <span className="ml-2 text-amber-700">Picks are closed.</span>}
                 </p>
-                {!isLocked && (
+                {!picksAreClosed && (
                   <button onClick={savePicks} disabled={saving}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-5 py-2 rounded-lg text-sm transition-colors disabled:opacity-50">
-                    {saving ? 'Saving...' : 'Save Picks'}
+                    className="gpp-3d gpp-button-3d gpp-button-wrap text-sm disabled:opacity-50">
+                    <span className="gpp-button-face px-5 py-2">{saving ? 'Saving...' : 'Save Picks'}</span>
                   </button>
                 )}
               </div>
 
               {/* Selected picks */}
-              <div className="bg-white rounded-xl p-4 border border-stone-200 mb-4">
+              <div className="bg-white rounded-none p-4 border border-stone-200 mb-4">
                 <h3 className="text-sm font-medium text-stone-700 mb-2">
                   Your Picks ({myPicks.length}/{pool.pick_count})
                 </h3>
@@ -589,7 +745,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   {myPicks.map(name => (
                     <span key={name} className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-1 rounded-full text-sm flex items-center gap-1">
                       {name}
-                      {!isLocked && (
+                      {!picksAreClosed && (
                         <button onClick={() => togglePick(name)} className="text-emerald-500 hover:text-red-400 ml-1">x</button>
                       )}
                     </span>
@@ -599,8 +755,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
 
               {/* Golfer list */}
-              {!isLocked && field.length > 0 && (
-                <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+              {!picksAreClosed && field.length > 0 && (
+                <div className="bg-white rounded-none border border-stone-200 overflow-hidden">
                   <div className="max-h-96 overflow-y-auto">
                     {field.sort((a, b) => a.name.localeCompare(b.name)).map(player => {
                       const selected = myPicks.includes(player.name)
@@ -623,7 +779,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               )}
 
               {field.length === 0 && (
-                <div className="bg-white rounded-xl p-8 border border-stone-200 text-center">
+                <div className="bg-white rounded-none p-8 border border-stone-200 text-center">
                   <p className="text-stone-600">Tournament field not loaded yet. Check back when the tournament is closer.</p>
                 </div>
               )}
@@ -634,9 +790,67 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       {/* Admin Tab */}
       {tab === 'admin' && isOwner && (
-        <div className="space-y-6">
+        <div ref={adminSectionRef} className="scroll-mt-6 space-y-6">
+          <ClubhouseBoard title="Payment" label="Pool fee" subtitle="First 5 entries free" footer="72¢ per extra entry, capped at $25">
+            <div className="grid gap-0 sm:grid-cols-3">
+              <BoardMetric label="Entries" value={paymentQuote?.activeEntryCount ?? activeEntries.length} tone="green" />
+              <BoardMetric label="Rule" value={paymentQuote?.label || 'Loading'} tone="ink" />
+              <BoardMetric label="Due" value={formatCents(paymentQuote?.amountDueCents)} />
+            </div>
+            <div className="px-4 py-4">
+              <p className="text-sm font-bold leading-6 text-stone-700">
+                {paymentCollectionOpen
+                  ? 'Entries are closed. Pay the final pool fee to show results.'
+                  : 'This is only an estimate while entries are open. Payment opens after picks lock.'}
+              </p>
+                {paymentStatus === 'active' ? (
+                  <p className="mt-4 rounded-none border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Pool fee handled. Results access is enabled.</p>
+                ) : paymentQuote?.requiresCustomQuote ? (
+                  <p className="mt-4 rounded-none border border-amber-200 bg-white px-3 py-2 text-sm text-stone-700">Pools over 200 entries need manual pricing for now.</p>
+                ) : (
+                  <div className="mt-4 space-y-4">
+                    {!paymentCollectionOpen ? (
+                      <div className="border border-amber-200 bg-white px-3 py-3 text-sm text-stone-700">
+                        Keep adding and removing entries for now. The final fee is collected after picks lock.
+                      </div>
+                    ) : (
+                      <>
+                        {!!paymentQuote?.amountDueCents && paymentQuote.amountDueCents > 0 && (
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center gap-2 border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-3 text-xs font-bold text-stone-700">
+                              <span className="inline-flex items-center gap-1.5 text-emerald-800"><TrustCheckIcon /> Secure checkout</span>
+                              <span className="hidden h-4 w-px bg-stone-300 sm:block" />
+                              <SquareTrustMark />
+                              <span className="text-stone-600">Card details are encrypted and processed by Square.</span>
+                            </div>
+                            <div id="square-card-container" className="gpp-square-card-frame" />
+                            {!paymentCardReady && (
+                              <p className="text-xs font-semibold text-stone-600">Card form is loading.</p>
+                            )}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={activatePool}
+                          disabled={paymentLoading || !paymentQuote || (!paymentCardReady && !!paymentQuote?.amountDueCents)}
+                          className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {paymentLoading ? 'Processing...' : paymentQuote?.amountDueCents === 0 ? 'Open results' : `Pay pool fee ${formatCents(paymentQuote?.amountDueCents)}`}
+                        </button>
+                      </>
+                    )}
+                    {paymentFeedback && (
+                      <p className={`border px-3 py-2 text-xs font-semibold ${paymentFeedback.includes('enabled') || paymentFeedback.includes('active') ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : paymentFeedback.includes('Processing') ? 'border-stone-300 bg-white text-stone-700' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
+                        {paymentFeedback}
+                      </p>
+                    )}
+                    {paymentCollectionOpen && <p className="pt-1 text-xs text-stone-600">Square securely handles card details. Golf Pools Pro never stores card numbers.</p>}
+                  </div>
+                )}
+              </div>
+          </ClubhouseBoard>
           {/* Pool controls */}
-          <div className="bg-white rounded-xl p-5 border border-stone-200 shadow-sm">
+          <div className="bg-white rounded-none p-5 border border-stone-200 shadow-[5px_5px_0_#d8cab0]">
             <h3 className="text-lg font-semibold mb-4 text-emerald-950">Pool controls</h3>
             <div className="space-y-5">
               <div>
@@ -645,10 +859,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   <input
                     value={renameValue}
                     onChange={e => setRenameValue(e.target.value)}
-                    className="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    className="min-w-0 flex-1 rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
-                  <button onClick={renamePool} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
-                    Save name
+                  <button onClick={renamePool} className="gpp-3d gpp-button-3d gpp-button-wrap text-sm">
+                    <span className="gpp-button-face px-4 py-2">Save name</span>
                   </button>
                 </div>
               </div>
@@ -656,15 +870,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div className="flex flex-col gap-3 border-t border-stone-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-stone-600">
                   {scoringIsLive
-                    ? 'The event has started. The pool can no longer be unlocked.'
+                    ? 'The event has started. Entries and picks are closed.'
                     : isLocked
-                      ? 'Pool is locked. Unlock it only before the event starts.'
-                      : 'Pool is open. Lock it when entries and picks are final.'}
+                      ? 'Pool is locked. New entries and pick changes are closed permanently.'
+                      : 'Pool is open. Lock it only when entries and picks are final.'}
                 </p>
-                {!scoringIsLive && (
-                  <button onClick={() => setPoolLock(!isLocked)}
-                    className={`${isLocked ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-amber-600 hover:bg-amber-500'} text-white font-semibold px-5 py-2 rounded-lg text-sm transition-colors`}>
-                    {isLocked ? 'Unlock Pool' : 'Lock Picks'}
+                {!scoringIsLive && !isLocked && (
+                  <button onClick={() => setShowLockConfirm(true)}
+                    className="rounded-none bg-amber-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-500">
+                    Lock pool
                   </button>
                 )}
               </div>
@@ -677,9 +891,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     value={deleteConfirm}
                     onChange={e => setDeleteConfirm(e.target.value)}
                     placeholder="DELETE"
-                    className="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+                    className="min-w-0 flex-1 rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
                   />
-                  <button onClick={deletePool} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+                  <button onClick={deletePool} className="rounded-none bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
                     Delete pool
                   </button>
                 </div>
@@ -688,7 +902,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           </div>
 
           {/* Entries management */}
-          <div className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-none border border-stone-200 overflow-hidden shadow-[5px_5px_0_#d8cab0]">
             <div className="px-5 py-4 border-b border-stone-200 bg-stone-50">
               <h3 className="text-lg font-semibold text-emerald-950">Manage entries ({activeEntries.length})</h3>
             </div>
@@ -711,10 +925,27 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             ))}
           </div>
 
+          {/* Lock confirmation modal */}
+          {showLockConfirm && (
+            <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-white rounded-none p-6 border border-amber-300 max-w-sm w-full mx-4 shadow-2xl">
+                <h3 className="text-lg font-semibold mb-3 text-emerald-950">Lock pool permanently?</h3>
+                <p className="text-stone-700 text-sm mb-3">Once this pool is locked, new entrants cannot be added and picks cannot be changed.</p>
+                <p className="text-stone-700 text-sm mb-5">You can still remove entries before paying the final pool fee.</p>
+                <div className="flex gap-3 justify-end">
+                  <button onClick={() => setShowLockConfirm(false)}
+                    className="text-stone-600 hover:text-stone-900 px-4 py-2 text-sm">Cancel</button>
+                  <button onClick={lockPool}
+                    className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-none text-sm font-semibold">Lock pool</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Remove confirmation modal */}
           {removeTarget && (
             <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl p-6 border border-stone-200 max-w-sm w-full mx-4 shadow-2xl">
+              <div className="bg-white rounded-none p-6 border border-stone-200 max-w-sm w-full mx-4 shadow-2xl">
                 <h3 className="text-lg font-semibold mb-3 text-emerald-950">Remove entry</h3>
                 <p className="text-stone-600 text-sm mb-4">Remove this person from the pool? They won't be able to rejoin.</p>
                 <input
@@ -722,13 +953,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   value={removeReason}
                   onChange={e => setRemoveReason(e.target.value)}
                   placeholder="Reason"
-                  className="w-full bg-white border border-stone-300 rounded-lg px-4 py-2 text-stone-900 text-sm mb-4 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full bg-white border border-stone-300 rounded-none px-4 py-2 text-stone-900 text-sm mb-4 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
                 />
                 <div className="flex gap-3 justify-end">
                   <button onClick={() => { setRemoveTarget(null); setRemoveReason('') }}
                     className="text-stone-600 hover:text-stone-900 px-4 py-2 text-sm">Cancel</button>
                   <button onClick={() => removeEntry(removeTarget)}
-                    className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm">Remove</button>
+                    className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-none text-sm">Remove</button>
                 </div>
               </div>
             </div>

@@ -14,9 +14,9 @@ export interface Database {
         Update: { name?: string; status?: string; field_json?: Json; leaderboard_json?: Json; cut_score?: number; last_scores_fetch?: string }
       }
       gpp_pools: {
-        Row: { id: string; tournament_id: string; name: string; passcode: string; owner_id: string; pick_count: number; count_scores: number; ob_rule_enabled: boolean; ob_penalty_strokes: number; buy_in_amount: number; payout_structure: Json | null; is_locked: boolean; lock_at: string | null; is_completed: boolean; created_at: string; updated_at: string }
-        Insert: { id?: string; tournament_id: string; name: string; passcode?: string; owner_id: string; pick_count?: number; count_scores?: number; ob_rule_enabled?: boolean; ob_penalty_strokes?: number; buy_in_amount?: number; payout_structure?: Json; is_locked?: boolean; lock_at?: string }
-        Update: { name?: string; pick_count?: number; count_scores?: number; ob_rule_enabled?: boolean; ob_penalty_strokes?: number; buy_in_amount?: number; payout_structure?: Json; is_locked?: boolean; lock_at?: string; is_completed?: boolean }
+        Row: { id: string; tournament_id: string; name: string; passcode: string; owner_id: string; pick_count: number; count_scores: number; ob_rule_enabled: boolean; ob_penalty_strokes: number; buy_in_amount: number; payout_structure: Json | null; is_locked: boolean; lock_at: string | null; is_completed: boolean; payment_status: 'draft' | 'active' | 'payment_due' | 'archived_unpaid' | 'refunded'; paid_entry_limit: number; amount_paid_cents: number; activated_at: string | null; last_payment_at: string | null; square_customer_id: string | null; square_payment_ids: string[]; square_order_ids: string[]; created_at: string; updated_at: string }
+        Insert: { id?: string; tournament_id: string; name: string; passcode?: string; owner_id: string; pick_count?: number; count_scores?: number; ob_rule_enabled?: boolean; ob_penalty_strokes?: number; buy_in_amount?: number; payout_structure?: Json; is_locked?: boolean; lock_at?: string; payment_status?: 'draft' | 'active' | 'payment_due' | 'archived_unpaid' | 'refunded'; paid_entry_limit?: number; amount_paid_cents?: number; activated_at?: string | null; last_payment_at?: string | null; square_customer_id?: string | null; square_payment_ids?: string[]; square_order_ids?: string[] }
+        Update: { name?: string; pick_count?: number; count_scores?: number; ob_rule_enabled?: boolean; ob_penalty_strokes?: number; buy_in_amount?: number; payout_structure?: Json; is_locked?: boolean; lock_at?: string; is_completed?: boolean; payment_status?: 'draft' | 'active' | 'payment_due' | 'archived_unpaid' | 'refunded'; paid_entry_limit?: number; amount_paid_cents?: number; activated_at?: string | null; last_payment_at?: string | null; square_customer_id?: string | null; square_payment_ids?: string[]; square_order_ids?: string[] }
       }
       gpp_entries: {
         Row: { id: string; pool_id: string; user_id: string; display_name: string; golfer_picks: Json; total_score: number | null; counting_scores: Json | null; rank: number | null; has_paid: boolean; payout_amount: number; is_removed: boolean; removed_reason: string | null; removed_at: string | null; created_at: string; updated_at: string }
@@ -27,6 +27,11 @@ export interface Database {
         Row: { id: string; pool_id: string; sender_id: string; subject: string; body: string; recipient_count: number; sent_at: string }
         Insert: { pool_id: string; sender_id: string; subject: string; body?: string; recipient_count?: number }
         Update: {}
+      }
+      gpp_pool_payments: {
+        Row: { id: string; pool_id: string; provider: string; square_payment_id: string | null; square_order_id: string | null; amount_cents: number; entry_count_at_payment: number; entry_limit: number; status: string; created_at: string }
+        Insert: { id?: string; pool_id: string; provider?: string; square_payment_id?: string | null; square_order_id?: string | null; amount_cents: number; entry_count_at_payment: number; entry_limit: number; status: string; created_at?: string }
+        Update: { provider?: string; square_payment_id?: string | null; square_order_id?: string | null; amount_cents?: number; entry_count_at_payment?: number; entry_limit?: number; status?: string }
       }
     }
   }

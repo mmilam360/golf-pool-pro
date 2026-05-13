@@ -58,11 +58,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="rounded-lg border border-[#d8cab0] bg-white p-8 shadow-sm">
+    <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 shadow-[6px_6px_0_#d8cab0]">
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Account login</p>
       <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Sign in</h1>
       {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm border border-red-200">{error}</div>
+        <div className="bg-red-50 text-red-700 p-3 rounded-none mb-4 text-sm border border-red-200">{error}</div>
       )}
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
@@ -72,7 +72,7 @@ export default function LoginPage() {
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
         <div>
@@ -86,7 +86,7 @@ export default function LoginPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              className="w-full bg-white border border-stone-300 rounded-lg px-4 py-3 pr-12 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 pr-12 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
             />
             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-500 hover:text-emerald-800 p-2">
               <EyeIcon visible={showPassword} />
@@ -96,7 +96,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-none transition-colors disabled:opacity-50"
         >
           {loading ? 'Signing in...' : 'Sign in'}
         </button>

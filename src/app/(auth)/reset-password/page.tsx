@@ -28,7 +28,7 @@ function PasswordInput({ label, value, onChange }: { label: string; value: strin
           onChange={e => onChange(e.target.value)}
           required
           minLength={6}
-          className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 pr-12 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 pr-12 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
         />
         <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-stone-500 hover:text-emerald-800">
           <EyeIcon visible={show} />
@@ -68,7 +68,7 @@ export default function ResetPasswordPage() {
 
   if (success) {
     return (
-      <div className="rounded-lg border border-[#d8cab0] bg-white p-8 text-center shadow-sm">
+      <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 text-center shadow-[6px_6px_0_#d8cab0]">
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Password recovery</p>
         <h1 className="mb-4 text-2xl font-bold text-[#0f2f25]">Password updated</h1>
         <p className="mb-5 text-sm text-stone-600">You can now sign in with your new password.</p>
@@ -78,16 +78,16 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="rounded-lg border border-[#d8cab0] bg-white p-8 shadow-sm">
+    <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 shadow-[6px_6px_0_#d8cab0]">
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Password recovery</p>
       <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Choose a new password</h1>
 
-      {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <PasswordInput label="New password" value={password} onChange={setPassword} />
         <PasswordInput label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} />
-        <button type="submit" disabled={loading} className="w-full rounded-lg bg-emerald-700 py-3 font-semibold text-white transition-colors hover:bg-emerald-800 disabled:opacity-50">
+        <button type="submit" disabled={loading} className="w-full rounded-none bg-emerald-700 py-3 font-semibold text-white transition-colors hover:bg-emerald-800 disabled:opacity-50">
           {loading ? 'Updating...' : 'Update password'}
         </button>
       </form>

@@ -1,7 +1,7 @@
 # UI Design Brief
 
 Page/screen: home page, app shell, dashboard.
-User goal: understand Golf Pool Pro quickly, create/join a pool, and return to active pools without hunting.
+User goal: understand Golf Pools Pro quickly, create/join a pool, and return to active pools without hunting.
 Primary action: create a pool. Secondary action: join/sign in.
 Information hierarchy: product promise -> live scorecard preview -> three-step setup -> active pool rows / next action.
 Visual direction: premium golf clubhouse + major tournament scorecard. Cream paper, deep green, restrained gold, ruled rows, tabular score columns.
@@ -26,5 +26,5 @@ Accessibility requirements: high contrast text, 44px touch targets, visible focu
 # MCP/tool evidence
 
 - `HOME=/home/mm codex mcp list` confirmed `magic-mcp`, `stitch-mcp`, `ui-ux-pro` are enabled.
-- `ui-ux-pro` MCP was called via mcporter for Golf Pool Pro design system; output was reviewed but rejected where it conflicted with `DESIGN.md`.
+- `ui-ux-pro` MCP was called via mcporter for Golf Pools Pro design system; output was reviewed but rejected where it conflicted with `DESIGN.md`.
 - `magic-mcp` was called twice via mcporter for 21st.dev component generation; both timed out, so implementation used local design docs and user references instead of pretending Magic succeeded.
