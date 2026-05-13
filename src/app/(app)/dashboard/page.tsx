@@ -120,6 +120,18 @@ export default async function DashboardPage() {
 
   const owned = (ownedPools ?? []) as PoolRecord[]
   const joined = (entries ?? []) as EntryRecord[]
+  const ownedPoolIds = owned.map(pool => pool.id)
+  const { data: ownedPoolEntries } = ownedPoolIds.length
+    ? await supabase
+      .from('gpp_entries')
+      .select('id, pool_id, is_removed')
+      .in('pool_id', ownedPoolIds)
+      .eq('is_removed', false)
+    : { data: [] }
+  const ownedEntryCounts = ((ownedPoolEntries ?? []) as EntryRecord[]).reduce<Record<string, number>>((counts, entry) => {
+    counts[entry.pool_id] = (counts[entry.pool_id] || 0) + 1
+    return counts
+  }, {})
   const joinedPoolIds = Array.from(new Set(joined.map(entry => entry.pool_id).filter(Boolean)))
   const { data: joinedPoolEntries } = joinedPoolIds.length
     ? await supabase
@@ -190,9 +202,10 @@ export default async function DashboardPage() {
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[720px]">
-              <div className="grid grid-cols-[1.2fr_1fr_110px_100px_100px] border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-[#657168]">
+              <div className="grid grid-cols-[1.2fr_1fr_90px_110px_100px_100px] border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-[#657168]">
                 <span>Pool</span>
                 <span>Tournament</span>
+                <span>Entries</span>
                 <span>Date</span>
                 <span>Status</span>
                 <span>Code</span>
@@ -201,9 +214,10 @@ export default async function DashboardPage() {
                 const tournament = getTournament(pool)
                 const label = statusLabel(pool, tournament)
                 return (
-                  <Link key={pool.id} href={`/pool/${pool.id}`} className="grid grid-cols-[1.2fr_1fr_110px_100px_100px] items-center border-b border-[#eadfca] px-5 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#fbf7ed]">
+                  <Link key={pool.id} href={`/pool/${pool.id}`} className="grid grid-cols-[1.2fr_1fr_90px_110px_100px_100px] items-center border-b border-[#eadfca] px-5 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#fbf7ed]">
                     <span className="font-semibold text-[#1f2a24]">{pool.name}</span>
                     <span className="text-[#657168]">{tournament?.name || 'Tournament'}</span>
+                    <span className="font-black text-[#123c2f]">{ownedEntryCounts[pool.id] || 0}</span>
                     <span className="font-mono text-[#657168]">{formatDate(tournament?.start_date)}</span>
                     <span><span className={`border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>{label}</span></span>
                     <span className="font-mono font-black text-[#123c2f]">{pool.passcode}</span>

@@ -84,6 +84,26 @@ function scoreClass(score: number | null) {
 }
 
 function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
+  if (entry.picks_hidden) {
+    return {
+      entryId: entry.id,
+      displayName: entry.display_name,
+      picks: ['__hidden__'],
+      pickScores: Array.from({ length: countScores }, () => ({
+        name: 'Picks hidden',
+        scoreToPar: null,
+        strokes: null,
+        thru: '',
+        status: 'active' as const,
+        counted: true,
+        isObStandIn: false,
+      })),
+      totalScore: null,
+      rank: null,
+      obStandIns: 0,
+    }
+  }
+
   const orderedPicks = ([...(entry.golfer_picks || [])] as string[]).sort((a, b) => a.localeCompare(b))
   const pickScores = orderedPicks.map((name, index) => ({
     name,
@@ -107,6 +127,7 @@ function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
 }
 
 function shortName(name: string) {
+  if (name === 'Picks hidden') return 'Hidden'
   const clean = name.replace(/^OB Stand-in #/, 'OB ')
   if (clean.startsWith('OB ')) return clean
   const parts = clean.split(' ').filter(Boolean)
@@ -199,27 +220,46 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const paymentCollectionOpen = isLocked || scoringIsLive
   const leaderboardIsHidden = scoringIsLive && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
-  const canSeeAllEntries = picksAreClosed
-  const visibleEntries = canSeeAllEntries
-    ? activeEntries
-    : activeEntries.filter(entry => entry.user_id === userId)
+  const visibleEntries = activeEntries
+
+  const maskHiddenPicks = useCallback((poolEntries: any[]) => {
+    if (picksAreClosed) return poolEntries
+    return poolEntries.map(entry => {
+      if (entry.user_id === userId) return entry
+      return {
+        ...entry,
+        golfer_picks: [],
+        picks_hidden: true,
+      }
+    })
+  }, [picksAreClosed, userId])
 
   const refreshPoolEntries = useCallback(async () => {
-    let query = supabase
+    const query = supabase
       .from('gpp_entries')
       .select('*')
       .eq('pool_id', pool.id)
 
-    if (!canSeeAllEntries) {
-      query = query.eq('user_id', userId)
-    }
-
     const { data } = await query.order('created_at', { ascending: true })
     if (data) {
-      setEntries(data)
-      setMyEntry(data.find(entry => entry.user_id === userId && !entry.is_removed) || null)
+      const safeData = maskHiddenPicks(data)
+      setEntries(safeData)
+      setMyEntry(safeData.find(entry => entry.user_id === userId && !entry.is_removed) || null)
     }
-  }, [canSeeAllEntries, pool.id, supabase, userId])
+  }, [maskHiddenPicks, pool.id, supabase, userId])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`gpp_entries:${pool.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gpp_entries', filter: `pool_id=eq.${pool.id}` }, () => {
+        refreshPoolEntries()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [pool.id, refreshPoolEntries, supabase])
 
   useEffect(() => {
     setInviteUrl(`${window.location.origin}/pool/join?code=${pool.passcode}`)
@@ -729,6 +769,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="bg-[#f7f7f2] lg:hidden">
                   {scoredEntries.map((entry, entryIndex) => {
                     const isMe = entry.entryId === myEntry?.id
+                    const picksHidden = entry.picks.includes('__hidden__')
                     const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
                     const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                     return (
@@ -740,9 +781,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               {isMe && <span aria-label="Your entry" className="h-2 w-2 shrink-0 rounded-full bg-[#005b3c]" />}
                               <span className="truncate text-base font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</span>
                             </div>
-                            {(!scoringIsLive || entry.obStandIns > 0) && (
+                            {(picksHidden || !scoringIsLive || entry.obStandIns > 0) && (
                               <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                                {scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                                {picksHidden ? 'Picks hidden until lock' : scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
                               </div>
                             )}
                           </div>
@@ -761,9 +802,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           {Array.from({ length: pool.count_scores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <div key={i} className="border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
+                              <div key={i} className={`border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0 ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className="mt-1 truncate text-xs font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                                <div className={`mt-1 truncate text-xs font-black uppercase leading-none tracking-[0.02em] text-[#111] ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name) : '—'}</div>
                                 <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                               </div>
                             )
@@ -798,6 +839,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <tbody>
                       {scoredEntries.map(entry => {
                         const isMe = entry.entryId === myEntry?.id
+                        const picksHidden = entry.picks.includes('__hidden__')
                         const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
                         const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                         return (
@@ -811,18 +853,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   {isMe && <span aria-label="Your entry" className="h-2 w-2 shrink-0 rounded-full bg-[#005b3c]" />}
                                   <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
                                 </div>
-                                {(!scoringIsLive || entry.obStandIns > 0) && (
+                                {(picksHidden || !scoringIsLive || entry.obStandIns > 0) && (
                                   <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                                    {scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                                    {picksHidden ? 'Picks hidden until lock' : scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
                                   </div>
                                 )}
                               </td>
                               {Array.from({ length: pool.count_scores }, (_, i) => {
                                 const pick = countingPicks[i]
                                 return (
-                                  <td key={i} title={pick?.name || ''} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                                  <td key={i} title={picksHidden ? 'Picks hidden until the pool locks' : pick?.name || ''} className={`border-b border-r border-[#111] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] ${picksHidden ? 'bg-[#efeee6]' : 'bg-[#fbfbf5]'}`}>
                                     <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                    <div className="mt-0.5 truncate text-xs font-black uppercase leading-none tracking-[0.01em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                                    <div className={`mt-0.5 truncate text-xs font-black uppercase leading-none tracking-[0.01em] text-[#111] ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name) : '—'}</div>
                                     <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                                   </td>
                                 )

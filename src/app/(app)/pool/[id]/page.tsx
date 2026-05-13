@@ -23,26 +23,32 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
   const picksAreVisible = pool.is_locked || scoringIsLive
 
-  // Get visible entries for this pool. Before lock/start, entrants only receive their own picks.
-  let entriesQuery = supabase
+  // Get all entries for this pool so the board/counts update as soon as people join.
+  // Before lock/start, mask other entrants' golfer picks before sending data to the client.
+  const entriesQuery = supabase
     .from('gpp_entries')
     .select('*')
     .eq('pool_id', id)
 
-  if (!picksAreVisible) {
-    entriesQuery = entriesQuery.eq('user_id', user.id)
-  }
-
   const { data: entries } = await entriesQuery.order('created_at', { ascending: true })
 
+  const safeEntries = (entries || []).map(entry => {
+    if (picksAreVisible || entry.user_id === user.id) return entry
+    return {
+      ...entry,
+      golfer_picks: [],
+      picks_hidden: true,
+    }
+  })
+
   // Get current user's entry
-  const myEntry = entries?.find(e => e.user_id === user.id && !e.is_removed) || null
+  const myEntry = safeEntries.find(e => e.user_id === user.id && !e.is_removed) || null
 
   return (
     <PoolView
       pool={pool}
       tournament={tournament}
-      entries={entries || []}
+      entries={safeEntries}
       myEntry={myEntry}
       isOwner={isOwner}
       userId={user.id}
