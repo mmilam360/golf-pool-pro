@@ -110,6 +110,8 @@ export default function Home() {
 
           <div className="relative flex flex-col justify-start pt-3 lg:-mt-4 lg:pt-0" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
             <div className="gpp-3d w-full [--gpp-depth-x:14px] [--gpp-depth-y:9px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
+            <div className="gpp-board-depth-right" aria-hidden="true" />
+            <div className="gpp-board-depth-bottom" aria-hidden="true" />
             <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[14px]">
               <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
                 <div className="relative border-b-2 border-[#111] px-3 py-2">

@@ -61,8 +61,6 @@ body {
   margin-bottom: var(--gpp-depth-y);
 }
 
-.gpp-3d:not(.gpp-button-3d)::before,
-.gpp-3d:not(.gpp-button-3d)::after,
 .gpp-button-3d::before,
 .gpp-button-3d::after {
   content: "";
@@ -71,29 +69,35 @@ body {
   z-index: 0;
 }
 
-.gpp-3d:not(.gpp-button-3d)::before {
+.gpp-3d-face {
+  position: relative;
+  z-index: 1;
+}
+
+.gpp-board-depth-right,
+.gpp-board-depth-bottom {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  background: #001f17;
+}
+
+.gpp-board-depth-right {
   top: 0;
   right: calc(var(--gpp-depth-x) * -1);
   width: var(--gpp-depth-x);
   height: 100%;
-  background: var(--gpp-side-color);
   transform: skewY(34deg);
   transform-origin: top left;
 }
 
-.gpp-3d:not(.gpp-button-3d)::after {
+.gpp-board-depth-bottom {
   left: 0;
   bottom: calc(var(--gpp-depth-y) * -1);
   width: 100%;
   height: var(--gpp-depth-y);
-  background: var(--gpp-bottom-color);
   transform: skewX(56deg);
   transform-origin: top left;
-}
-
-.gpp-3d-face {
-  position: relative;
-  z-index: 1;
 }
 
 .gpp-board-frame {
