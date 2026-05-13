@@ -196,7 +196,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const picksAreClosed = isLocked || scoringIsLive
   const paymentCollectionOpen = isLocked || scoringIsLive
   const leaderboardIsHidden = scoringIsLive && paymentStatus !== 'active'
-  const canInvitePlayers = !isLocked && !scoringIsLive
+  const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const canSeeAllEntries = picksAreClosed
   const visibleEntries = canSeeAllEntries
     ? activeEntries
@@ -442,6 +442,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setStatusMessage('Picks saved.')
       showToast('Picks saved.', 'success')
+      setTab('leaderboard')
       setTimeout(() => setStatusMessage(''), 2500)
     } else {
       showToast('Could not save picks.', 'error')

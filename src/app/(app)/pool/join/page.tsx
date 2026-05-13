@@ -1,6 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { ClubhouseBoard, CodeCells } from '@/components/ClubhouseBoard'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -8,6 +7,7 @@ export default function JoinPoolPage() {
   const [passcode, setPasscode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -81,7 +81,7 @@ export default function JoinPoolPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+    <div className="mx-auto max-w-xl">
       <div>
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Player entry</p>
         <h1 className="mb-4 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Join a Pool</h1>
@@ -91,32 +91,39 @@ export default function JoinPoolPage() {
         <form onSubmit={handleJoin} className="space-y-5 rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-700">Pool Passcode</label>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.focus()}
+              className="grid w-full grid-cols-6 gap-2"
+              aria-label="Enter pool passcode"
+            >
+              {Array.from({ length: 6 }, (_, index) => (
+                <span key={index} className="grid h-14 place-items-center border-2 border-[#123c2f] bg-[#fbf7ed] font-mono text-2xl font-black text-[#123c2f]">
+                  {passcode[index] || '-'}
+                </span>
+              ))}
+            </button>
             <input
+              ref={inputRef}
               type="text"
               value={passcode}
-              onChange={e => setPasscode(e.target.value.toUpperCase())}
+              onChange={e => setPasscode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
               required
-              maxLength={8}
-              placeholder="Enter the 6-character passcode"
-              className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-center font-mono text-2xl tracking-widest text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              maxLength={6}
+              autoCapitalize="characters"
+              autoComplete="off"
+              className="sr-only"
             />
           </div>
           <button
             type="submit"
-            disabled={loading || passcode.length < 4}
+            disabled={loading || passcode.length < 6}
             className="gpp-3d gpp-button-3d gpp-button-wrap w-full disabled:opacity-50"
           >
             <span className="gpp-button-face py-3">{loading ? 'Joining...' : 'Join Pool'}</span>
           </button>
         </form>
       </div>
-
-      <ClubhouseBoard title="Code" label="Join board" subtitle="Enter the host passcode" footer="Six characters from the pool host">
-        <CodeCells value={passcode} />
-        <div className="px-4 py-5 text-center">
-          <p className="text-sm font-black uppercase tracking-[0.12em] text-[#005b3c]">Your entry opens after the code matches.</p>
-        </div>
-      </ClubhouseBoard>
     </div>
   )
 }
