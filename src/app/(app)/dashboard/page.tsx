@@ -1,5 +1,4 @@
 export const runtime = 'edge';
-import { BoardMetric, ClubhouseBoard } from '@/components/ClubhouseBoard'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -99,14 +98,19 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </div>
-        <div className="p-4">
-          <ClubhouseBoard title="Desk" label="Clubhouse count" subtitle="Pools on your board">
-            <div className="grid grid-cols-3">
-              <BoardMetric label="Owned" value={owned.length} tone="green" />
-              <BoardMetric label="Joined" value={joined.length} tone="green" />
-              <BoardMetric label="Active" value={activeCount} />
-            </div>
-          </ClubhouseBoard>
+        <div className="border-t border-[#eadfca] bg-white p-5">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { label: 'Owned pools', value: owned.length },
+              { label: 'Joined pools', value: joined.length },
+              { label: 'Active pools', value: activeCount },
+            ].map(item => (
+              <div key={item.label} className="border border-stone-200 bg-[#fbf7ed] px-4 py-4">
+                <p className="text-2xl font-black text-[#0f2f25]">{item.value}</p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#657168]">{item.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
