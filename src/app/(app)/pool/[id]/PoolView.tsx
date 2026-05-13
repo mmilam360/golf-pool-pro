@@ -159,6 +159,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>([])
   const [field, setField] = useState<GolfPlayer[]>([])
   const [myPicks, setMyPicks] = useState<string[]>(initialMyEntry?.golfer_picks || [])
+  const [entryNameValue, setEntryNameValue] = useState(initialMyEntry?.display_name || '')
+  const [entryNameSaving, setEntryNameSaving] = useState(false)
   const [refreshCountdown, setRefreshCountdown] = useState(REFRESH_SECONDS)
   const [loadingScores, setLoadingScores] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -222,6 +224,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   useEffect(() => {
     setInviteUrl(`${window.location.origin}/pool/join?code=${pool.passcode}`)
   }, [pool.passcode])
+
+  useEffect(() => {
+    setEntryNameValue(myEntry?.display_name || '')
+  }, [myEntry?.display_name])
 
   const refreshPaymentQuote = useCallback(async () => {
     if (!isOwner) return
@@ -448,6 +454,37 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       showToast('Could not save picks.', 'error')
     }
     setSaving(false)
+  }
+
+  async function saveEntryName() {
+    if (!myEntry) return
+    const nextName = entryNameValue.trim()
+    if (!nextName) {
+      setStatusMessage('Entry name cannot be blank.')
+      showToast('Entry name cannot be blank.', 'error')
+      return
+    }
+    if (nextName === myEntry.display_name) return
+
+    setEntryNameSaving(true)
+    const { error } = await supabase
+      .from('gpp_entries')
+      .update({ display_name: nextName })
+      .eq('id', myEntry.id)
+      .eq('user_id', userId)
+
+    if (error) {
+      setStatusMessage('Could not update entry name.')
+      showToast('Could not update entry name.', 'error')
+    } else {
+      const updatedEntry = { ...myEntry, display_name: nextName }
+      setMyEntry(updatedEntry)
+      setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
+      setStatusMessage('Entry name updated.')
+      showToast('Entry name updated.', 'success')
+      setTimeout(() => setStatusMessage(''), 2500)
+    }
+    setEntryNameSaving(false)
   }
 
   async function copyToClipboard(value: string, message: string) {
@@ -847,6 +884,31 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <span className="gpp-button-face px-5 py-2">{saving ? 'Saving...' : 'Save Picks'}</span>
                   </button>
                 )}
+              </div>
+
+              <div className="mb-4 rounded-none border border-stone-200 bg-white p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <div className="min-w-0 flex-1">
+                    <label className="mb-1 block text-sm font-medium text-stone-700">Entry name</label>
+                    <input
+                      type="text"
+                      value={entryNameValue}
+                      onChange={e => setEntryNameValue(e.target.value)}
+                      placeholder="Name shown on leaderboard"
+                      maxLength={60}
+                      className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    />
+                    <p className="mt-1 text-xs text-stone-500">This is how your entry appears in this pool.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={saveEntryName}
+                    disabled={entryNameSaving || !entryNameValue.trim() || entryNameValue.trim() === myEntry.display_name}
+                    className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {entryNameSaving ? 'Saving...' : 'Save entry name'}
+                  </button>
+                </div>
               </div>
 
               {/* Selected picks */}
