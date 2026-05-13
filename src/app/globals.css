@@ -68,7 +68,7 @@ body {
   content: "";
   position: absolute;
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
 }
 
 .gpp-3d:not(.gpp-button-3d)::before {
