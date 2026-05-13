@@ -15,8 +15,8 @@ assert.match(poolPageSource, /const picksAreVisible = pool\.is_locked \|\| scori
 assert.match(poolPageSource, /eq\('user_id', user\.id\)/, 'Server pool page should filter entrant data to current user before lock/start')
 assert.match(poolViewSource, /buildPreScoringEntry/, 'PoolView should build pre-scoring own-picks rows')
 assert.match(poolViewSource, /localeCompare/, 'Pre-scoring picks should be alphabetical before top-counting display')
-assert.match(landingSource, /-mb-10/, 'Landing leaderboard post should overlap the next section enough to remove the gap')
-assert.match(landingSource, /-mt-10/, 'Next green section should start behind the post so no paper gap shows')
+assert.doesNotMatch(landingSource, /-mb-10|-mb-12|-mt-10|-mt-12/, 'Hero boundary should not overlap the next section; it should end at the bottom of the post')
+assert.match(landingSource, /<section className="border-y border/, 'Next green section should start normally at the hero boundary')
 assert.match(layoutSource, /favicon\.svg\?v=3/, 'Favicon should prefer the cache-busted SVG GPP tab icon')
 
 console.log('scoring/visibility/landing/favicon rule markers present')
