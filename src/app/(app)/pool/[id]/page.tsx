@@ -21,7 +21,7 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
   const tournament = pool.gpp_tournaments as any
   const isOwner = pool.owner_id === user.id
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
-  const picksAreVisible = isOwner || pool.is_locked || scoringIsLive
+  const picksAreVisible = pool.is_locked || scoringIsLive
 
   // Get visible entries for this pool. Before lock/start, entrants only receive their own picks.
   let entriesQuery = supabase

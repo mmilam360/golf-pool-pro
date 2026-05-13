@@ -12,7 +12,7 @@ function player(name: string, scoreToPar: number | null, status: GolfPlayer['sta
     firstName,
     lastName: rest.join(' ') || firstName,
     scoreToPar,
-    thru: status === 'cut' ? 'CUT' : 'F',
+    thru: status === 'cut' ? 'CUT' : status.toUpperCase(),
     status,
     position: '',
     strokes: null,
@@ -29,21 +29,24 @@ const leaderboard = [
   player('WD Player', null, 'wd'),
 ]
 
-const cutOnly = scoreEntry(['Alpha One', 'Bravo Two', 'Cut Player', 'WD Player'], leaderboard, {
+const cutAndWd = scoreEntry(['Alpha One', 'Bravo Two', 'Cut Player', 'WD Player'], leaderboard, {
   countScores: 4,
   obRuleEnabled: true,
   obPenaltyStrokes: 2,
 })
-assert.equal(cutOnly.obStandIns, 1, 'Only missed-cut picks should create OB stand-ins')
-assert.equal(cutOnly.pickScores.filter((p: any) => p.isObStandIn).length, 1)
-assert.equal(cutOnly.totalScore, null, 'A WD/missing pick should not be silently converted into an OB stand-in')
+assert.equal(cutAndWd.obStandIns, 2, 'Cut/WD/DNQ/missing picks should all create OB stand-ins when scores are needed')
+assert.equal(cutAndWd.pickScores.filter((p: any) => p.isObStandIn).length, 2)
+assert.equal(cutAndWd.totalScore, 13, 'Two active picks plus two worst+2 OB stand-ins should total correctly')
 
-const noCut = scoreEntry(['Alpha One', 'Bravo Two', 'WD Player'], leaderboard, {
-  countScores: 3,
+const missingAndDnq = scoreEntry(['Alpha One', 'Bravo Two', 'Missing Player', 'DNQ Player'], [
+  ...leaderboard,
+  player('DNQ Player', null, 'dnq'),
+], {
+  countScores: 4,
   obRuleEnabled: true,
   obPenaltyStrokes: 2,
 })
-assert.equal(noCut.obStandIns, 0, 'WD/DNQ alone should not trigger OB stand-ins')
-assert.equal(noCut.totalScore, null)
+assert.equal(missingAndDnq.obStandIns, 2, 'DNQ and missing leaderboard rows should also count as OB stand-ins')
+assert.equal(missingAndDnq.totalScore, 13)
 
 console.log('scoring behavior ok')

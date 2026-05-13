@@ -155,7 +155,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const paymentCollectionOpen = isLocked || scoringIsLive
   const leaderboardIsHidden = scoringIsLive && paymentStatus !== 'active'
   const canInvitePlayers = !isLocked && !scoringIsLive
-  const canSeeAllEntries = isOwner || picksAreClosed
+  const canSeeAllEntries = picksAreClosed
   const visibleEntries = canSeeAllEntries
     ? activeEntries
     : activeEntries.filter(entry => entry.user_id === userId)

@@ -180,11 +180,11 @@ export default function Home() {
               </div>
             </div>
             </div>
-            <div className="gpp-3d-post mx-auto -mb-3 -mt-[10px] h-24 w-14 border-x-4 border-[#003622] bg-[#006241] md:-mb-4 md:h-24 md:w-16" />
+            <div className="gpp-3d-post relative z-10 mx-auto -mb-10 -mt-[10px] h-24 w-14 border-x-4 border-[#003622] bg-[#006241] md:-mb-12 md:h-24 md:w-16" />
           </div>
         </section>
 
-        <section className="border-y border-[#d8cab0] bg-[#123c2f] text-white">
+        <section className="relative -mt-10 border-b border-[#d8cab0] bg-[#123c2f] pt-10 text-white md:-mt-12 md:pt-12">
           <div className="mx-auto grid max-w-7xl gap-0 px-5 md:grid-cols-3 md:px-8">
             {setupSteps.map(step => (
               <div key={step[0]} className="border-b border-white/15 py-8 md:border-b-0 md:border-r md:px-8 md:last:border-r-0">

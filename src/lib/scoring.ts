@@ -35,8 +35,8 @@ export function scoreEntry(
   } else {
     counting = [...active]
     const needed = countScores - active.length
-    const cutPicks = pickScores.filter(p => p.status === 'cut')
-    const standInsNeeded = Math.min(needed, cutPicks.length)
+    const obEligiblePicks = pickScores.filter(p => p.status !== 'active')
+    const standInsNeeded = Math.min(needed, obEligiblePicks.length)
     if (obRuleEnabled && standInsNeeded > 0 && leaderboard.length > 0) {
       const scoredPlayers = leaderboard.filter(p => p.status === 'active' && p.scoreToPar !== null)
       scoredPlayers.sort((a, b) => (b.scoreToPar ?? -999) - (a.scoreToPar ?? -999))
