@@ -21,7 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
             <form action="/api/auth/logout" method="POST">
               <button type="submit" className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25]">
-                Sign Out
+                SIGN OUT
               </button>
             </form>
           </div>
