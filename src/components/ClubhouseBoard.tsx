@@ -11,9 +11,9 @@ type ClubhouseBoardProps = {
 
 export function ClubhouseBoard({ label = 'Board', title, subtitle, children, footer, className = '' }: ClubhouseBoardProps) {
   return (
-    <div className={`gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#00442c] [--gpp-bottom-color:#003622] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px] ${className}`} style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
-      <div className="gpp-3d-face border-[9px] border-[#123c2f] bg-[#123c2f] shadow-[0_18px_44px_rgba(31,42,36,0.18)]">
-        <div className="border-2 border-[#111] bg-[#f7f7f2] text-[#111] shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),5px_5px_0_rgba(0,0,0,0.16)]">
+    <div className={`gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#00442c] [--gpp-bottom-color:#003622] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px] ${className}`} style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
+      <div className="gpp-3d-face gpp-board-frame border-[9px] border-[#123c2f]">
+        <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-[#111]">
           <div className="relative border-b-2 border-[#111] px-3 py-2 text-center">
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#005b3c]">{label}</p>
             <h2 className="text-2xl font-black uppercase leading-none tracking-[0.18em] text-[#111] sm:text-3xl">{title}</h2>

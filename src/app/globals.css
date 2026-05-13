@@ -96,6 +96,34 @@ body {
   z-index: 1;
 }
 
+.gpp-board-frame {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 28%),
+    linear-gradient(180deg, #15523f 0%, #123c2f 46%, #0b2d23 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -5px 0 rgba(0, 0, 0, 0.18),
+    0 24px 60px rgba(31, 42, 36, 0.2);
+}
+
+.gpp-score-face {
+  box-shadow:
+    0 0 0 3px #d8b45d,
+    0 0 0 5px #111,
+    inset 0 2px 0 rgba(255, 255, 255, 0.48),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.08),
+    6px 6px 0 rgba(0, 0, 0, 0.18);
+}
+
+.gpp-board-post {
+  background:
+    linear-gradient(90deg, #003622 0%, #123c2f 22%, #174f3d 50%, #123c2f 78%, #003622 100%);
+  box-shadow:
+    12px 0 0 #003622,
+    inset 0 8px 0 rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
 .gpp-3d-post {
   box-shadow: 12px 0 0 #003622;
 }

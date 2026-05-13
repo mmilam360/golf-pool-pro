@@ -19,8 +19,10 @@ assert.doesNotMatch(landingSource, /-mb-10|-mb-12|-mt-10|-mt-12/, 'Hero boundary
 assert.match(landingSource, /<section className="border-y border/, 'Next green section should start normally at the hero boundary')
 assert.doesNotMatch(landingSource, />Rank<\/th>/, 'Desktop demo should not show the clipped Rank header label')
 assert.match(landingSource, /name: 'Lonnie'/, 'Landing demo entry name should stay short enough to avoid clipping')
-assert.match(landingSource, /border-\[#123c2f\] bg-\[#123c2f\]/, 'Landing demo board frame should use the darker clubhouse green')
-assert.match(poolViewSource, /border-\[#123c2f\] bg-\[#123c2f\]/, 'Real leaderboard board frame should use the darker clubhouse green')
+assert.match(landingSource, /gpp-board-frame/, 'Landing demo board frame should use the richer clubhouse board treatment')
+assert.match(poolViewSource, /gpp-board-frame/, 'Real leaderboard board frame should use the richer clubhouse board treatment')
+assert.match(landingSource, /gpp-board-post/, 'Landing demo post should use the dimensional structural post treatment')
+assert.match(poolViewSource, /gpp-board-post/, 'Real leaderboard post should use the dimensional structural post treatment')
 assert.match(layoutSource, /favicon\.svg\?v=3/, 'Favicon should prefer the cache-busted SVG GPP tab icon')
 
 console.log('scoring/visibility/landing/favicon rule markers present')

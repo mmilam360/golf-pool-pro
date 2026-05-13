@@ -109,9 +109,9 @@ export default function Home() {
           </div>
 
           <div className="relative flex flex-col justify-start pt-3 lg:-mt-4 lg:pt-0" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
-            <div className="gpp-3d w-full [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#00442c] [--gpp-bottom-color:#003622] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]">
-            <div className="gpp-3d-face border-[10px] border-[#123c2f] bg-[#123c2f] shadow-[0_24px_70px_rgba(31,42,36,0.2)] md:border-[14px]">
-              <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
+            <div className="gpp-3d w-full [--gpp-depth-x:14px] [--gpp-depth-y:9px] [--gpp-side-color:#00442c] [--gpp-bottom-color:#003622] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
+            <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[14px]">
+              <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
                 <div className="relative border-b-2 border-[#111] px-3 py-2">
                   <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
                   <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">Lonnie - PGA Championship pool</p>
@@ -180,7 +180,7 @@ export default function Home() {
               </div>
             </div>
             </div>
-            <div className="gpp-3d-post mx-auto -mt-[10px] h-28 w-14 border-x-4 border-[#003622] bg-[linear-gradient(90deg,#003622_0%,#123c2f_20%,#123c2f_80%,#003622_100%)] md:h-28 md:w-16" />
+            <div className="gpp-board-post mx-auto -mt-[10px] h-28 w-14 border-x-4 border-[#003622] md:h-28 md:w-16" />
           </div>
         </section>
 
