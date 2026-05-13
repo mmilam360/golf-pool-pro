@@ -17,6 +17,7 @@ assert.match(poolViewSource, /buildPreScoringEntry/, 'PoolView should build pre-
 assert.match(poolViewSource, /localeCompare/, 'Pre-scoring picks should be alphabetical before top-counting display')
 assert.doesNotMatch(landingSource, /-mb-10|-mb-12|-mt-10|-mt-12/, 'Hero boundary should not overlap the next section; it should end at the bottom of the post')
 assert.match(landingSource, /<section className="border-y border/, 'Next green section should start normally at the hero boundary')
+assert.doesNotMatch(landingSource, />Rank<\/th>/, 'Desktop demo should not show the clipped Rank header label')
 assert.match(layoutSource, /favicon\.svg\?v=3/, 'Favicon should prefer the cache-busted SVG GPP tab icon')
 
 console.log('scoring/visibility/landing/favicon rule markers present')
