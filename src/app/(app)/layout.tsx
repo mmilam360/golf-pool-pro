@@ -6,7 +6,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen scorecard-paper text-[#1f2a24]">
       <nav className="border-b border-[#d8cab0] bg-[#fbf7ed]/95 px-4 py-4 shadow-sm backdrop-blur-sm md:px-6">
         <div className="mx-auto flex max-w-7xl flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Link href="/dashboard" className="flex shrink-0 items-center gap-3" aria-label="Golf Pools Pro dashboard">
+          <Link href="/dashboard" className="flex shrink-0 items-center justify-center gap-3 sm:justify-start" aria-label="Golf Pools Pro dashboard">
             <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} className="h-14 w-auto object-contain sm:h-16 md:h-20" />
           </Link>
           <div className="grid min-w-0 grid-cols-2 gap-2 text-center text-xs font-black uppercase tracking-[0.08em] sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:text-sm sm:normal-case sm:tracking-normal">
