@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Golf Pools Pro | Golf Pool App with Live Leaderboards",
-  description: "Create a PGA golf pool, collect picks by link, lock entries at tee time, and follow a live leaderboard. Free for the first 5 entries, capped at $25 per pool.",
+  description: "Create a PGA golf pool, collect picks by link, lock entries at tee time, and follow a live leaderboard. First 5 entries free, then $1 per extra entry, capped at $25 per pool.",
   keywords: [
     "golf pool app",
     "golf pool software",

@@ -22,7 +22,7 @@ Entrants should never be blocked by capacity while joining. The host can remove 
 ### Price tiers
 
 - First 5 active entries: free and automatically active.
-- After 5 active entries: 72¢ per extra active entry.
+- After 5 active entries: $1 per extra active entry.
 - Maximum pool charge: $25.
 
 Future: add manual/custom invoice for 201+ active entries.
@@ -88,7 +88,7 @@ Host lands on pool page with:
 Suggested host copy:
 - `Activate this pool before the tournament starts.`
 - `Current entries: 8`
-- `Activation price: $9`
+- `Activation price: $3`
 - Button: `Activate pool`
 
 ### 2. Entrants join

@@ -33,6 +33,16 @@ export interface Database {
         Insert: { id?: string; pool_id: string; provider?: string; square_payment_id?: string | null; square_order_id?: string | null; amount_cents: number; entry_count_at_payment: number; entry_limit: number; status: string; created_at?: string }
         Update: { provider?: string; square_payment_id?: string | null; square_order_id?: string | null; amount_cents?: number; entry_count_at_payment?: number; entry_limit?: number; status?: string }
       }
+      gpp_promo_codes: {
+        Row: { id: string; code: string; description: string | null; free_pool: boolean; discount_cents: number | null; max_redemptions: number | null; times_redeemed: number; starts_at: string | null; expires_at: string | null; is_active: boolean; created_at: string; updated_at: string }
+        Insert: { id?: string; code: string; description?: string | null; free_pool?: boolean; discount_cents?: number | null; max_redemptions?: number | null; times_redeemed?: number; starts_at?: string | null; expires_at?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
+        Update: { code?: string; description?: string | null; free_pool?: boolean; discount_cents?: number | null; max_redemptions?: number | null; times_redeemed?: number; starts_at?: string | null; expires_at?: string | null; is_active?: boolean; updated_at?: string }
+      }
+      gpp_promo_redemptions: {
+        Row: { id: string; promo_code_id: string; pool_id: string; user_id: string; discount_cents: number; entry_count_at_redemption: number; created_at: string }
+        Insert: { id?: string; promo_code_id: string; pool_id: string; user_id: string; discount_cents?: number; entry_count_at_redemption?: number; created_at?: string }
+        Update: { promo_code_id?: string; pool_id?: string; user_id?: string; discount_cents?: number; entry_count_at_redemption?: number; created_at?: string }
+      }
     }
   }
 }

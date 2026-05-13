@@ -23,6 +23,13 @@ type PaymentQuote = {
   }
 }
 
+type AppliedPromo = {
+  code: string
+  label: string
+  discountCents: number
+  amountDueCents: number
+}
+
 declare global {
   interface Window {
     Square?: any
@@ -196,6 +203,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentCardReady, setPaymentCardReady] = useState(false)
   const [paymentFeedback, setPaymentFeedback] = useState('')
+  const [promoOpen, setPromoOpen] = useState(false)
+  const [promoCode, setPromoCode] = useState('')
+  const [promoLoading, setPromoLoading] = useState(false)
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null)
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
   const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -217,6 +228,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
   const picksAreClosed = isLocked || scoringIsLive
+  const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
+  const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
   const paymentCollectionOpen = isLocked || scoringIsLive
   const leaderboardIsHidden = scoringIsLive && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
@@ -280,6 +293,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const quote = await res.json()
     setPaymentQuote(quote)
     setPaymentStatus(quote.paymentStatus || 'draft')
+    if ((quote.amountDueCents || 0) <= 0) setAppliedPromo(null)
   }, [isOwner, pool.id])
 
   useEffect(() => {
@@ -297,6 +311,40 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     window.setTimeout(() => {
       adminSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 80)
+  }
+
+  async function applyPromoCode() {
+    const code = promoCode.trim().toUpperCase()
+    if (!code) {
+      showToast('Enter a promo code.', 'info')
+      return
+    }
+    if (!paymentQuote || baseAmountDueCents <= 0) {
+      showToast('This pool does not need a promo code.', 'info')
+      return
+    }
+
+    setPromoLoading(true)
+    setPaymentFeedback('')
+    try {
+      const res = await fetch('/api/payments/promo-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poolId: pool.id, code }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Promo code could not be applied.')
+      setAppliedPromo(data)
+      setPromoCode(data.code || code)
+      showToast('Promo code applied.', 'success')
+    } catch (error: any) {
+      const message = error?.message || 'Promo code could not be applied.'
+      setAppliedPromo(null)
+      setPaymentFeedback(message)
+      showToast(message, 'error')
+    } finally {
+      setPromoLoading(false)
+    }
   }
 
   function squareScriptUrl(environment: string) {
@@ -323,7 +371,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     async function mountSquareCard() {
       if (!isOwner || tab !== 'admin' || !paymentQuote || paymentQuote.paymentStatus === 'active') return
       if (!paymentCollectionOpen) return
-      if (paymentQuote.requiresCustomQuote || !paymentQuote.amountDueCents || paymentQuote.amountDueCents <= 0) return
+      if (paymentQuote.requiresCustomQuote || finalAmountDueCents <= 0) return
       if (!paymentQuote.square.applicationId || !paymentQuote.square.locationId) return
       if (paymentCardRef.current) return
 
@@ -352,16 +400,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     return () => {
       cancelled = true
     }
-  }, [isOwner, paymentQuote, paymentCollectionOpen, showToast, tab])
+  }, [finalAmountDueCents, isOwner, paymentQuote, paymentCollectionOpen, showToast, tab])
 
   useEffect(() => {
-    if (tab === 'admin' && paymentQuote?.paymentStatus !== 'active' && paymentCollectionOpen) return
+    if (tab === 'admin' && paymentQuote?.paymentStatus !== 'active' && paymentCollectionOpen && finalAmountDueCents > 0) return
     if (paymentCardRef.current) {
       paymentCardRef.current.destroy?.()
       paymentCardRef.current = null
       setPaymentCardReady(false)
     }
-  }, [tab, paymentQuote?.paymentStatus])
+  }, [finalAmountDueCents, paymentCollectionOpen, tab, paymentQuote?.paymentStatus])
 
   async function activatePool() {
     if (!paymentQuote) {
@@ -380,7 +428,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       return
     }
 
-    if ((paymentQuote.amountDueCents || 0) > 0 && !paymentCollectionOpen) {
+    if (finalAmountDueCents > 0 && !paymentCollectionOpen) {
       setPaymentFeedback('Payment opens after picks lock.')
       showToast('Payment opens after picks lock.', 'info')
       return
@@ -390,8 +438,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     setStatusMessage('')
     setPaymentFeedback('Processing payment...')
     try {
-      const amountDue = paymentQuote.amountDueCents || 0
-      let sourceId = 'free-entry-credit'
+      const amountDue = finalAmountDueCents
+      let sourceId = appliedPromo && amountDue === 0 ? 'promo-code' : 'free-entry-credit'
 
       if (amountDue > 0) {
         const card = paymentCardRef.current
@@ -409,13 +457,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const res = await fetch('/api/payments/square/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poolId: pool.id, sourceId }),
+        body: JSON.stringify({ poolId: pool.id, sourceId, promoCode: appliedPromo?.code || null }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Payment failed.')
 
       setPaymentStatus('active')
-      const successMessage = data.amountDueCents === 0 ? 'Pool is active.' : 'Payment received. Pool is active.'
+      const successMessage = data.discountCents > 0 ? 'Promo applied. Pool is active.' : data.amountDueCents === 0 ? 'Pool is active.' : 'Payment received. Pool is active.'
       setPaymentFeedback(successMessage)
       setStatusMessage(successMessage)
       showToast(successMessage, 'success')
@@ -1012,10 +1060,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-800">Pool fee</p>
-                <h3 className="mt-1 text-xl font-bold text-emerald-950">{formatCents(paymentQuote?.amountDueCents)} due</h3>
+                <h3 className="mt-1 text-xl font-bold text-emerald-950">{formatCents(finalAmountDueCents)} due</h3>
                 <p className="mt-1 text-sm text-stone-600">
-                  {(paymentQuote?.activeEntryCount ?? activeEntries.length)} active {(paymentQuote?.activeEntryCount ?? activeEntries.length) === 1 ? 'entry' : 'entries'} · first 5 free · 72¢ after · $25 max
+                  {(paymentQuote?.activeEntryCount ?? activeEntries.length)} active {(paymentQuote?.activeEntryCount ?? activeEntries.length) === 1 ? 'entry' : 'entries'} · first 5 free · $1 after · $25 max
                 </p>
+                {appliedPromo && (
+                  <p className="mt-1 text-sm font-semibold text-emerald-800">{appliedPromo.code}: {formatCents(appliedPromo.discountCents)} off</p>
+                )}
               </div>
               {paymentStatus === 'active' && (
                 <span className="inline-flex w-fit border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-emerald-800">Handled</span>
@@ -1032,7 +1083,45 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   <p className="border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Payment opens after you lock picks.</p>
                 ) : (
                   <>
-                    {!!paymentQuote?.amountDueCents && paymentQuote.amountDueCents > 0 && (
+                    {baseAmountDueCents > 0 && (
+                      <div className="border border-stone-200 bg-[#fbf7ed]">
+                        <button
+                          type="button"
+                          onClick={() => setPromoOpen(open => !open)}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] text-emerald-900"
+                        >
+                          <span>Promo code</span>
+                          <span aria-hidden="true">{promoOpen ? '^' : '⌄'}</span>
+                        </button>
+                        {promoOpen && (
+                          <div className="space-y-2 border-t border-stone-200 bg-white p-3">
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                              <input
+                                value={promoCode}
+                                onChange={e => {
+                                  setPromoCode(e.target.value.toUpperCase())
+                                  setAppliedPromo(null)
+                                }}
+                                placeholder="Enter code"
+                                className="min-w-0 flex-1 rounded-none border border-stone-300 bg-white px-3 py-2 text-sm font-bold uppercase tracking-[0.08em] text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                              />
+                              <button
+                                type="button"
+                                onClick={applyPromoCode}
+                                disabled={promoLoading || !promoCode.trim()}
+                                className="border-2 border-[#123c2f] bg-white px-4 py-2 text-sm font-black text-[#123c2f] transition-colors hover:bg-[#eef7ef] disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {promoLoading ? 'Checking...' : 'Apply'}
+                              </button>
+                            </div>
+                            {appliedPromo && (
+                              <p className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">{appliedPromo.label} · {formatCents(appliedPromo.discountCents)} discount</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {finalAmountDueCents > 0 && (
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2 border border-stone-200 bg-[#fbf7ed] px-3 py-2 text-xs font-semibold text-stone-700">
                           <span className="inline-flex items-center gap-1.5 text-emerald-800"><TrustCheckIcon /> Secure Square checkout</span>
@@ -1048,10 +1137,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <button
                       type="button"
                       onClick={activatePool}
-                      disabled={paymentLoading || !paymentQuote || (!paymentCardReady && !!paymentQuote?.amountDueCents)}
+                      disabled={paymentLoading || !paymentQuote || (!paymentCardReady && finalAmountDueCents > 0)}
                       className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {paymentLoading ? 'Processing...' : paymentQuote?.amountDueCents === 0 ? 'Open results' : `Pay ${formatCents(paymentQuote?.amountDueCents)}`}
+                      {paymentLoading ? 'Processing...' : finalAmountDueCents === 0 ? 'Open results' : `Pay ${formatCents(finalAmountDueCents)}`}
                     </button>
                   </>
                 )}

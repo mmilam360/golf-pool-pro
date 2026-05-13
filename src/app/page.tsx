@@ -48,7 +48,7 @@ const setupSteps = [
 
 const pricingRows = [
   ['First 5 entries', 'Free'],
-  ['Extra active entries', '72¢ each'],
+  ['Extra active entries', '$1 each'],
   ['Maximum pool fee', '$25 cap'],
 ]
 
@@ -214,7 +214,7 @@ export default function Home() {
               </div>
             ))}
             <div className="border-t-2 border-[#123c2f] bg-[#fbf7ed] px-5 py-4 text-sm font-semibold leading-6 text-[#4f5b52]">
-              Example: a 13-entry pool costs $5.76. A big pool never goes over $25.
+              Example: a 13-entry pool costs $8. A big pool never goes over $25.
             </div>
           </div>
         </section>

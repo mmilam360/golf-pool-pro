@@ -1,9 +1,14 @@
 export type PoolPaymentStatus = 'draft' | 'active' | 'payment_due' | 'archived_unpaid' | 'refunded'
 
 export const FREE_ENTRY_LIMIT = 5
-export const PRICE_PER_EXTRA_ENTRY_CENTS = 72
+export const PRICE_PER_EXTRA_ENTRY_CENTS = 100
 export const POOL_PRICE_CAP_CENTS = 2500
 export const LIFETIME_ACCESS_CENTS = 20000
+
+type PromoLike = {
+  free_pool?: boolean | null
+  discount_cents?: number | null
+}
 
 export function getPoolPriceTier(activeEntryCount: number) {
   const count = Math.max(0, activeEntryCount)
@@ -16,7 +21,7 @@ export function getPoolPriceTier(activeEntryCount: number) {
     amountCents,
     label: count <= FREE_ENTRY_LIMIT
       ? `${FREE_ENTRY_LIMIT} entries free`
-      : `72¢ per extra entry, capped at $25`,
+      : `$1 per extra entry, capped at $25`,
   }
 }
 
@@ -40,6 +45,12 @@ export function getPoolPaymentQuote(activeEntryCount: number, amountPaidCents = 
     hasLifetimeAccess,
     lifetimeAccessCents: LIFETIME_ACCESS_CENTS,
   }
+}
+
+export function getPromoDiscountCents(amountDueCents: number, promo: PromoLike | null | undefined) {
+  if (!promo || amountDueCents <= 0) return 0
+  if (promo.free_pool) return amountDueCents
+  return Math.min(amountDueCents, Math.max(0, Number(promo.discount_cents || 0)))
 }
 
 export function getPoolPaymentStatus(storedStatus: PoolPaymentStatus | string | null | undefined, activeEntryCount: number, amountPaidCents = 0, hasLifetimeAccess = false): PoolPaymentStatus {
