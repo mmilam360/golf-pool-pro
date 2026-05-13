@@ -35,14 +35,16 @@ export function scoreEntry(
   } else {
     counting = [...active]
     const needed = countScores - active.length
-    if (obRuleEnabled && needed > 0 && leaderboard.length > 0) {
+    const cutPicks = pickScores.filter(p => p.status === 'cut')
+    const standInsNeeded = Math.min(needed, cutPicks.length)
+    if (obRuleEnabled && standInsNeeded > 0 && leaderboard.length > 0) {
       const scoredPlayers = leaderboard.filter(p => p.status === 'active' && p.scoreToPar !== null)
       scoredPlayers.sort((a, b) => (b.scoreToPar ?? -999) - (a.scoreToPar ?? -999))
       const worstScore = scoredPlayers.length > 0 ? scoredPlayers[0].scoreToPar : 0
-      for (let i = 0; i < needed; i++) {
+      for (let i = 0; i < standInsNeeded; i++) {
         counting.push({ name: `OB Stand-in #${i + 1}`, scoreToPar: worstScore + obPenaltyStrokes, strokes: null, thru: 'F', status: 'active', counted: true, isObStandIn: true })
       }
-      obStandIns = needed
+      obStandIns = standInsNeeded
     }
   }
   counting.forEach(p => p.counted = true)

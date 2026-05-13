@@ -11,8 +11,6 @@ const leaderboardRows = [
       ['-6', 'McIlroy', '17'],
       ['-6', 'Schauffele', 'F'],
       ['-5', 'Morikawa', '16'],
-      ['-4', 'Åberg', '15'],
-      ['-4', 'Hovland', 'F'],
     ],
     other: ['+2 Spieth F', '+4 Fowler F'],
   },
@@ -25,8 +23,6 @@ const leaderboardRows = [
       ['-6', 'Scheffler', 'F'],
       ['-5', 'Cantlay', 'F'],
       ['-5', 'Homa', '15'],
-      ['-4', 'Lowry', 'F'],
-      ['-3', 'Fleetwood', '14'],
     ],
     other: ['+3 Spieth F', '+5 Fowler F'],
   },
@@ -39,8 +35,6 @@ const leaderboardRows = [
       ['-5', 'Morikawa', '16'],
       ['-4', 'Scheffler', 'F'],
       ['-4', 'Åberg', '15'],
-      ['-3', 'Thomas', 'F'],
-      ['-3', 'Finau', '17'],
     ],
     other: ['+1 Spieth F', 'CUT Fowler'],
   },
@@ -159,7 +153,7 @@ export default function Home() {
                       <tr className="bg-[#f7f7f2] text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">
                         <th className="w-[5%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2 text-center">Rank</th>
                         <th className="w-[17%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-left">Entry</th>
-                        <th className="border-b-2 border-r-2 border-[#111] px-1 py-2 text-center" colSpan={6}>Top 6 golfers</th>
+                        <th className="border-b-2 border-r-2 border-[#111] px-1 py-2 text-center" colSpan={4}>Top golfers</th>
                         <th className="w-[12%] border-b-2 border-[#111] px-3 py-2 text-center">Total</th>
                       </tr>
                     </thead>
@@ -180,13 +174,13 @@ export default function Home() {
 
                 <div className="grid grid-cols-3 border-t-2 border-[#111] bg-[#efeee6] text-center text-[10px] font-black uppercase tracking-[0.08em] text-[#111] sm:text-xs">
                   <div className="border-r-2 border-[#111] px-2 py-3">12 picks</div>
-                  <div className="border-r-2 border-[#111] px-2 py-3">Best 6 shown</div>
+                  <div className="border-r-2 border-[#111] px-2 py-3">Best shown</div>
                   <div className="px-2 py-3">Live scoring</div>
                 </div>
               </div>
             </div>
             </div>
-            <div className="gpp-3d-post mx-auto -mb-1 -mt-[10px] h-24 w-14 border-x-4 border-[#003622] bg-[#006241] md:h-24 md:w-16" />
+            <div className="gpp-3d-post mx-auto -mb-3 -mt-[10px] h-24 w-14 border-x-4 border-[#003622] bg-[#006241] md:-mb-4 md:h-24 md:w-16" />
           </div>
         </section>
 

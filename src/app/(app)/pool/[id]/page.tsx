@@ -18,21 +18,30 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
 
   if (!pool) redirect('/dashboard')
 
-  // Get all entries for this pool
-  const { data: entries } = await supabase
+  const tournament = pool.gpp_tournaments as any
+  const isOwner = pool.owner_id === user.id
+  const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
+  const picksAreVisible = isOwner || pool.is_locked || scoringIsLive
+
+  // Get visible entries for this pool. Before lock/start, entrants only receive their own picks.
+  let entriesQuery = supabase
     .from('gpp_entries')
     .select('*')
     .eq('pool_id', id)
-    .order('created_at', { ascending: true })
+
+  if (!picksAreVisible) {
+    entriesQuery = entriesQuery.eq('user_id', user.id)
+  }
+
+  const { data: entries } = await entriesQuery.order('created_at', { ascending: true })
 
   // Get current user's entry
   const myEntry = entries?.find(e => e.user_id === user.id && !e.is_removed) || null
-  const isOwner = pool.owner_id === user.id
 
   return (
     <PoolView
       pool={pool}
-      tournament={pool.gpp_tournaments as any}
+      tournament={tournament}
       entries={entries || []}
       myEntry={myEntry}
       isOwner={isOwner}

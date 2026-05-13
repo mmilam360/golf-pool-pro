@@ -52,6 +52,29 @@ function scoreClass(score: number | null) {
   return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
 }
 
+function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
+  const orderedPicks = ([...(entry.golfer_picks || [])] as string[]).sort((a, b) => a.localeCompare(b))
+  const pickScores = orderedPicks.map((name, index) => ({
+    name,
+    scoreToPar: null,
+    strokes: null,
+    thru: '',
+    status: 'active' as const,
+    counted: index < countScores,
+    isObStandIn: false,
+  }))
+
+  return {
+    entryId: entry.id,
+    displayName: entry.display_name,
+    picks: orderedPicks,
+    pickScores,
+    totalScore: null,
+    rank: null,
+    obStandIns: 0,
+  }
+}
+
 function shortName(name: string) {
   const clean = name.replace(/^OB Stand-in #/, 'OB ')
   if (clean.startsWith('OB ')) return clean
@@ -132,18 +155,27 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const paymentCollectionOpen = isLocked || scoringIsLive
   const leaderboardIsHidden = scoringIsLive && paymentStatus !== 'active'
   const canInvitePlayers = !isLocked && !scoringIsLive
+  const canSeeAllEntries = isOwner || picksAreClosed
+  const visibleEntries = canSeeAllEntries
+    ? activeEntries
+    : activeEntries.filter(entry => entry.user_id === userId)
 
   const refreshPoolEntries = useCallback(async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('gpp_entries')
       .select('*')
       .eq('pool_id', pool.id)
-      .order('created_at', { ascending: true })
+
+    if (!canSeeAllEntries) {
+      query = query.eq('user_id', userId)
+    }
+
+    const { data } = await query.order('created_at', { ascending: true })
     if (data) {
       setEntries(data)
       setMyEntry(data.find(entry => entry.user_id === userId && !entry.is_removed) || null)
     }
-  }, [pool.id, supabase, userId])
+  }, [canSeeAllEntries, pool.id, supabase, userId])
 
   useEffect(() => {
     setInviteUrl(`${window.location.origin}/pool/join?code=${pool.passcode}`)
@@ -453,17 +485,19 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }
 
   // Compute scored entries
-  const scoredEntries: ScoredEntry[] = rankEntries(
-    activeEntries.map(entry => ({
-      ...scoreEntry(
-        (entry.golfer_picks as string[]) || [],
-        scoringIsLive ? leaderboard : [],
-        { countScores: pool.count_scores, obRuleEnabled: pool.ob_rule_enabled, obPenaltyStrokes: pool.ob_penalty_strokes }
-      ),
-      entryId: entry.id,
-      displayName: entry.display_name,
-    }))
-  )
+  const scoredEntries: ScoredEntry[] = scoringIsLive
+    ? rankEntries(
+        visibleEntries.map(entry => ({
+          ...scoreEntry(
+            (entry.golfer_picks as string[]) || [],
+            leaderboard,
+            { countScores: pool.count_scores, obRuleEnabled: pool.ob_rule_enabled, obPenaltyStrokes: pool.ob_penalty_strokes }
+          ),
+          entryId: entry.id,
+          displayName: entry.display_name,
+        }))
+      )
+    : visibleEntries.map(entry => buildPreScoringEntry(entry, pool.count_scores))
 
   return (
     <div>
@@ -621,7 +655,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         </div>
                         {outOfBoundsPicks.length > 0 && (
                           <div className="border-t-2 border-[#111] bg-[#efeee6] px-2 py-1.5 text-left">
-                            <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Out of Bounds Golfers</div>
+                            <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">{scoringIsLive ? 'Out of Bounds Golfers' : 'Other Picks'}</div>
                             <div className="flex flex-wrap gap-1">
                               {outOfBoundsPicks.map(pick => (
                                 <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
@@ -684,7 +718,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             {outOfBoundsPicks.length > 0 && (
                               <tr key={`${entry.entryId}-out`} className="bg-[#efeee6]">
                                 <td className="border-b border-r-2 border-[#111] bg-[#efeee6]" />
-                                <td className="border-b border-r-2 border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Out of Bounds Golfers</td>
+                                <td className="border-b border-r-2 border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">{scoringIsLive ? 'Out of Bounds Golfers' : 'Other Picks'}</td>
                                 <td className="border-b border-[#111] bg-[#efeee6] px-2 py-1 text-left" colSpan={pool.count_scores + 1}>
                                   <div className="flex flex-wrap gap-1">
                                     {outOfBoundsPicks.map(pick => (
