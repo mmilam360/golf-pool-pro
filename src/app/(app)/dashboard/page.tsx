@@ -200,31 +200,32 @@ export default async function DashboardPage() {
             <Link href="/pool/create" className="gpp-3d gpp-button-3d gpp-button-wrap mt-5 text-sm"><span className="gpp-button-face px-5 py-3">Create pool</span></Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <div className="min-w-[720px]">
-              <div className="grid grid-cols-[1.2fr_1fr_90px_110px_100px_100px] border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-[#657168]">
-                <span>Pool</span>
-                <span>Tournament</span>
-                <span>Entries</span>
-                <span>Date</span>
-                <span>Status</span>
-                <span>Code</span>
-              </div>
-              {owned.map(pool => {
-                const tournament = getTournament(pool)
-                const label = statusLabel(pool, tournament)
-                return (
-                  <Link key={pool.id} href={`/pool/${pool.id}`} className="grid grid-cols-[1.2fr_1fr_90px_110px_100px_100px] items-center border-b border-[#eadfca] px-5 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#fbf7ed]">
-                    <span className="font-semibold text-[#1f2a24]">{pool.name}</span>
-                    <span className="text-[#657168]">{tournament?.name || 'Tournament'}</span>
-                    <span className="font-black text-[#123c2f]">{ownedEntryCounts[pool.id] || 0}</span>
-                    <span className="font-mono text-[#657168]">{formatDate(tournament?.start_date)}</span>
-                    <span><span className={`border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>{label}</span></span>
-                    <span className="font-mono font-black text-[#123c2f]">{pool.passcode}</span>
-                  </Link>
-                )
-              })}
+          <div className="overflow-hidden">
+            <div className="grid grid-cols-[minmax(0,1fr)_76px_82px] border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#657168] sm:grid-cols-[1.3fr_1fr_94px_110px_104px_104px] sm:px-5 sm:text-xs sm:tracking-[0.16em]">
+              <span>Pool</span>
+              <span className="hidden sm:block">Tournament</span>
+              <span className="text-center">Entries</span>
+              <span className="text-right sm:text-left">Date</span>
+              <span className="hidden sm:block">Status</span>
+              <span className="hidden sm:block">Code</span>
             </div>
+            {owned.map((pool, index) => {
+              const tournament = getTournament(pool)
+              const label = statusLabel(pool, tournament)
+              return (
+                <Link key={pool.id} href={`/pool/${pool.id}`} className={`grid grid-cols-[minmax(0,1fr)_76px_82px] items-center border-b border-[#eadfca] px-4 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_94px_110px_104px_104px] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
+                  <span className="min-w-0 pr-3">
+                    <span className="block truncate font-semibold text-[#1f2a24]">{pool.name}</span>
+                    <span className="mt-1 block text-xs leading-5 text-[#657168] sm:hidden">{tournament?.name || 'Tournament'}</span>
+                  </span>
+                  <span className="hidden text-[#657168] sm:block">{tournament?.name || 'Tournament'}</span>
+                  <span className="text-center font-black text-[#123c2f]">{ownedEntryCounts[pool.id] || 0}</span>
+                  <span className="text-right font-mono text-[#657168] sm:text-left">{formatDate(tournament?.start_date)}</span>
+                  <span className="hidden sm:block"><span className={`border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>{label}</span></span>
+                  <span className="hidden font-mono font-black text-[#123c2f] sm:block">{pool.passcode}</span>
+                </Link>
+              )
+            })}
           </div>
         )}
       </section>
