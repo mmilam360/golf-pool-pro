@@ -13,7 +13,11 @@ function isValidSquareSignature(requestUrl: string, body: string, signature: str
     .update(requestUrl + body)
     .digest('base64')
 
-  return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signature))
+  const expected = Buffer.from(hmac)
+  const received = Buffer.from(signature)
+  if (expected.length !== received.length) return false
+
+  return crypto.timingSafeEqual(expected, received)
 }
 
 export async function POST(request: Request) {

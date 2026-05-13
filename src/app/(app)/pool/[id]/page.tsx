@@ -7,7 +7,7 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) redirect(`/login?redirect=${encodeURIComponent(`/pool/${id}`)}`)
 
   // Get pool with tournament
   const { data: pool } = await supabase

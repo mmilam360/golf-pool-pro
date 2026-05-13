@@ -18,6 +18,17 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const request = event.request
   if (request.method !== 'GET') return
+  const url = new URL(request.url)
+  const isSameOrigin = url.origin === self.location.origin
+  const isStaticAsset = url.pathname.startsWith('/_next/static/')
+    || url.pathname.startsWith('/icons/')
+    || url.pathname.startsWith('/brand/')
+    || url.pathname === '/favicon.ico'
+    || url.pathname === '/favicon.svg'
+    || url.pathname === '/apple-touch-icon.png'
+    || url.pathname === '/'
+
+  if (!isSameOrigin || url.pathname.startsWith('/api/') || (!isStaticAsset && request.mode === 'navigate')) return
 
   event.respondWith(
     fetch(request)

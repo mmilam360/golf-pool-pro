@@ -51,6 +51,19 @@ export default function SignupPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  function getSafeRedirect() {
+    const redirectParam = new URLSearchParams(window.location.search).get('redirect')
+    if (redirectParam && !redirectParam.includes('\\')) {
+      try {
+        const url = new URL(redirectParam, window.location.origin)
+        if (url.origin === window.location.origin && url.pathname.startsWith('/')) {
+          return `${url.pathname}${url.search}${url.hash}`
+        }
+      } catch {}
+    }
+    return '/dashboard'
+  }
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -60,27 +73,19 @@ export default function SignupPage() {
       return
     }
     setLoading(true)
+    const redirectTo = getSafeRedirect()
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: trimmedName, marketing_emails: marketingOptIn } },
+      options: {
+        data: { display_name: trimmedName, marketing_emails: marketingOptIn },
+        emailRedirectTo: `${window.location.origin}/login?redirect=${encodeURIComponent(redirectTo)}`,
+      },
     })
     if (error) {
       setError(error.message)
       setLoading(false)
     } else if (data.session) {
-      const redirectParam = new URLSearchParams(window.location.search).get('redirect')
-      let redirectTo = '/dashboard'
-      if (redirectParam && !redirectParam.includes('\\')) {
-        try {
-          const url = new URL(redirectParam, window.location.origin)
-          if (url.origin === window.location.origin && url.pathname.startsWith('/')) {
-            redirectTo = `${url.pathname}${url.search}${url.hash}`
-          }
-        } catch {
-          redirectTo = '/dashboard'
-        }
-      }
       router.push(redirectTo)
     } else {
       setSuccess(true)
@@ -93,7 +98,7 @@ export default function SignupPage() {
       <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 text-center shadow-[6px_6px_0_#d8cab0]">
         <h1 className="mb-4 text-2xl font-bold text-[#0f2f25]">Account created</h1>
         <p className="text-stone-600 mb-4">Check your email to confirm your account, then sign in.</p>
-        <Link href="/login" className="font-semibold text-[#123c2f] hover:underline">Go to sign in</Link>
+        <Link href={`/login?redirect=${encodeURIComponent(getSafeRedirect())}`} className="font-semibold text-[#123c2f] hover:underline">Go to sign in</Link>
       </div>
     )
   }
