@@ -58,10 +58,10 @@ const setupSteps = [
   ['03', 'Follow the leaderboard', 'Lock entries, watch scores update, and settle arguments from one board.'],
 ]
 
-const readinessRows = [
-  ['Host setup', 'Tournament, pick count, scoring rule'],
-  ['Player entry', 'Code, link, team selection'],
-  ['Live board', 'Standings, cuts, counted scores'],
+const pricingRows = [
+  ['First 5 entries', 'Free'],
+  ['Extra active entries', '72¢ each'],
+  ['Maximum pool fee', '$25 cap'],
 ]
 
 function scoreColor(score: string) {
@@ -98,13 +98,13 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="mx-auto grid max-w-7xl gap-8 px-4 pb-0 pt-8 sm:px-5 md:px-8 lg:min-h-[640px] lg:grid-cols-[0.8fr_1.2fr] lg:items-stretch lg:pt-4">
-          <div className="pb-6 pt-6 lg:flex lg:flex-col lg:justify-center lg:pb-12 lg:pt-0">
+        <section className="mx-auto grid max-w-7xl gap-8 px-4 pb-0 pt-8 sm:px-5 md:px-8 lg:min-h-[640px] lg:grid-cols-[0.86fr_1.14fr] lg:items-start lg:pt-8">
+          <div className="pb-6 pt-6 lg:flex lg:flex-col lg:justify-center lg:pb-12 lg:pt-10">
             <p className="mb-4 w-fit max-w-full border-y border-[#b58a3a] py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a6724] sm:text-xs sm:tracking-[0.28em]">
               Golf pool manager
             </p>
-            <h1 className="max-w-full font-display text-[1.8rem] font-bold leading-[1.06] tracking-[-0.035em] text-[#0f2f25] sm:text-[2.4rem] md:text-[3.85rem]">
-              <span className="block">Golf pools without</span>
+            <h1 className="max-w-full font-display text-[1.55rem] font-bold leading-[1.02] tracking-[-0.035em] text-[#0f2f25] sm:text-[2.65rem] md:text-[3.25rem] xl:text-[3.45rem]">
+              <span className="block lg:whitespace-nowrap">Golf pools without</span>
               <span className="block">the spreadsheet.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-[#4f5b52] sm:text-lg sm:leading-8">
@@ -120,8 +120,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative flex flex-col justify-end pt-3" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
-            <div className="gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#00442c] [--gpp-bottom-color:#003622] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]">
+          <div className="relative flex flex-col justify-start pt-3 lg:-mt-4 lg:pt-0" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
+            <div className="gpp-3d w-full [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#00442c] [--gpp-bottom-color:#003622] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]">
             <div className="gpp-3d-face border-[10px] border-[#006241] bg-[#006241] shadow-[0_24px_70px_rgba(31,42,36,0.2)] md:border-[14px]">
               <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
                 <div className="relative border-b-2 border-[#111] px-3 py-2">
@@ -160,24 +160,24 @@ export default function Home() {
                 </div>
 
                 <div className="hidden bg-[#f7f7f2] lg:block">
-                  <table className="w-full table-fixed border-collapse text-[11px] text-[#111]">
+                  <table className="w-full table-fixed border-collapse text-[12px] text-[#111]">
                     <thead>
                       <tr className="bg-[#f7f7f2] text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">
-                        <th className="w-[6%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
-                        <th className="w-[20%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
-                        <th className="border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center" colSpan={8}>Top 8 golfers</th>
-                        <th className="w-[9%] border-b-2 border-[#111] px-1 py-1.5 text-center">Total</th>
+                        <th className="w-[6%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2 text-center">Rank</th>
+                        <th className="w-[20%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2 text-left">Entry</th>
+                        <th className="border-b-2 border-r-2 border-[#111] px-1 py-2 text-center" colSpan={8}>Top 8 golfers</th>
+                        <th className="w-[9%] border-b-2 border-[#111] px-1 py-2 text-center">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {leaderboardRows.map(entry => (
                         <tr key={entry.rank} className="bg-[#f7f7f2]">
-                          <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">{entry.rank}</td>
-                          <td className="min-w-0 border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
+                          <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-2.5 text-center text-2xl font-black text-[#b21e23]">{entry.rank}</td>
+                          <td className="min-w-0 border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-2.5 text-left">
                             <span className="block truncate text-sm font-black uppercase tracking-[0.02em] text-[#111]" title={entry.name}>{entry.name}</span>
                           </td>
                           {entry.golfers.map(golfer => <GolferCell key={`${entry.rank}-${golfer[1]}`} golfer={golfer} />)}
-                          <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-2xl font-black ${scoreColor(entry.total)}`}>{entry.total}</td>
+                          <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-2.5 text-center text-3xl font-black ${scoreColor(entry.total)}`}>{entry.total}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -185,9 +185,9 @@ export default function Home() {
                 </div>
 
                 <div className="grid grid-cols-3 border-t-2 border-[#111] bg-[#efeee6] text-center text-[10px] font-black uppercase tracking-[0.08em] text-[#111] sm:text-xs">
-                  <div className="border-r-2 border-[#111] px-2 py-2">12 picks</div>
-                  <div className="border-r-2 border-[#111] px-2 py-2">Best 8 count</div>
-                  <div className="px-2 py-2">Live scoring</div>
+                  <div className="border-r-2 border-[#111] px-2 py-3">12 picks</div>
+                  <div className="border-r-2 border-[#111] px-2 py-3">Best 8 count</div>
+                  <div className="px-2 py-3">Live scoring</div>
                 </div>
               </div>
             </div>
@@ -211,20 +211,20 @@ export default function Home() {
         <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 md:grid-cols-[0.85fr_1.15fr] md:items-start md:px-8 md:py-20">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Simple pricing</p>
-            <h2 className="mt-3 font-display text-3xl font-bold leading-none text-[#0f2f25] md:text-5xl">Free to start. Capped when it grows.</h2>
+            <h2 className="mt-3 font-display text-3xl font-bold leading-none text-[#0f2f25] md:text-5xl">Free for small pools. Capped for bigger ones.</h2>
             <p className="mt-4 max-w-xl leading-7 text-[#657168]">
-              Built for office golf pools, Masters pools, PGA Championship pools, Ryder Cup pools, and weekend tournament groups where the host needs setup, picks, and standings to work.
+              The host pays only after entries lock. Players can join, make picks, and follow the board without hitting a payment screen.
             </p>
           </div>
           <div className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
-            {readinessRows.map(([label, detail]) => (
-              <div key={label} className="grid grid-cols-[1fr_auto] items-center border-b-2 border-[#123c2f] px-5 py-4 last:border-b-0">
+            {pricingRows.map(([label, detail]) => (
+              <div key={label} className="grid grid-cols-[1fr_auto] items-center border-b-2 border-[#123c2f] px-5 py-5 last:border-b-0">
                 <span className="font-black uppercase tracking-[0.04em] text-[#1f2a24]">{label}</span>
-                <span className="max-w-[12rem] text-right text-sm font-bold leading-5 text-[#005b3c]">{detail}</span>
+                <span className="font-display text-2xl font-black leading-none text-[#005b3c] sm:text-3xl">{detail}</span>
               </div>
             ))}
             <div className="border-t-2 border-[#123c2f] bg-[#fbf7ed] px-5 py-4 text-sm font-semibold leading-6 text-[#4f5b52]">
-              Entries stay open until the host locks the pool or the tournament starts. After that, picks are closed and the leaderboard becomes the source of truth.
+              Example: a 13-entry pool costs $5.76. A big pool never goes over $25.
             </div>
           </div>
         </section>
