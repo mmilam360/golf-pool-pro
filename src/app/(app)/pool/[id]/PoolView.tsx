@@ -40,6 +40,38 @@ interface Props {
 }
 
 type Tab = 'leaderboard' | 'my-team' | 'admin'
+type ToastTone = 'success' | 'error' | 'info'
+type ToastMessage = { id: number; message: string; tone: ToastTone }
+
+function ToastStack({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismiss: (id: number) => void }) {
+  if (toasts.length === 0) return null
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2 sm:bottom-6 sm:right-6" aria-live="polite" aria-atomic="true">
+      {toasts.map(toast => {
+        const toneClass = toast.tone === 'error'
+          ? 'border-[#b21e23] bg-[#fff8f4] text-[#6f1114] shadow-[5px_5px_0_#e0b8ad]'
+          : toast.tone === 'success'
+            ? 'border-[#123c2f] bg-[#fbf7ed] text-[#123c2f] shadow-[5px_5px_0_#d8cab0]'
+            : 'border-stone-300 bg-white text-stone-900 shadow-[5px_5px_0_#d8cab0]'
+
+        return (
+          <div key={toast.id} className={`flex items-start justify-between gap-3 rounded-none border-2 px-4 py-3 text-sm font-semibold ${toneClass}`}>
+            <span>{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => onDismiss(toast.id)}
+              className="-mr-1 border border-current px-1 text-[10px] font-black leading-4 opacity-70 hover:opacity-100"
+              aria-label="Dismiss message"
+            >
+              ×
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 function formatScore(score: number | null) {
   if (score === null) return '—'
@@ -144,9 +176,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [paymentFeedback, setPaymentFeedback] = useState('')
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
+  const [toasts, setToasts] = useState<ToastMessage[]>([])
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
   const supabase = useMemo(() => createClient(), [])
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts(current => current.filter(toast => toast.id !== id))
+  }, [])
+
+  const showToast = useCallback((message: string, tone: ToastTone = 'info') => {
+    const id = Date.now() + Math.floor(Math.random() * 1000)
+    setToasts(current => [...current.slice(-2), { id, message, tone }])
+    window.setTimeout(() => dismissToast(id), 3500)
+  }, [dismissToast])
 
   const activeEntries = entries.filter(e => !e.is_removed)
   const isLocked = poolLocked
@@ -252,7 +295,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         paymentCardRef.current = card
         setPaymentCardReady(true)
       } catch {
-        if (!cancelled) setPaymentFeedback('Square checkout could not be loaded yet.')
+        if (!cancelled) {
+          setPaymentFeedback('Square checkout could not be loaded yet.')
+          showToast('Square checkout could not be loaded yet.', 'error')
+        }
       }
     }
 
@@ -261,7 +307,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     return () => {
       cancelled = true
     }
-  }, [isOwner, paymentQuote, paymentCollectionOpen, tab])
+  }, [isOwner, paymentQuote, paymentCollectionOpen, showToast, tab])
 
   useEffect(() => {
     if (tab === 'admin' && paymentQuote?.paymentStatus !== 'active' && paymentCollectionOpen) return
@@ -275,19 +321,23 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   async function activatePool() {
     if (!paymentQuote) {
       setPaymentFeedback('Payment quote is still loading.')
+      showToast('Payment quote is still loading.', 'info')
       return
     }
     if (paymentQuote.requiresCustomQuote) {
       setPaymentFeedback('This pool needs a custom quote.')
+      showToast('This pool needs a custom quote.', 'error')
       return
     }
     if (!paymentQuote.square.applicationId || !paymentQuote.square.locationId) {
       setPaymentFeedback('Square is not configured yet.')
+      showToast('Square is not configured yet.', 'error')
       return
     }
 
     if ((paymentQuote.amountDueCents || 0) > 0 && !paymentCollectionOpen) {
       setPaymentFeedback('Payment opens after picks lock.')
+      showToast('Payment opens after picks lock.', 'info')
       return
     }
 
@@ -323,9 +373,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const successMessage = data.amountDueCents === 0 ? 'Pool is active.' : 'Payment received. Pool is active.'
       setPaymentFeedback(successMessage)
       setStatusMessage(successMessage)
+      showToast(successMessage, 'success')
       await refreshPaymentQuote()
     } catch (error: any) {
-      setPaymentFeedback(error?.message || 'Payment failed.')
+      const message = error?.message || 'Payment failed.'
+      setPaymentFeedback(message)
+      showToast(message, 'error')
     } finally {
       setPaymentLoading(false)
     }
@@ -375,6 +428,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (!myEntry) return
     if (picksAreClosed) {
       setStatusMessage('Picks are closed for this pool.')
+      showToast('Picks are closed for this pool.', 'error')
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
@@ -388,14 +442,24 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setMyEntry(updatedEntry)
       setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setStatusMessage('Picks saved.')
+      showToast('Picks saved.', 'success')
       setTimeout(() => setStatusMessage(''), 2500)
+    } else {
+      showToast('Could not save picks.', 'error')
     }
     setSaving(false)
   }
 
-  function copyToClipboard(value: string, message: string) {
-    navigator.clipboard?.writeText(value)
+  async function copyToClipboard(value: string, message: string) {
+    try {
+      await navigator.clipboard?.writeText(value)
+    } catch {
+      setStatusMessage('Could not copy. Select and copy it manually.')
+      showToast('Could not copy. Select and copy it manually.', 'error')
+      return
+    }
     setStatusMessage(message)
+    showToast(message, 'success')
     setTimeout(() => setStatusMessage(''), 2500)
   }
 
@@ -427,6 +491,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (!error) {
       setEntries(entries.map(e => e.id === entryId ? { ...e, is_removed: true, removed_reason: removeReason } : e))
       setRemoveTarget(null); setRemoveReason('')
+      showToast('Entry removed.', 'success')
+    } else {
+      showToast('Could not remove entry.', 'error')
     }
   }
 
@@ -441,9 +508,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setPoolLocked(true)
       setShowLockConfirm(false)
       setStatusMessage('Pool locked. New entries and pick changes are closed.')
+      showToast('Pool locked. Picks are closed.', 'success')
       refreshPaymentQuote()
     } else {
       setStatusMessage('Could not lock pool.')
+      showToast('Could not lock pool.', 'error')
     }
   }
 
@@ -451,6 +520,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const nextName = renameValue.trim()
     if (!nextName) {
       setStatusMessage('Pool name cannot be blank.')
+      showToast('Pool name cannot be blank.', 'error')
       return
     }
     const { error } = await supabase
@@ -459,28 +529,34 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       .eq('id', pool.id)
     if (error) {
       setStatusMessage('Could not update pool name.')
+      showToast('Could not update pool name.', 'error')
       return
     }
     setPoolName(nextName)
     setStatusMessage('Pool name updated.')
+    showToast('Pool name updated.', 'success')
     setTimeout(() => setStatusMessage(''), 2500)
   }
 
   async function deletePool() {
     if (deleteConfirm !== 'DELETE') {
       setStatusMessage('Type DELETE to confirm.')
+      showToast('Type DELETE to confirm.', 'error')
       return
     }
     const { error: entriesError } = await supabase.from('gpp_entries').delete().eq('pool_id', pool.id)
     if (entriesError) {
       setStatusMessage('Could not delete pool entries.')
+      showToast('Could not delete pool entries.', 'error')
       return
     }
     const { error } = await supabase.from('gpp_pools').delete().eq('id', pool.id)
     if (error) {
       setStatusMessage('Could not delete pool.')
+      showToast('Could not delete pool.', 'error')
       return
     }
+    showToast('Pool deleted. Sending you back to the dashboard.', 'success')
     router.push('/dashboard')
   }
 
@@ -501,6 +577,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   return (
     <div>
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold">{poolName}</h1>
