@@ -18,6 +18,9 @@ assert.match(poolViewSource, /localeCompare/, 'Pre-scoring picks should be alpha
 assert.doesNotMatch(landingSource, /-mb-10|-mb-12|-mt-10|-mt-12/, 'Hero boundary should not overlap the next section; it should end at the bottom of the post')
 assert.match(landingSource, /<section className="border-y border/, 'Next green section should start normally at the hero boundary')
 assert.doesNotMatch(landingSource, />Rank<\/th>/, 'Desktop demo should not show the clipped Rank header label')
+assert.match(landingSource, /name: 'Lonnie'/, 'Landing demo entry name should stay short enough to avoid clipping')
+assert.match(landingSource, /border-\[#123c2f\] bg-\[#123c2f\]/, 'Landing demo board frame should use the darker clubhouse green')
+assert.match(poolViewSource, /border-\[#123c2f\] bg-\[#123c2f\]/, 'Real leaderboard board frame should use the darker clubhouse green')
 assert.match(layoutSource, /favicon\.svg\?v=3/, 'Favicon should prefer the cache-busted SVG GPP tab icon')
 
 console.log('scoring/visibility/landing/favicon rule markers present')

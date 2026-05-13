@@ -4,7 +4,7 @@ import Link from 'next/link'
 const leaderboardRows = [
   {
     rank: '1',
-    name: 'Tiger\'s Tribe',
+    name: 'Lonnie',
     total: '-38',
     golfers: [
       ['-8', 'Scheffler', 'F'],
@@ -75,7 +75,7 @@ export default function Home() {
             <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-14 w-auto object-contain sm:h-16 md:h-20" />
           </Link>
           <div className="flex shrink-0 items-center gap-2 text-xs font-semibold sm:text-sm">
-            <Link href="/login" className="border border-[#123c2f] bg-white px-3 py-2 text-[#123c2f] transition-colors hover:bg-[#f7f0df] sm:px-4">
+            <Link href="/login" className="border border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-[#123c2f] transition-colors hover:bg-[#f7f0df] sm:px-4">
               Sign in
             </Link>
             <Link href="/signup" className="border border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25] sm:px-4">
@@ -110,11 +110,11 @@ export default function Home() {
 
           <div className="relative flex flex-col justify-start pt-3 lg:-mt-4 lg:pt-0" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
             <div className="gpp-3d w-full [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#00442c] [--gpp-bottom-color:#003622] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]">
-            <div className="gpp-3d-face border-[10px] border-[#006241] bg-[#006241] shadow-[0_24px_70px_rgba(31,42,36,0.2)] md:border-[14px]">
+            <div className="gpp-3d-face border-[10px] border-[#123c2f] bg-[#123c2f] shadow-[0_24px_70px_rgba(31,42,36,0.2)] md:border-[14px]">
               <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
                 <div className="relative border-b-2 border-[#111] px-3 py-2">
                   <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">Tiger's Tribe - PGA Championship pool</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">Lonnie - PGA Championship pool</p>
                   <div className="absolute right-2 top-2 border border-[#d8cab0] bg-[#f3df9c] px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#0f2f25]">Demo</div>
                 </div>
 
@@ -180,7 +180,7 @@ export default function Home() {
               </div>
             </div>
             </div>
-            <div className="gpp-3d-post mx-auto -mt-[10px] h-28 w-14 border-x-4 border-[#003622] bg-[#006241] md:h-28 md:w-16" />
+            <div className="gpp-3d-post mx-auto -mt-[10px] h-28 w-14 border-x-4 border-[#003622] bg-[linear-gradient(90deg,#003622_0%,#123c2f_20%,#123c2f_80%,#003622_100%)] md:h-28 md:w-16" />
           </div>
         </section>
 
@@ -232,7 +232,7 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="border-t border-[#d8cab0] px-5 py-6 text-center text-sm text-[#657168]">
+      <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-6 text-center text-sm text-[#657168]">
         <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
         <span className="mx-3">/</span>
         <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>

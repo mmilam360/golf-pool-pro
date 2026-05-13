@@ -597,7 +597,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               className="gpp-3d [--gpp-depth-x:10px] [--gpp-depth-y:8px] [--gpp-side-color:#00442c] [--gpp-bottom-color:#003622] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]"
               style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
             >
-              <div className="gpp-3d-face border-[10px] border-[#006241] bg-[#006241] md:border-[16px]">
+              <div className="gpp-3d-face border-[10px] border-[#123c2f] bg-[#123c2f] md:border-[16px]">
               <div className="border-2 border-[#111] bg-[#f7f7f2] text-center shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.08),6px_6px_0_rgba(0,0,0,0.18)]">
                 <div className="relative border-b-2 border-[#111] px-3 py-2">
                   <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
@@ -742,7 +742,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               )}
             </div>
             </div>
-            <div className="gpp-3d-post mx-auto -mb-8 -mt-[10px] h-36 w-16 border-x-4 border-[#003622] bg-[#006241] md:-mb-10 md:h-44 md:w-20" />
+            <div className="gpp-3d-post mx-auto -mb-8 -mt-[10px] h-36 w-16 border-x-4 border-[#003622] bg-[linear-gradient(90deg,#003622_0%,#123c2f_20%,#123c2f_80%,#003622_100%)] md:-mb-10 md:h-44 md:w-20" />
             </>
           )}
         </div>
