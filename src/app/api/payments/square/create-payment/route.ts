@@ -84,6 +84,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'A promo code is already applied to this pool.' }, { status: 409 })
       }
 
+      const { data: anyUserRedemption } = await serviceSupabase
+        .from('gpp_promo_redemptions')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (anyUserRedemption) {
+        return NextResponse.json({ error: 'You already used a promo code.' }, { status: 409 })
+      }
+
       const { data: promoRow, error: promoError } = await serviceSupabase
         .from('gpp_promo_codes')
         .select('id, code, description, free_pool, discount_cents, max_redemptions, times_redeemed, starts_at, expires_at, is_active')
@@ -98,19 +108,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Promo code is not valid.' }, { status: 404 })
       }
 
-      if (promoRow.max_redemptions !== null && promoRow.times_redeemed >= promoRow.max_redemptions) {
+      if (promoRow.times_redeemed >= 1 || (promoRow.max_redemptions !== null && promoRow.times_redeemed >= promoRow.max_redemptions)) {
         return NextResponse.json({ error: 'Promo code has already been used.' }, { status: 409 })
-      }
-
-      const { data: userRedemption } = await serviceSupabase
-        .from('gpp_promo_redemptions')
-        .select('id')
-        .eq('promo_code_id', promoRow.id)
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (userRedemption) {
-        return NextResponse.json({ error: 'You already used this promo code.' }, { status: 409 })
       }
 
       promo = promoRow
