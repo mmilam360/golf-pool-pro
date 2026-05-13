@@ -16,7 +16,7 @@ const leaderboardRows = [
   },
   {
     rank: '2',
-    name: 'Jeff Mac',
+    name: 'Jeff',
     total: '-34',
     golfers: [
       ['-7', 'McIlroy', '17'],
@@ -28,7 +28,7 @@ const leaderboardRows = [
   },
   {
     rank: '3',
-    name: 'Dan Mc',
+    name: 'Dan M',
     total: '-31',
     golfers: [
       ['-7', 'Schauffele', 'F'],
@@ -109,12 +109,12 @@ export default function Home() {
           </div>
 
           <div className="relative flex flex-col justify-start pt-3 lg:-mt-4 lg:pt-0" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
-            <div className="gpp-3d w-full [--gpp-depth-x:14px] [--gpp-depth-y:9px] [--gpp-side-color:#000e0a] [--gpp-bottom-color:#000e0a] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
-            <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[14px]">
+            <div className="gpp-3d w-full [--gpp-depth-x:14px] [--gpp-depth-y:9px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
+            <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] border-b-[#001f17] border-r-[#001f17] md:border-[14px]">
               <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
                 <div className="relative border-b-2 border-[#111] px-3 py-2">
                   <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">Lonnie - PGA Championship pool</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">Tiger&apos;s Tribe - PGA Championship pool</p>
                   <div className="absolute right-2 top-2 border border-[#d8cab0] bg-[#f3df9c] px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#0f2f25]">Demo</div>
                 </div>
 
