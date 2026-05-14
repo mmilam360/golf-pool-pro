@@ -243,10 +243,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
   const paymentCollectionOpen = isLocked || scoringIsLive
   const feeDueDate = formatShortDate(getTournamentSaturday(tournament?.start_date))
-  const feeLabel = finalAmountDueCents === 0
-    ? 'Free'
-    : paymentStatus === 'active'
-      ? 'Paid'
+  const amountPaidCents = paymentQuote?.amountPaidCents ?? Number(pool.amount_paid_cents || 0)
+  const feeLabel = paymentStatus === 'active'
+    ? (amountPaidCents > 0 ? 'Paid' : 'Free')
+    : finalAmountDueCents === 0
+      ? 'Free'
       : paymentCollectionOpen
         ? `${formatCents(finalAmountDueCents)} due`
         : `${formatCents(finalAmountDueCents)} current fee`
@@ -261,9 +262,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ? 'border-amber-200 bg-amber-50 text-amber-900'
       : 'border-stone-300 bg-white text-stone-700'
   const feeTimingText = finalAmountDueCents === 0
-    ? 'No pool fee with the current entry count.'
+    ? paymentStatus === 'active'
+      ? (amountPaidCents > 0 ? `Results are live. Amount paid: ${formatCents(amountPaidCents)}.` : 'Results are live.')
+      : 'No pool fee with the current entry count.'
     : paymentStatus === 'active'
-      ? ''
+      ? `Results are live. Amount paid: ${formatCents(amountPaidCents)}.`
       : isPoolFeePastDue(tournament?.start_date)
         ? `Payment is due${feeDueDate ? ` by ${feeDueDate}` : ' now'}.`
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
@@ -776,13 +779,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         <BackButton />
         <h1 className="text-3xl font-bold">{poolName}</h1>
         <p className="text-stone-600 mt-1">{tournament?.name || 'Tournament'} at {tournament?.course || 'TBD'}</p>
-        <div className="flex items-center gap-4 mt-2 text-sm">
+        {!scoringIsLive && <div className="flex items-center gap-4 mt-2 text-sm">
           <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
           <span className="text-stone-600">Field: {field.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.length || 0)} golfers</span>
           {picksAreClosed && <span className="text-amber-700">Picks closed</span>}
           {pool.is_completed && <span className="text-emerald-700">Final results</span>}
-        </div>
+        </div>}
       </div>
 
       {statusMessage && <div className="mb-4 rounded-none border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
@@ -854,7 +857,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </p>
               {isOwner && (
                 <button onClick={reviewActivation} className="gpp-3d gpp-button-3d gpp-button-wrap mt-5 text-sm">
-                  <span className="gpp-button-face px-5 py-2">Activate pool</span>
+                  <span className="gpp-button-face px-5 py-2">Pay pool fee</span>
                 </button>
               )}
             </div>
@@ -1130,6 +1133,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-800">Pool fee</p>
                 <h3 className="mt-1 text-2xl font-black text-emerald-950">{feeLabel}</h3>
+                {paymentStatus === 'active' && amountPaidCents > 0 && (
+                  <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-emerald-800">Amount paid: {formatCents(amountPaidCents)}</p>
+                )}
                 <p className="mt-1 text-sm text-stone-600">
                   {(paymentQuote?.activeEntryCount ?? activeEntries.length)} active {(paymentQuote?.activeEntryCount ?? activeEntries.length) === 1 ? 'entry' : 'entries'} · first 5 free · $1 after · $25 max
                 </p>

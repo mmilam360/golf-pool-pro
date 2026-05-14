@@ -10,19 +10,90 @@ interface Tournament {
   id: string; name: string; start_date: string; end_date: string; course: string; status: string
 }
 
+type PoolNumber = number | ''
+
 function formatDate(value?: string) {
   if (!value) return 'Date TBA'
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(value))
+}
+
+function toNumber(value: PoolNumber, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function NumberStepper({
+  label,
+  value,
+  min,
+  max,
+  fallback,
+  onChange,
+}: {
+  label: string
+  value: PoolNumber
+  min: number
+  max: number
+  fallback: number
+  onChange: (value: PoolNumber) => void
+}) {
+  const current = toNumber(value, fallback)
+  const buttonClass = 'grid h-11 w-11 place-items-center border-2 border-[#123c2f] bg-[#fbf7ed] text-xl font-black leading-none text-[#123c2f] transition-colors hover:bg-[#e7dbc3] disabled:cursor-not-allowed disabled:opacity-40'
+
+  function setStepped(nextValue: number) {
+    onChange(clamp(nextValue, min, max))
+  }
+
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-stone-700">{label}</label>
+      <div className="flex overflow-hidden rounded-none border border-stone-300 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-100">
+        <button
+          type="button"
+          onClick={() => setStepped(current - 1)}
+          disabled={current <= min}
+          className={buttonClass}
+          aria-label={`Decrease ${label}`}
+        >
+          −
+        </button>
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={value}
+          onChange={event => {
+            const raw = event.target.value.replace(/\D/g, '')
+            onChange(raw === '' ? '' : clamp(Number(raw), min, max))
+          }}
+          onBlur={() => onChange(clamp(toNumber(value, fallback), min, max))}
+          className="min-w-0 flex-1 border-x border-stone-300 bg-white px-3 py-3 text-center text-lg font-black tabular-nums text-stone-900 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => setStepped(current + 1)}
+          disabled={current >= max}
+          className={buttonClass}
+          aria-label={`Increase ${label}`}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export default function CreatePoolPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [selectedTournament, setSelectedTournament] = useState('')
   const [poolName, setPoolName] = useState('')
-  const [pickCount, setPickCount] = useState(12)
-  const [countScores, setCountScores] = useState(8)
+  const [pickCount, setPickCount] = useState<PoolNumber>(12)
+  const [countScores, setCountScores] = useState<PoolNumber>(8)
   const [obEnabled, setObEnabled] = useState(true)
-  const [obPenalty, setObPenalty] = useState(2)
+  const [obPenalty, setObPenalty] = useState<PoolNumber>(2)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -32,6 +103,11 @@ export default function CreatePoolPage() {
   useEffect(() => {
     loadTournaments()
   }, [])
+
+  useEffect(() => {
+    if (pickCount === '' || countScores === '') return
+    if (countScores > pickCount) setCountScores(pickCount)
+  }, [countScores, pickCount])
 
   async function loadTournaments() {
     const { data } = await supabase
@@ -49,7 +125,11 @@ export default function CreatePoolPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('Not authenticated'); setLoading(false); return }
 
-    if (countScores > pickCount) {
+    const finalPickCount = toNumber(pickCount, 12)
+    const finalCountScores = toNumber(countScores, 8)
+    const finalObPenalty = toNumber(obPenalty, 2)
+
+    if (finalCountScores > finalPickCount) {
       setError('Scores to Count cannot be greater than Golfers to Pick')
       setLoading(false)
       return
@@ -65,10 +145,10 @@ export default function CreatePoolPage() {
         name: poolName,
         owner_id: user.id,
         passcode,
-        pick_count: pickCount,
-        count_scores: countScores,
+        pick_count: finalPickCount,
+        count_scores: finalCountScores,
         ob_rule_enabled: obEnabled,
-        ob_penalty_strokes: obPenalty,
+        ob_penalty_strokes: finalObPenalty,
         payment_status: 'active',
         paid_entry_limit: 5,
         activated_at: new Date().toISOString(),
@@ -142,19 +222,9 @@ export default function CreatePoolPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-stone-700">Golfers to Pick</label>
-              <input type="number" value={pickCount} onChange={e => setPickCount(parseInt(e.target.value) || 12)}
-                min={1} max={30}
-                className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-stone-700">Scores to Count</label>
-              <input type="number" value={countScores} onChange={e => setCountScores(parseInt(e.target.value) || 8)}
-                min={1} max={pickCount}
-                className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <NumberStepper label="Golfers to Pick" value={pickCount} onChange={setPickCount} min={1} max={30} fallback={12} />
+            <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, 12)} fallback={8} />
           </div>
 
           <div className="rounded-none border border-amber-100 bg-amber-50 p-4">
@@ -167,15 +237,12 @@ export default function CreatePoolPage() {
             </div>
             {obEnabled && (
               <div className="mt-3">
-                <label className="mb-1 block text-xs text-stone-600">OB Penalty Strokes</label>
-                <input type="number" value={obPenalty} onChange={e => setObPenalty(parseInt(e.target.value) || 2)}
-                  min={1} max={10}
-                  className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+                <NumberStepper label="OB Penalty Strokes" value={obPenalty} onChange={setObPenalty} min={1} max={10} fallback={2} />
               </div>
             )}
             <p className="mt-3 text-xs leading-5 text-stone-600">
               {obEnabled
-                ? `Golfers missing the cut get replaced by OB stand-ins (${obPenalty} strokes worse than last-place finisher).`
+                ? `Golfers missing the cut get replaced by OB stand-ins (${toNumber(obPenalty, 2)} strokes worse than last-place finisher).`
                 : 'Only golfers who make the cut count toward your score.'}
             </p>
           </div>
@@ -190,8 +257,8 @@ export default function CreatePoolPage() {
       <div className="lg:sticky lg:top-24">
         <ClubhouseBoard title="Preview" label="Pool board" subtitle={poolName || 'New pool'} footer="Players join by code or direct link">
           <div className="grid grid-cols-2 border-b-2 border-[#111]">
-            <BoardMetric label="Pick" value={pickCount} tone="green" />
-            <BoardMetric label="Count" value={countScores} />
+            <BoardMetric label="Pick" value={toNumber(pickCount, 12)} tone="green" />
+            <BoardMetric label="Count" value={toNumber(countScores, 8)} />
           </div>
           <div className="grid grid-cols-[1fr_90px] border-b border-[#111] bg-[#fbfbf5] text-sm font-black uppercase tracking-[0.04em] text-[#111]">
             <div className="border-r-2 border-[#111] px-3 py-3">Tournament</div>
