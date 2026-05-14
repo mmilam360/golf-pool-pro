@@ -70,13 +70,16 @@ export function PreviousPlayersInvitePanel({
         onClick={() => setOpen(value => !value)}
         className="flex w-full items-center justify-between gap-3 text-left font-black text-[#123c2f]"
       >
-        <span>Invite previous players</span>
+        <span>Invite players</span>
         <span className="font-mono text-sm">{open ? '−' : '+'}</span>
       </button>
       {summaryLine ? <p className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#657168]">{summaryLine}</p> : null}
 
       {open ? (
         <div className="mt-3 space-y-3">
+          <p className="border border-[#d8cab0] bg-white px-3 py-2 text-xs font-semibold leading-5 text-[#657168]">
+            In-app invite only. No email is sent — let players know the invite is waiting for them in their Golf Pools Pro account.
+          </p>
           {candidates.length ? (
             <>
               <div className="flex gap-2">
