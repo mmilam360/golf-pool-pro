@@ -200,18 +200,14 @@ export default async function DashboardPage() {
       <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
         <div className="flex flex-col gap-4 border-b border-[#d8cab0] bg-[#fbf7ed] p-5 md:flex-row md:items-center md:justify-between md:p-7">
           <h1 className="font-display text-4xl font-bold uppercase tracking-[-0.03em] text-[#0f2f25] md:text-5xl">Dashboard</h1>
-          <Link href="/pool/join" className="hidden border-2 border-[#123c2f] bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0] hover:bg-[#fffdf8] md:inline-flex">Join pool</Link>
         </div>
       </section>
 
       <DashboardActivePools cards={activePoolCards} entriesByPool={entriesByPool} />
 
-      <section className="flex flex-col gap-3 sm:flex-row">
-        <Link href="/pool/create" className="gpp-3d gpp-button-3d gpp-button-wrap text-sm">
-          <span className="gpp-button-face px-5 py-3">Create pool</span>
-        </Link>
-        <Link href="/pool/join" className="gpp-3d gpp-button-3d gpp-button-wrap gpp-button-3d-light text-sm md:hidden">
-          <span className="gpp-button-face px-5 py-3">Join pool</span>
+      <section className="md:hidden">
+        <Link href="/pool/join" className="gpp-3d gpp-button-3d gpp-button-wrap gpp-button-3d-light w-full text-sm">
+          <span className="gpp-button-face w-full px-5 py-3">Join pool</span>
         </Link>
       </section>
       <section className="border border-stone-200 bg-white shadow-sm">
