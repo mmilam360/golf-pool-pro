@@ -120,11 +120,25 @@ function scoreClass(score: number | null) {
   return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
 }
 
-function shortName(name: string) {
+function lastNameFor(name: string) {
   const clean = name.replace(/^OB Stand-in #/, 'OB ')
   if (clean.startsWith('OB ')) return clean
   const parts = clean.split(' ').filter(Boolean)
   return parts.length > 1 ? parts[parts.length - 1] : clean
+}
+
+function shortName(name: string, peerNames: string[] = []) {
+  const clean = name.replace(/^OB Stand-in #/, 'OB ')
+  if (clean.startsWith('OB ')) return clean
+  const parts = clean.split(' ').filter(Boolean)
+  if (parts.length <= 1) return clean
+  const lastName = parts[parts.length - 1]
+  const matchingLastNames = peerNames.filter(peer => lastNameFor(peer) === lastName)
+  return matchingLastNames.length > 1 ? `${parts[0][0]}. ${lastName}` : lastName
+}
+
+function boardTitle(tournament: Tournament | null) {
+  return tournament?.name || 'Leaderboard'
 }
 
 function thruLabel(thru?: string) {
@@ -170,6 +184,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
 }) {
   const scoredEntries = buildScoredEntries(pool, entries)
   const countScores = pool.count_scores || 4
+  const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
 
   if (scoredEntries.length === 0) {
     return (
@@ -180,7 +195,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   }
 
   return (
-    <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-2 py-4 sm:px-5">
+    <div className="overflow-hidden border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-4 sm:px-5">
       <div
         className="gpp-3d [--gpp-depth-x:10px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]"
         style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
@@ -190,23 +205,24 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
         <div className="gpp-3d-face gpp-board-frame border-[8px] border-[#123c2f] md:border-[14px]">
           <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
             <div className="border-b-2 border-[#111] px-3 py-2">
-              <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
-              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">{pool.name}</p>
+              <p className="mx-auto max-w-[92%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:text-2xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
+              <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{pool.name}</p>
             </div>
             <div className="bg-[#f7f7f2] lg:hidden">
               {scoredEntries.map((entry, entryIndex) => {
                 const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
                 const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
+                const allPickNames = entry.pickScores.map(pick => pick.name)
                 const isCurrentEntry = entry.entryId === currentEntryId
                 const isOpen = openEntryIds ? openEntryIds.has(entry.entryId) : (entry.entryId === currentEntryId || (!currentEntryId && entryIndex === 0))
                 return (
                   <details key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="group border-b-2 border-[#111] last:border-b-0">
-                    <summary className="grid cursor-pointer list-none grid-cols-[44px_1fr_74px_20px] items-center gap-2 bg-[#f7f7f2] px-2 py-2 text-left [&::-webkit-details-marker]:hidden">
+                    <summary className="grid cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 bg-[#f7f7f2] px-2 py-2 text-left sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden">
                       <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                       <div className="min-w-0">
                         <span className="flex min-w-0 items-center gap-1.5">
                           {isCurrentEntry ? <CurrentUserMarker /> : null}
-                          <span className="truncate text-base font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</span>
+                          <span className="min-w-0 flex-1 break-words text-sm font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
                         </span>
                         {entry.obStandIns > 0 && <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#b21e23]">{entry.obStandIns} OB</div>}
                       </div>
@@ -222,7 +238,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         return (
                           <div key={i} className="border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
                             <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                            <div className="mt-1 truncate text-xs font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                            <div className="mt-1 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] sm:text-xs">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                             <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                           </div>
                         )
@@ -234,7 +250,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         <div className="flex flex-wrap gap-1">
                           {outOfBoundsPicks.map(pick => (
                             <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
-                              <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                              <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
                             </span>
                           ))}
                         </div>
@@ -258,6 +274,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                   {scoredEntries.map(entry => {
                     const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
                     const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
+                    const allPickNames = entry.pickScores.map(pick => pick.name)
                     const isCurrentEntry = entry.entryId === currentEntryId
                     return (
                       <Fragment key={entry.entryId}>
@@ -275,7 +292,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                             return (
                               <td key={i} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className="mt-0.5 truncate text-xs font-black uppercase leading-none tracking-[0.01em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                                <div className="mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                                 <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                               </td>
                             )
@@ -290,7 +307,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                               <div className="flex flex-wrap gap-1">
                                 {outOfBoundsPicks.map(pick => (
                                   <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
-                                    <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                                    <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
                                   </span>
                                 ))}
                               </div>
@@ -306,7 +323,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
           </div>
         </div>
       </div>
-      <div className="gpp-board-post mx-auto -mb-8 -mt-[8px] h-24 w-14 border-x-4 border-[#003622] md:-mb-10 md:h-32 md:w-16" />
+      <div className="gpp-board-post mx-auto mt-[-8px] h-20 w-14 border-x-4 border-[#003622] md:h-28 md:w-16" />
     </div>
   )
 }

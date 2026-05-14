@@ -134,12 +134,34 @@ function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
   }
 }
 
-function shortName(name: string) {
-  if (name === 'Picks hidden') return 'Hidden'
+function lastNameFor(name: string) {
   const clean = name.replace(/^OB Stand-in #/, 'OB ')
   if (clean.startsWith('OB ')) return clean
   const parts = clean.split(' ').filter(Boolean)
   return parts.length > 1 ? parts[parts.length - 1] : clean
+}
+
+function shortName(name: string, peerNames: string[] = []) {
+  if (name === 'Picks hidden') return 'Hidden'
+  const clean = name.replace(/^OB Stand-in #/, 'OB ')
+  if (clean.startsWith('OB ')) return clean
+  const parts = clean.split(' ').filter(Boolean)
+  if (parts.length <= 1) return clean
+  const lastName = parts[parts.length - 1]
+  const matchingLastNames = peerNames.filter(peer => lastNameFor(peer) === lastName)
+  return matchingLastNames.length > 1 ? `${parts[0][0]}. ${lastName}` : lastName
+}
+
+function LivePulseBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#b21e23]">
+      <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+        <span className="absolute inline-flex h-full w-full animate-ping bg-[#b21e23] opacity-70" />
+        <span className="relative inline-flex h-2.5 w-2.5 bg-[#b21e23]" />
+      </span>
+      Live
+    </span>
+  )
 }
 
 function golferListName(name: string) {
@@ -781,8 +803,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {/* Header */}
       <div className="mb-6">
         <BackButton />
-        <h1 className="text-3xl font-bold">{poolName}</h1>
-        <p className="text-stone-600 mt-1">{tournament?.name || 'Tournament'} at {tournament?.course || 'TBD'}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="break-words text-3xl font-bold">{poolName}</h1>
+            <p className="mt-1 break-words text-stone-600">{tournament?.name || 'Tournament'} at {tournament?.course || 'TBD'}</p>
+          </div>
+          {tournament?.status === 'live' && <LivePulseBadge />}
+        </div>
         {!scoringIsLive && <div className="flex items-center gap-4 mt-2 text-sm">
           <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
@@ -880,8 +907,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[16px]">
               <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
                 <div className="relative border-b-2 border-[#111] px-3 py-2">
-                  <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">{poolName}</p>
+                  <p className="mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]" title={tournament?.name || 'Leaderboard'}>{tournament?.name || 'Leaderboard'}</p>
+                  <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{poolName}</p>
                   <div className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c]" title="Auto-refresh countdown">
                     <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                       <path d="M13 8a5 5 0 1 1-1.46-3.54" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />
@@ -896,14 +923,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     const picksHidden = entry.picks.includes('__hidden__')
                     const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
                     const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
+                    const allPickNames = entry.pickScores.map(pick => pick.name)
                     return (
                       <details key={entry.entryId} open={entryIndex === 0} className="group border-b-2 border-[#111]">
-                        <summary className="grid cursor-pointer list-none grid-cols-[44px_1fr_74px_20px] items-center gap-2 bg-[#f7f7f2] px-2 py-2 text-left [&::-webkit-details-marker]:hidden">
+                        <summary className="grid cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 bg-[#f7f7f2] px-2 py-2 text-left sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden">
                           <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                           <div className="min-w-0">
                             <div className="flex min-w-0 items-center gap-1.5">
-                              {isMe && <span aria-label="Your entry" className="h-2 w-2 shrink-0 rounded-full bg-[#005b3c]" />}
-                              <span className="truncate text-base font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</span>
+                              {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
+                              <span className="min-w-0 flex-1 break-words text-sm font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
                             </div>
                             {(picksHidden || !scoringIsLive || entry.obStandIns > 0) && (
                               <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
@@ -928,7 +956,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             return (
                               <div key={i} className={`border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0 ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className={`mt-1 truncate text-xs font-black uppercase leading-none tracking-[0.02em] text-[#111] ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name) : '—'}</div>
+                                <div className={`mt-1 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] sm:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                                 <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                               </div>
                             )
@@ -940,7 +968,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             <div className="flex flex-wrap gap-1">
                               {outOfBoundsPicks.map(pick => (
                                 <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
-                                  <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                                  <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
                                 </span>
                               ))}
                             </div>
@@ -966,6 +994,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         const picksHidden = entry.picks.includes('__hidden__')
                         const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
                         const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
+                        const allPickNames = entry.pickScores.map(pick => pick.name)
                         return (
                           <Fragment key={entry.entryId}>
                             <tr key={`${entry.entryId}-top`} className="bg-[#f7f7f2]">
@@ -974,7 +1003,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               </td>
                               <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
                                 <div className="flex min-w-0 items-center gap-1.5">
-                                  {isMe && <span aria-label="Your entry" className="h-2 w-2 shrink-0 rounded-full bg-[#005b3c]" />}
+                                  {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
                                   <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
                                 </div>
                                 {(picksHidden || !scoringIsLive || entry.obStandIns > 0) && (
@@ -988,7 +1017,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 return (
                                   <td key={i} title={picksHidden ? 'Picks hidden until the pool locks' : pick?.name || ''} className={`border-b border-r border-[#111] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] ${picksHidden ? 'bg-[#efeee6]' : 'bg-[#fbfbf5]'}`}>
                                     <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                    <div className={`mt-0.5 truncate text-xs font-black uppercase leading-none tracking-[0.01em] text-[#111] ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name) : '—'}</div>
+                                    <div className={`mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                                     <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                                   </td>
                                 )
@@ -1005,7 +1034,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   <div className="flex flex-wrap gap-1">
                                     {outOfBoundsPicks.map(pick => (
                                       <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
-                                        <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                                        <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
                                       </span>
                                     ))}
                                   </div>
