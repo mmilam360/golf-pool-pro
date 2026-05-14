@@ -2,7 +2,7 @@ export const runtime = 'edge';
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { rankEntries, scoreEntry } from '@/lib/scoring'
+import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import { formatMoney, getPoolPaymentQuote, getPoolPaymentStatus } from '@/lib/payments/pricing'
 import type { GolfPlayer } from '@/lib/golf-api'
 
@@ -109,10 +109,10 @@ function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
 
 function LivePulseBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 border border-[#1f6b4a] bg-[#123c2f] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-white">
+    <span className="inline-flex items-center gap-1.5 border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#b21e23]">
       <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
-        <span className="absolute inline-flex h-full w-full animate-ping bg-[#d7c99f] opacity-75" />
-        <span className="relative inline-flex h-2.5 w-2.5 bg-[#d7c99f]" />
+        <span className="absolute inline-flex h-full w-full animate-ping bg-[#b21e23] opacity-70" />
+        <span className="relative inline-flex h-2.5 w-2.5 bg-[#b21e23]" />
       </span>
       Live
     </span>
@@ -159,14 +159,32 @@ function formatScore(score: number | null) {
   return score > 0 ? `+${score}` : String(score)
 }
 
-function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: EntryRecord[]): RankPreview | null {
+function scoreClass(score: number | null) {
+  if (score === null) return 'text-stone-400'
+  return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
+}
+
+function shortName(name: string) {
+  const clean = name.replace(/^OB Stand-in #/, 'OB ')
+  if (clean.startsWith('OB ')) return clean
+  const parts = clean.split(' ').filter(Boolean)
+  return parts.length > 1 ? parts[parts.length - 1] : clean
+}
+
+function thruLabel(thru?: string) {
+  if (!thru) return '—'
+  const value = String(thru).toUpperCase()
+  return value === 'F' ? 'F' : `THRU ${value}`
+}
+
+function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): ScoredEntry[] {
   const tournament = getTournament(pool)
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   const canShowRank = Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed')
 
-  if (!canShowRank || leaderboard.length === 0) return null
+  if (!canShowRank || leaderboard.length === 0) return []
 
-  const scored = rankEntries(
+  return rankEntries(
     allEntries.map(poolEntry => ({
       ...scoreEntry(
         Array.isArray(poolEntry.golfer_picks) ? poolEntry.golfer_picks as string[] : [],
@@ -181,6 +199,87 @@ function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: Entr
       displayName: poolEntry.display_name || 'Entry',
     }))
   )
+}
+
+function InlineLeaderboard({ pool, entries }: { pool: PoolRecord; entries: EntryRecord[] }) {
+  const scoredEntries = buildScoredEntries(pool, entries)
+  const countScores = pool.count_scores || 4
+
+  if (scoredEntries.length === 0) {
+    return (
+      <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-4 py-4 text-sm font-semibold text-[#657168] sm:px-5">
+        Leaderboard preview appears here once scoring is live.
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-t-2 border-[#123c2f] bg-[#f7f7f2]" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
+      <div className="flex items-center justify-between gap-3 border-b-2 border-[#111] px-3 py-2">
+        <p className="text-sm font-black uppercase tracking-[0.18em] text-[#111]">Leaderboard</p>
+        <Link href={`/pool/${pool.id}`} className="border border-[#123c2f] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#123c2f] hover:bg-[#eef7ef]">Full pool</Link>
+      </div>
+      <div className="lg:hidden">
+        {scoredEntries.map(entry => {
+          const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
+          return (
+            <div key={entry.entryId} className="grid grid-cols-[38px_minmax(0,1fr)_62px] border-b border-[#111] px-2 py-2 last:border-b-0">
+              <div className="text-center text-lg font-black text-[#b21e23]">{entry.rank || '—'}</div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black uppercase text-[#111]">{entry.displayName}</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {countingPicks.map(pick => (
+                    <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                      <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
+            </div>
+          )
+        })}
+      </div>
+      <div className="hidden lg:block">
+        <table className="w-full table-fixed border-collapse text-[12px] text-[#111]">
+          <thead>
+            <tr className="text-[10px] font-black uppercase tracking-[0.12em]">
+              <th className="w-[6%] border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center">Rank</th>
+              <th className="w-[20%] border-b-2 border-r-2 border-[#111] px-2 py-1.5 text-left">Entry</th>
+              <th className="border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center" colSpan={countScores}>Top {countScores}</th>
+              <th className="w-[9%] border-b-2 border-[#111] px-1 py-1.5 text-center">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {scoredEntries.map(entry => {
+              const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
+              return (
+                <tr key={entry.entryId}>
+                  <td className="border-b border-r-2 border-[#111] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</td>
+                  <td className="border-b border-r-2 border-[#111] px-2 py-1.5 text-left"><span className="truncate text-base font-black uppercase" title={entry.displayName}>{entry.displayName}</span></td>
+                  {Array.from({ length: countScores }, (_, i) => {
+                    const pick = countingPicks[i]
+                    return (
+                      <td key={i} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle">
+                        <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                        <div className="mt-0.5 truncate text-xs font-black uppercase leading-none text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                        <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                      </td>
+                    )
+                  })}
+                  <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: EntryRecord[]): RankPreview | null {
+  const scored = buildScoredEntries(pool, allEntries)
   const current = scored.find(scoredEntry => scoredEntry.entryId === entry.id)
   if (!current) return null
   return { rank: current.rank, totalScore: current.totalScore, fieldSize: scored.length }
@@ -210,7 +309,7 @@ export default async function DashboardPage() {
   const { data: ownedPoolEntries } = ownedPoolIds.length
     ? await supabase
       .from('gpp_entries')
-      .select('id, pool_id, is_removed')
+      .select('id, pool_id, display_name, golfer_picks, is_removed')
       .in('pool_id', ownedPoolIds)
       .eq('is_removed', false)
     : { data: [] }
@@ -226,7 +325,10 @@ export default async function DashboardPage() {
       .in('pool_id', joinedPoolIds)
       .eq('is_removed', false)
     : { data: [] }
-  const entriesByPool = ((joinedPoolEntries ?? []) as EntryRecord[]).reduce<Record<string, EntryRecord[]>>((groups, entry) => {
+  const allPoolEntries = Array.from(
+    new Map([...((ownedPoolEntries ?? []) as EntryRecord[]), ...((joinedPoolEntries ?? []) as EntryRecord[])].map(entry => [entry.id, entry])).values()
+  )
+  const entriesByPool = allPoolEntries.reduce<Record<string, EntryRecord[]>>((groups, entry) => {
     groups[entry.pool_id] = groups[entry.pool_id] || []
     groups[entry.pool_id].push(entry)
     return groups
@@ -269,26 +371,28 @@ export default async function DashboardPage() {
           <div className="divide-y divide-[#eadfca]">
             {activePoolCards.map(({ pool, tournament, role, entry }, index) => {
               const label = statusLabel(pool, tournament)
-              const picks = entry && Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : null
-              const activeEntryCount = ownedEntryCounts[pool.id] || entriesByPool[pool.id]?.length || 0
-              const countLabel = picks == null ? `${activeEntryCount} entries` : `${picks} picks`
-              const rankPreview = entry ? buildRankPreview(entry, pool, entriesByPool[pool.id] || [entry]) : null
+              const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
+              const rankPreview = entry ? buildRankPreview(entry, pool, poolEntries) : null
               return (
-                <Link key={`${role}-${pool.id}`} href={`/pool/${pool.id}`} className={`block px-4 py-3 transition-colors hover:bg-[#fff8e8] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                    <div className="min-w-0">
-                      <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
-                      <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#1f2a24]">{tournament?.name || 'Tournament'}</p>
+                <details key={`${role}-${pool.id}`} className={`group ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
+                  <summary className="block cursor-pointer list-none px-4 py-3 transition-colors hover:bg-[#fff8e8] sm:px-5 [&::-webkit-details-marker]:hidden">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                      <div className="min-w-0">
+                        <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
+                        <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#1f2a24]">{tournament?.name || 'Tournament'}</p>
+                      </div>
+                      {hasRecentScores(tournament) ? <LivePulseBadge /> : <StatusBadge label={label} locked={Boolean(pool.is_locked)} />}
                     </div>
-                    {hasRecentScores(tournament) ? <LivePulseBadge /> : <StatusBadge label={label} locked={Boolean(pool.is_locked)} />}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
-                    <span className="mr-auto min-w-24 truncate">{role}</span>
-                    {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
-                    <ScoreBadge score={rankPreview?.totalScore} />
-                    <span className="whitespace-nowrap border border-stone-200 bg-[#fbf7ed] px-2 py-1 text-right tracking-[0.08em]">{countLabel}</span>
-                  </div>
-                </Link>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
+                      <span className="mr-auto min-w-24 truncate">{role}</span>
+                      {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
+                      <ScoreBadge score={rankPreview?.totalScore} />
+                      <span className="whitespace-nowrap border border-[#123c2f] bg-white px-2 py-1 text-[#123c2f] group-open:hidden">Expand</span>
+                      <span className="hidden whitespace-nowrap border border-[#123c2f] bg-[#123c2f] px-2 py-1 text-white group-open:inline-flex">Collapse</span>
+                    </div>
+                  </summary>
+                  <InlineLeaderboard pool={pool} entries={poolEntries} />
+                </details>
               )
             })}
           </div>
