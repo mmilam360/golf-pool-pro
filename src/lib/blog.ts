@@ -25,6 +25,8 @@ export type BlogPost = {
     label: string
     href: string
   }
+  playerHighlights?: string[]
+  disclaimer?: string
   sections: BlogSection[]
   faqs?: Array<{
     question: string

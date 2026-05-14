@@ -1,12 +1,29 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
 
 const siteUrl = 'https://www.golfpoolspro.com'
 
 type PageProps = {
   params: Promise<{ slug: string }>
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function renderHighlightedText(text: string, playerNames: string[] = []): ReactNode {
+  if (!playerNames.length) return text
+
+  const pattern = new RegExp(`(${playerNames.map(escapeRegExp).join('|')})`, 'g')
+  return text.split(pattern).map((part, index) => (
+    playerNames.includes(part)
+      ? <strong key={`${part}-${index}`} className="font-black text-[#123c2f]">{part}</strong>
+      : part
+  ))
 }
 
 export function generateStaticParams() {
@@ -74,7 +91,9 @@ export default async function BlogPostPage({ params }: PageProps) {
 
       <header className="border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
         <nav className="mx-auto flex max-w-4xl items-center justify-between gap-3">
-          <Link href="/blog" className="font-bold text-[#123c2f] hover:underline">Back to guides</Link>
+          <Link href="/blog" className="flex items-center" aria-label="Back to Golf Pools Pro pick guides">
+            <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-11 w-auto object-contain sm:h-14" />
+          </Link>
           <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">Create a pool</Link>
         </nav>
       </header>
@@ -84,6 +103,12 @@ export default async function BlogPostPage({ params }: PageProps) {
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">{post.category} / {new Date(`${post.publishedAt}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
           <h1 className="mt-3 font-display text-4xl font-black leading-tight text-[#0f2f25] md:text-6xl">{post.title}</h1>
           <p className="mt-5 text-lg leading-8 text-[#4f5b52]">{post.description}</p>
+
+          {post.disclaimer && (
+            <p className="mt-5 border-l-4 border-[#b58a3a] bg-[#fbf7ed] px-4 py-3 text-sm font-semibold leading-6 text-[#4f5b52]">
+              {post.disclaimer}
+            </p>
+          )}
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Link href={post.heroCta.href} className="border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-center font-extrabold text-white">{post.heroCta.label}</Link>
@@ -95,11 +120,11 @@ export default async function BlogPostPage({ params }: PageProps) {
               <section key={section.heading}>
                 <h2 className="font-display text-3xl font-black leading-tight text-[#0f2f25]">{section.heading}</h2>
                 <div className="mt-4 space-y-4 text-base leading-8 text-[#3f4a43]">
-                  {section.body.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+                  {section.body.map(paragraph => <p key={paragraph}>{renderHighlightedText(paragraph, post.playerHighlights)}</p>)}
                 </div>
                 {section.bullets && (
                   <ul className="mt-4 space-y-2 border-l-4 border-[#b21e23] bg-[#fbf7ed] p-4 text-[#3f4a43]">
-                    {section.bullets.map(item => <li key={item} className="font-semibold">{item}</li>)}
+                    {section.bullets.map(item => <li key={item} className="font-semibold">{renderHighlightedText(item, post.playerHighlights)}</li>)}
                   </ul>
                 )}
               </section>

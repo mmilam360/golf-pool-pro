@@ -17,9 +17,25 @@
     "label": "Create a PGA Championship pool",
     "href": "/signup"
   },
+  "playerHighlights": [
+    "Scottie Scheffler",
+    "Cameron Young",
+    "Xander Schauffele",
+    "Ludvig Åberg",
+    "Tommy Fleetwood",
+    "Russell Henley",
+    "Rickie Fowler",
+    "Tyrrell Hatton",
+    "Shane Lowry",
+    "Alex Smalley",
+    "Rory McIlroy",
+    "Bryson DeChambeau",
+    "Matt Fitzpatrick"
+  ],
+  "disclaimer": "This guide is for golf pool strategy and entertainment. It is not betting advice.",
   "sections": [
     {
-      "heading": "First, think like a pool runner",
+      "heading": "Start with the pool format",
       "body": [
         "This is not a betting card. A golf pool is different. You need enough ceiling to win, but you also need four counted scores alive on the weekend.",
         "Aronimink is playing as a par 70 around 7,350 to 7,400 yards. The course notes point to precision, approach play, firm greens, and fewer easy bailout spots. That makes missed-cut risk matter more than usual. A player who can finish T18 is often more useful than a longshot who needs everything to go right just to see Saturday."

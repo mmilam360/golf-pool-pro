@@ -1,10 +1,11 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import type { Metadata } from 'next'
 import { getAllBlogPosts } from '@/lib/blog'
 
 export const metadata: Metadata = {
-  title: 'Golf Pool Guides | Golf Pools Pro',
-  description: 'Useful golf pool guides for picks, rules, missed cuts, OB scoring, and running office golf pools without a spreadsheet.',
+  title: 'Tournament Pick Guides | Golf Pools Pro',
+  description: 'Tournament pick guides for golf pools, including picks, rules, missed cuts, OB scoring, pool hosts, and players making weekly tournament picks.',
   alternates: { canonical: 'https://www.golfpoolspro.com/blog' },
 }
 
@@ -15,15 +16,17 @@ export default function BlogIndexPage() {
     <div className="min-h-screen scorecard-paper text-[#1f2a24]">
       <header className="border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
         <nav className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-          <Link href="/" className="font-display text-xl font-black text-[#0f2f25]">Golf Pools Pro</Link>
+          <Link href="/" className="flex items-center" aria-label="Golf Pools Pro home">
+            <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-11 w-auto object-contain sm:h-14" />
+          </Link>
           <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">Create a pool</Link>
         </nav>
       </header>
 
       <main className="mx-auto max-w-5xl px-5 py-12 md:py-16">
-        <p className="w-fit border-y border-[#b58a3a] py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#8a6724]">Golf pool guides</p>
-        <h1 className="mt-5 font-display text-4xl font-black leading-tight text-[#0f2f25] md:text-6xl">Useful stuff for pool runners.</h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-[#4f5b52]">Picks, rules, scoring notes, and practical setup ideas for the person stuck running the group golf pool.</p>
+        <p className="w-fit border-y border-[#b58a3a] py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#8a6724]">Tournament pick guides</p>
+        <h1 className="mt-5 font-display text-4xl font-black leading-tight text-[#0f2f25] md:text-6xl">Tournament picks for golf pools.</h1>
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-[#4f5b52]">Weekly picks, scoring notes, and pool strategy for hosts and players before the first tee time.</p>
 
         <div className="mt-10 grid gap-5">
           {posts.map(post => (

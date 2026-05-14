@@ -149,35 +149,21 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="mx-auto grid max-w-7xl gap-8 px-4 pb-0 pt-8 sm:px-5 md:px-8 lg:min-h-0 lg:grid-cols-[0.86fr_1.14fr] lg:items-start lg:pt-8">
-          <div className="pb-6 pt-6 lg:flex lg:flex-col lg:justify-center lg:pb-12 lg:pt-10">
-            <p className="mb-4 w-fit max-w-full border-y border-[#b58a3a] py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a6724] sm:text-xs sm:tracking-[0.28em]">
+        <section className="mx-auto max-w-7xl px-4 pb-0 pt-8 sm:px-5 md:px-8 lg:pt-10">
+          <div className="mx-auto max-w-4xl pb-6 text-center">
+            <p className="mx-auto mb-4 w-fit max-w-full border-y border-[#b58a3a] py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a6724] sm:text-xs sm:tracking-[0.28em]">
               Golf pool manager
             </p>
-            <h1 className="max-w-full font-display text-[1.55rem] font-bold leading-[1.02] tracking-[-0.035em] text-[#0f2f25] sm:text-[2.65rem] md:text-[3.25rem] xl:text-[3.45rem]">
-              <span className="block lg:whitespace-nowrap">Golf pools without</span>
+            <h1 className="max-w-full font-display text-[2.05rem] font-bold leading-[1.02] tracking-[-0.035em] text-[#0f2f25] sm:text-[3rem] md:text-[4.1rem] xl:text-[4.55rem]">
+              <span className="block">Golf pools without</span>
               <span className="block">the spreadsheet.</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-[#4f5b52] sm:text-lg sm:leading-8">
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#4f5b52] sm:text-lg sm:leading-8">
               Run a PGA golf pool, collect picks by link, lock entries at tee time, and show everyone the live leaderboard.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white transition-colors hover:bg-[#0f2f25]">
-                Create a pool
-              </Link>
-              <Link href="/login" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-[#f7f0df]">
-                Sign in
-              </Link>
-              <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fbf7ed] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
-                View rules
-              </Link>
-              <Link href="/blog" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
-                Pool guides
-              </Link>
-            </div>
           </div>
 
-          <div className="relative flex flex-col justify-start pt-3 lg:-mt-4 lg:pt-0" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
+          <div className="relative mx-auto flex max-w-5xl flex-col justify-start pt-1" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
             <div className="gpp-3d w-full [--gpp-depth-x:14px] [--gpp-depth-y:9px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
             <div className="gpp-board-depth-right" aria-hidden="true" />
             <div className="gpp-board-depth-bottom" aria-hidden="true" />
@@ -251,8 +237,20 @@ export default function Home() {
               </div>
             </div>
             </div>
-            <div className="gpp-board-post mx-auto -mt-[10px] h-28 w-14 border-x-4 border-[#003622] md:h-28 md:w-16" />
+            <div className="gpp-board-post mx-auto -mt-[10px] h-24 w-14 border-x-4 border-[#003622] md:h-28 md:w-16" />
           </div>
+
+          <div className="mx-auto mt-7 flex max-w-3xl flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white transition-colors hover:bg-[#0f2f25]">
+                Create a pool
+              </Link>
+              <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fbf7ed] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
+                View rules
+              </Link>
+              <Link href="/blog" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
+                Pick guides
+              </Link>
+            </div>
         </section>
 
         <section className="border-y border-[#d8cab0] bg-[#123c2f] text-white">
