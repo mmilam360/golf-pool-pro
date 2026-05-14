@@ -231,7 +231,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
   const paymentCollectionOpen = isLocked || scoringIsLive
-  const feeDueDate = formatShortDate(tournament?.start_date)
+  const feeDueDate = formatShortDate(getTournamentSaturday(tournament?.start_date))
   const feeLabel = finalAmountDueCents === 0
     ? 'Free'
     : paymentStatus === 'active'
@@ -243,9 +243,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     ? 'Free'
     : paymentStatus === 'active'
       ? 'Paid'
-      : paymentCollectionOpen
-        ? 'Due now'
-        : 'Current fee'
+      : 'Unpaid'
   const feeStatusClass = paymentStatus === 'active' || finalAmountDueCents === 0
     ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
     : paymentCollectionOpen
@@ -256,8 +254,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     : paymentStatus === 'active'
       ? ''
       : paymentCollectionOpen
-        ? `Payment is due now${feeDueDate ? ` (${feeDueDate})` : ''}.`
-        : `Final fee is due when picks lock${feeDueDate ? ` on ${feeDueDate}` : ''}.`
+        ? `Payment is due${feeDueDate ? ` by ${feeDueDate}` : ' now'}.`
+        : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
   const leaderboardIsHidden = scoringIsLive && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const visibleEntries = activeEntries
@@ -340,6 +338,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return null
     return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCFullYear()).slice(-2)}`
+  }
+
+  function getTournamentSaturday(value?: string | null) {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    const daysUntilSaturday = (6 - date.getUTCDay() + 7) % 7
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + daysUntilSaturday)).toISOString()
   }
 
   function reviewActivation() {
