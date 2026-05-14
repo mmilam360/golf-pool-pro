@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { BoardMetric, ClubhouseBoard } from '@/components/ClubhouseBoard'
+import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import ShortUniqueId from 'short-unique-id'
@@ -112,6 +113,7 @@ export default function CreatePoolPage() {
   return (
     <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-start">
       <div>
+        <BackButton />
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Tournament setup</p>
         <h1 className="mb-6 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Create a Pool</h1>
         {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}

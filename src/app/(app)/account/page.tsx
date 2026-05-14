@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
 
 type Tone = 'success' | 'error' | 'info'
@@ -139,6 +140,7 @@ export default function AccountPage() {
   return (
     <div className="mx-auto max-w-2xl">
       {toast && <Toast message={toast.message} tone={toast.tone} />}
+      <BackButton />
       <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Account settings</p>
       <h1 className="mb-3 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Account</h1>
       <p className="mb-6 max-w-xl leading-7 text-stone-600">

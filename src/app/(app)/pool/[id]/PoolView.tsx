@@ -1,6 +1,7 @@
 'use client'
 import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
 import { scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus } from '@/lib/payments/pricing'
@@ -779,6 +780,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
       {/* Header */}
       <div className="mb-6">
+        <BackButton />
         <h1 className="text-3xl font-bold">{poolName}</h1>
         <p className="text-stone-600 mt-1">{tournament?.name || 'Tournament'} at {tournament?.course || 'TBD'}</p>
         <div className="flex items-center gap-4 mt-2 text-sm">

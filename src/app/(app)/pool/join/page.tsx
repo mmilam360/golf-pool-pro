@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -90,6 +91,7 @@ export default function JoinPoolPage() {
   return (
     <div className="mx-auto max-w-xl">
       <div>
+        <BackButton />
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Player entry</p>
         <h1 className="mb-4 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Join a Pool</h1>
         <p className="mb-6 max-w-md leading-7 text-stone-600">Enter the code from your pool host. You’ll land on the board and make your picks next.</p>

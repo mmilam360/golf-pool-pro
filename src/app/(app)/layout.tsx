@@ -13,14 +13,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Link href="/dashboard" className="border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25]">
               Dashboard
             </Link>
+            <Link href="/account" className="border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25]">
+              Account
+            </Link>
             <Link href="/pool/create" className="border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25]">
               Create
             </Link>
             <Link href="/pool/join" className="border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25]">
               Join
-            </Link>
-            <Link href="/account" className="border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25]">
-              Account
             </Link>
             <form action="/api/auth/logout" method="POST" className="col-span-2 sm:col-span-1">
               <button type="submit" className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25]">
