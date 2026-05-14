@@ -41,7 +41,7 @@ function NumberStepper({
   onChange: (value: PoolNumber) => void
 }) {
   const current = toNumber(value, fallback)
-  const buttonClass = 'grid h-11 w-11 place-items-center border-2 border-[#123c2f] bg-[#fbf7ed] text-xl font-black leading-none text-[#123c2f] transition-colors hover:bg-[#e7dbc3] disabled:cursor-not-allowed disabled:opacity-40'
+  const buttonClass = 'grid h-full w-[50px] shrink-0 place-items-center border-2 border-[#123c2f] bg-[#fbf7ed] text-xl font-black leading-none text-[#123c2f] transition-colors hover:bg-[#e7dbc3] disabled:cursor-not-allowed disabled:opacity-40 sm:w-[54px]'
 
   function setStepped(nextValue: number) {
     onChange(clamp(nextValue, min, max))
@@ -50,7 +50,7 @@ function NumberStepper({
   return (
     <div>
       <label className="mb-1 block text-sm font-medium text-stone-700">{label}</label>
-      <div className="flex overflow-hidden rounded-none border border-stone-300 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-100">
+      <div className="grid h-12 grid-cols-[50px_minmax(0,1fr)_50px] overflow-hidden rounded-none border border-stone-300 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-100 sm:grid-cols-[54px_minmax(0,1fr)_54px]">
         <button
           type="button"
           onClick={() => setStepped(current - 1)}
@@ -70,7 +70,7 @@ function NumberStepper({
             onChange(raw === '' ? '' : clamp(Number(raw), min, max))
           }}
           onBlur={() => onChange(clamp(toNumber(value, fallback), min, max))}
-          className="min-w-0 flex-1 border-x border-stone-300 bg-white px-3 py-3 text-center text-lg font-black tabular-nums text-stone-900 focus:outline-none"
+          className="min-w-0 border-x border-stone-300 bg-white px-3 text-center text-lg font-black tabular-nums text-stone-900 focus:outline-none"
         />
         <button
           type="button"
@@ -191,14 +191,14 @@ export default function CreatePoolPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-start">
+    <div className="mx-auto grid w-full max-w-6xl gap-8 pr-1 pb-1 lg:grid-cols-[1fr_0.9fr] lg:items-start lg:pr-0 lg:pb-0">
       <div>
         <BackButton />
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Tournament setup</p>
         <h1 className="mb-6 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Create a Pool</h1>
         {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
-        <form onSubmit={handleCreate} className="space-y-6 rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
+        <form onSubmit={handleCreate} className="w-[calc(100%-4px)] space-y-6 rounded-none border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0] sm:w-full sm:p-6 sm:shadow-[6px_6px_0_#d8cab0]">
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-700">Pool Name</label>
             <input type="text" value={poolName} onChange={e => setPoolName(e.target.value)} required
@@ -255,7 +255,7 @@ export default function CreatePoolPage() {
       </div>
 
       <div className="lg:sticky lg:top-24">
-        <ClubhouseBoard title="Preview" label="Pool board" subtitle={poolName || 'New pool'} footer="Players join by code or direct link">
+        <ClubhouseBoard className="w-[calc(100%-12px)] md:w-full" title="Preview" label="Pool board" subtitle={poolName || 'New pool'} footer="Players join by code or direct link">
           <div className="grid grid-cols-2 border-b-2 border-[#111]">
             <BoardMetric label="Pick" value={toNumber(pickCount, 12)} tone="green" />
             <BoardMetric label="Count" value={toNumber(countScores, 8)} />
