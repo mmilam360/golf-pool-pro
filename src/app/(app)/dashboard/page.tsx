@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import DashboardActivePools from '@/components/DashboardActivePools'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import type { GolfPlayer } from '@/lib/golf-api'
+import { acceptPoolInvite, declinePoolInvite } from '@/app/(app)/pool-invites/actions'
 
 type Tournament = {
   name?: string | null
@@ -37,6 +38,13 @@ type EntryRecord = {
   gpp_pools?: PoolRecord | PoolRecord[] | null
 }
 
+type PendingInviteRecord = {
+  id: string
+  pool_id: string
+  status: string | null
+  gpp_pools?: PoolRecord | PoolRecord[] | null
+}
+
 function getTournament(pool?: PoolRecord | null): Tournament | null {
   const tournament = pool?.gpp_tournaments
   return Array.isArray(tournament) ? tournament[0] ?? null : tournament ?? null
@@ -44,6 +52,11 @@ function getTournament(pool?: PoolRecord | null): Tournament | null {
 
 function getPool(entry: EntryRecord): PoolRecord | null {
   const pool = entry.gpp_pools
+  return Array.isArray(pool) ? pool[0] ?? null : pool ?? null
+}
+
+function getInvitePool(invite: PendingInviteRecord): PoolRecord | null {
+  const pool = invite.gpp_pools
   return Array.isArray(pool) ? pool[0] ?? null : pool ?? null
 }
 
@@ -91,6 +104,44 @@ function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
       {label === 'Passed' ? null : <LockGlyph locked={locked || label === 'Live'} />}
       {label}
     </span>
+  )
+}
+
+function PendingInvites({ invites }: { invites: PendingInviteRecord[] }) {
+  if (!invites.length) return null
+
+  return (
+    <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
+      <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Pool invites</p>
+        <h2 className="font-display text-2xl font-bold text-[#0f2f25]">You were invited</h2>
+      </div>
+      <div className="divide-y divide-[#eadfca]">
+        {invites.map(invite => {
+          const pool = getInvitePool(invite)
+          const tournament = getTournament(pool)
+          if (!pool) return null
+          return (
+            <div key={invite.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div>
+                <p className="font-display text-xl font-bold text-[#0f2f25]">{pool.name}</p>
+                <p className="mt-1 text-sm font-semibold text-[#657168]">{tournament?.name || 'Tournament'} · {formatDate(tournament?.start_date)}</p>
+              </div>
+              <div className="flex gap-2">
+                <form action={acceptPoolInvite}>
+                  <input type="hidden" name="inviteId" value={invite.id} />
+                  <button className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white">Accept</button>
+                </form>
+                <form action={declinePoolInvite}>
+                  <input type="hidden" name="inviteId" value={invite.id} />
+                  <button className="border-2 border-[#d8cab0] bg-white px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-[#657168]">Decline</button>
+                </form>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -149,8 +200,16 @@ export default async function DashboardPage() {
     .eq('is_removed', false)
     .order('created_at', { ascending: false })
 
+  const { data: pendingInvites } = await supabase
+    .from('gpp_pool_invites')
+    .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, count_scores, ob_rule_enabled, ob_penalty_strokes, gpp_tournaments(name, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
+    .eq('invited_user_id', user.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+
   const owned = (ownedPools ?? []) as PoolRecord[]
   const joined = (entries ?? []) as EntryRecord[]
+  const invites = (pendingInvites ?? []) as PendingInviteRecord[]
   const ownedPoolIds = owned.map(pool => pool.id)
   const { data: ownedPoolEntries } = ownedPoolIds.length
     ? await supabase
@@ -193,7 +252,7 @@ export default async function DashboardPage() {
     const bDate = b.tournament?.start_date || '9999-12-31'
     return aDate.localeCompare(bDate)
   })
-  const hasAnyPools = owned.length > 0 || joined.length > 0
+  const hasAnyPools = owned.length > 0 || joined.length > 0 || invites.length > 0
 
   return (
     <div className="space-y-8">
@@ -203,6 +262,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      <PendingInvites invites={invites} />
       <DashboardActivePools cards={activePoolCards} entriesByPool={entriesByPool} />
 
       {!hasAnyPools ? (

@@ -28,6 +28,11 @@ export interface Database {
         Insert: { pool_id: string; sender_id: string; subject: string; body?: string; recipient_count?: number }
         Update: {}
       }
+      gpp_pool_invites: {
+        Row: { id: string; pool_id: string; invited_user_id: string; invited_by_user_id: string; status: 'pending' | 'accepted' | 'declined' | 'expired'; created_at: string; responded_at: string | null }
+        Insert: { id?: string; pool_id: string; invited_user_id: string; invited_by_user_id: string; status?: 'pending' | 'accepted' | 'declined' | 'expired'; created_at?: string; responded_at?: string | null }
+        Update: { status?: 'pending' | 'accepted' | 'declined' | 'expired'; responded_at?: string | null }
+      }
       gpp_pool_payments: {
         Row: { id: string; pool_id: string; provider: string; square_payment_id: string | null; square_order_id: string | null; amount_cents: number; entry_count_at_payment: number; entry_limit: number; status: string; created_at: string }
         Insert: { id?: string; pool_id: string; provider?: string; square_payment_id?: string | null; square_order_id?: string | null; amount_cents: number; entry_count_at_payment: number; entry_limit: number; status: string; created_at?: string }

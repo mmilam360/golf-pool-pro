@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 
 type InvitePrepPanelProps = {
   poolName: string
@@ -12,6 +13,7 @@ type InvitePrepPanelProps = {
   joinLink: string
   pickCount: number
   countScores: number
+  previousPlayerInviteNode?: ReactNode
 }
 
 function plural(value: number, singular: string, pluralWord = `${singular}s`) {
@@ -28,6 +30,7 @@ export function PoolInvitePrepPanel({
   joinLink,
   pickCount,
   countScores,
+  previousPlayerInviteNode,
 }: InvitePrepPanelProps) {
   const [format, setFormat] = useState<'text' | 'email'>('text')
   const [copied, setCopied] = useState(false)
@@ -74,6 +77,7 @@ export function PoolInvitePrepPanel({
             </div>
           </div>
           <p className="mt-3 text-sm font-semibold leading-6 text-[#4f5b52]">Passcode <span className="font-mono font-black text-[#123c2f]">{passcode}</span>. {ruleLine}.</p>
+          {previousPlayerInviteNode}
         </div>
 
         <div className="border border-[#d8cab0] bg-[#fbf7ed] p-3">

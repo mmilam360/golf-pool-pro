@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatMoney, getPoolPaymentQuote, getPoolPaymentStatus } from '@/lib/payments/pricing'
 import { PoolInvitePrepPanel } from '@/components/PoolInvitePrepPanel'
+import { PreviousPlayersInvitePanel } from '@/components/PreviousPlayersInvitePanel'
+import { buildPreviousPlayerCandidates, summarizeInviteStatuses } from '@/lib/pool-invite-logic'
 
 type Tournament = {
   name?: string | null
@@ -29,7 +31,15 @@ type PoolRecord = {
 
 type EntryRecord = {
   pool_id: string
+  user_id?: string | null
+  display_name?: string | null
   golfer_picks?: unknown
+}
+
+type InviteRecord = {
+  pool_id: string
+  invited_user_id: string
+  status: 'pending' | 'accepted' | 'declined' | 'expired'
 }
 
 function getTournament(pool?: PoolRecord | null): Tournament | null {
@@ -127,9 +137,16 @@ export default async function ManagePoolsPage() {
   const { data: ownedPoolEntries } = ownedPoolIds.length
     ? await supabase
       .from('gpp_entries')
-      .select('pool_id, golfer_picks, is_removed')
+      .select('pool_id, user_id, display_name, golfer_picks, is_removed')
       .in('pool_id', ownedPoolIds)
       .eq('is_removed', false)
+    : { data: [] }
+
+  const { data: poolInvites } = ownedPoolIds.length
+    ? await supabase
+      .from('gpp_pool_invites')
+      .select('pool_id, invited_user_id, status')
+      .in('pool_id', ownedPoolIds)
     : { data: [] }
 
   const ownedEntryCounts = ((ownedPoolEntries ?? []) as EntryRecord[]).reduce<Record<string, number>>((counts, entry) => {
@@ -142,6 +159,9 @@ export default async function ManagePoolsPage() {
     if (pool && hasSubmittedPicks(entry, pool)) counts[entry.pool_id] = (counts[entry.pool_id] || 0) + 1
     return counts
   }, {})
+
+  const ownedEntries = (ownedPoolEntries ?? []) as EntryRecord[]
+  const invites = (poolInvites ?? []) as InviteRecord[]
 
   return (
     <div className="space-y-8">
@@ -176,6 +196,17 @@ export default async function ManagePoolsPage() {
               const activeEntryCount = ownedEntryCounts[pool.id] || 0
               const submittedPickCount = ownedSubmittedPickCounts[pool.id] || 0
               const showInvitePrep = canShowInvitePrep(pool, tournament)
+              const currentPoolEntryUserIds = ownedEntries
+                .filter(entry => entry.pool_id === pool.id && entry.user_id)
+                .map(entry => entry.user_id as string)
+              const poolInviteRecords = invites.filter(invite => invite.pool_id === pool.id)
+              const previousPlayerCandidates = buildPreviousPlayerCandidates({
+                previousEntries: ownedEntries.filter(entry => entry.pool_id !== pool.id),
+                currentPoolEntryUserIds,
+                existingInviteUserIds: poolInviteRecords.map(invite => invite.invited_user_id),
+                ownerUserId: user.id,
+              })
+              const inviteSummary = summarizeInviteStatuses(poolInviteRecords)
               return (
                 <div key={pool.id} className={index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>
                   <Link href={`/pool/${pool.id}`} className="grid grid-cols-[minmax(0,1fr)_76px_82px] items-center border-b border-[#eadfca] px-4 py-4 text-sm transition-colors hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_82px_86px_100px_110px] sm:px-5">
@@ -204,6 +235,13 @@ export default async function ManagePoolsPage() {
                       joinLink={`https://www.golfpoolspro.com/pool/join?code=${pool.passcode}`}
                       pickCount={pool.pick_count}
                       countScores={pool.count_scores}
+                      previousPlayerInviteNode={
+                        <PreviousPlayersInvitePanel
+                          poolId={pool.id}
+                          candidates={previousPlayerCandidates}
+                          summary={inviteSummary}
+                        />
+                      }
                     />
                   ) : null}
                 </div>
