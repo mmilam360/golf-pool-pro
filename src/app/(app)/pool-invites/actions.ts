@@ -55,7 +55,7 @@ export async function sendPoolInvites(formData: FormData) {
       .upsert(rows, { onConflict: 'pool_id,invited_user_id', ignoreDuplicates: true })
   }
 
-  revalidatePath('/manage-pools')
+  revalidatePath(`/pool/${poolId}`)
   revalidatePath('/dashboard')
 }
 

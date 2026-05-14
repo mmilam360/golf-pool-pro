@@ -2,6 +2,7 @@ export const runtime = 'edge';
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import PoolView from './PoolView'
+import { buildPreviousPlayerCandidates, summarizeInviteStatuses } from '@/lib/pool-invite-logic'
 
 export default async function PoolPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -46,6 +47,45 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
   // Get current user's entry
   const myEntry = safeEntries.find(e => e.user_id === user.id && !e.is_removed) || null
 
+  let previousPlayerCandidates: { userId: string; displayName: string }[] = []
+  let inviteSummary = { pending: 0, accepted: 0, declined: 0 }
+
+  if (isOwner) {
+    const { data: ownedPools } = await supabase
+      .from('gpp_pools')
+      .select('id')
+      .eq('owner_id', user.id)
+
+    const previousPoolIds = (ownedPools || [])
+      .map(item => item.id)
+      .filter(poolId => poolId !== id)
+
+    const { data: previousEntries } = previousPoolIds.length
+      ? await supabase
+        .from('gpp_entries')
+        .select('user_id, display_name')
+        .in('pool_id', previousPoolIds)
+        .eq('is_removed', false)
+      : { data: [] }
+
+    const { data: poolInvites } = await supabase
+      .from('gpp_pool_invites')
+      .select('invited_user_id, status')
+      .eq('pool_id', id)
+
+    const currentPoolEntryUserIds = (entries || [])
+      .filter(entry => entry.user_id && !entry.is_removed)
+      .map(entry => entry.user_id as string)
+
+    previousPlayerCandidates = buildPreviousPlayerCandidates({
+      previousEntries: previousEntries || [],
+      currentPoolEntryUserIds,
+      existingInviteUserIds: (poolInvites || []).map(invite => invite.invited_user_id),
+      ownerUserId: user.id,
+    })
+    inviteSummary = summarizeInviteStatuses(poolInvites || [])
+  }
+
   return (
     <PoolView
       pool={pool}
@@ -54,6 +94,8 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
       myEntry={myEntry}
       isOwner={isOwner}
       userId={user.id}
+      previousPlayerCandidates={previousPlayerCandidates}
+      inviteSummary={inviteSummary}
     />
   )
 }

@@ -4,9 +4,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatMoney, getPoolPaymentQuote, getPoolPaymentStatus } from '@/lib/payments/pricing'
-import { PoolInvitePrepPanel } from '@/components/PoolInvitePrepPanel'
-import { PreviousPlayersInvitePanel } from '@/components/PreviousPlayersInvitePanel'
-import { buildPreviousPlayerCandidates, summarizeInviteStatuses } from '@/lib/pool-invite-logic'
 
 type Tournament = {
   name?: string | null
@@ -36,12 +33,6 @@ type EntryRecord = {
   golfer_picks?: unknown
 }
 
-type InviteRecord = {
-  pool_id: string
-  invited_user_id: string
-  status: 'pending' | 'accepted' | 'declined' | 'expired'
-}
-
 function getTournament(pool?: PoolRecord | null): Tournament | null {
   const tournament = pool?.gpp_tournaments
   return Array.isArray(tournament) ? tournament[0] ?? null : tournament ?? null
@@ -64,11 +55,6 @@ function statusClass(label: string) {
   if (label === 'Locked') return 'border-[#b58a3a] bg-[#fbf0c9] text-[#7a5a19]'
   if (label === 'Passed') return 'border-[#d8cab0] bg-[#f3ede0] text-[#657168]'
   return 'border-[#cfe0d3] bg-[#eef7ef] text-[#1f6b4a]'
-}
-
-function hasSubmittedPicks(entry: EntryRecord, pool: PoolRecord) {
-  const requiredPicks = Number(pool.pick_count || 0)
-  return requiredPicks > 0 && Array.isArray(entry.golfer_picks) && entry.golfer_picks.length >= requiredPicks
 }
 
 function canShowInvitePrep(pool: PoolRecord, tournament: Tournament | null) {
@@ -142,26 +128,10 @@ export default async function ManagePoolsPage() {
       .eq('is_removed', false)
     : { data: [] }
 
-  const { data: poolInvites } = ownedPoolIds.length
-    ? await supabase
-      .from('gpp_pool_invites')
-      .select('pool_id, invited_user_id, status')
-      .in('pool_id', ownedPoolIds)
-    : { data: [] }
-
   const ownedEntryCounts = ((ownedPoolEntries ?? []) as EntryRecord[]).reduce<Record<string, number>>((counts, entry) => {
     counts[entry.pool_id] = (counts[entry.pool_id] || 0) + 1
     return counts
   }, {})
-
-  const ownedSubmittedPickCounts = ((ownedPoolEntries ?? []) as EntryRecord[]).reduce<Record<string, number>>((counts, entry) => {
-    const pool = owned.find(item => item.id === entry.pool_id)
-    if (pool && hasSubmittedPicks(entry, pool)) counts[entry.pool_id] = (counts[entry.pool_id] || 0) + 1
-    return counts
-  }, {})
-
-  const ownedEntries = (ownedPoolEntries ?? []) as EntryRecord[]
-  const invites = (poolInvites ?? []) as InviteRecord[]
 
   return (
     <div className="space-y-8">
@@ -194,24 +164,17 @@ export default async function ManagePoolsPage() {
               const tournament = getTournament(pool)
               const label = statusLabel(pool, tournament)
               const activeEntryCount = ownedEntryCounts[pool.id] || 0
-              const submittedPickCount = ownedSubmittedPickCounts[pool.id] || 0
               const showInvitePrep = canShowInvitePrep(pool, tournament)
-              const currentPoolEntryUserIds = ownedEntries
-                .filter(entry => entry.pool_id === pool.id && entry.user_id)
-                .map(entry => entry.user_id as string)
-              const poolInviteRecords = invites.filter(invite => invite.pool_id === pool.id)
-              const previousPlayerCandidates = buildPreviousPlayerCandidates({
-                previousEntries: ownedEntries.filter(entry => entry.pool_id !== pool.id),
-                currentPoolEntryUserIds,
-                existingInviteUserIds: poolInviteRecords.map(invite => invite.invited_user_id),
-                ownerUserId: user.id,
-              })
-              const inviteSummary = summarizeInviteStatuses(poolInviteRecords)
               return (
                 <div key={pool.id} className={index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>
                   <Link href={`/pool/${pool.id}`} className="grid grid-cols-[minmax(0,1fr)_76px_82px] items-center border-b border-[#eadfca] px-4 py-4 text-sm transition-colors hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_82px_86px_100px_110px] sm:px-5">
                     <span className="min-w-0 pr-3">
-                      <span className="block truncate font-semibold text-[#1f2a24]">{pool.name}</span>
+                      <span className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span className="truncate font-semibold text-[#1f2a24]">{pool.name}</span>
+                        {showInvitePrep ? (
+                          <span className="shrink-0 border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">Invite</span>
+                        ) : null}
+                      </span>
                       <span className="mt-1 block text-xs leading-5 text-[#657168] sm:hidden">{tournament?.name || 'Tournament'}</span>
                       <span className="mt-2 flex flex-wrap gap-2 sm:hidden">
                         <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
@@ -224,26 +187,6 @@ export default async function ManagePoolsPage() {
                     <span className="hidden sm:block"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
                     <span className="hidden sm:block"><BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} /></span>
                   </Link>
-                  {showInvitePrep ? (
-                    <PoolInvitePrepPanel
-                      poolName={pool.name}
-                      tournamentName={tournament?.name || 'Tournament'}
-                      startDateLabel={formatDate(tournament?.start_date)}
-                      entryCount={activeEntryCount}
-                      submittedPickCount={submittedPickCount}
-                      passcode={pool.passcode}
-                      joinLink={`https://www.golfpoolspro.com/pool/join?code=${pool.passcode}`}
-                      pickCount={pool.pick_count}
-                      countScores={pool.count_scores}
-                      previousPlayerInviteNode={
-                        <PreviousPlayersInvitePanel
-                          poolId={pool.id}
-                          candidates={previousPlayerCandidates}
-                          summary={inviteSummary}
-                        />
-                      }
-                    />
-                  ) : null}
                 </div>
               )
             })}

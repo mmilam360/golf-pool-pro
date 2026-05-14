@@ -2,6 +2,8 @@
 import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { BackButton } from '@/components/BackButton'
+import { PoolInvitePrepPanel } from '@/components/PoolInvitePrepPanel'
+import { PreviousPlayersInvitePanel } from '@/components/PreviousPlayersInvitePanel'
 import { createClient } from '@/lib/supabase/client'
 import { scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
@@ -44,6 +46,8 @@ interface Props {
   myEntry: any | null
   isOwner: boolean
   userId: string
+  previousPlayerCandidates: { userId: string; displayName: string }[]
+  inviteSummary: { pending: number; accepted: number; declined: number }
 }
 
 type Tab = 'leaderboard' | 'my-team' | 'admin'
@@ -196,15 +200,6 @@ function thruLabel(thru?: string) {
   return value === 'F' ? 'F' : `THRU ${value}`
 }
 
-function CopyIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M7 7V4.75C7 3.78 7.78 3 8.75 3h6.5C16.22 3 17 3.78 17 4.75v6.5c0 .97-.78 1.75-1.75 1.75H13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />
-      <path d="M3 8.75C3 7.78 3.78 7 4.75 7h6.5c.97 0 1.75.78 1.75 1.75v6.5c0 .97-.78 1.75-1.75 1.75h-6.5C3.78 17 3 16.22 3 15.25v-6.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />
-    </svg>
-  )
-}
-
 function TrustCheckIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -226,7 +221,7 @@ function SquareTrustMark() {
 
 const REFRESH_SECONDS = 60
 
-export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId }: Props) {
+export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>(initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-team')
   const [entries, setEntries] = useState(initialEntries)
@@ -276,6 +271,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [dismissToast])
 
   const activeEntries = entries.filter(e => !e.is_removed)
+  const submittedPickCount = activeEntries.filter(entry => {
+    const pickCount = entry.submitted_pick_count ?? ((entry.golfer_picks as string[]) || []).length
+    return pickCount >= pool.pick_count
+  }).length
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
   const picksAreClosed = isLocked || scoringIsLive
@@ -668,66 +667,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     setEntryNameSaving(false)
   }
 
-  async function copyToClipboard(value: string, message: string) {
-    const text = value.trim()
-    if (!text) {
-      setStatusMessage('Nothing to copy yet.')
-      showToast('Nothing to copy yet.', 'error')
-      return
-    }
-
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text)
-      } else {
-        const textarea = document.createElement('textarea')
-        textarea.value = text
-        textarea.setAttribute('readonly', '')
-        textarea.style.position = 'fixed'
-        textarea.style.left = '-9999px'
-        textarea.style.top = '0'
-        document.body.appendChild(textarea)
-        textarea.focus()
-        textarea.select()
-        const copied = document.execCommand('copy')
-        document.body.removeChild(textarea)
-        if (!copied) throw new Error('copy failed')
-      }
-    } catch {
-      setStatusMessage('Could not copy. Select and copy it manually.')
-      showToast('Could not copy. Select and copy it manually.', 'error')
-      return
-    }
-    setStatusMessage(message)
-    showToast(message, 'success')
-    setTimeout(() => setStatusMessage(''), 2500)
-  }
-
-  function copyInviteLink() {
-    copyToClipboard(inviteUrl || `${window.location.origin}/pool/join?code=${pool.passcode}`, 'Invite link copied.')
-  }
-
-  function copyInviteCode() {
-    copyToClipboard(pool.passcode, 'Invite code copied.')
-  }
-
-  async function shareInvite() {
-    const link = inviteUrl || `${window.location.origin}/pool/join?code=${pool.passcode}`
-    const text = `Join my Golf Pools Pro pool: ${poolName}\nUse passcode: ${pool.passcode}\n${link}`
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `Join ${poolName}`, text, url: link })
-        showToast('Invite shared.', 'success')
-        return
-      } catch (error: any) {
-        if (error?.name === 'AbortError') return
-      }
-    }
-
-    copyToClipboard(text, 'Invite copied.')
-  }
-
   function jumpToMyEntry() {
     if (!myEntry?.id) return
     setTab('leaderboard')
@@ -889,39 +828,28 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         </div>
       )}
 
-      {canInvitePlayers && <div className="mb-6 rounded-none border border-amber-200 bg-amber-50 p-4 shadow-[5px_5px_0_#d8cab0]">
-        <div className="mb-3">
-          <p className="text-sm font-semibold text-emerald-950">Invite players</p>
-          <p className="text-sm text-stone-700">Send the code or the direct join link.</p>
+      {canInvitePlayers && (
+        <div className="mb-6">
+          <PoolInvitePrepPanel
+            poolName={poolName}
+            tournamentName={tournament?.name || 'Tournament'}
+            startDateLabel={formatShortDate(tournament?.start_date) || 'Date TBA'}
+            entryCount={activeEntries.length}
+            submittedPickCount={submittedPickCount}
+            passcode={pool.passcode}
+            joinLink={inviteUrl || `/pool/join?code=${pool.passcode}`}
+            pickCount={pool.pick_count}
+            countScores={pool.count_scores}
+            previousPlayerInviteNode={
+              <PreviousPlayersInvitePanel
+                poolId={pool.id}
+                candidates={previousPlayerCandidates}
+                summary={inviteSummary}
+              />
+            }
+          />
         </div>
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={shareInvite}
-            className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#0f2f25]"
-          >
-            Share invite
-          </button>
-          <div className="flex items-center justify-between gap-3 rounded-none border border-amber-200 bg-white px-3 py-2">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">Code</p>
-              <p className="font-mono text-base font-semibold tracking-[0.08em] text-emerald-900">{pool.passcode}</p>
-            </div>
-            <button type="button" onClick={copyInviteCode} className="shrink-0 rounded-none border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite code">
-              <CopyIcon />
-            </button>
-          </div>
-          <div className="flex items-center justify-between gap-3 rounded-none border border-amber-200 bg-white px-3 py-2">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">Link</p>
-              <p className="truncate font-mono text-xs text-stone-900">{inviteUrl || `/pool/join?code=${pool.passcode}`}</p>
-            </div>
-            <button type="button" onClick={copyInviteLink} className="shrink-0 rounded-none border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite link">
-              <CopyIcon />
-            </button>
-          </div>
-        </div>
-      </div>}
+      )}
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-none p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-team', ...(isOwner ? ['admin'] as Tab[] : [])] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
