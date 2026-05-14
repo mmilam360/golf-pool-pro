@@ -1424,8 +1424,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
 
               <div className="border-t border-red-200 pt-4">
-                <p className="text-sm font-semibold text-red-800">Delete pool</p>
-                <p className="mt-1 text-sm text-stone-600">This removes the pool and its entries. Type DELETE to confirm.</p>
+                <p className="text-sm font-semibold text-red-800">Delete pool: <span className="font-black uppercase tracking-[0.04em]">{pool.name}</span></p>
+                <p className="mt-1 text-sm text-stone-600">This removes <span className="font-black uppercase text-red-800">{pool.name}</span> and all entries. Type DELETE to confirm.</p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                   <input
                     value={deleteConfirm}

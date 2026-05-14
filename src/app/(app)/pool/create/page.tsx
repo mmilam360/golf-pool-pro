@@ -33,6 +33,25 @@ function normalizeTournamentKey(value?: string | null) {
     .trim()
 }
 
+function getTournamentStart(value?: string) {
+  if (!value) return null
+  const [year, month, day] = value.split('T')[0].split('-').map(Number)
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+function hasTournamentStarted(tournament: Tournament, now = new Date()) {
+  if (tournament.status !== 'upcoming') return true
+  const start = getTournamentStart(tournament.start_date)
+  return !start || start <= now
+}
+
+function eventClosedMessage(name?: string | null) {
+  return name
+    ? `Event closed: ${name} has already started, so new pools can’t be created for it.`
+    : 'Event closed: this tournament has already started, so new pools can’t be created for it.'
+}
+
 function NumberStepper({
   label,
   value,
@@ -124,7 +143,9 @@ export default function CreatePoolPage() {
       .in('status', ['upcoming', 'live'])
       .order('start_date', { ascending: true })
     if (data) {
-      setTournaments(data)
+      const now = new Date()
+      const openTournaments = data.filter(t => !hasTournamentStarted(t, now))
+      setTournaments(openTournaments)
 
       const params = new URLSearchParams(window.location.search)
       const requestedTournament = params.get('tournament')
@@ -138,7 +159,16 @@ export default function CreatePoolPage() {
           return (nameMatches || idMatches) && startMatches
         }) || data.find(t => normalizeTournamentKey(t.name).includes(requestedKey))
 
-        if (match) setSelectedTournament(match.id)
+        if (match && hasTournamentStarted(match, now)) {
+          setSelectedTournament('')
+          setError(eventClosedMessage(match.name))
+        } else if (match) {
+          setError('')
+          setSelectedTournament(match.id)
+        } else {
+          setSelectedTournament('')
+          setError(eventClosedMessage(requestedTournament))
+        }
       }
     }
   }
@@ -153,6 +183,19 @@ export default function CreatePoolPage() {
     const finalPickCount = toNumber(pickCount, 12)
     const finalCountScores = toNumber(countScores, 8)
     const finalObPenalty = toNumber(obPenalty, 2)
+    const selected = tournaments.find(t => t.id === selectedTournament)
+
+    if (!selected) {
+      setError('Choose an open tournament before creating a pool.')
+      setLoading(false)
+      return
+    }
+
+    if (hasTournamentStarted(selected)) {
+      setError(eventClosedMessage(selected.name))
+      setLoading(false)
+      return
+    }
 
     if (finalCountScores > finalPickCount) {
       setError('Scores to Count cannot be greater than Golfers to Pick')
