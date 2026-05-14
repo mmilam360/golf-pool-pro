@@ -62,8 +62,8 @@ const faqItems = [
     answer: 'OB keeps every entry at the same number of counted scores. If your pool counts 4 golfers and you only have 3 active golfers left, the empty spot gets an OB score based on the worst active counted score plus the pool penalty.',
   },
   {
-    question: 'How many players can join a pool?',
-    answer: 'There is no tiny office-pool limit. Small pools are free for the first 5 active entries, and larger pools stay capped at $25 for the host.',
+    question: 'Is there a limit on entries?',
+    answer: 'No. Add as many entries as you need. The pricing is the real break: a 12-entry pool costs $7 instead of the $20 flat fee most golf pool sites charge.',
   },
   {
     question: 'Do players need to pay to join?',
