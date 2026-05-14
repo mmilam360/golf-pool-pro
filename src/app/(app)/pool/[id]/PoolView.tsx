@@ -147,9 +147,25 @@ function shortName(name: string, peerNames: string[] = []) {
   if (clean.startsWith('OB ')) return clean
   const parts = clean.split(' ').filter(Boolean)
   if (parts.length <= 1) return clean
+  const firstName = parts[0]
   const lastName = parts[parts.length - 1]
-  const matchingLastNames = peerNames.filter(peer => lastNameFor(peer) === lastName)
-  return matchingLastNames.length > 1 ? `${parts[0][0]}. ${lastName}` : lastName
+  const matchingLastNames = peerNames
+    .map(peer => peer.split(' ').filter(Boolean))
+    .filter(peerParts => peerParts.length > 1 && lastNameFor(peerParts.join(' ')) === lastName)
+
+  if (matchingLastNames.length <= 1) return lastName
+
+  const firstInitial = firstName[0]
+  const initialMatches = matchingLastNames.filter(peerParts => peerParts[0]?.[0] === firstInitial)
+  if (initialMatches.length <= 1) return `${firstInitial}. ${lastName}`
+
+  for (let length = 2; length <= firstName.length; length += 1) {
+    const prefix = firstName.slice(0, length)
+    const prefixMatches = initialMatches.filter(peerParts => peerParts[0]?.startsWith(prefix))
+    if (prefixMatches.length === 1) return `${prefix}. ${lastName}`
+  }
+
+  return `${firstName}. ${lastName}`
 }
 
 function LivePulseBadge() {
