@@ -246,29 +246,29 @@ export default async function DashboardPage() {
       </section>
 
       {activePoolCards.length > 0 && (
-        <section className="border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[7px_7px_0_#d8cab0]">
-          <div className="border-b border-[#d8cab0] bg-[#123c2f] px-5 py-4 text-white">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Active pools</p>
-            <h2 className="font-display text-2xl font-bold">Jump back in</h2>
+        <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
+          <div className="border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:px-5">
+            <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Active pools</h2>
           </div>
-          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-            {activePoolCards.map(({ pool, tournament, role, entry }) => {
+          <div className="divide-y divide-[#eadfca]">
+            {activePoolCards.map(({ pool, tournament, role, entry }, index) => {
               const label = statusLabel(pool, tournament)
               const picks = entry && Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : null
               const activeEntryCount = ownedEntryCounts[pool.id] || entriesByPool[pool.id]?.length || 0
+              const countLabel = picks == null ? `${activeEntryCount} entries` : `${picks} picks`
               return (
-                <Link key={`${role}-${pool.id}`} href={`/pool/${pool.id}`} className="block border border-[#d8cab0] bg-white p-4 transition-colors hover:bg-[#fff8e8]">
-                  <div className="mb-3 flex items-start justify-between gap-3">
+                <Link key={`${role}-${pool.id}`} href={`/pool/${pool.id}`} className={`block px-4 py-3 transition-colors hover:bg-[#fff8e8] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-lg font-black text-[#0f2f25]">{pool.name}</p>
-                      <p className="mt-1 truncate text-xs font-bold uppercase tracking-[0.12em] text-[#657168]">{role}</p>
+                      <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
+                      <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#1f2a24]">{tournament?.name || 'Tournament'}</p>
                     </div>
                     <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
                   </div>
-                  <p className="truncate text-sm font-semibold text-[#1f2a24]">{tournament?.name || 'Tournament'}</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold uppercase tracking-[0.1em] text-[#657168]">
-                    <span className="border border-stone-200 bg-[#fbf7ed] px-2 py-2">{formatDate(tournament?.start_date)}</span>
-                    <span className="border border-stone-200 bg-[#fbf7ed] px-2 py-2 text-right">{picks == null ? `${activeEntryCount} entries` : `${picks} picks`}</span>
+                  <div className="mt-2 grid grid-cols-[1fr_auto_auto] items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
+                    <span className="min-w-0 truncate">{role}</span>
+                    <span className="whitespace-nowrap border border-stone-200 bg-[#fbf7ed] px-2 py-1 font-mono tracking-[0.06em]">{formatDate(tournament?.start_date)}</span>
+                    <span className="whitespace-nowrap border border-stone-200 bg-[#fbf7ed] px-2 py-1 text-right tracking-[0.08em]">{countLabel}</span>
                   </div>
                 </Link>
               )
