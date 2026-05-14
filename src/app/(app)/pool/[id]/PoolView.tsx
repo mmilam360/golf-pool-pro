@@ -1035,20 +1035,43 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-stone-600 text-sm">
-                  Pick {pool.pick_count} golfers. Best {pool.count_scores} scores count.
-                  {picksAreClosed && <span className="ml-2 text-amber-700">Picks are closed.</span>}
-                </p>
-                {!picksAreClosed && (
-                  <button onClick={savePicks} disabled={saving}
-                    className="gpp-3d gpp-button-3d gpp-button-wrap text-sm disabled:opacity-50">
-                    <span className="gpp-button-face px-5 py-2">{saving ? 'Saving...' : 'Save Picks'}</span>
-                  </button>
-                )}
+              <div className="mb-4 border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[5px_5px_0_#d8cab0]">
+                <div className="flex flex-col gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f3df9c]">Make picks</p>
+                    <h2 className="text-xl font-black text-white">Pick {pool.pick_count}. Best {pool.count_scores} count.</h2>
+                  </div>
+                  {!picksAreClosed ? (
+                    <button onClick={savePicks} disabled={saving}
+                      className="border-2 border-[#f3df9c] bg-[#f3df9c] px-5 py-2 text-sm font-black uppercase text-[#123c2f] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">
+                      {saving ? 'Saving...' : 'Save picks'}
+                    </button>
+                  ) : (
+                    <span className="w-fit border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-800">Picks closed</span>
+                  )}
+                </div>
+                <div className="grid gap-3 p-4 md:grid-cols-[1.2fr_0.8fr]">
+                  <div className="border border-[#d8cab0] bg-white p-3">
+                    <p className="text-sm font-semibold leading-6 text-[#1f2a24]">
+                      Choose your golfers before the pool locks. When scoring starts, your best {pool.count_scores} scores make up your total. Lower is better, just like tournament scoring.
+                    </p>
+                  </div>
+                  <details className="group border border-[#d8cab0] bg-white">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] [&::-webkit-details-marker]:hidden">
+                      <span>How OB works</span>
+                      <span className="border border-[#123c2f] px-1.5 py-0.5 text-[10px] group-open:hidden">Open</span>
+                      <span className="hidden border border-[#123c2f] bg-[#123c2f] px-1.5 py-0.5 text-[10px] text-white group-open:inline">Close</span>
+                    </summary>
+                    <div className="space-y-2 border-t border-[#d8cab0] px-3 py-3 text-sm leading-6 text-stone-700">
+                      <p>If one of your golfers misses the cut, withdraws, or never posts a usable score, that pick is out of bounds.</p>
+                      <p>When an OB pick is needed to fill your counted scores, the app uses the worst active counted score in the pool plus {pool.ob_rule_enabled ? pool.ob_penalty_strokes : 2} strokes.</p>
+                      <p className="border border-[#eadfca] bg-[#fbf7ed] px-2 py-2 text-xs font-semibold text-[#1f2a24]">Example: if your pool counts 4 golfers and only 3 of yours are active, the missing counted spot gets the worst active score plus the OB penalty.</p>
+                    </div>
+                  </details>
+                </div>
               </div>
 
-              <div className="mb-4 rounded-none border border-stone-200 bg-white p-4">
+              <div className="mb-4 rounded-none border border-stone-200 bg-white p-4 shadow-[4px_4px_0_#d8cab0]">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                   <div className="min-w-0 flex-1">
                     <label className="mb-1 block text-sm font-medium text-stone-700">Entry name</label>
@@ -1074,40 +1097,47 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
 
               {/* Selected picks */}
-              <div className="bg-white rounded-none p-4 border border-stone-200 mb-4">
-                <h3 className="text-sm font-medium text-stone-700 mb-2">
-                  Your Picks ({myPicks.length}/{pool.pick_count})
-                </h3>
-                <div className="flex flex-wrap gap-2">
+              <div className="mb-4 rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
+                <div className="flex items-center justify-between border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
+                  <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">
+                    Your picks ({myPicks.length}/{pool.pick_count})
+                  </h3>
+                  <span className="text-xs font-bold text-stone-500">Tap a name below to add or remove</span>
+                </div>
+                <div className="flex flex-wrap gap-2 p-4">
                   {myPicks.map(name => (
-                    <span key={name} className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                    <span key={name} className="flex items-center gap-2 rounded-none border border-[#123c2f] bg-[#eef7ef] px-3 py-1.5 text-sm font-bold text-[#123c2f]">
                       {golferListName(name)}
                       {!picksAreClosed && (
-                        <button onClick={() => togglePick(name)} className="text-emerald-500 hover:text-red-400 ml-1">x</button>
+                        <button type="button" onClick={() => togglePick(name)} className="border border-[#123c2f] px-1 text-[10px] font-black leading-4 text-[#123c2f] hover:border-[#b21e23] hover:text-[#b21e23]" aria-label={`Remove ${golferListName(name)}`}>×</button>
                       )}
                     </span>
                   ))}
-                  {myPicks.length === 0 && <span className="text-stone-500 text-sm">No golfers selected yet</span>}
+                  {myPicks.length === 0 && <span className="text-sm font-semibold text-stone-500">No golfers selected yet.</span>}
                 </div>
               </div>
 
               {/* Golfer list */}
               {!picksAreClosed && field.length > 0 && (
-                <div className="bg-white rounded-none border border-stone-200 overflow-hidden">
-                  <div className="max-h-96 overflow-y-auto">
+                <div className="overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
+                  <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">Tournament field</p>
+                    <p className="mt-1 text-sm font-semibold text-stone-600">Sorted by last name for quick scanning.</p>
+                  </div>
+                  <div className="max-h-[28rem] overflow-y-auto">
                     {[...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => {
                       const selected = myPicks.includes(player.name)
                       return (
                         <button key={player.id}
                           onClick={() => togglePick(player.name)}
                           disabled={!selected && myPicks.length >= pool.pick_count}
-                          className={`w-full text-left px-4 py-2 flex items-center justify-between border-b border-stone-100 transition-colors ${
-                            selected ? 'bg-emerald-50 text-emerald-900' :
-                            myPicks.length >= pool.pick_count ? 'text-stone-400 cursor-not-allowed' :
-                            'text-stone-800 hover:bg-stone-50'
+                          className={`flex w-full items-center justify-between border-b border-[#eadfca] px-4 py-2.5 text-left transition-colors ${
+                            selected ? 'bg-[#eef7ef] text-[#123c2f]' :
+                            myPicks.length >= pool.pick_count ? 'cursor-not-allowed text-stone-400' :
+                            'text-stone-800 hover:bg-[#fbf7ed]'
                           }`}>
-                          <span className="text-sm">{golferListName(player.name)}</span>
-                          {selected && <span className="text-emerald-400 text-xs">Selected</span>}
+                          <span className="text-sm font-semibold">{golferListName(player.name)}</span>
+                          {selected && <span className="border border-[#123c2f] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f]">Selected</span>}
                         </button>
                       )
                     })}

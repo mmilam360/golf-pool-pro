@@ -32,6 +32,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </nav>
       <main className="mx-auto max-w-7xl flex-1 px-4 py-8 sm:px-5 md:px-8 md:py-10">{children}</main>
       <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-5 text-center text-sm text-[#657168]">
+        <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
+        <span className="mx-3">/</span>
         <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
         <span className="mx-3">/</span>
         <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>

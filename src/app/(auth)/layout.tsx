@@ -10,6 +10,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </Link>
         {children}
         <p className="mt-6 text-center text-xs text-stone-500">
+          <Link href="/rules" className="font-semibold text-emerald-800 hover:underline">Rules</Link>
+          <span className="mx-2">/</span>
           <Link href="/privacy" className="font-semibold text-emerald-800 hover:underline">Privacy Policy</Link>
           <span className="mx-2">/</span>
           <Link href="/terms" className="font-semibold text-emerald-800 hover:underline">Terms</Link>
