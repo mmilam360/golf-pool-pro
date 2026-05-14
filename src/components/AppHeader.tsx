@@ -74,7 +74,7 @@ export default function AppHeader() {
             Menu
           </summary>
           <div className="absolute left-0 right-0 top-[calc(100%+12px)] z-[200] border-2 border-[#123c2f] bg-[#fffdf8] p-3 shadow-[5px_5px_0_#d8cab0]">
-            <div className="grid gap-1 text-sm font-black text-[#123c2f]">
+            <div className="grid text-sm font-black text-[#123c2f]">
               {navLinks.map(link => {
                 const active = isActive(pathname, link.match)
 
@@ -84,14 +84,13 @@ export default function AppHeader() {
                     href={link.href}
                     aria-current={active ? 'page' : undefined}
                     onClick={closeMenu}
-                    className={`flex items-center justify-between border px-3 py-3 ${active ? 'border-[#b58a3a] bg-[#fbf7ed] text-[#123c2f]' : 'border-transparent border-b-[#d8cab0]'}`}
+                    className={`px-6 py-4 ${active ? 'my-2 border border-[#b58a3a] bg-[#fbf7ed] text-[#123c2f]' : 'border-b border-[#d8cab0]'}`}
                   >
-                    <span>{link.label}</span>
-                    <span className={`h-3 w-3 border border-[#123c2f] ${active ? 'bg-[#b93a32]' : 'bg-transparent'}`} aria-hidden="true" />
+                    {link.label}
                   </Link>
                 )
               })}
-              <SignOutButton className="w-full border border-transparent px-3 py-3 text-left text-sm font-black text-[#657168]" />
+              <SignOutButton className="w-full border-b border-[#d8cab0] px-6 py-4 text-left text-sm font-black text-[#657168]" />
             </div>
           </div>
         </details>
