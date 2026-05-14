@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Golf Pools Pro',
     short_name: 'GPP',
     description: 'Run golf pools with live tournament standings.',
-    start_url: '/',
+    start_url: '/dashboard',
     scope: '/',
     display: 'standalone',
     background_color: '#fbf7ed',

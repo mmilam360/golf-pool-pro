@@ -80,7 +80,7 @@ export function MobileInstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-3 right-3 z-50 w-[19rem] max-w-[calc(100vw-1.5rem)] border-2 border-[#123c2f] bg-[#fbf7ed]/95 p-3 text-[#111] shadow-[4px_4px_0_#00442c] backdrop-blur">
+    <div className="fixed bottom-3 left-1/2 z-50 w-[22rem] max-w-[calc(100vw-1.5rem)] -translate-x-1/2 border-2 border-[#123c2f] bg-[#fbf7ed]/95 p-3 text-[#111] shadow-[4px_4px_0_#00442c] backdrop-blur">
       <div className="flex items-start justify-between gap-2">
         <button type="button" onClick={() => setExpanded(value => !value)} className="flex min-w-0 flex-1 items-start gap-2 text-left" aria-expanded={expanded}>
           <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center border border-[#123c2f] bg-white text-[#123c2f]">

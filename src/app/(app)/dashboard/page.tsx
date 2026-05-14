@@ -70,6 +70,10 @@ function statusClass(label: string) {
   return 'border-[#cfe0d3] bg-[#eef7ef] text-[#1f6b4a]'
 }
 
+function isActivePool(pool: PoolRecord, tournament: Tournament | null) {
+  return !pool.is_completed && tournament?.status !== 'completed'
+}
+
 function LockGlyph({ locked }: { locked: boolean }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="square" strokeLinejoin="miter">
@@ -100,7 +104,7 @@ function BalanceBadge({ pool, activeEntryCount, tournament }: { pool: PoolRecord
   }
 
   if (!paymentReady && paymentStatus !== 'archived_unpaid') {
-    return <span className="inline-flex justify-center border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#7a5a19]">Est {formatMoney(quote.amountDueCents)}</span>
+    return <span className="inline-flex justify-center border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#7a5a19]">Current {formatMoney(quote.amountDueCents)}</span>
   }
 
   const dueDate = tournament?.start_date ? formatDate(tournament.start_date) : null
@@ -191,10 +195,21 @@ export default async function DashboardPage() {
     groups[entry.pool_id].push(entry)
     return groups
   }, {})
-  const activeCount = owned.filter(pool => !pool.is_completed).length + joined.filter(entry => {
-    const pool = getPool(entry)
-    return pool && !pool.is_completed
-  }).length
+  const activePoolCards = [
+    ...owned
+      .filter(pool => isActivePool(pool, getTournament(pool)))
+      .map(pool => ({ pool, tournament: getTournament(pool), role: 'Running', entry: null as EntryRecord | null })),
+    ...joined
+      .map(entry => ({ entry, pool: getPool(entry) }))
+      .filter((item): item is { entry: EntryRecord; pool: PoolRecord } => Boolean(item.pool && isActivePool(item.pool, getTournament(item.pool))))
+      .filter(item => !ownedPoolIds.includes(item.pool.id))
+      .map(item => ({ pool: item.pool, tournament: getTournament(item.pool), role: 'Playing', entry: item.entry })),
+  ].sort((a, b) => {
+    const aDate = a.tournament?.start_date || '9999-12-31'
+    const bDate = b.tournament?.start_date || '9999-12-31'
+    return aDate.localeCompare(bDate)
+  })
+  const activeCount = activePoolCards.length
 
   return (
     <div className="space-y-8">
@@ -229,6 +244,38 @@ export default async function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {activePoolCards.length > 0 && (
+        <section className="border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[7px_7px_0_#d8cab0]">
+          <div className="border-b border-[#d8cab0] bg-[#123c2f] px-5 py-4 text-white">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Active pools</p>
+            <h2 className="font-display text-2xl font-bold">Jump back in</h2>
+          </div>
+          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+            {activePoolCards.map(({ pool, tournament, role, entry }) => {
+              const label = statusLabel(pool, tournament)
+              const picks = entry && Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : null
+              const activeEntryCount = ownedEntryCounts[pool.id] || entriesByPool[pool.id]?.length || 0
+              return (
+                <Link key={`${role}-${pool.id}`} href={`/pool/${pool.id}`} className="block border border-[#d8cab0] bg-white p-4 transition-colors hover:bg-[#fff8e8]">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-black text-[#0f2f25]">{pool.name}</p>
+                      <p className="mt-1 truncate text-xs font-bold uppercase tracking-[0.12em] text-[#657168]">{role}</p>
+                    </div>
+                    <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
+                  </div>
+                  <p className="truncate text-sm font-semibold text-[#1f2a24]">{tournament?.name || 'Tournament'}</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold uppercase tracking-[0.1em] text-[#657168]">
+                    <span className="border border-stone-200 bg-[#fbf7ed] px-2 py-2">{formatDate(tournament?.start_date)}</span>
+                    <span className="border border-stone-200 bg-[#fbf7ed] px-2 py-2 text-right">{picks == null ? `${activeEntryCount} entries` : `${picks} picks`}</span>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
         <div className="flex items-center justify-between border-b border-[#d8cab0] bg-[#123c2f] px-5 py-4 text-white">
