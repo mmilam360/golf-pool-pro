@@ -238,14 +238,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ? 'Paid'
       : paymentCollectionOpen
         ? `${formatCents(finalAmountDueCents)} due`
-        : `${formatCents(finalAmountDueCents)} estimate`
+        : `${formatCents(finalAmountDueCents)} current fee`
   const feeStatusLabel = finalAmountDueCents === 0
     ? 'Free'
     : paymentStatus === 'active'
       ? 'Paid'
       : paymentCollectionOpen
         ? 'Due now'
-        : 'Estimate'
+        : 'Current fee'
   const feeStatusClass = paymentStatus === 'active' || finalAmountDueCents === 0
     ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
     : paymentCollectionOpen
@@ -257,7 +257,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ? ''
       : paymentCollectionOpen
         ? `Payment is due now${feeDueDate ? ` (${feeDueDate})` : ''}.`
-        : `Estimate now. Final fee is due when picks lock${feeDueDate ? ` on ${feeDueDate}` : ''}.`
+        : `Final fee is due when picks lock${feeDueDate ? ` on ${feeDueDate}` : ''}.`
   const leaderboardIsHidden = scoringIsLive && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const visibleEntries = activeEntries
@@ -339,7 +339,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (!value) return null
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return null
-    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
+    return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCFullYear()).slice(-2)}`
   }
 
   function reviewActivation() {
