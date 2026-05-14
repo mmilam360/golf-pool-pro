@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
 import { scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
-import { getPoolPaymentStatus } from '@/lib/payments/pricing'
+import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
 import type { GolfPlayer } from '@/lib/golf-api'
 
 type PaymentQuote = {
@@ -264,10 +264,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     ? 'No pool fee with the current entry count.'
     : paymentStatus === 'active'
       ? ''
-      : paymentCollectionOpen
+      : isPoolFeePastDue(tournament?.start_date)
         ? `Payment is due${feeDueDate ? ` by ${feeDueDate}` : ' now'}.`
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
-  const leaderboardIsHidden = scoringIsLive && paymentStatus !== 'active'
+  const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const visibleEntries = activeEntries
 
@@ -344,20 +344,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     return `$${(cents / 100).toFixed(2)}`
   }
 
-  function formatShortDate(value?: string | null) {
+  function formatShortDate(value?: string | Date | null) {
     if (!value) return null
-    const date = new Date(value)
+    const date = value instanceof Date ? value : new Date(value)
     if (Number.isNaN(date.getTime())) return null
     return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCFullYear()).slice(-2)}`
   }
 
-  function getTournamentSaturday(value?: string | null) {
-    if (!value) return null
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return null
-    const daysUntilSaturday = (6 - date.getUTCDay() + 7) % 7
-    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + daysUntilSaturday)).toISOString()
-  }
 
   function reviewActivation() {
     setTab('admin')
@@ -801,7 +794,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <p className="font-display text-lg font-bold text-emerald-950">{paymentCollectionOpen ? 'Pool fee due' : 'Estimated pool fee'}</p>
               <p className="text-sm text-stone-700">
                 {paymentCollectionOpen
-                  ? 'Pay once, based on the final entry count, to show results.'
+                  ? 'Pay once, based on the final entry count.'
                   : 'Keep entries open for now. Payment opens after picks lock.'}
               </p>
             </div>
@@ -855,7 +848,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           {loadingScores && <p className="text-stone-500 text-sm mb-4">Loading scores...</p>}
           {leaderboardIsHidden ? (
             <div className="rounded-none border-2 border-amber-300 bg-[#fbf7ed] p-8 text-center shadow-[5px_5px_0_#d8cab0]">
-              <p className="font-display text-2xl font-bold text-emerald-950">Leaderboard hidden until pool is activated</p>
+              <p className="font-display text-2xl font-bold text-emerald-950">Leaderboard hidden until the pool fee is paid</p>
               <p className="mx-auto mt-2 max-w-xl text-sm text-stone-700">
                 Entries are safe. The host can activate this pool from the Admin tab to restore live standings.
               </p>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getPoolPaymentStatus } from '@/lib/payments/pricing'
+import { getPoolPaymentStatus, isPoolFeePastDue } from '@/lib/payments/pricing'
 
 export const runtime = 'nodejs'
 
@@ -15,18 +15,17 @@ export async function GET(request: Request) {
   }
 
   const supabase = createServiceClient() as any
-  const today = new Date().toISOString().slice(0, 10)
-
   const { data: tournaments, error: tournamentError } = await supabase
     .from('gpp_tournaments')
-    .select('id')
-    .or(`status.in.(live,completed),start_date.lte.${today}`)
+    .select('id, start_date')
 
   if (tournamentError) {
     return NextResponse.json({ error: tournamentError.message }, { status: 500 })
   }
 
-  const tournamentIds = (tournaments || []).map((tournament: any) => tournament.id)
+  const tournamentIds = (tournaments || [])
+    .filter((tournament: any) => isPoolFeePastDue(tournament.start_date))
+    .map((tournament: any) => tournament.id)
   if (tournamentIds.length === 0) {
     return NextResponse.json({ ok: true, archived: 0 })
   }

@@ -61,3 +61,18 @@ export function getPoolPaymentStatus(storedStatus: PoolPaymentStatus | string | 
   if (storedStatus === 'active') return 'payment_due'
   return (storedStatus as PoolPaymentStatus) || 'draft'
 }
+
+export function getTournamentSaturday(value?: string | null) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  const daysUntilSaturday = (6 - date.getUTCDay() + 7) % 7
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + daysUntilSaturday))
+}
+
+export function isPoolFeePastDue(tournamentStartDate?: string | null, now = new Date()) {
+  const dueDate = getTournamentSaturday(tournamentStartDate)
+  if (!dueDate) return false
+  const dueDateEndsAt = new Date(Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate() + 1))
+  return now >= dueDateEndsAt
+}
