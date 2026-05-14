@@ -9,6 +9,7 @@ const siteUrl = 'https://www.golfpoolspro.com'
 
 type PageProps = {
   params: Promise<{ slug: string }>
+  searchParams?: Promise<{ from?: string }>
 }
 
 function escapeRegExp(value: string) {
@@ -54,8 +55,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function BlogPostPage({ params }: PageProps) {
+export default async function BlogPostPage({ params, searchParams }: PageProps) {
   const { slug } = await params
+  const query = await searchParams
+  const fromDashboard = query?.from === 'dashboard'
+  const guideHref = fromDashboard ? '/blog?from=dashboard' : '/blog'
+  const logoHref = fromDashboard ? '/dashboard' : guideHref
+  const primaryHref = fromDashboard ? '/dashboard' : '/signup'
+  const primaryLabel = fromDashboard ? 'Dashboard' : 'Create a pool'
   const post = getBlogPost(slug)
   if (!post) notFound()
 
@@ -91,10 +98,13 @@ export default async function BlogPostPage({ params }: PageProps) {
 
       <header className="border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
         <nav className="mx-auto flex max-w-4xl items-center justify-between gap-3">
-          <Link href="/blog" className="flex items-center" aria-label="Back to Golf Pools Pro pick guides">
+          <Link href={logoHref} className="flex items-center" aria-label={fromDashboard ? 'Golf Pools Pro dashboard' : 'Back to Golf Pools Pro pick guides'}>
             <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-11 w-auto object-contain sm:h-14" />
           </Link>
-          <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">Create a pool</Link>
+          <div className="flex items-center gap-2">
+            <Link href={guideHref} className="border-2 border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-sm font-extrabold text-[#123c2f] transition-colors hover:bg-white sm:px-4">All guides</Link>
+            <Link href={primaryHref} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">{primaryLabel}</Link>
+          </div>
         </nav>
       </header>
 
