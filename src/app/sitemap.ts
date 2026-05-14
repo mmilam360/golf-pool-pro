@@ -1,9 +1,11 @@
 import type { MetadataRoute } from 'next'
+import { getAllBlogPosts } from '@/lib/blog'
 
 const siteUrl = 'https://www.golfpoolspro.com'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date()
+  const blogPosts = getAllBlogPosts()
 
   return [
     {
@@ -48,6 +50,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    {
+      url: `${siteUrl}/blog`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    ...blogPosts.map(post => ({
+      url: `${siteUrl}/blog/${post.slug}`,
+      lastModified: new Date(`${post.updatedAt || post.publishedAt}T00:00:00`),
+      changeFrequency: 'weekly' as const,
+      priority: 0.65,
+    })),
     {
       url: `${siteUrl}/privacy`,
       lastModified,

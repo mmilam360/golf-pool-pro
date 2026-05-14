@@ -12,10 +12,14 @@ export function TournamentSeoPage({
   tournamentName,
   poolType,
   description,
+  guideHref,
+  guideLabel,
 }: {
   tournamentName: string
   poolType: string
   description: string
+  guideHref?: string
+  guideLabel?: string
 }) {
   return (
     <div className="min-h-screen scorecard-paper text-[#1f2a24]">
@@ -34,6 +38,7 @@ export function TournamentSeoPage({
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white">Create a pool</Link>
           <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f]">View rules</Link>
+          {guideHref && guideLabel && <Link href={guideHref} className="border-2 border-[#123c2f] bg-[#fbf7ed] px-6 py-3 text-center font-extrabold text-[#123c2f]">{guideLabel}</Link>}
         </div>
 
         <section className="mt-12 grid gap-8 md:grid-cols-[1fr_1fr]">

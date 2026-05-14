@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "blog:validate": "node scripts/validate-blog-posts.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

@@ -171,6 +171,9 @@ export default function Home() {
               <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fbf7ed] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
                 View rules
               </Link>
+              <Link href="/blog" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
+                Pool guides
+              </Link>
             </div>
           </div>
 
@@ -322,6 +325,8 @@ export default function Home() {
       </main>
       <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-6 text-center text-sm text-[#657168]">
         <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
+        <span className="mx-3">/</span>
+        <Link href="/blog" className="font-semibold hover:text-[#123c2f]">Guides</Link>
         <span className="mx-3">/</span>
         <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
         <span className="mx-3">/</span>

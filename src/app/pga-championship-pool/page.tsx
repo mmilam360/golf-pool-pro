@@ -13,6 +13,8 @@ export default function PgaChampionshipPoolPage() {
       tournamentName="PGA Championship"
       poolType="PGA Championship pool"
       description="Set up a PGA Championship pool, share the join link, let players make their own picks, and follow the standings without chasing a spreadsheet."
+      guideHref="/blog/2026-pga-championship-pool-picks"
+      guideLabel="Read this week's pool picks"
     />
   )
 }
