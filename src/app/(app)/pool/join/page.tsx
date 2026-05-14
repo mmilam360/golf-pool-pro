@@ -45,10 +45,9 @@ export default function JoinPoolPage() {
     const tournament = Array.isArray((pool as any).gpp_tournaments)
       ? (pool as any).gpp_tournaments[0]
       : (pool as any).gpp_tournaments
-    const startDate = tournament?.start_date ? new Date(tournament.start_date) : null
-    const hasStarted = tournament?.status === 'live' || tournament?.status === 'completed' || (startDate && startDate <= new Date())
+    const picksClosed = pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed'
 
-    if (pool.is_locked || hasStarted) {
+    if (picksClosed) {
       setError('This pool is locked. Picks have closed.')
       setLoading(false); return
     }

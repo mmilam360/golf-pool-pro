@@ -576,8 +576,30 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }
 
   async function copyToClipboard(value: string, message: string) {
+    const text = value.trim()
+    if (!text) {
+      setStatusMessage('Nothing to copy yet.')
+      showToast('Nothing to copy yet.', 'error')
+      return
+    }
+
     try {
-      await navigator.clipboard?.writeText(value)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        textarea.setAttribute('readonly', '')
+        textarea.style.position = 'fixed'
+        textarea.style.left = '-9999px'
+        textarea.style.top = '0'
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+        const copied = document.execCommand('copy')
+        document.body.removeChild(textarea)
+        if (!copied) throw new Error('copy failed')
+      }
     } catch {
       setStatusMessage('Could not copy. Select and copy it manually.')
       showToast('Could not copy. Select and copy it manually.', 'error')
@@ -747,7 +769,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">Code</p>
               <p className="font-mono text-base font-semibold tracking-[0.08em] text-emerald-900">{pool.passcode}</p>
             </div>
-            <button onClick={copyInviteCode} className="shrink-0 rounded-none border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite code">
+            <button type="button" onClick={copyInviteCode} className="shrink-0 rounded-none border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite code">
               <CopyIcon />
             </button>
           </div>
@@ -756,7 +778,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">Link</p>
               <p className="truncate font-mono text-xs text-stone-900">{inviteUrl || `/pool/join?code=${pool.passcode}`}</p>
             </div>
-            <button onClick={copyInviteLink} className="shrink-0 rounded-none border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite link">
+            <button type="button" onClick={copyInviteLink} className="shrink-0 rounded-none border border-stone-300 p-2 text-emerald-900 hover:bg-emerald-50" aria-label="Copy invite link">
               <CopyIcon />
             </button>
           </div>
