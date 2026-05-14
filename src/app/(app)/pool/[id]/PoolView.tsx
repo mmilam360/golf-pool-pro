@@ -232,17 +232,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
   const paymentCollectionOpen = isLocked || scoringIsLive
   const feeDueDate = formatShortDate(tournament?.start_date)
-  const feeLabel = paymentStatus === 'active'
-    ? 'Paid'
-    : finalAmountDueCents === 0
-      ? 'Free'
+  const feeLabel = finalAmountDueCents === 0
+    ? 'Free'
+    : paymentStatus === 'active'
+      ? 'Paid'
       : paymentCollectionOpen
         ? `${formatCents(finalAmountDueCents)} due`
         : `${formatCents(finalAmountDueCents)} estimate`
-  const feeStatusLabel = paymentStatus === 'active'
-    ? 'Paid'
-    : finalAmountDueCents === 0
-      ? 'Free'
+  const feeStatusLabel = finalAmountDueCents === 0
+    ? 'Free'
+    : paymentStatus === 'active'
+      ? 'Paid'
       : paymentCollectionOpen
         ? 'Due now'
         : 'Estimate'
@@ -251,10 +251,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     : paymentCollectionOpen
       ? 'border-amber-200 bg-amber-50 text-amber-900'
       : 'border-stone-300 bg-white text-stone-700'
-  const feeTimingText = paymentStatus === 'active'
-    ? 'Payment is handled. Results are live.'
-    : finalAmountDueCents === 0
-      ? 'No pool fee with the current entry count.'
+  const feeTimingText = finalAmountDueCents === 0
+    ? 'No pool fee with the current entry count.'
+    : paymentStatus === 'active'
+      ? ''
       : paymentCollectionOpen
         ? `Payment is due now${feeDueDate ? ` (${feeDueDate})` : ''}.`
         : `Estimate now. Final fee is due when picks lock${feeDueDate ? ` on ${feeDueDate}` : ''}.`
@@ -265,9 +265,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const maskHiddenPicks = useCallback((poolEntries: any[]) => {
     if (picksAreClosed) return poolEntries
     return poolEntries.map(entry => {
+      const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
       if (entry.user_id === userId) return entry
       return {
         ...entry,
+        submitted_pick_count: submittedPickCount,
         golfer_picks: [],
         picks_hidden: true,
       }
@@ -1120,7 +1122,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <p className="mt-1 text-sm text-stone-600">
                   {(paymentQuote?.activeEntryCount ?? activeEntries.length)} active {(paymentQuote?.activeEntryCount ?? activeEntries.length) === 1 ? 'entry' : 'entries'} · first 5 free · $1 after · $25 max
                 </p>
-                <p className="mt-2 text-sm font-semibold text-stone-700">{feeTimingText}</p>
+                {feeTimingText && <p className="mt-2 text-sm font-semibold text-stone-700">{feeTimingText}</p>}
                 {appliedPromo && (
                   <p className="mt-1 text-sm font-semibold text-emerald-800">{appliedPromo.code}: {formatCents(appliedPromo.discountCents)} off</p>
                 )}
@@ -1212,7 +1214,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <h3 className="text-lg font-semibold text-emerald-950">Manage entries ({activeEntries.length})</h3>
             </div>
             {entries.map(entry => {
-              const pickCount = ((entry.golfer_picks as string[]) || []).length
+              const pickCount = entry.submitted_pick_count ?? ((entry.golfer_picks as string[]) || []).length
               const picksComplete = pickCount >= pool.pick_count
               return (
                 <div key={entry.id} className={`px-5 py-3 border-b border-stone-100 flex items-center justify-between gap-3 ${entry.is_removed ? 'opacity-40' : ''}`}>

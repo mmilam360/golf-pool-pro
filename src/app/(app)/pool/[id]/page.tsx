@@ -33,9 +33,11 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
   const { data: entries } = await entriesQuery.order('created_at', { ascending: true })
 
   const safeEntries = (entries || []).map(entry => {
+    const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
     if (picksAreVisible || entry.user_id === user.id) return entry
     return {
       ...entry,
+      submitted_pick_count: submittedPickCount,
       golfer_picks: [],
       picks_hidden: true,
     }
