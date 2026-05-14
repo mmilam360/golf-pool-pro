@@ -38,6 +38,42 @@ const leaderboardRows = [
     ],
     other: ['+1 Spieth F', 'CUT Fowler'],
   },
+  {
+    rank: '4',
+    name: 'Mikey',
+    total: '-28',
+    golfers: [
+      ['-6', 'Thomas', 'F'],
+      ['-5', 'Fleetwood', '17'],
+      ['-4', 'Finau', 'F'],
+      ['-3', 'Lowry', '16'],
+    ],
+    other: ['+2 Spieth F', '+5 Fowler F'],
+  },
+  {
+    rank: '5',
+    name: 'Rick',
+    total: '-25',
+    golfers: [
+      ['-6', 'Hovland', 'F'],
+      ['-4', 'Cantlay', '17'],
+      ['-3', 'Day', 'F'],
+      ['-2', 'Burns', '16'],
+    ],
+    other: ['+4 Fowler F', 'CUT Spieth'],
+  },
+  {
+    rank: '6',
+    name: 'Bryan',
+    total: '-22',
+    golfers: [
+      ['-5', 'Rahm', 'F'],
+      ['-4', 'Koepka', '17'],
+      ['-3', 'Homa', 'F'],
+      ['-1', 'Clark', '16'],
+    ],
+    other: ['+3 Spieth F', 'CUT Fowler'],
+  },
 ]
 
 const setupSteps = [
@@ -240,17 +276,6 @@ export default function Home() {
             <div className="gpp-board-post mx-auto -mt-[10px] h-24 w-14 border-x-4 border-[#003622] md:h-28 md:w-16" />
           </div>
 
-          <div className="mx-auto mt-7 flex max-w-3xl flex-col gap-3 sm:flex-row sm:justify-center">
-              <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white transition-colors hover:bg-[#0f2f25]">
-                Create a pool
-              </Link>
-              <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fbf7ed] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
-                View rules
-              </Link>
-              <Link href="/blog" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
-                Pick guides
-              </Link>
-            </div>
         </section>
 
         <section className="border-y border-[#d8cab0] bg-[#123c2f] text-white">
@@ -262,6 +287,20 @@ export default function Home() {
                 <p className="mt-3 max-w-sm leading-7 text-[#d8e3dc]">{step[2]}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="bg-[#fbf7ed] px-5 py-8 md:px-8 md:py-10">
+          <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white transition-colors hover:bg-[#0f2f25]">
+              Create a pool
+            </Link>
+            <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fbf7ed] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
+              View rules
+            </Link>
+            <Link href="/blog" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
+              Pick guides
+            </Link>
           </div>
         </section>
 

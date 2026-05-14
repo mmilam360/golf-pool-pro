@@ -22,6 +22,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Link href="/pool/join" className="border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25]">
               Join
             </Link>
+            <Link href="/blog" className="border-2 border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-[#123c2f] transition-colors hover:bg-white">
+              Pick Guides
+            </Link>
             <form action="/api/auth/logout" method="POST" className="col-span-2 sm:col-span-1">
               <button type="submit" className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 uppercase text-white transition-colors hover:bg-[#0f2f25] sm:normal-case">
                 Sign Out
@@ -33,6 +36,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="mx-auto max-w-7xl flex-1 px-4 py-8 sm:px-5 md:px-8 md:py-10">{children}</main>
       <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-5 text-center text-sm text-[#657168]">
         <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
+        <span className="mx-3">/</span>
+        <Link href="/blog" className="font-semibold hover:text-[#123c2f]">Pick Guides</Link>
         <span className="mx-3">/</span>
         <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
         <span className="mx-3">/</span>

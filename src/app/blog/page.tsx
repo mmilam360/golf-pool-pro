@@ -19,7 +19,10 @@ export default function BlogIndexPage() {
           <Link href="/" className="flex items-center" aria-label="Golf Pools Pro home">
             <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-11 w-auto object-contain sm:h-14" />
           </Link>
-          <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">Create a pool</Link>
+          <div className="flex items-center gap-2">
+            <Link href="/" className="border-2 border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-sm font-extrabold text-[#123c2f] transition-colors hover:bg-white sm:px-4">Back</Link>
+            <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">Create a pool</Link>
+          </div>
         </nav>
       </header>
 
