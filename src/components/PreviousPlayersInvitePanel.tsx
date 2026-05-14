@@ -64,7 +64,7 @@ export function PreviousPlayersInvitePanel({
   }
 
   return (
-    <div className="mt-4 border border-[#d8cab0] bg-[#fbf7ed] p-3">
+    <div className="mt-4 w-full max-w-full overflow-hidden border border-[#d8cab0] bg-[#fbf7ed] p-3">
       <button
         type="button"
         onClick={() => setOpen(value => !value)}
@@ -77,25 +77,25 @@ export function PreviousPlayersInvitePanel({
 
       {open ? (
         <div className="mt-3 space-y-3">
-          <p className="border border-[#d8cab0] bg-white px-3 py-2 text-xs font-semibold leading-5 text-[#657168]">
+          <p className="break-words border border-[#d8cab0] bg-white px-3 py-2 text-xs font-semibold leading-5 text-[#657168]">
             In-app invite only. No email is sent — let players know the invite is waiting for them in their Golf Pools Pro account.
           </p>
           {candidates.length ? (
             <>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex">
                 <button type="button" onClick={selectAll} className="border border-[#123c2f] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f]">Select all</button>
                 <button type="button" onClick={clearAll} className="border border-[#d8cab0] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#657168]">Clear</button>
               </div>
               <div className="max-h-52 overflow-auto border border-[#d8cab0] bg-white">
                 {candidates.map(candidate => (
-                  <label key={candidate.userId} className="flex cursor-pointer items-center gap-3 border-b border-[#eadfca] px-3 py-3 text-sm font-bold text-[#1f2a24] last:border-b-0">
+                  <label key={candidate.userId} className="flex min-w-0 cursor-pointer items-center gap-3 border-b border-[#eadfca] px-3 py-3 text-sm font-bold text-[#1f2a24] last:border-b-0">
                     <input
                       type="checkbox"
                       checked={selected.has(candidate.userId)}
                       onChange={() => toggle(candidate.userId)}
                       className="h-4 w-4 accent-[#123c2f]"
                     />
-                    <span>{candidate.displayName}</span>
+                    <span className="min-w-0 truncate">{candidate.displayName}</span>
                   </label>
                 ))}
               </div>

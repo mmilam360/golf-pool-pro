@@ -136,12 +136,12 @@ export default async function ManagePoolsPage() {
   return (
     <div className="space-y-8">
       <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
-        <div className="flex items-center justify-between border-b border-[#d8cab0] bg-[#123c2f] px-5 py-4 text-white">
-          <div>
+        <div className="flex items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-4 text-white sm:px-5">
+          <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Pool runner board</p>
-            <h1 className="font-display text-3xl font-bold uppercase">Manage Pools</h1>
+            <h1 className="font-display text-2xl font-bold uppercase sm:text-3xl">Manage Pools</h1>
           </div>
-          <Link href="/pool/create" className="hidden border border-[#d8cab0] bg-[#f3df9c] px-3 py-2 text-sm font-black text-[#0f2f25] sm:block">New pool</Link>
+          <Link href="/pool/create" className="shrink-0 border border-[#d8cab0] bg-[#f3df9c] px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#0f2f25] sm:text-sm">Create pool</Link>
         </div>
 
         {!owned.length ? (

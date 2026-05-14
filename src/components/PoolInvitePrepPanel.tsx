@@ -57,13 +57,13 @@ export function PoolInvitePrepPanel({
   }
 
   return (
-    <div className="border-b border-[#eadfca] bg-[#fffdf8] px-4 py-5 sm:px-5">
-      <div className="grid gap-4 border-2 border-[#123c2f] bg-white p-4 shadow-[5px_5px_0_#d8cab0] lg:grid-cols-[0.9fr_1.1fr]">
-        <div>
+    <div className="w-full max-w-full overflow-hidden border-b border-[#eadfca] bg-[#fffdf8] px-3 py-5 sm:px-5">
+      <div className="grid w-full min-w-0 max-w-full gap-4 overflow-hidden border-2 border-[#123c2f] bg-white p-3 shadow-[3px_3px_0_#d8cab0] sm:p-4 sm:shadow-[5px_5px_0_#d8cab0] lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a6724]">Invite board</p>
           <h2 className="mt-1 font-display text-2xl font-black text-[#0f2f25]">Fill the pool before it locks.</h2>
 
-          <div className="mt-3 inline-flex flex-wrap items-center gap-x-2 gap-y-1 border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#657168]">
+          <div className="mt-3 flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-[11px] font-black uppercase tracking-[0.06em] text-[#657168] sm:inline-flex sm:w-auto sm:text-xs sm:tracking-[0.08em]">
             <span><span className="font-mono text-[#123c2f]">{entryCount}</span> {entryCount === 1 ? 'entry' : 'entries'}</span>
             <span className="text-[#d8cab0]">/</span>
             <span><span className="font-mono text-[#123c2f]">{submittedPickCount}</span> picks in</span>
@@ -72,8 +72,8 @@ export function PoolInvitePrepPanel({
           </div>
 
           <div className="mt-4 space-y-2">
-            <div className="flex items-center justify-between gap-3 border border-[#d8cab0] bg-white px-3 py-2">
-              <div className="min-w-0">
+            <div className="flex min-w-0 items-center justify-between gap-3 border border-[#d8cab0] bg-white px-3 py-2">
+              <div className="min-w-0 overflow-hidden">
                 <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#657168]">Passcode</p>
                 <p className="font-mono text-base font-black tracking-[0.08em] text-[#123c2f]">{passcode}</p>
               </div>
@@ -81,8 +81,8 @@ export function PoolInvitePrepPanel({
                 {copied === 'passcode' ? 'Copied' : 'Copy'}
               </button>
             </div>
-            <div className="flex items-center justify-between gap-3 border border-[#d8cab0] bg-white px-3 py-2">
-              <div className="min-w-0">
+            <div className="flex min-w-0 items-center justify-between gap-3 border border-[#d8cab0] bg-white px-3 py-2">
+              <div className="min-w-0 overflow-hidden">
                 <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#657168]">Join link</p>
                 <p className="truncate font-mono text-xs font-semibold text-[#1f2a24]">{joinLink}</p>
               </div>
@@ -95,12 +95,12 @@ export function PoolInvitePrepPanel({
           {previousPlayerInviteNode}
         </div>
 
-        <div className="border border-[#d8cab0] bg-[#fbf7ed] p-3">
-          <div className="flex gap-2">
+        <div className="min-w-0 overflow-hidden border border-[#d8cab0] bg-[#fbf7ed] p-3">
+          <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setFormat('text')} className={`flex-1 border px-3 py-2 text-sm font-black uppercase tracking-[0.08em] ${format === 'text' ? 'border-[#123c2f] bg-[#123c2f] text-white' : 'border-[#d8cab0] bg-white text-[#123c2f]'}`}>Text</button>
             <button type="button" onClick={() => setFormat('email')} className={`flex-1 border px-3 py-2 text-sm font-black uppercase tracking-[0.08em] ${format === 'email' ? 'border-[#123c2f] bg-[#123c2f] text-white' : 'border-[#d8cab0] bg-white text-[#123c2f]'}`}>Email</button>
           </div>
-          <textarea readOnly value={copy} rows={copyRows} className="mt-3 w-full resize-none overflow-hidden border-2 border-[#123c2f] bg-white p-3 text-sm font-semibold leading-6 text-[#1f2a24]" />
+          <textarea readOnly value={copy} rows={copyRows} wrap="soft" className="mt-3 block w-full min-w-0 resize-none overflow-hidden border-2 border-[#123c2f] bg-white p-3 text-sm font-semibold leading-6 text-[#1f2a24]" />
           <button type="button" onClick={() => copyValue(copy, 'invite')} className="mt-3 w-full border-2 border-[#123c2f] bg-[#f3df9c] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#0f2f25]">
             {copied === 'invite' ? 'Copied' : `Copy ${format}`}
           </button>
