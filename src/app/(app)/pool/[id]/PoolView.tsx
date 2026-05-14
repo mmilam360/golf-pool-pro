@@ -231,6 +231,33 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
   const paymentCollectionOpen = isLocked || scoringIsLive
+  const feeDueDate = formatShortDate(tournament?.start_date)
+  const feeLabel = paymentStatus === 'active'
+    ? 'Paid'
+    : finalAmountDueCents === 0
+      ? 'Free'
+      : paymentCollectionOpen
+        ? `${formatCents(finalAmountDueCents)} due`
+        : `${formatCents(finalAmountDueCents)} estimate`
+  const feeStatusLabel = paymentStatus === 'active'
+    ? 'Paid'
+    : finalAmountDueCents === 0
+      ? 'Free'
+      : paymentCollectionOpen
+        ? 'Due now'
+        : 'Estimate'
+  const feeStatusClass = paymentStatus === 'active' || finalAmountDueCents === 0
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+    : paymentCollectionOpen
+      ? 'border-amber-200 bg-amber-50 text-amber-900'
+      : 'border-stone-300 bg-white text-stone-700'
+  const feeTimingText = paymentStatus === 'active'
+    ? 'Payment is handled. Results are live.'
+    : finalAmountDueCents === 0
+      ? 'No pool fee with the current entry count.'
+      : paymentCollectionOpen
+        ? `Payment is due now${feeDueDate ? ` (${feeDueDate})` : ''}.`
+        : `Estimate now. Final fee is due when picks lock${feeDueDate ? ` on ${feeDueDate}` : ''}.`
   const leaderboardIsHidden = scoringIsLive && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const visibleEntries = activeEntries
@@ -304,6 +331,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (cents == null) return 'Custom'
     if (cents === 0) return '$0'
     return `$${(cents / 100).toFixed(2)}`
+  }
+
+  function formatShortDate(value?: string | null) {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
   }
 
   function reviewActivation() {
@@ -1079,27 +1113,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {tab === 'admin' && isOwner && (
         <div ref={adminSectionRef} className="scroll-mt-6 space-y-6">
           <section className="border border-stone-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-800">Pool fee</p>
-                <h3 className="mt-1 text-xl font-bold text-emerald-950">{formatCents(finalAmountDueCents)} due</h3>
+                <h3 className="mt-1 text-2xl font-black text-emerald-950">{feeLabel}</h3>
                 <p className="mt-1 text-sm text-stone-600">
                   {(paymentQuote?.activeEntryCount ?? activeEntries.length)} active {(paymentQuote?.activeEntryCount ?? activeEntries.length) === 1 ? 'entry' : 'entries'} · first 5 free · $1 after · $25 max
                 </p>
+                <p className="mt-2 text-sm font-semibold text-stone-700">{feeTimingText}</p>
                 {appliedPromo && (
                   <p className="mt-1 text-sm font-semibold text-emerald-800">{appliedPromo.code}: {formatCents(appliedPromo.discountCents)} off</p>
                 )}
               </div>
-              {paymentStatus === 'active' && (
-                <span className="inline-flex w-fit border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-emerald-800">Handled</span>
-              )}
+              <span className={`inline-flex w-fit border px-3 py-1 text-xs font-black uppercase tracking-[0.08em] ${feeStatusClass}`}>{feeStatusLabel}</span>
             </div>
 
-            {paymentStatus === 'active' ? (
-              <p className="mt-4 border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Payment is handled. Results are available.</p>
-            ) : paymentQuote?.requiresCustomQuote ? (
+            {paymentStatus !== 'active' && paymentQuote?.requiresCustomQuote && (
               <p className="mt-4 border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">This pool needs manual pricing.</p>
-            ) : (
+            )}
+            {paymentStatus !== 'active' && !paymentQuote?.requiresCustomQuote && (
               <div className="mt-4 space-y-4">
                 {!paymentCollectionOpen ? (
                   <p className="border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Payment opens after you lock picks.</p>
