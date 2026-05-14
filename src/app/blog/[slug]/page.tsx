@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
 import { createClient } from '@/lib/supabase/server'
 
@@ -123,16 +123,6 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
           <h1 className="mt-3 font-display text-4xl font-black leading-tight text-[#0f2f25] md:text-6xl">{post.title}</h1>
           <p className="mt-5 text-lg leading-8 text-[#4f5b52]">{post.description}</p>
 
-          {post.pastWinners && post.pastWinners.length > 0 && (
-            <div className="mt-5 grid gap-2 sm:grid-cols-3" aria-label="Past winners">
-              {post.pastWinners.map(winner => (
-                <div key={`${winner.year}-${winner.golfer}`} className="border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-sm font-black text-[#0f2f25] shadow-[3px_3px_0_#d8cab0]">
-                  <span className="text-[#8a6724]">{winner.year}:</span> {winner.golfer}
-                </div>
-              ))}
-            </div>
-          )}
-
           {post.disclaimer && (
             <p className="mt-5 border-l-4 border-[#b58a3a] bg-[#fbf7ed] px-4 py-3 text-sm font-semibold leading-6 text-[#4f5b52]">
               {post.disclaimer}
@@ -145,18 +135,33 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
           </div>
 
           <div className="mt-10 space-y-9">
-            {post.sections.map(section => (
-              <section key={section.heading}>
-                <h2 className="font-display text-3xl font-black leading-tight text-[#0f2f25]">{section.heading}</h2>
-                <div className="mt-4 space-y-4 text-base leading-8 text-[#3f4a43]">
-                  {section.body.map(paragraph => <p key={paragraph}>{renderHighlightedText(paragraph, post.playerHighlights)}</p>)}
-                </div>
-                {section.bullets && (
-                  <ul className="mt-4 space-y-2 border-l-4 border-[#b21e23] bg-[#fbf7ed] p-4 text-[#3f4a43]">
-                    {section.bullets.map(item => <li key={item} className="font-semibold">{renderHighlightedText(item, post.playerHighlights)}</li>)}
-                  </ul>
+            {post.sections.map((section, index) => (
+              <Fragment key={section.heading}>
+                <section>
+                  <h2 className="font-display text-3xl font-black leading-tight text-[#0f2f25]">{section.heading}</h2>
+                  <div className="mt-4 space-y-4 text-base leading-8 text-[#3f4a43]">
+                    {section.body.map(paragraph => <p key={paragraph}>{renderHighlightedText(paragraph, post.playerHighlights)}</p>)}
+                  </div>
+                  {section.bullets && (
+                    <ul className="mt-4 space-y-2 border-l-4 border-[#b21e23] bg-[#fbf7ed] p-4 text-[#3f4a43]">
+                      {section.bullets.map(item => <li key={item} className="font-semibold">{renderHighlightedText(item, post.playerHighlights)}</li>)}
+                    </ul>
+                  )}
+                </section>
+
+                {index === 0 && post.pastWinners && post.pastWinners.length > 0 && (
+                  <section aria-label="Previous champions" className="border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[4px_4px_0_#d8cab0]">
+                    <h2 className="text-sm font-black uppercase tracking-[0.16em] text-[#8a6724]">Previous champions</h2>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                      {post.pastWinners.map(winner => (
+                        <div key={`${winner.year}-${winner.golfer}`} className="border-2 border-[#123c2f] bg-white px-3 py-2 text-sm font-black text-[#0f2f25]">
+                          <span className="text-[#8a6724]">{winner.year}:</span> {winner.golfer}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 )}
-              </section>
+              </Fragment>
             ))}
           </div>
 
