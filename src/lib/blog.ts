@@ -25,6 +25,14 @@ export type BlogPost = {
     label: string
     href: string
   }
+  tournament?: {
+    name: string
+    startDate?: string
+  }
+  pastWinners?: Array<{
+    year: string
+    golfer: string
+  }>
   playerHighlights?: string[]
   disclaimer?: string
   sections: BlogSection[]

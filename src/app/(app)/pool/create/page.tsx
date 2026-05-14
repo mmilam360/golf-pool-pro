@@ -25,6 +25,14 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
+function normalizeTournamentKey(value?: string | null) {
+  return (value || '')
+    .toLowerCase()
+    .replace(/&amp;/g, '&')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
 function NumberStepper({
   label,
   value,
@@ -115,7 +123,24 @@ export default function CreatePoolPage() {
       .select('id, name, start_date, end_date, course, status')
       .in('status', ['upcoming', 'live'])
       .order('start_date', { ascending: true })
-    if (data) setTournaments(data)
+    if (data) {
+      setTournaments(data)
+
+      const params = new URLSearchParams(window.location.search)
+      const requestedTournament = params.get('tournament')
+      const requestedStart = params.get('start')
+      if (requestedTournament) {
+        const requestedKey = normalizeTournamentKey(requestedTournament)
+        const match = data.find(t => {
+          const nameMatches = normalizeTournamentKey(t.name) === requestedKey
+          const idMatches = t.id === requestedTournament
+          const startMatches = !requestedStart || t.start_date?.startsWith(requestedStart)
+          return (nameMatches || idMatches) && startMatches
+        }) || data.find(t => normalizeTournamentKey(t.name).includes(requestedKey))
+
+        if (match) setSelectedTournament(match.id)
+      }
+    }
   }
 
   async function handleCreate(e: React.FormEvent) {

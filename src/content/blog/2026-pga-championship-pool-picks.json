@@ -17,6 +17,15 @@
     "label": "Create a PGA Championship pool",
     "href": "/signup"
   },
+  "tournament": {
+    "name": "PGA Championship",
+    "startDate": "2026-05-14"
+  },
+  "pastWinners": [
+    { "year": "2025", "golfer": "Scottie Scheffler" },
+    { "year": "2024", "golfer": "Xander Schauffele" },
+    { "year": "2023", "golfer": "Brooks Koepka" }
+  ],
   "playerHighlights": [
     "Scottie Scheffler",
     "Cameron Young",
@@ -37,7 +46,7 @@
     {
       "heading": "Start with the pool format",
       "body": [
-        "This is not a betting card. A golf pool is different. You need enough ceiling to win, but you also need four counted scores alive on the weekend.",
+        "The PGA Championship comes to Aronimink with a field that should make pool cards uncomfortable in a good way: enough obvious stars to anchor entries, enough course-fit questions to create debate, and enough mid-board names to separate smart picks from lazy ones.",
         "Aronimink is playing as a par 70 around 7,350 to 7,400 yards. The course notes point to precision, approach play, firm greens, and fewer easy bailout spots. That makes missed-cut risk matter more than usual. A player who can finish T18 is often more useful than a longshot who needs everything to go right just to see Saturday."
       ]
     },

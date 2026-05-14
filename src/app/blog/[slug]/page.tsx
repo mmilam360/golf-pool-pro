@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
+import { createClient } from '@/lib/supabase/server'
 
 const siteUrl = 'https://www.golfpoolspro.com'
 
@@ -66,6 +67,14 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
   const post = getBlogPost(slug)
   if (!post) notFound()
 
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const createPoolHref = post.tournament?.name
+    ? `/pool/create?tournament=${encodeURIComponent(post.tournament.name)}${post.tournament.startDate ? `&start=${encodeURIComponent(post.tournament.startDate)}` : ''}`
+    : '/pool/create'
+  const heroCtaHref = user ? createPoolHref : `/signup?redirect=${encodeURIComponent(createPoolHref)}`
+  const heroCtaLabel = post.heroCta.label
+
   const url = `${siteUrl}/blog/${post.slug}`
   const articleSchema = {
     '@context': 'https://schema.org',
@@ -114,6 +123,16 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
           <h1 className="mt-3 font-display text-4xl font-black leading-tight text-[#0f2f25] md:text-6xl">{post.title}</h1>
           <p className="mt-5 text-lg leading-8 text-[#4f5b52]">{post.description}</p>
 
+          {post.pastWinners && post.pastWinners.length > 0 && (
+            <div className="mt-5 grid gap-2 sm:grid-cols-3" aria-label="Past winners">
+              {post.pastWinners.map(winner => (
+                <div key={`${winner.year}-${winner.golfer}`} className="border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-sm font-black text-[#0f2f25] shadow-[3px_3px_0_#d8cab0]">
+                  <span className="text-[#8a6724]">{winner.year}:</span> {winner.golfer}
+                </div>
+              ))}
+            </div>
+          )}
+
           {post.disclaimer && (
             <p className="mt-5 border-l-4 border-[#b58a3a] bg-[#fbf7ed] px-4 py-3 text-sm font-semibold leading-6 text-[#4f5b52]">
               {post.disclaimer}
@@ -121,7 +140,7 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
           )}
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <Link href={post.heroCta.href} className="border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-center font-extrabold text-white">{post.heroCta.label}</Link>
+            <Link href={heroCtaHref} className="border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-center font-extrabold text-white">{heroCtaLabel}</Link>
             <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fffdf8] px-5 py-3 text-center font-extrabold text-[#123c2f]">View scoring rules</Link>
           </div>
 
