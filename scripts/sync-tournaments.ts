@@ -23,7 +23,7 @@ function parseArgs() {
 async function main() {
   const result = await syncTournaments(parseArgs())
   console.log(`Fetched ${result.fetched} PGA events for ${result.season}`)
-  console.log(`Done. Inserted: ${result.inserted}, Updated: ${result.updated}, Fields refreshed: ${result.fieldsUpdated}, Leaderboards refreshed: ${result.leaderboardsUpdated}`)
+  console.log(`Done. Inserted: ${result.inserted}, Updated: ${result.updated}, Fields refreshed: ${result.fieldsUpdated}, Leaderboards refreshed: ${result.leaderboardsUpdated}, Pools auto-locked: ${result.poolsAutoLocked}`)
 }
 
 main().catch(err => {

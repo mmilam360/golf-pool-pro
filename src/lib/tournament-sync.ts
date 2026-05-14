@@ -12,6 +12,7 @@ export interface TournamentSyncResult {
   updated: number
   fieldsUpdated: number
   leaderboardsUpdated: number
+  poolsAutoLocked: number
 }
 
 function toDateOnly(value: string | null | undefined) {
@@ -114,7 +115,10 @@ export async function syncTournaments({
     updated: 0,
     fieldsUpdated: 0,
     leaderboardsUpdated: 0,
+    poolsAutoLocked: 0,
   }
+
+  const liveTournamentIds: string[] = []
 
   for (const event of schedule) {
     const externalId = String(event.id)
@@ -189,11 +193,26 @@ export async function syncTournaments({
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
       result.updated++
+      if (status === 'live' || status === 'completed') liveTournamentIds.push(existing.id)
     } else {
-      const { error } = await supabase.from('gpp_tournaments').insert(row)
+      const { data: inserted, error } = await supabase.from('gpp_tournaments').insert(row).select('id').single()
       if (error) throw error
       result.inserted++
+      if ((status === 'live' || status === 'completed') && inserted?.id) liveTournamentIds.push(inserted.id)
     }
+  }
+
+  if (liveTournamentIds.length > 0) {
+    const uniqueLiveTournamentIds = Array.from(new Set(liveTournamentIds))
+    const { data: lockedPools, error } = await supabase
+      .from('gpp_pools')
+      .update({ is_locked: true })
+      .in('tournament_id', uniqueLiveTournamentIds)
+      .eq('is_locked', false)
+      .select('id')
+
+    if (error) throw error
+    result.poolsAutoLocked = lockedPools?.length || 0
   }
 
   return result
