@@ -1,5 +1,12 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { BackButton } from '@/components/BackButton'
+
+export const metadata: Metadata = {
+  title: 'Golf Pool Rules and OB Scoring | Golf Pools Pro',
+  description: 'Clear golf pool rules for picks, counted scores, missed cuts, OB scoring, live leaderboards, and host payment timing.',
+  alternates: { canonical: 'https://www.golfpoolspro.com/rules' },
+}
 
 export default function RulesPage() {
   return (

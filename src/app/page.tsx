@@ -52,6 +52,66 @@ const pricingRows = [
   ['Maximum pool fee', '$25 cap'],
 ]
 
+const faqItems = [
+  {
+    question: 'What happens if one of my golfers misses the cut?',
+    answer: 'They move out of your counted scores if you have better active picks. If too many picks miss the cut, Golf Pools Pro fills the open counted spots with OB stand-ins based on the pool rules.',
+  },
+  {
+    question: 'How does the OB rule work?',
+    answer: 'OB keeps every entry at the same number of counted scores. If your pool counts 4 golfers and you only have 3 active golfers left, the empty spot gets an OB score based on the worst active counted score plus the pool penalty.',
+  },
+  {
+    question: 'How many players can join a pool?',
+    answer: 'There is no tiny office-pool limit. Small pools are free for the first 5 active entries, and larger pools stay capped at $25 for the host.',
+  },
+  {
+    question: 'Do players need to pay to join?',
+    answer: 'No. Players join with the pool link or passcode, make picks, and follow the leaderboard. The host handles any pool fee after entries lock.',
+  },
+  {
+    question: 'Can I use this for an office pool or a group text pool?',
+    answer: 'Yes. Golf Pools Pro is built for the person who usually collects picks in a spreadsheet and posts standings manually. The app handles picks, rules, and the live board in one place.',
+  },
+]
+
+const softwareSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Golf Pools Pro',
+  applicationCategory: 'SportsApplication',
+  operatingSystem: 'Web',
+  url: 'https://www.golfpoolspro.com',
+  description: 'Online golf pool manager with private join links, pick tracking, automatic scoring, OB rules, and live leaderboards.',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+    description: 'First 5 active entries free. Extra active entries are $1 each, capped at $25 per pool.',
+  },
+}
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Golf Pools Pro',
+  url: 'https://www.golfpoolspro.com',
+  logo: 'https://www.golfpoolspro.com/brand/golf-pools-pro-wordmark.png',
+}
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqItems.map(item => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.answer,
+    },
+  })),
+}
+
 function scoreColor(score: string) {
   return score.startsWith('-') ? 'text-[#b21e23]' : score === 'E' ? 'text-[#111]' : 'text-[#005b3c]'
 }
@@ -69,6 +129,9 @@ function GolferCell({ golfer }: { golfer: string[] }) {
 export default function Home() {
   return (
     <div className="min-h-screen scorecard-paper text-[#1f2a24]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <header className="border-b border-[#d8cab0] bg-[#fbf7ed]/90 backdrop-blur-sm">
         <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 md:px-8">
           <Link href="/" className="flex items-center gap-3" aria-label="Golf Pools Pro home">
@@ -118,8 +181,8 @@ export default function Home() {
             <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[14px]">
               <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
                 <div className="relative border-b-2 border-[#111] px-3 py-2">
-                  <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">Tiger&apos;s Tribe - PGA Championship pool</p>
+                  <p className="text-2xl font-black uppercase leading-none tracking-[0.18em] text-[#111] sm:text-3xl">PGA Championship</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">Tiger&apos;s Tribe pool</p>
                   <div className="absolute right-2 top-2 border border-[#d8cab0] bg-[#f3df9c] px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#0f2f25]">Demo</div>
                 </div>
 
@@ -223,9 +286,29 @@ export default function Home() {
         </section>
 
         <section className="mx-auto max-w-7xl px-5 pb-14 md:px-8 md:pb-20">
+          <div className="mb-10 grid gap-8 md:grid-cols-[0.8fr_1.2fr] md:items-start">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Common questions</p>
+              <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">The stuff every pool runner has to explain.</h2>
+              <p className="mt-4 max-w-xl leading-7 text-[#657168]">Rules, missed cuts, payment, and entry limits are handled up front so your group is not arguing in the chat on Sunday.</p>
+            </div>
+            <div className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
+              {faqItems.map(item => (
+                <details key={item.question} className="group border-b-2 border-[#123c2f] last:border-b-0">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-black text-[#0f2f25] [&::-webkit-details-marker]:hidden">
+                    <span>{item.question}</span>
+                    <span className="text-2xl leading-none text-[#b21e23] group-open:hidden">+</span>
+                    <span className="hidden text-2xl leading-none text-[#b21e23] group-open:block">–</span>
+                  </summary>
+                  <p className="px-5 pb-5 leading-7 text-[#4f5b52]">{item.answer}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-8 border-2 border-[#123c2f] bg-white p-6 shadow-[7px_7px_0_#d8cab0] md:grid-cols-[1fr_auto] md:items-center md:p-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Golf pool app</p>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Golf pool manager</p>
               <h2 className="mt-3 font-display text-3xl font-bold text-[#0f2f25] md:text-4xl">Create the pool before the first tee time.</h2>
               <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
                 No spreadsheet cleanup. No group-text standings. Players enter picks, and the leaderboard carries the pool once scoring starts.
