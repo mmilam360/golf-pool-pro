@@ -218,34 +218,10 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
-        <div className="grid gap-6 border-b border-[#d8cab0] bg-[#fbf7ed] p-5 md:grid-cols-[1fr_auto] md:items-end md:p-7">
-          <div>
-            <p className="mb-3 w-fit border-y border-[#b58a3a] py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Clubhouse desk</p>
-            <h1 className="font-display text-4xl font-bold tracking-[-0.03em] text-[#0f2f25] md:text-5xl">Dashboard</h1>
-            <p className="mt-3 max-w-2xl leading-7 text-[#657168]">Create the next pool, join one by passcode, or jump back into an active board.</p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/pool/create" className="gpp-3d gpp-button-3d gpp-button-wrap text-sm">
-              <span className="gpp-button-face px-5 py-3">Create pool</span>
-            </Link>
-            <Link href="/pool/join" className="gpp-3d gpp-button-3d gpp-button-wrap gpp-button-3d-light text-sm">
-              <span className="gpp-button-face px-5 py-3">Join pool</span>
-            </Link>
-          </div>
-        </div>
-        <div className="border-t border-[#eadfca] bg-white p-5">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              { label: 'Owned pools', value: owned.length },
-              { label: 'Joined pools', value: joined.length },
-              { label: 'Active pools', value: activeCount },
-            ].map(item => (
-              <div key={item.label} className="border border-stone-200 bg-[#fbf7ed] px-4 py-4">
-                <p className="text-2xl font-black text-[#0f2f25]">{item.value}</p>
-                <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#657168]">{item.label}</p>
-              </div>
-            ))}
-          </div>
+        <div className="border-b border-[#d8cab0] bg-[#fbf7ed] p-5 md:p-7">
+          <p className="mb-3 w-fit border-y border-[#b58a3a] py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Clubhouse desk</p>
+          <h1 className="font-display text-4xl font-bold tracking-[-0.03em] text-[#0f2f25] md:text-5xl">Dashboard</h1>
+          <p className="mt-3 max-w-2xl leading-7 text-[#657168]">Check active pools, create the next one, or join with a passcode.</p>
         </div>
       </section>
 
@@ -282,6 +258,15 @@ export default async function DashboardPage() {
           </div>
         </section>
       )}
+
+      <section className="flex flex-col gap-3 sm:flex-row">
+        <Link href="/pool/create" className="gpp-3d gpp-button-3d gpp-button-wrap text-sm">
+          <span className="gpp-button-face px-5 py-3">Create pool</span>
+        </Link>
+        <Link href="/pool/join" className="gpp-3d gpp-button-3d gpp-button-wrap gpp-button-3d-light text-sm">
+          <span className="gpp-button-face px-5 py-3">Join pool</span>
+        </Link>
+      </section>
 
       <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
         <div className="flex items-center justify-between border-b border-[#d8cab0] bg-[#123c2f] px-5 py-4 text-white">
@@ -387,6 +372,21 @@ export default async function DashboardPage() {
             })}
           </div>
         )}
+      </section>
+
+      <section className="border border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-[#0f2f25]">
+        <div className="grid grid-cols-3 divide-x divide-[#d8cab0] text-center">
+          {[
+            { label: 'Owned', value: owned.length },
+            { label: 'Joined', value: joined.length },
+            { label: 'Active', value: activeCount },
+          ].map(item => (
+            <div key={item.label} className="px-2">
+              <p className="text-lg font-black leading-none">{item.value}</p>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#657168]">{item.label}</p>
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   )
