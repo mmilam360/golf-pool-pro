@@ -193,18 +193,33 @@ export default async function DashboardPage() {
     const bDate = b.tournament?.start_date || '9999-12-31'
     return aDate.localeCompare(bDate)
   })
-  const activeCount = activePoolCards.length
+  const hasAnyPools = owned.length > 0 || joined.length > 0
 
   return (
     <div className="space-y-8">
       <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
         <div className="flex flex-col gap-4 border-b border-[#d8cab0] bg-[#fbf7ed] p-5 md:flex-row md:items-center md:justify-between md:p-7">
-          <h1 className="font-display text-4xl font-bold uppercase tracking-[-0.03em] text-[#0f2f25] md:text-5xl">Dashboard</h1>
+          <h1 className="font-display text-4xl font-bold uppercase tracking-[-0.03em] text-[#0f2f25] md:text-5xl">Player Dashboard</h1>
         </div>
       </section>
 
       <DashboardActivePools cards={activePoolCards} entriesByPool={entriesByPool} />
 
+      {!hasAnyPools ? (
+        <section className="border-2 border-[#123c2f] bg-white p-5 shadow-[7px_7px_0_#d8cab0] sm:p-7">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Get started</p>
+          <h2 className="mt-2 font-display text-3xl font-bold text-[#0f2f25]">What are you here to do?</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <Link href="/pool/join" className="border-2 border-[#123c2f] bg-[#123c2f] px-5 py-4 font-black text-white transition-colors hover:bg-[#0f2f25]">
+              Have a passcode? Join a pool.
+            </Link>
+            <Link href="/pool/create" className="border-2 border-[#123c2f] bg-[#fbf7ed] px-5 py-4 font-black text-[#123c2f] transition-colors hover:bg-white">
+              Running the group? Create a pool.
+            </Link>
+          </div>
+        </section>
+      ) : (
+        <>
       <section className="md:hidden">
         <Link href="/pool/join" className="gpp-3d gpp-button-3d gpp-button-wrap gpp-button-3d-light w-full text-sm">
           <span className="gpp-button-face w-full px-5 py-3">Join pool</span>
@@ -264,21 +279,8 @@ export default async function DashboardPage() {
           </div>
         )}
       </section>
-
-      <section className="border border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-[#0f2f25]">
-        <div className="grid grid-cols-3 divide-x divide-[#d8cab0] text-center">
-          {[
-            { label: 'Owned', value: owned.length },
-            { label: 'Joined', value: joined.length },
-            { label: 'Active', value: activeCount },
-          ].map(item => (
-            <div key={item.label} className="px-2">
-              <p className="text-lg font-black leading-none">{item.value}</p>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#657168]">{item.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+        </>
+      )}
     </div>
   )
 }
