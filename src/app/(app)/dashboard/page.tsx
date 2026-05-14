@@ -9,8 +9,10 @@ import type { GolfPlayer } from '@/lib/golf-api'
 type Tournament = {
   name?: string | null
   start_date?: string | null
+  end_date?: string | null
   status?: string | null
   leaderboard_json?: GolfPlayer[] | null
+  last_scores_fetch?: string | null
 }
 
 type PoolRecord = {
@@ -71,7 +73,20 @@ function statusClass(label: string) {
 }
 
 function isActivePool(pool: PoolRecord, tournament: Tournament | null) {
-  return !pool.is_completed && tournament?.status !== 'completed'
+  if (pool.is_completed || tournament?.status === 'completed') return false
+  if (tournament?.status === 'live') return true
+  if (!tournament?.start_date) return true
+
+  const today = new Date().toISOString().slice(0, 10)
+  const startDate = tournament.start_date.split('T')[0]
+  return startDate >= today
+}
+
+function hasRecentScores(tournament: Tournament | null) {
+  if (tournament?.status !== 'live' || !tournament.last_scores_fetch) return false
+  const lastFetchMs = new Date(tournament.last_scores_fetch).getTime()
+  if (!Number.isFinite(lastFetchMs)) return false
+  return Date.now() - lastFetchMs <= 3 * 60 * 1000
 }
 
 function LockGlyph({ locked }: { locked: boolean }) {
@@ -88,6 +103,27 @@ function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
     <span className={`inline-flex items-center gap-1.5 border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>
       {label === 'Passed' ? null : <LockGlyph locked={locked || label === 'Live'} />}
       {label}
+    </span>
+  )
+}
+
+function LivePulseBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 border border-[#1f6b4a] bg-[#123c2f] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-white">
+      <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+        <span className="absolute inline-flex h-full w-full animate-ping bg-[#d7c99f] opacity-75" />
+        <span className="relative inline-flex h-2.5 w-2.5 bg-[#d7c99f]" />
+      </span>
+      Live
+    </span>
+  )
+}
+
+function ScoreBadge({ score }: { score: number | null | undefined }) {
+  const text = typeof score === 'number' ? formatScore(score) : '—'
+  return (
+    <span className="whitespace-nowrap border border-[#b21e23] bg-[#fff1ef] px-2 py-1 font-black text-[#b21e23]">
+      Score {text}
     </span>
   )
 }
@@ -157,13 +193,13 @@ export default async function DashboardPage() {
 
   const { data: ownedPools } = await supabase
     .from('gpp_pools')
-    .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, count_scores, ob_rule_enabled, ob_penalty_strokes, gpp_tournaments(name, start_date, status, leaderboard_json)')
+    .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, count_scores, ob_rule_enabled, ob_penalty_strokes, gpp_tournaments(name, start_date, end_date, status, leaderboard_json, last_scores_fetch)')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
   const { data: entries } = await supabase
     .from('gpp_entries')
-    .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, count_scores, ob_rule_enabled, ob_penalty_strokes, gpp_tournaments(name, start_date, status, leaderboard_json))')
+    .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, count_scores, ob_rule_enabled, ob_penalty_strokes, gpp_tournaments(name, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
     .eq('user_id', user.id)
     .eq('is_removed', false)
     .order('created_at', { ascending: false })
@@ -244,12 +280,12 @@ export default async function DashboardPage() {
                       <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
                       <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#1f2a24]">{tournament?.name || 'Tournament'}</p>
                     </div>
-                    <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
+                    {hasRecentScores(tournament) ? <LivePulseBadge /> : <StatusBadge label={label} locked={Boolean(pool.is_locked)} />}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
                     <span className="mr-auto min-w-24 truncate">{role}</span>
                     {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
-                    <span className="whitespace-nowrap border border-stone-200 bg-[#fbf7ed] px-2 py-1 font-mono tracking-[0.06em]">{formatDate(tournament?.start_date)}</span>
+                    <ScoreBadge score={rankPreview?.totalScore} />
                     <span className="whitespace-nowrap border border-stone-200 bg-[#fbf7ed] px-2 py-1 text-right tracking-[0.08em]">{countLabel}</span>
                   </div>
                 </Link>
