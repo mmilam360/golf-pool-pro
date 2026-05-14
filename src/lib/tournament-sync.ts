@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { getLeaderboard, getSchedule, mapCompetitorToPlayer } from './golf-api'
+import { getPgaTourFieldForEvent } from './pgatour-api'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 const PGA_CHAMPIONSHIP_PLAYERS_URL = 'https://www.pgachampionship.com/players'
@@ -130,7 +131,15 @@ export async function syncTournaments({
       || bestEvent.venue?.address?.city
       || null
     const status = getStatus(bestEvent)
-    let players = extractPlayers(bestEvent)
+    let players = await getPgaTourFieldForEvent({
+      name: bestEvent.name || event.name,
+      date: bestEvent.date || event.date,
+      season,
+    }).catch(() => [])
+
+    if (players.length === 0) {
+      players = extractPlayers(bestEvent)
+    }
 
     if (players.length === 0 && bestEvent.name === 'PGA Championship') {
       const pgaChampionshipPlayers = await fetchPgaChampionshipPlayers().catch(() => [])

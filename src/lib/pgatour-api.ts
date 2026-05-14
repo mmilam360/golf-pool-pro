@@ -104,6 +104,79 @@ export async function findPgaTourTournamentId({
   return loose?.tournamentId || null
 }
 
+function mapPgaTourFieldPlayer(player: any, index: number): GolfPlayer {
+  const name = [player.firstName, player.lastName].filter(Boolean).join(' ')
+    || String(player.displayName || '').replace(/^([^,]+),\s*(.+)$/, '$2 $1')
+    || 'Unknown'
+  const split = splitName(name)
+
+  return {
+    id: String(player.id || name || `pga-tour-field-${index + 1}`),
+    name,
+    firstName: player.firstName || split.firstName,
+    lastName: player.lastName || split.lastName,
+    score: 'E',
+    scoreToPar: 0,
+    thru: '',
+    roundScore: '',
+    position: '',
+    strokes: 0,
+    status: 'active',
+    country: player.country || '',
+    image: player.headshot || undefined,
+  }
+}
+
+export async function getPgaTourFieldById(tournamentId: string): Promise<GolfPlayer[]> {
+  const query = `query Field($id: ID!) {
+    field(id: $id) {
+      id
+      players {
+        id
+        displayName
+        firstName
+        lastName
+        country
+        headshot
+      }
+    }
+  }`
+
+  const res = await fetch(PGA_GRAPHQL_URL, {
+    ...FETCH_HOURLY,
+    method: 'POST',
+    headers: pgaHeaders({
+      'Content-Type': 'application/json',
+      'Accept': 'application/graphql-response+json, application/json',
+    }),
+    body: JSON.stringify({
+      operationName: 'Field',
+      query,
+      variables: { id: tournamentId },
+    }),
+  })
+
+  if (!res.ok) throw new Error(`PGA Tour field: ${res.status}`)
+  const data = await res.json()
+  const players = data?.data?.field?.players || []
+  return players.map(mapPgaTourFieldPlayer).filter((player: GolfPlayer) => player.name && player.name !== 'Unknown')
+}
+
+export async function getPgaTourFieldForEvent(event: {
+  name: string
+  date?: string
+  season?: number
+}) {
+  const tournamentId = await findPgaTourTournamentId({
+    name: event.name,
+    startDate: event.date,
+    season: event.season,
+  })
+
+  if (!tournamentId) return []
+  return getPgaTourFieldById(tournamentId)
+}
+
 export async function getPgaTourLeaderboardById(tournamentId: string): Promise<GolfTournament | null> {
   const query = `query LeaderboardCompressedV3($leaderboardCompressedV3Id: ID!) {
     leaderboardCompressedV3(id: $leaderboardCompressedV3Id) {
