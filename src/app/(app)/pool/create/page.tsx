@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { BoardMetric, ClubhouseBoard } from '@/components/ClubhouseBoard'
 import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -11,11 +10,6 @@ interface Tournament {
 }
 
 type PoolNumber = number | ''
-
-function formatDate(value?: string) {
-  if (!value) return 'Date TBA'
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(value))
-}
 
 function toNumber(value: PoolNumber, fallback: number) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
@@ -259,7 +253,7 @@ export default function CreatePoolPage() {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-8 pr-1 pb-1 lg:grid-cols-[1fr_0.9fr] lg:items-start lg:pr-0 lg:pb-0">
+    <div className="mx-auto w-full max-w-3xl pr-1 pb-1 lg:pr-0 lg:pb-0">
       <div>
         <BackButton />
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Tournament setup</p>
@@ -285,6 +279,12 @@ export default function CreatePoolPage() {
                 </option>
               ))}
             </select>
+            {tournament ? (
+              <div className="mt-3 border border-[#d8cab0] bg-[#fbf7ed] px-3 py-3 text-sm text-[#1f2a24]">
+                <p className="font-black uppercase tracking-[0.08em] text-[#123c2f]">{tournament.name}</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#657168]">{tournament.course || 'Course TBA'} · {tournament.start_date || 'Date TBA'}</p>
+              </div>
+            ) : null}
             {tournaments.length === 0 && (
               <p className="mt-1 text-xs text-stone-500">No upcoming tournaments loaded. Sync tournaments first.</p>
             )}
@@ -320,23 +320,6 @@ export default function CreatePoolPage() {
             <span className="gpp-button-face py-3">{loading ? 'Creating...' : 'Create Pool'}</span>
           </button>
         </form>
-      </div>
-
-      <div className="lg:sticky lg:top-24">
-        <ClubhouseBoard className="w-[calc(100%-12px)] md:w-full" title="Preview" label="Pool board" subtitle={poolName || 'New pool'} footer="Players join by code or direct link">
-          <div className="grid grid-cols-2 border-b-2 border-[#111]">
-            <BoardMetric label="Pick" value={toNumber(pickCount, 12)} tone="green" />
-            <BoardMetric label="Count" value={toNumber(countScores, 8)} />
-          </div>
-          <div className="grid grid-cols-[1fr_90px] border-b border-[#111] bg-[#fbfbf5] text-sm font-black uppercase tracking-[0.04em] text-[#111]">
-            <div className="border-r-2 border-[#111] px-3 py-3">Tournament</div>
-            <div className="px-2 py-3 text-center text-[#b21e23]">{formatDate(tournament?.start_date)}</div>
-          </div>
-          <div className="px-3 py-4 text-center">
-            <p className="text-lg font-black uppercase leading-tight text-[#111]">{tournament?.name || 'Select a tournament'}</p>
-            <p className="mt-1 text-xs font-black uppercase tracking-[0.08em] text-[#005b3c]">{tournament?.course || 'Course shown here'}</p>
-          </div>
-        </ClubhouseBoard>
       </div>
     </div>
   )
