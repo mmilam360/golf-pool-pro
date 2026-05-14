@@ -972,7 +972,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             return (
                               <div key={i} className={`border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0 ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className={`mt-1 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] sm:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
+                                <div className={`mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                                 <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                               </div>
                             )
