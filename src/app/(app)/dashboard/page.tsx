@@ -157,7 +157,7 @@ export default async function DashboardPage() {
 
   const { data: ownedPools } = await supabase
     .from('gpp_pools')
-    .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, gpp_tournaments(name, start_date, status)')
+    .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, count_scores, ob_rule_enabled, ob_penalty_strokes, gpp_tournaments(name, start_date, status, leaderboard_json)')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -195,10 +195,14 @@ export default async function DashboardPage() {
     groups[entry.pool_id].push(entry)
     return groups
   }, {})
+  const myEntryByPool = joined.reduce<Record<string, EntryRecord>>((entriesByPoolId, entry) => {
+    entriesByPoolId[entry.pool_id] = entry
+    return entriesByPoolId
+  }, {})
   const activePoolCards = [
     ...owned
       .filter(pool => isActivePool(pool, getTournament(pool)))
-      .map(pool => ({ pool, tournament: getTournament(pool), role: 'Running', entry: null as EntryRecord | null })),
+      .map(pool => ({ pool, tournament: getTournament(pool), role: 'Running', entry: myEntryByPool[pool.id] ?? null as EntryRecord | null })),
     ...joined
       .map(entry => ({ entry, pool: getPool(entry) }))
       .filter((item): item is { entry: EntryRecord; pool: PoolRecord } => Boolean(item.pool && isActivePool(item.pool, getTournament(item.pool))))
@@ -256,6 +260,7 @@ export default async function DashboardPage() {
               const picks = entry && Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : null
               const activeEntryCount = ownedEntryCounts[pool.id] || entriesByPool[pool.id]?.length || 0
               const countLabel = picks == null ? `${activeEntryCount} entries` : `${picks} picks`
+              const rankPreview = entry ? buildRankPreview(entry, pool, entriesByPool[pool.id] || [entry]) : null
               return (
                 <Link key={`${role}-${pool.id}`} href={`/pool/${pool.id}`} className={`block px-4 py-3 transition-colors hover:bg-[#fff8e8] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -265,8 +270,9 @@ export default async function DashboardPage() {
                     </div>
                     <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
                   </div>
-                  <div className="mt-2 grid grid-cols-[1fr_auto_auto] items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
-                    <span className="min-w-0 truncate">{role}</span>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
+                    <span className="mr-auto min-w-24 truncate">{role}</span>
+                    {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
                     <span className="whitespace-nowrap border border-stone-200 bg-[#fbf7ed] px-2 py-1 font-mono tracking-[0.06em]">{formatDate(tournament?.start_date)}</span>
                     <span className="whitespace-nowrap border border-stone-200 bg-[#fbf7ed] px-2 py-1 text-right tracking-[0.08em]">{countLabel}</span>
                   </div>
