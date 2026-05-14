@@ -256,6 +256,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [promoCode, setPromoCode] = useState('')
   const [promoLoading, setPromoLoading] = useState(false)
   const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null)
+  const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null)
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
   const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -709,6 +710,34 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     copyToClipboard(pool.passcode, 'Invite code copied.')
   }
 
+  async function shareInvite() {
+    const link = inviteUrl || `${window.location.origin}/pool/join?code=${pool.passcode}`
+    const text = `Join my Golf Pools Pro pool: ${poolName}\nUse passcode: ${pool.passcode}\n${link}`
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Join ${poolName}`, text, url: link })
+        showToast('Invite shared.', 'success')
+        return
+      } catch (error: any) {
+        if (error?.name === 'AbortError') return
+      }
+    }
+
+    copyToClipboard(text, 'Invite copied.')
+  }
+
+  function jumpToMyEntry() {
+    if (!myEntry?.id) return
+    setTab('leaderboard')
+    setHighlightedEntryId(myEntry.id)
+    window.setTimeout(() => {
+      const targetId = window.matchMedia('(min-width: 1024px)').matches ? `entry-row-${myEntry.id}` : `entry-card-${myEntry.id}`
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+    window.setTimeout(() => setHighlightedEntryId(null), 2400)
+  }
+
 
   // Toggle golfer in picks
   function togglePick(name: string) {
@@ -864,6 +893,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           <p className="text-sm text-stone-700">Send the code or the direct join link.</p>
         </div>
         <div className="space-y-2">
+          <button
+            type="button"
+            onClick={shareInvite}
+            className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#0f2f25]"
+          >
+            Share invite
+          </button>
           <div className="flex items-center justify-between gap-3 rounded-none border border-amber-200 bg-white px-3 py-2">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">Code</p>
@@ -917,6 +953,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </div>
           ) : (
             <>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#657168]">Standings update every {REFRESH_SECONDS}s</p>
+              {myEntry && scoredEntries.some(entry => entry.entryId === myEntry.id) && (
+                <button
+                  type="button"
+                  onClick={jumpToMyEntry}
+                  className="border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] transition-colors hover:bg-white"
+                >
+                  Jump to my entry
+                </button>
+              )}
+            </div>
             <div
               className="gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]"
               style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
@@ -944,8 +992,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                     const allPickNames = golferNamePeers
                     return (
-                      <details key={entry.entryId} open={entryIndex === 0} className="group border-b-2 border-[#111]">
-                        <summary className="grid cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 bg-[#f7f7f2] px-2 py-2 text-left sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden">
+                      <details id={`entry-card-${entry.entryId}`} key={entry.entryId} open={entryIndex === 0} className={`group border-b-2 border-[#111] transition-colors ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : ''}`}>
+                        <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_64px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_78px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>
                           <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                           <div className="min-w-0">
                             <div className="flex min-w-0 items-center gap-1.5">
@@ -959,7 +1007,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             )}
                           </div>
                           <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
-                          <div className="flex items-center justify-center text-[#111]">
+                          <div className="flex items-center justify-end gap-1 text-[#111]">
+                            <span className="text-[9px] font-black uppercase tracking-[0.08em] text-[#555] group-open:hidden">Expand</span>
+                            <span className="hidden text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c] group-open:inline">Close</span>
                             <svg className="h-4 w-4 group-open:hidden" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                               <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
                             </svg>
@@ -1016,7 +1066,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         const allPickNames = golferNamePeers
                         return (
                           <Fragment key={entry.entryId}>
-                            <tr key={`${entry.entryId}-top`} className="bg-[#f7f7f2]">
+                            <tr id={`entry-row-${entry.entryId}`} key={`${entry.entryId}-top`} className={`bg-[#f7f7f2] transition-colors ${highlightedEntryId === entry.entryId ? 'outline outline-4 outline-[#f3df9c]' : ''}`}>
                               <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">
                                 {entry.rank || '—'}
                               </td>

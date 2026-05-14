@@ -105,6 +105,9 @@ export default function Home() {
               <Link href="/login" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-[#f7f0df]">
                 Sign in
               </Link>
+              <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fbf7ed] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
+                View rules
+              </Link>
             </div>
           </div>
 
@@ -235,6 +238,8 @@ export default function Home() {
         </section>
       </main>
       <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-6 text-center text-sm text-[#657168]">
+        <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
+        <span className="mx-3">/</span>
         <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
         <span className="mx-3">/</span>
         <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>

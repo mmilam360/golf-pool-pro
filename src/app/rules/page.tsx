@@ -1,9 +1,11 @@
 import Link from 'next/link'
+import { BackButton } from '@/components/BackButton'
 
 export default function RulesPage() {
   return (
     <main className="min-h-screen scorecard-paper px-4 py-10 text-[#1f2a24] sm:px-6">
       <div className="mx-auto max-w-4xl">
+        <BackButton fallbackHref="/dashboard" label="Back" />
         <Link href="/" className="text-sm font-semibold text-emerald-800 hover:underline">Golf Pools Pro</Link>
 
         <section className="mt-6 border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
@@ -43,8 +45,14 @@ export default function RulesPage() {
 
             <section>
               <h2 className="text-lg font-black text-[#0f2f25]">Out of bounds golfers</h2>
-              <p className="mt-2">A golfer is out of bounds when he misses the cut, withdraws, does not start, or does not have a usable score when your entry needs him. If that OB golfer is needed to fill your counted scores, Golf Pools Pro adds a stand-in score based on the worst active score plus the pool's OB penalty.</p>
-              <p className="mt-2 border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-xs font-semibold text-[#1f2a24]">Example: if the pool counts 4 golfers and you only have 3 active golfers left, the fourth counted spot becomes the worst active score in the pool plus the OB penalty.</p>
+              <p className="mt-2">A golfer is out of bounds if he misses the cut, withdraws, does not start, or never posts a usable score. OB only matters when your entry needs that golfer to fill one of your counted spots.</p>
+              <div className="mt-3 border-2 border-[#111] bg-[#f7f7f2] p-4 text-[#111]">
+                <p className="font-black uppercase tracking-[0.08em]">Typical OB example</p>
+                <p className="mt-2 font-semibold">Pool setup: pick 8 golfers, count the best 4. OB penalty: worst active counted score in the pool plus 2.</p>
+                <p className="mt-2">Your entry has three active counted scores: -4, -2, and E. Your fourth needed golfer missed the cut.</p>
+                <p className="mt-2">If the worst active counted score anywhere in the pool is +6, your OB stand-in becomes +8. That is +6 plus the 2-stroke OB penalty.</p>
+                <p className="mt-2 font-black">Your counted total would be -4, -2, E, and +8 = +2.</p>
+              </div>
             </section>
 
             <section>
