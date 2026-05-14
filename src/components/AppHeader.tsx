@@ -7,9 +7,10 @@ import { useEffect, useState } from 'react'
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', match: ['/dashboard'] },
-  { href: '/pool/create', label: 'Create Pool', match: ['/pool/create'] },
   { href: '/pool/join', label: 'Join Pool', match: ['/pool/join'] },
   { href: '/blog?from=dashboard', label: 'Pick Guides', match: ['/blog'] },
+  { href: '/pool/create', label: 'Create Pool', match: ['/pool/create'] },
+  { href: '/manage-pools', label: 'Manage Pools', match: ['/manage-pools'] },
   { href: '/account', label: 'Account', match: ['/account'] },
 ]
 
@@ -44,7 +45,7 @@ export default function AppHeader() {
   const closeMenu = () => setMenuOpen(false)
 
   return (
-    <nav className="border-b border-[#d8cab0] bg-[#fbf7ed]/95 px-4 py-3 shadow-sm backdrop-blur-sm md:px-6">
+    <nav className="relative z-[100] border-b border-[#d8cab0] bg-[#fbf7ed]/95 px-4 py-3 shadow-sm backdrop-blur-sm md:px-6">
       <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4">
         <Link href="/dashboard" className="flex shrink-0 items-center" aria-label="Golf Pools Pro dashboard">
           <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} className="h-12 w-auto object-contain sm:h-14 md:h-16" />
@@ -73,7 +74,7 @@ export default function AppHeader() {
           <summary className="list-none border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white marker:hidden [&::-webkit-details-marker]:hidden">
             Menu
           </summary>
-          <div className="absolute left-0 right-0 top-[calc(100%+12px)] z-50 border-2 border-[#123c2f] bg-[#fffdf8] p-3 shadow-[5px_5px_0_#d8cab0]">
+          <div className="absolute left-0 right-0 top-[calc(100%+12px)] z-[200] border-2 border-[#123c2f] bg-[#fffdf8] p-3 shadow-[5px_5px_0_#d8cab0]">
             <div className="grid gap-1 text-sm font-black text-[#123c2f]">
               {navLinks.map(link => {
                 const active = isActive(pathname, link.match)

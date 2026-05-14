@@ -204,6 +204,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const golferNamePeers = (Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : [])
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
+  const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
+  const showJumpToMyEntry = Boolean(currentScoredEntry && scoredEntries.length >= 10)
 
   if (scoredEntries.length === 0) {
     return (
@@ -215,6 +217,13 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
 
   return (
     <div className="overflow-hidden border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-4 sm:px-5">
+      {showJumpToMyEntry ? (
+        <div className="mb-3 flex justify-center">
+          <a href={`#dashboard-entry-${currentEntryId}`} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0] hover:bg-[#fffdf8]">
+            Jump to my entry
+          </a>
+        </div>
+      ) : null}
       <div
         className="gpp-3d [--gpp-depth-x:10px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]"
         style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
@@ -235,7 +244,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const isCurrentEntry = entry.entryId === currentEntryId
                 const isOpen = openEntryIds ? openEntryIds.has(entry.entryId) : (entry.entryId === currentEntryId || (!currentEntryId && entryIndex === 0))
                 return (
-                  <details key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="group border-b-2 border-[#111] last:border-b-0">
+                  <details id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#111] last:border-b-0">
                     <summary className="grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 bg-[#f7f7f2] px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden">
                       <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                       <div className="min-w-0">
@@ -377,7 +386,11 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
   const activePoolIds = useMemo(() => new Set(cards.map(card => card.pool.id)), [cards])
 
   useEffect(() => {
-    setExpandedPoolIds(current => new Set([...current].filter(poolId => activePoolIds.has(poolId))))
+    setExpandedPoolIds(current => {
+      const filtered = new Set([...current].filter(poolId => activePoolIds.has(poolId)))
+      if (filtered.size === 0 && cards[0]?.pool.id) filtered.add(cards[0].pool.id)
+      return filtered
+    })
     setExpandedEntryIds(current => {
       const next: Record<string, Set<string>> = {}
       for (const [poolId, entryIds] of Object.entries(current)) {
@@ -385,7 +398,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
       }
       return next
     })
-  }, [activePoolIds])
+  }, [activePoolIds, cards])
 
   if (cards.length === 0) return null
 

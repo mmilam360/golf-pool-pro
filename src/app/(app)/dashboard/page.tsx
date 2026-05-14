@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import DashboardActivePools from '@/components/DashboardActivePools'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
-import { formatMoney, getPoolPaymentQuote, getPoolPaymentStatus } from '@/lib/payments/pricing'
 import type { GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -132,33 +131,6 @@ function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: Entr
   return { rank: current.rank, totalScore: current.totalScore, fieldSize: scored.length }
 }
 
-function BalanceBadge({ pool, activeEntryCount, tournament }: { pool: PoolRecord; activeEntryCount: number; tournament: Tournament | null }) {
-  const amountPaidCents = Number(pool.amount_paid_cents || 0)
-  const quote = getPoolPaymentQuote(activeEntryCount, amountPaidCents)
-  const paymentStatus = getPoolPaymentStatus(pool.payment_status, activeEntryCount, amountPaidCents)
-  const paymentReady = Boolean(pool.is_locked || pool.is_completed || tournament?.status === 'live' || tournament?.status === 'completed')
-
-  if (quote.amountDueCents <= 0) {
-    if (amountPaidCents > 0) {
-      return <span className="inline-flex justify-center border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#7a5a19]">Paid</span>
-    }
-    return <span className="inline-flex justify-center border border-[#cfe0d3] bg-[#eef7ef] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#1f6b4a]">Free</span>
-  }
-
-  if (!paymentReady && paymentStatus !== 'archived_unpaid') {
-    return <span className="inline-flex justify-center border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#7a5a19]">Current {formatMoney(quote.amountDueCents)}</span>
-  }
-
-  const dueDate = tournament?.start_date ? formatDate(tournament.start_date) : null
-
-  return (
-    <span className="inline-flex flex-col items-center justify-center border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-center text-xs font-bold uppercase leading-tight tracking-[0.12em] text-[#b21e23]">
-      <span>Due {formatMoney(quote.amountDueCents)}</span>
-      {dueDate ? <span className="mt-0.5 font-mono text-[10px] tracking-[0.08em]">{dueDate}</span> : null}
-    </span>
-  )
-}
-
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -187,10 +159,6 @@ export default async function DashboardPage() {
       .in('pool_id', ownedPoolIds)
       .eq('is_removed', false)
     : { data: [] }
-  const ownedEntryCounts = ((ownedPoolEntries ?? []) as EntryRecord[]).reduce<Record<string, number>>((counts, entry) => {
-    counts[entry.pool_id] = (counts[entry.pool_id] || 0) + 1
-    return counts
-  }, {})
   const joinedPoolIds = Array.from(new Set(joined.map(entry => entry.pool_id).filter(Boolean)))
   const { data: joinedPoolEntries } = joinedPoolIds.length
     ? await supabase
@@ -230,10 +198,9 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
-        <div className="border-b border-[#d8cab0] bg-[#fbf7ed] p-5 md:p-7">
-          <p className="mb-3 w-fit border-y border-[#b58a3a] py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Clubhouse desk</p>
-          <h1 className="font-display text-4xl font-bold tracking-[-0.03em] text-[#0f2f25] md:text-5xl">Dashboard</h1>
-          <p className="mt-3 max-w-2xl leading-7 text-[#657168]">Check active pools, create the next one, or join with a passcode.</p>
+        <div className="flex flex-col gap-4 border-b border-[#d8cab0] bg-[#fbf7ed] p-5 md:flex-row md:items-center md:justify-between md:p-7">
+          <h1 className="font-display text-4xl font-bold uppercase tracking-[-0.03em] text-[#0f2f25] md:text-5xl">Dashboard</h1>
+          <Link href="/pool/join" className="hidden border-2 border-[#123c2f] bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0] hover:bg-[#fffdf8] md:inline-flex">Join pool</Link>
         </div>
       </section>
 
@@ -243,62 +210,10 @@ export default async function DashboardPage() {
         <Link href="/pool/create" className="gpp-3d gpp-button-3d gpp-button-wrap text-sm">
           <span className="gpp-button-face px-5 py-3">Create pool</span>
         </Link>
-        <Link href="/pool/join" className="gpp-3d gpp-button-3d gpp-button-wrap gpp-button-3d-light text-sm">
+        <Link href="/pool/join" className="gpp-3d gpp-button-3d gpp-button-wrap gpp-button-3d-light text-sm md:hidden">
           <span className="gpp-button-face px-5 py-3">Join pool</span>
         </Link>
       </section>
-
-      <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
-        <div className="flex items-center justify-between border-b border-[#d8cab0] bg-[#123c2f] px-5 py-4 text-white">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Pool runner board</p>
-            <h2 className="font-display text-2xl font-bold">Your pools</h2>
-          </div>
-          <Link href="/pool/create" className="hidden border border-[#d8cab0] bg-[#f3df9c] px-3 py-2 text-sm font-black text-[#0f2f25] sm:block">New pool</Link>
-        </div>
-
-        {!owned.length ? (
-          <div className="scorecard-paper p-8 text-center">
-            <h3 className="font-display text-2xl font-bold text-[#0f2f25]">No pools on your board yet.</h3>
-            <p className="mx-auto mt-3 max-w-md leading-7 text-[#657168]">Start with one tournament and a passcode. The board fills in when your group joins.</p>
-            <Link href="/pool/create" className="gpp-3d gpp-button-3d gpp-button-wrap mt-5 text-sm"><span className="gpp-button-face px-5 py-3">Create pool</span></Link>
-          </div>
-        ) : (
-          <div className="overflow-hidden">
-            <div className="grid grid-cols-[minmax(0,1fr)_76px_82px] border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#657168] sm:grid-cols-[1.3fr_1fr_82px_86px_100px_110px] sm:px-5 sm:text-xs sm:tracking-[0.16em]">
-              <span>Pool</span>
-              <span className="hidden sm:block">Tournament</span>
-              <span className="text-center">Entries</span>
-              <span className="text-right sm:text-left">Date</span>
-              <span className="hidden sm:block">Status</span>
-              <span className="hidden sm:block">Balance</span>
-            </div>
-            {owned.map((pool, index) => {
-              const tournament = getTournament(pool)
-              const label = statusLabel(pool, tournament)
-              const activeEntryCount = ownedEntryCounts[pool.id] || 0
-              return (
-                <Link key={pool.id} href={`/pool/${pool.id}`} className={`grid grid-cols-[minmax(0,1fr)_76px_82px] items-center border-b border-[#eadfca] px-4 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_82px_86px_100px_110px] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
-                  <span className="min-w-0 pr-3">
-                    <span className="block truncate font-semibold text-[#1f2a24]">{pool.name}</span>
-                    <span className="mt-1 block text-xs leading-5 text-[#657168] sm:hidden">{tournament?.name || 'Tournament'}</span>
-                    <span className="mt-2 flex flex-wrap gap-2 sm:hidden">
-                      <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
-                      <BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} />
-                    </span>
-                  </span>
-                  <span className="hidden text-[#657168] sm:block">{tournament?.name || 'Tournament'}</span>
-                  <span className="text-center font-black text-[#123c2f]">{activeEntryCount}</span>
-                  <span className="text-right font-mono text-[#657168] sm:text-left">{formatDate(tournament?.start_date)}</span>
-                  <span className="hidden sm:block"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
-                  <span className="hidden sm:block"><BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} /></span>
-                </Link>
-              )
-            })}
-          </div>
-        )}
-      </section>
-
       <section className="border border-stone-200 bg-white shadow-sm">
         <div className="flex items-center justify-between gap-4 border-b border-stone-200 bg-white px-5 py-4">
           <div>
