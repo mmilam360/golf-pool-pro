@@ -812,6 +812,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         }))
       )
     : visibleEntries.map(entry => buildPreScoringEntry(entry, pool.count_scores))
+  const golferNamePeers = (leaderboard.length ? leaderboard : field)
+    .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
+    .filter(Boolean)
 
   return (
     <div>
@@ -939,7 +942,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     const picksHidden = entry.picks.includes('__hidden__')
                     const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
                     const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
-                    const allPickNames = entry.pickScores.map(pick => pick.name)
+                    const allPickNames = golferNamePeers
                     return (
                       <details key={entry.entryId} open={entryIndex === 0} className="group border-b-2 border-[#111]">
                         <summary className="grid cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 bg-[#f7f7f2] px-2 py-2 text-left sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden">
@@ -1010,7 +1013,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         const picksHidden = entry.picks.includes('__hidden__')
                         const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
                         const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
-                        const allPickNames = entry.pickScores.map(pick => pick.name)
+                        const allPickNames = golferNamePeers
                         return (
                           <Fragment key={entry.entryId}>
                             <tr key={`${entry.entryId}-top`} className="bg-[#f7f7f2]">

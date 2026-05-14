@@ -201,6 +201,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const scoredEntries = buildScoredEntries(pool, entries)
   const countScores = pool.count_scores || 4
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
+  const golferNamePeers = (Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : [])
+    .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
+    .filter(Boolean)
 
   if (scoredEntries.length === 0) {
     return (
@@ -228,7 +231,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               {scoredEntries.map((entry, entryIndex) => {
                 const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
                 const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
-                const allPickNames = entry.pickScores.map(pick => pick.name)
+                const allPickNames = golferNamePeers
                 const isCurrentEntry = entry.entryId === currentEntryId
                 const isOpen = openEntryIds ? openEntryIds.has(entry.entryId) : (entry.entryId === currentEntryId || (!currentEntryId && entryIndex === 0))
                 return (
@@ -290,7 +293,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                   {scoredEntries.map(entry => {
                     const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
                     const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
-                    const allPickNames = entry.pickScores.map(pick => pick.name)
+                    const allPickNames = golferNamePeers
                     const isCurrentEntry = entry.entryId === currentEntryId
                     return (
                       <Fragment key={entry.entryId}>
