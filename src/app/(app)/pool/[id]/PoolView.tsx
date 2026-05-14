@@ -1231,23 +1231,32 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             <div className="px-5 py-4 border-b border-stone-200 bg-stone-50">
               <h3 className="text-lg font-semibold text-emerald-950">Manage entries ({activeEntries.length})</h3>
             </div>
-            {entries.map(entry => (
-              <div key={entry.id} className={`px-5 py-3 border-b border-stone-100 flex items-center justify-between ${entry.is_removed ? 'opacity-40' : ''}`}>
-                <div>
-                  <p className="font-medium text-stone-900">{entry.display_name}</p>
-                  <p className="text-stone-500 text-xs">
-                    {((entry.golfer_picks as string[]) || []).length} picks
-                    {entry.is_removed && <span className="text-red-700 ml-2">Removed: {entry.removed_reason}</span>}
-                  </p>
+            {entries.map(entry => {
+              const pickCount = ((entry.golfer_picks as string[]) || []).length
+              const picksComplete = pickCount >= pool.pick_count
+              return (
+                <div key={entry.id} className={`px-5 py-3 border-b border-stone-100 flex items-center justify-between gap-3 ${entry.is_removed ? 'opacity-40' : ''}`}>
+                  <div className="min-w-0">
+                    <p className="font-medium text-stone-900">{entry.display_name}</p>
+                    <p className="text-stone-500 text-xs">
+                      {pickCount}/{pool.pick_count} Picks
+                      {entry.is_removed && <span className="text-red-700 ml-2">Removed: {entry.removed_reason}</span>}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {!entry.is_removed && (
+                      <span className={`border px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${picksComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+                        {picksComplete ? 'Finalized' : `Needs ${pool.pick_count - pickCount}`}
+                      </span>
+                    )}
+                    {!entry.is_removed && entry.user_id !== userId && (
+                      <button onClick={() => setRemoveTarget(entry.id)}
+                        className="text-xs text-red-700 hover:text-red-800 px-2">Remove</button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {!entry.is_removed && entry.user_id !== userId && (
-                    <button onClick={() => setRemoveTarget(entry.id)}
-                      className="text-xs text-red-700 hover:text-red-800 px-2">Remove</button>
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Lock confirmation modal */}
