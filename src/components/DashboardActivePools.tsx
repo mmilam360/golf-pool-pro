@@ -236,7 +236,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const isOpen = openEntryIds ? openEntryIds.has(entry.entryId) : (entry.entryId === currentEntryId || (!currentEntryId && entryIndex === 0))
                 return (
                   <details key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="group border-b-2 border-[#111] last:border-b-0">
-                    <summary className="grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_64px] items-center gap-1 bg-[#f7f7f2] px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_78px] sm:gap-2 [&::-webkit-details-marker]:hidden">
+                    <summary className="grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 bg-[#f7f7f2] px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden">
                       <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                       <div className="min-w-0">
                         <span className="flex min-w-0 items-center gap-1.5">
@@ -246,9 +246,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         {entry.obStandIns > 0 && <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#b21e23]">{entry.obStandIns} OB</div>}
                       </div>
                       <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
-                      <div className="flex items-center justify-end gap-1 text-[#111]">
-                        <span className="text-[9px] font-black uppercase tracking-[0.08em] text-[#555] group-open:hidden">Expand</span>
-                        <span className="hidden text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c] group-open:inline">Close</span>
+                      <div className="flex items-center justify-center text-[#111]">
                         <svg className="h-4 w-4 group-open:hidden" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                         <svg className="hidden h-4 w-4 group-open:block" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                       </div>

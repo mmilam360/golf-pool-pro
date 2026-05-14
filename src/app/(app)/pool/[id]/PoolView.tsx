@@ -257,6 +257,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [promoLoading, setPromoLoading] = useState(false)
   const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null)
   const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null)
+  const [forceOpenEntryId, setForceOpenEntryId] = useState<string | null>(null)
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
   const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -730,6 +731,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   function jumpToMyEntry() {
     if (!myEntry?.id) return
     setTab('leaderboard')
+    setForceOpenEntryId(myEntry.id)
     setHighlightedEntryId(myEntry.id)
     window.setTimeout(() => {
       const targetId = window.matchMedia('(min-width: 1024px)').matches ? `entry-row-${myEntry.id}` : `entry-card-${myEntry.id}`
@@ -953,9 +955,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </div>
           ) : (
             <>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#657168]">Standings update every {REFRESH_SECONDS}s</p>
-              {myEntry && scoredEntries.some(entry => entry.entryId === myEntry.id) && (
+            {myEntry && scoredEntries.length >= 10 && scoredEntries.some(entry => entry.entryId === myEntry.id) && (
+              <div className="mb-3 flex justify-end">
                 <button
                   type="button"
                   onClick={jumpToMyEntry}
@@ -963,8 +964,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 >
                   Jump to my entry
                 </button>
-              )}
-            </div>
+              </div>
+            )}
             <div
               className="gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]"
               style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
@@ -992,8 +993,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                     const allPickNames = golferNamePeers
                     return (
-                      <details id={`entry-card-${entry.entryId}`} key={entry.entryId} open={entryIndex === 0} className={`group border-b-2 border-[#111] transition-colors ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : ''}`}>
-                        <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_64px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_78px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>
+                      <details id={`entry-card-${entry.entryId}`} key={entry.entryId} open={entryIndex === 0 || forceOpenEntryId === entry.entryId} className={`group border-b-2 border-[#111] transition-colors ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : ''}`}>
+                        <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>
                           <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                           <div className="min-w-0">
                             <div className="flex min-w-0 items-center gap-1.5">
@@ -1007,9 +1008,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             )}
                           </div>
                           <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
-                          <div className="flex items-center justify-end gap-1 text-[#111]">
-                            <span className="text-[9px] font-black uppercase tracking-[0.08em] text-[#555] group-open:hidden">Expand</span>
-                            <span className="hidden text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c] group-open:inline">Close</span>
+                          <div className="flex items-center justify-center text-[#111]">
                             <svg className="h-4 w-4 group-open:hidden" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                               <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
                             </svg>

@@ -6,9 +6,8 @@ export default function RulesPage() {
     <main className="min-h-screen scorecard-paper px-4 py-10 text-[#1f2a24] sm:px-6">
       <div className="mx-auto max-w-4xl">
         <BackButton fallbackHref="/dashboard" label="Back" />
-        <Link href="/" className="text-sm font-semibold text-emerald-800 hover:underline">Golf Pools Pro</Link>
 
-        <section className="mt-6 border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
+        <section className="mt-2 border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
           <div className="border-b border-[#d8cab0] bg-[#123c2f] px-6 py-5 text-white">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#f3df9c]">Pool rules</p>
             <h1 className="mt-2 text-3xl font-black">How Golf Pools Pro works</h1>

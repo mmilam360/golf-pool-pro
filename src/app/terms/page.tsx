@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { BackButton } from '@/components/BackButton'
 
 export default function TermsPage() {
@@ -6,8 +5,7 @@ export default function TermsPage() {
     <main className="min-h-screen scorecard-paper px-4 py-10 text-[#1f2a24] sm:px-6">
       <div className="mx-auto max-w-3xl rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0] sm:p-8">
         <BackButton fallbackHref="/dashboard" label="Back" />
-        <Link href="/" className="text-sm font-semibold text-emerald-800 hover:underline">Golf Pools Pro</Link>
-        <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Legal</p>
+        <p className="mt-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Legal</p>
         <h1 className="mt-2 text-3xl font-bold text-[#0f2f25]">Terms and Conditions</h1>
         <p className="mt-2 text-sm text-stone-500">Last updated May 11, 2026</p>
 
