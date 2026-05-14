@@ -141,6 +141,16 @@ function shortName(name: string) {
   return parts.length > 1 ? parts[parts.length - 1] : clean
 }
 
+function golferListName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length < 2) return name
+  const suffixes = new Set(['Jr.', 'Jr', 'Sr.', 'Sr', 'II', 'III', 'IV', 'V'])
+  const suffix = suffixes.has(parts[parts.length - 1]) ? parts.pop() : null
+  const lastName = parts.pop()
+  const firstNames = parts.join(' ')
+  return `${lastName}, ${firstNames}${suffix ? ` ${suffix}` : ''}`
+}
+
 function thruLabel(thru?: string) {
   if (!thru) return '—'
   const value = String(thru).toUpperCase()
@@ -1073,7 +1083,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="flex flex-wrap gap-2">
                   {myPicks.map(name => (
                     <span key={name} className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-1 rounded-full text-sm flex items-center gap-1">
-                      {name}
+                      {golferListName(name)}
                       {!picksAreClosed && (
                         <button onClick={() => togglePick(name)} className="text-emerald-500 hover:text-red-400 ml-1">x</button>
                       )}
@@ -1087,7 +1097,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               {!picksAreClosed && field.length > 0 && (
                 <div className="bg-white rounded-none border border-stone-200 overflow-hidden">
                   <div className="max-h-96 overflow-y-auto">
-                    {field.sort((a, b) => a.name.localeCompare(b.name)).map(player => {
+                    {[...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => {
                       const selected = myPicks.includes(player.name)
                       return (
                         <button key={player.id}
@@ -1098,7 +1108,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             myPicks.length >= pool.pick_count ? 'text-stone-400 cursor-not-allowed' :
                             'text-stone-800 hover:bg-stone-50'
                           }`}>
-                          <span className="text-sm">{player.name}</span>
+                          <span className="text-sm">{golferListName(player.name)}</span>
                           {selected && <span className="text-emerald-400 text-xs">Selected</span>}
                         </button>
                       )
