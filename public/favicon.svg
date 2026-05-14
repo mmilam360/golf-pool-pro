@@ -1,5 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GPP">
-  <rect width="64" height="64" fill="#0b2f24"/>
-  <rect x="5" y="5" width="54" height="54" fill="#f7f0df" stroke="#c49a3a" stroke-width="4"/>
-  <text x="32" y="41" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="24" font-weight="900" letter-spacing="-1.5" fill="#0b2f24">GPP</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GPP pennant flag">
+  <rect width="64" height="64" rx="10" fill="#fbf7ed"/>
+  <path d="M14 10v48" stroke="#c49a3a" stroke-width="6" stroke-linecap="square"/>
+  <circle cx="14" cy="9" r="6" fill="#c49a3a"/>
+  <path d="M17 14 L57 25 L17 47 Z" fill="#0b2f24" stroke="#c49a3a" stroke-width="3" stroke-linejoin="miter"/>
+  <path d="M21 20 L48 27 L21 40 Z" fill="#fff8df"/>
+  <text x="31" y="34" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="13" font-weight="900" letter-spacing="-1" fill="#0b2f24">GPP</text>
 </svg>

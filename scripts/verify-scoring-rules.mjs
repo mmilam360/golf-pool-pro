@@ -26,6 +26,6 @@ assert.match(landingSource, /gpp-board-frame/, 'Landing demo board frame should 
 assert.match(poolViewSource, /gpp-board-frame/, 'Real leaderboard board frame should use the richer clubhouse board treatment')
 assert.match(landingSource, /gpp-board-post/, 'Landing demo post should use the dimensional structural post treatment')
 assert.match(poolViewSource, /gpp-board-post/, 'Real leaderboard post should use the dimensional structural post treatment')
-assert.match(layoutSource, /favicon\.svg\?v=3/, 'Favicon should prefer the cache-busted SVG GPP tab icon')
+assert.match(layoutSource, /favicon\.svg\?v=4/, 'Favicon should prefer the cache-busted SVG GPP tab icon')
 
 console.log('scoring/visibility/landing/favicon rule markers present')
