@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { Fragment, type ReactNode } from 'react'
+import AppHeader from '@/components/AppHeader'
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
 import { createClient } from '@/lib/supabase/server'
 
@@ -105,17 +106,21 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       {faqSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />}
 
-      <header className="border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
-        <nav className="mx-auto flex max-w-4xl items-center justify-between gap-3">
-          <Link href={logoHref} className="flex items-center" aria-label={fromDashboard ? 'Golf Pools Pro dashboard' : 'Back to Golf Pools Pro pick guides'}>
-            <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-11 w-auto object-contain sm:h-14" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href={guideHref} className="border-2 border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-sm font-extrabold text-[#123c2f] transition-colors hover:bg-white sm:px-4">All guides</Link>
-            <Link href={primaryHref} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">{primaryLabel}</Link>
-          </div>
-        </nav>
-      </header>
+      {fromDashboard ? (
+        <AppHeader />
+      ) : (
+        <header className="border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
+          <nav className="mx-auto flex max-w-4xl items-center justify-between gap-3">
+            <Link href={logoHref} className="flex items-center" aria-label="Back to Golf Pools Pro pick guides">
+              <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-11 w-auto object-contain sm:h-14" />
+            </Link>
+            <div className="flex items-center gap-2">
+              <Link href={guideHref} className="border-2 border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-sm font-extrabold text-[#123c2f] transition-colors hover:bg-white sm:px-4">All guides</Link>
+              <Link href={primaryHref} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">{primaryLabel}</Link>
+            </div>
+          </nav>
+        </header>
+      )}
 
       <main className="mx-auto max-w-4xl px-5 py-10 md:py-14">
         <article className="border-2 border-[#123c2f] bg-white p-5 shadow-[7px_7px_0_#d8cab0] md:p-9">

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
+import AppHeader from '@/components/AppHeader'
 import { getAllBlogPosts } from '@/lib/blog'
 
 export const metadata: Metadata = {
@@ -26,17 +27,21 @@ export default async function BlogIndexPage({ searchParams }: BlogIndexPageProps
 
   return (
     <div className="min-h-screen scorecard-paper text-[#1f2a24]">
-      <header className="border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
-        <nav className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-          <Link href={logoHref} className="flex items-center" aria-label={fromDashboard ? 'Golf Pools Pro dashboard' : 'Golf Pools Pro home'}>
-            <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-11 w-auto object-contain sm:h-14" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href={backHref} className="border-2 border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-sm font-extrabold text-[#123c2f] transition-colors hover:bg-white sm:px-4">{backLabel}</Link>
-            <Link href={primaryHref} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">{primaryLabel}</Link>
-          </div>
-        </nav>
-      </header>
+      {fromDashboard ? (
+        <AppHeader />
+      ) : (
+        <header className="border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
+          <nav className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+            <Link href={logoHref} className="flex items-center" aria-label="Golf Pools Pro home">
+              <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-11 w-auto object-contain sm:h-14" />
+            </Link>
+            <div className="flex items-center gap-2">
+              <Link href={backHref} className="border-2 border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-sm font-extrabold text-[#123c2f] transition-colors hover:bg-white sm:px-4">{backLabel}</Link>
+              <Link href={primaryHref} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">{primaryLabel}</Link>
+            </div>
+          </nav>
+        </header>
+      )}
 
       <main className="mx-auto max-w-5xl px-5 py-12 md:py-16">
         <p className="w-fit border-y border-[#b58a3a] py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#8a6724]">Tournament pick guides</p>
