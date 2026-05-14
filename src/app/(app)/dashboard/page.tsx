@@ -1,5 +1,6 @@
 export const runtime = 'edge';
 import { createClient } from '@/lib/supabase/server'
+import { Fragment } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
@@ -208,72 +209,130 @@ function InlineLeaderboard({ pool, entries }: { pool: PoolRecord; entries: Entry
   if (scoredEntries.length === 0) {
     return (
       <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-4 py-4 text-sm font-semibold text-[#657168] sm:px-5">
-        Leaderboard preview appears here once scoring is live.
+        The full leaderboard board appears here once scoring is live.
       </div>
     )
   }
 
   return (
-    <div className="border-t-2 border-[#123c2f] bg-[#f7f7f2]" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
-      <div className="flex items-center justify-between gap-3 border-b-2 border-[#111] px-3 py-2">
-        <p className="text-sm font-black uppercase tracking-[0.18em] text-[#111]">Leaderboard</p>
-        <Link href={`/pool/${pool.id}`} className="border border-[#123c2f] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#123c2f] hover:bg-[#eef7ef]">Full pool</Link>
-      </div>
-      <div className="lg:hidden">
-        {scoredEntries.map(entry => {
-          const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
-          return (
-            <div key={entry.entryId} className="grid grid-cols-[38px_minmax(0,1fr)_62px] border-b border-[#111] px-2 py-2 last:border-b-0">
-              <div className="text-center text-lg font-black text-[#b21e23]">{entry.rank || '—'}</div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-black uppercase text-[#111]">{entry.displayName}</p>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {countingPicks.map(pick => (
-                    <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
-                      <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
+    <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-2 py-4 sm:px-5">
+      <div
+        className="gpp-3d [--gpp-depth-x:10px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]"
+        style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
+      >
+        <div className="gpp-board-depth-right" aria-hidden="true" />
+        <div className="gpp-board-depth-bottom" aria-hidden="true" />
+        <div className="gpp-3d-face gpp-board-frame border-[8px] border-[#123c2f] md:border-[14px]">
+          <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
+            <div className="border-b-2 border-[#111] px-3 py-2">
+              <p className="text-2xl font-black uppercase leading-none tracking-[0.24em] text-[#111] sm:text-3xl">Leaders</p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#005b3c] sm:text-xs">{pool.name}</p>
             </div>
-          )
-        })}
-      </div>
-      <div className="hidden lg:block">
-        <table className="w-full table-fixed border-collapse text-[12px] text-[#111]">
-          <thead>
-            <tr className="text-[10px] font-black uppercase tracking-[0.12em]">
-              <th className="w-[6%] border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center">Rank</th>
-              <th className="w-[20%] border-b-2 border-r-2 border-[#111] px-2 py-1.5 text-left">Entry</th>
-              <th className="border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center" colSpan={countScores}>Top {countScores}</th>
-              <th className="w-[9%] border-b-2 border-[#111] px-1 py-1.5 text-center">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {scoredEntries.map(entry => {
-              const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
-              return (
-                <tr key={entry.entryId}>
-                  <td className="border-b border-r-2 border-[#111] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</td>
-                  <td className="border-b border-r-2 border-[#111] px-2 py-1.5 text-left"><span className="truncate text-base font-black uppercase" title={entry.displayName}>{entry.displayName}</span></td>
-                  {Array.from({ length: countScores }, (_, i) => {
-                    const pick = countingPicks[i]
+            <div className="bg-[#f7f7f2] lg:hidden">
+              {scoredEntries.map((entry, entryIndex) => {
+                const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
+                const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
+                return (
+                  <details key={entry.entryId} open={entryIndex === 0} className="group border-b-2 border-[#111] last:border-b-0">
+                    <summary className="grid cursor-pointer list-none grid-cols-[44px_1fr_74px_20px] items-center gap-2 bg-[#f7f7f2] px-2 py-2 text-left [&::-webkit-details-marker]:hidden">
+                      <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
+                      <div className="min-w-0">
+                        <span className="truncate text-base font-black uppercase tracking-[0.04em] text-[#111]">{entry.displayName}</span>
+                        {entry.obStandIns > 0 && <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#b21e23]">{entry.obStandIns} OB</div>}
+                      </div>
+                      <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
+                      <div className="flex items-center justify-center text-[#111]">
+                        <svg className="h-4 w-4 group-open:hidden" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
+                        <svg className="hidden h-4 w-4 group-open:block" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
+                      </div>
+                    </summary>
+                    <div className="grid grid-cols-4 border-t border-[#111] bg-[#fbfbf5]">
+                      {Array.from({ length: countScores }, (_, i) => {
+                        const pick = countingPicks[i]
+                        return (
+                          <div key={i} className="border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
+                            <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                            <div className="mt-1 truncate text-xs font-black uppercase leading-none tracking-[0.02em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {outOfBoundsPicks.length > 0 && (
+                      <div className="border-t-2 border-[#111] bg-[#efeee6] px-2 py-1.5 text-left">
+                        <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Out of Bounds Golfers</div>
+                        <div className="flex flex-wrap gap-1">
+                          {outOfBoundsPicks.map(pick => (
+                            <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                              <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </details>
+                )
+              })}
+            </div>
+            <div className="hidden bg-[#f7f7f2] lg:block">
+              <table className="w-full table-fixed border-collapse text-[12px] text-[#111]">
+                <thead>
+                  <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
+                    <th className="w-[5%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
+                    <th className="w-[19%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
+                    <th className="border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center" colSpan={countScores}>Top {countScores} golfers</th>
+                    <th className="w-[9%] border-b-2 border-[#111] px-1 py-1.5 text-center">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scoredEntries.map(entry => {
+                    const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
+                    const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                     return (
-                      <td key={i} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle">
-                        <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                        <div className="mt-0.5 truncate text-xs font-black uppercase leading-none text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
-                        <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
-                      </td>
+                      <Fragment key={entry.entryId}>
+                        <tr className="bg-[#f7f7f2]">
+                          <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</td>
+                          <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
+                            <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
+                            {entry.obStandIns > 0 && <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#b21e23]">{entry.obStandIns} OB</div>}
+                          </td>
+                          {Array.from({ length: countScores }, (_, i) => {
+                            const pick = countingPicks[i]
+                            return (
+                              <td key={i} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                                <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                                <div className="mt-0.5 truncate text-xs font-black uppercase leading-none tracking-[0.01em] text-[#111]">{pick ? shortName(pick.name) : '—'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                              </td>
+                            )
+                          })}
+                          <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</td>
+                        </tr>
+                        {outOfBoundsPicks.length > 0 && (
+                          <tr className="bg-[#efeee6]">
+                            <td className="border-b border-r-2 border-[#111] bg-[#efeee6]" />
+                            <td className="border-b border-r-2 border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Out of Bounds Golfers</td>
+                            <td className="border-b border-[#111] bg-[#efeee6] px-2 py-1 text-left" colSpan={countScores + 1}>
+                              <div className="flex flex-wrap gap-1">
+                                {outOfBoundsPicks.map(pick => (
+                                  <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                    <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     )
                   })}
-                  <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
+      <div className="gpp-board-post mx-auto -mb-8 -mt-[8px] h-24 w-14 border-x-4 border-[#003622] md:-mb-10 md:h-32 md:w-16" />
     </div>
   )
 }
@@ -384,11 +443,10 @@ export default async function DashboardPage() {
                       {hasRecentScores(tournament) ? <LivePulseBadge /> : <StatusBadge label={label} locked={Boolean(pool.is_locked)} />}
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
-                      <span className="mr-auto min-w-24 truncate">{role}</span>
+                      <span className="mr-auto whitespace-nowrap border border-[#123c2f] bg-white px-2 py-1 text-[#123c2f] group-open:hidden">Expand</span>
+                      <span className="mr-auto hidden whitespace-nowrap border border-[#123c2f] bg-[#123c2f] px-2 py-1 text-white group-open:inline-flex">Collapse</span>
                       {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
                       <ScoreBadge score={rankPreview?.totalScore} />
-                      <span className="whitespace-nowrap border border-[#123c2f] bg-white px-2 py-1 text-[#123c2f] group-open:hidden">Expand</span>
-                      <span className="hidden whitespace-nowrap border border-[#123c2f] bg-[#123c2f] px-2 py-1 text-white group-open:inline-flex">Collapse</span>
                     </div>
                   </summary>
                   <InlineLeaderboard pool={pool} entries={poolEntries} />
