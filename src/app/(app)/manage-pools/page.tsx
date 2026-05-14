@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatMoney, getPoolPaymentQuote, getPoolPaymentStatus } from '@/lib/payments/pricing'
+import { PoolInvitePrepPanel } from '@/components/PoolInvitePrepPanel'
 
 type Tournament = {
   name?: string | null
@@ -14,6 +15,11 @@ type Tournament = {
 type PoolRecord = {
   id: string
   name: string
+  passcode: string
+  pick_count: number
+  count_scores: number
+  ob_rule_enabled: boolean
+  ob_penalty_strokes: number
   is_locked: boolean | null
   is_completed: boolean | null
   payment_status?: string | null
@@ -23,6 +29,7 @@ type PoolRecord = {
 
 type EntryRecord = {
   pool_id: string
+  golfer_picks?: unknown
 }
 
 function getTournament(pool?: PoolRecord | null): Tournament | null {
@@ -47,6 +54,16 @@ function statusClass(label: string) {
   if (label === 'Locked') return 'border-[#b58a3a] bg-[#fbf0c9] text-[#7a5a19]'
   if (label === 'Passed') return 'border-[#d8cab0] bg-[#f3ede0] text-[#657168]'
   return 'border-[#cfe0d3] bg-[#eef7ef] text-[#1f6b4a]'
+}
+
+function hasSubmittedPicks(entry: EntryRecord, pool: PoolRecord) {
+  const requiredPicks = Number(pool.pick_count || 0)
+  return requiredPicks > 0 && Array.isArray(entry.golfer_picks) && entry.golfer_picks.length >= requiredPicks
+}
+
+function canShowInvitePrep(pool: PoolRecord, tournament: Tournament | null) {
+  const eventStarted = tournament?.start_date ? new Date(tournament.start_date).getTime() <= Date.now() : false
+  return !pool.is_locked && !pool.is_completed && !eventStarted && tournament?.status !== 'live' && tournament?.status !== 'completed'
 }
 
 function LockGlyph({ locked }: { locked: boolean }) {
@@ -101,7 +118,7 @@ export default async function ManagePoolsPage() {
 
   const { data: ownedPools } = await supabase
     .from('gpp_pools')
-    .select('id, name, is_locked, is_completed, payment_status, amount_paid_cents, gpp_tournaments(name, start_date, status)')
+    .select('id, name, passcode, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, is_locked, is_completed, payment_status, amount_paid_cents, gpp_tournaments(name, start_date, status)')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -110,13 +127,19 @@ export default async function ManagePoolsPage() {
   const { data: ownedPoolEntries } = ownedPoolIds.length
     ? await supabase
       .from('gpp_entries')
-      .select('pool_id, is_removed')
+      .select('pool_id, golfer_picks, is_removed')
       .in('pool_id', ownedPoolIds)
       .eq('is_removed', false)
     : { data: [] }
 
   const ownedEntryCounts = ((ownedPoolEntries ?? []) as EntryRecord[]).reduce<Record<string, number>>((counts, entry) => {
     counts[entry.pool_id] = (counts[entry.pool_id] || 0) + 1
+    return counts
+  }, {})
+
+  const ownedSubmittedPickCounts = ((ownedPoolEntries ?? []) as EntryRecord[]).reduce<Record<string, number>>((counts, entry) => {
+    const pool = owned.find(item => item.id === entry.pool_id)
+    if (pool && hasSubmittedPicks(entry, pool)) counts[entry.pool_id] = (counts[entry.pool_id] || 0) + 1
     return counts
   }, {})
 
@@ -151,22 +174,41 @@ export default async function ManagePoolsPage() {
               const tournament = getTournament(pool)
               const label = statusLabel(pool, tournament)
               const activeEntryCount = ownedEntryCounts[pool.id] || 0
+              const submittedPickCount = ownedSubmittedPickCounts[pool.id] || 0
+              const showInvitePrep = canShowInvitePrep(pool, tournament)
               return (
-                <Link key={pool.id} href={`/pool/${pool.id}`} className={`grid grid-cols-[minmax(0,1fr)_76px_82px] items-center border-b border-[#eadfca] px-4 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_82px_86px_100px_110px] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
-                  <span className="min-w-0 pr-3">
-                    <span className="block truncate font-semibold text-[#1f2a24]">{pool.name}</span>
-                    <span className="mt-1 block text-xs leading-5 text-[#657168] sm:hidden">{tournament?.name || 'Tournament'}</span>
-                    <span className="mt-2 flex flex-wrap gap-2 sm:hidden">
-                      <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
-                      <BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} />
+                <div key={pool.id} className={index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>
+                  <Link href={`/pool/${pool.id}`} className="grid grid-cols-[minmax(0,1fr)_76px_82px] items-center border-b border-[#eadfca] px-4 py-4 text-sm transition-colors hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_82px_86px_100px_110px] sm:px-5">
+                    <span className="min-w-0 pr-3">
+                      <span className="block truncate font-semibold text-[#1f2a24]">{pool.name}</span>
+                      <span className="mt-1 block text-xs leading-5 text-[#657168] sm:hidden">{tournament?.name || 'Tournament'}</span>
+                      <span className="mt-2 flex flex-wrap gap-2 sm:hidden">
+                        <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
+                        <BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} />
+                      </span>
                     </span>
-                  </span>
-                  <span className="hidden text-[#657168] sm:block">{tournament?.name || 'Tournament'}</span>
-                  <span className="text-center font-black text-[#123c2f]">{activeEntryCount}</span>
-                  <span className="text-right font-mono text-[#657168] sm:text-left">{formatDate(tournament?.start_date)}</span>
-                  <span className="hidden sm:block"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
-                  <span className="hidden sm:block"><BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} /></span>
-                </Link>
+                    <span className="hidden text-[#657168] sm:block">{tournament?.name || 'Tournament'}</span>
+                    <span className="text-center font-black text-[#123c2f]">{activeEntryCount}</span>
+                    <span className="text-right font-mono text-[#657168] sm:text-left">{formatDate(tournament?.start_date)}</span>
+                    <span className="hidden sm:block"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
+                    <span className="hidden sm:block"><BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} /></span>
+                  </Link>
+                  {showInvitePrep ? (
+                    <PoolInvitePrepPanel
+                      poolName={pool.name}
+                      tournamentName={tournament?.name || 'Tournament'}
+                      startDateLabel={formatDate(tournament?.start_date)}
+                      entryCount={activeEntryCount}
+                      submittedPickCount={submittedPickCount}
+                      passcode={pool.passcode}
+                      joinLink={`https://www.golfpoolspro.com/pool/join?code=${pool.passcode}`}
+                      pickCount={pool.pick_count}
+                      countScores={pool.count_scores}
+                      obRuleEnabled={pool.ob_rule_enabled}
+                      obPenaltyStrokes={pool.ob_penalty_strokes}
+                    />
+                  ) : null}
+                </div>
               )
             })}
           </div>
