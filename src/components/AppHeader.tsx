@@ -20,7 +20,7 @@ function isActive(pathname: string, matches: string[]) {
 
 function activeClasses(active: boolean) {
   if (active) {
-    return 'border-[#b58a3a] bg-[#fffdf8] text-[#123c2f]'
+    return 'border-[#b58a3a] text-[#123c2f]'
   }
 
   return 'border-transparent text-[#123c2f] hover:border-[#b58a3a] hover:text-[#0f2f25]'
@@ -60,9 +60,8 @@ export default function AppHeader() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-2 py-2 transition-colors ${activeClasses(active)}`}
+                className={`whitespace-nowrap border-b-2 px-2 py-2 transition-colors ${activeClasses(active)}`}
               >
-                <span className={`h-2 w-2 border border-[#123c2f] ${active ? 'bg-[#b93a32]' : 'bg-transparent'}`} aria-hidden="true" />
                 {link.label}
               </Link>
             )
