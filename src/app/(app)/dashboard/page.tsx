@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import DashboardActivePools from '@/components/DashboardActivePools'
+import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import { formatMoney, getPoolPaymentQuote, getPoolPaymentStatus } from '@/lib/payments/pricing'
 import type { GolfPlayer } from '@/lib/golf-api'
 
@@ -94,6 +95,43 @@ function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
   )
 }
 
+function formatScore(score: number | null) {
+  if (score === null) return '—'
+  if (score === 0) return 'E'
+  return score > 0 ? `+${score}` : String(score)
+}
+
+function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): ScoredEntry[] {
+  const tournament = getTournament(pool)
+  const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
+  const canShowRank = Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed')
+
+  if (!canShowRank || leaderboard.length === 0) return []
+
+  return rankEntries(
+    allEntries.map(poolEntry => ({
+      ...scoreEntry(
+        Array.isArray(poolEntry.golfer_picks) ? poolEntry.golfer_picks as string[] : [],
+        leaderboard,
+        {
+          countScores: pool.count_scores || 4,
+          obRuleEnabled: Boolean(pool.ob_rule_enabled),
+          obPenaltyStrokes: pool.ob_penalty_strokes || 2,
+        }
+      ),
+      entryId: poolEntry.id,
+      displayName: poolEntry.display_name || 'Entry',
+    }))
+  )
+}
+
+function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: EntryRecord[]) {
+  const scored = buildScoredEntries(pool, allEntries)
+  const current = scored.find(scoredEntry => scoredEntry.entryId === entry.id)
+  if (!current) return null
+  return { rank: current.rank, totalScore: current.totalScore, fieldSize: scored.length }
+}
+
 function BalanceBadge({ pool, activeEntryCount, tournament }: { pool: PoolRecord; activeEntryCount: number; tournament: Tournament | null }) {
   const amountPaidCents = Number(pool.amount_paid_cents || 0)
   const quote = getPoolPaymentQuote(activeEntryCount, amountPaidCents)
@@ -101,8 +139,10 @@ function BalanceBadge({ pool, activeEntryCount, tournament }: { pool: PoolRecord
   const paymentReady = Boolean(pool.is_locked || pool.is_completed || tournament?.status === 'live' || tournament?.status === 'completed')
 
   if (quote.amountDueCents <= 0) {
-    const label = amountPaidCents > 0 ? 'Paid' : 'Free'
-    return <span className="inline-flex justify-center border border-[#cfe0d3] bg-[#eef7ef] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#1f6b4a]">{label}</span>
+    if (amountPaidCents > 0) {
+      return <span className="inline-flex justify-center border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#7a5a19]">Paid</span>
+    }
+    return <span className="inline-flex justify-center border border-[#cfe0d3] bg-[#eef7ef] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#1f6b4a]">Free</span>
   }
 
   if (!paymentReady && paymentStatus !== 'archived_unpaid') {

@@ -23,8 +23,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Join
             </Link>
             <form action="/api/auth/logout" method="POST" className="col-span-2 sm:col-span-1">
-              <button type="submit" className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-white transition-colors hover:bg-[#0f2f25]">
-                SIGN OUT
+              <button type="submit" className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 uppercase text-white transition-colors hover:bg-[#0f2f25] sm:normal-case">
+                Sign Out
               </button>
             </form>
           </div>

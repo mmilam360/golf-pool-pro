@@ -251,16 +251,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       : paymentCollectionOpen
         ? `${formatCents(finalAmountDueCents)} due`
         : `${formatCents(finalAmountDueCents)} current fee`
-  const feeStatusLabel = finalAmountDueCents === 0
-    ? 'Free'
-    : paymentStatus === 'active'
-      ? 'Paid'
-      : 'Unpaid'
-  const feeStatusClass = paymentStatus === 'active' || finalAmountDueCents === 0
-    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-    : paymentCollectionOpen
-      ? 'border-amber-200 bg-amber-50 text-amber-900'
-      : 'border-stone-300 bg-white text-stone-700'
+  const feeStatusLabel = paymentStatus === 'active' && amountPaidCents > 0
+    ? 'Paid'
+    : finalAmountDueCents === 0
+      ? 'Free'
+      : paymentStatus === 'active'
+        ? 'Paid'
+        : 'Unpaid'
+  const feeStatusClass = feeStatusLabel === 'Paid'
+    ? 'border-[#b58a3a] bg-[#fff4cf] text-[#7a5a19]'
+    : feeStatusLabel === 'Free'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+      : paymentCollectionOpen
+        ? 'border-amber-200 bg-amber-50 text-amber-900'
+        : 'border-stone-300 bg-white text-stone-700'
   const feeTimingText = finalAmountDueCents === 0
     ? paymentStatus === 'active'
       ? (amountPaidCents > 0 ? `Results are live. Amount paid: ${formatCents(amountPaidCents)}.` : 'Results are live.')
