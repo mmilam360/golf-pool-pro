@@ -26,7 +26,6 @@ export function TournamentSeoPage({
       <header className="border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
         <nav className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <Link href="/" className="font-display text-xl font-black text-[#0f2f25]">Golf Pools Pro</Link>
-          <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">Create a pool</Link>
         </nav>
       </header>
 
@@ -37,8 +36,11 @@ export function TournamentSeoPage({
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white">Create a pool</Link>
-          <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f]">View rules</Link>
-          {guideHref && guideLabel && <Link href={guideHref} className="border-2 border-[#123c2f] bg-[#fbf7ed] px-6 py-3 text-center font-extrabold text-[#123c2f]">{guideLabel}</Link>}
+          {guideHref && guideLabel ? (
+            <Link href={guideHref} className="border-2 border-[#123c2f] bg-[#fbf7ed] px-6 py-3 text-center font-extrabold text-[#123c2f]">{guideLabel}</Link>
+          ) : (
+            <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f]">View rules</Link>
+          )}
         </div>
 
         <section className="mt-12 grid gap-8 md:grid-cols-[1fr_1fr]">

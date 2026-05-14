@@ -290,19 +290,6 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="bg-[#fbf7ed] px-5 py-8 md:px-8 md:py-10">
-          <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white transition-colors hover:bg-[#0f2f25]">
-              Create a pool
-            </Link>
-            <Link href="/rules" className="border-2 border-[#123c2f] bg-[#fbf7ed] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
-              View rules
-            </Link>
-            <Link href="/blog" className="border-2 border-[#123c2f] bg-[#fffdf8] px-6 py-3 text-center font-extrabold text-[#123c2f] transition-colors hover:bg-white">
-              Pick guides
-            </Link>
-          </div>
-        </section>
 
         <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 md:grid-cols-[0.85fr_1.15fr] md:items-start md:px-8 md:py-20">
           <div>

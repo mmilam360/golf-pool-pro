@@ -63,8 +63,6 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
   const fromDashboard = query?.from === 'dashboard'
   const guideHref = fromDashboard ? '/blog?from=dashboard' : '/blog'
   const logoHref = fromDashboard ? '/dashboard' : guideHref
-  const primaryHref = fromDashboard ? '/dashboard' : '/signup'
-  const primaryLabel = fromDashboard ? 'Dashboard' : 'Create a pool'
   const post = getBlogPost(slug)
   if (!post) notFound()
 
@@ -114,10 +112,7 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
             <Link href={logoHref} className="flex items-center" aria-label="Back to Golf Pools Pro pick guides">
               <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-11 w-auto object-contain sm:h-14" />
             </Link>
-            <div className="flex items-center gap-2">
-              <Link href={guideHref} className="border-2 border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-sm font-extrabold text-[#123c2f] transition-colors hover:bg-white sm:px-4">All guides</Link>
-              <Link href={primaryHref} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-extrabold text-white">{primaryLabel}</Link>
-            </div>
+            <Link href={guideHref} className="border-2 border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-sm font-extrabold text-[#123c2f] transition-colors hover:bg-white sm:px-4">All guides</Link>
           </nav>
         </header>
       )}
