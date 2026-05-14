@@ -27,6 +27,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
   if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
+    const redirectParam = request.nextUrl.searchParams.get('redirect')
+    if (redirectParam && !redirectParam.includes('\\')) {
+      try {
+        const redirectUrl = new URL(redirectParam, request.url)
+        if (redirectUrl.origin === request.nextUrl.origin && redirectUrl.pathname.startsWith('/')) {
+          return NextResponse.redirect(redirectUrl)
+        }
+      } catch {}
+    }
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
   return response

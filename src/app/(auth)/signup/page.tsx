@@ -51,6 +51,12 @@ export default function SignupPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  function getLoginHref() {
+    if (typeof window === 'undefined') return '/login'
+    const redirectParam = new URLSearchParams(window.location.search).get('redirect')
+    return redirectParam ? `/login?redirect=${encodeURIComponent(redirectParam)}` : '/login'
+  }
+
   function getSafeRedirect() {
     const redirectParam = new URLSearchParams(window.location.search).get('redirect')
     if (redirectParam && !redirectParam.includes('\\')) {
@@ -98,7 +104,7 @@ export default function SignupPage() {
       <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 text-center shadow-[6px_6px_0_#d8cab0]">
         <h1 className="mb-4 text-2xl font-bold text-[#0f2f25]">Account created</h1>
         <p className="text-stone-600 mb-4">Check your email to confirm your account, then sign in.</p>
-        <Link href={`/login?redirect=${encodeURIComponent(getSafeRedirect())}`} className="font-semibold text-[#123c2f] hover:underline">Go to sign in</Link>
+        <Link href={getLoginHref()} className="font-semibold text-[#123c2f] hover:underline">Go to sign in</Link>
       </div>
     )
   }
@@ -155,7 +161,7 @@ export default function SignupPage() {
       </form>
       <p className="text-stone-600 text-sm mt-5 text-center">
         Already have an account?{' '}
-        <Link href="/login" className="text-emerald-800 font-semibold hover:underline">Sign in</Link>
+        <Link href={getLoginHref()} className="text-emerald-800 font-semibold hover:underline">Sign in</Link>
       </p>
     </div>
   )

@@ -11,6 +11,11 @@ export default function JoinPoolPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  function currentJoinRedirect() {
+    if (typeof window === 'undefined') return '/pool/join'
+    return `${window.location.pathname}${window.location.search}`
+  }
+
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code')
     if (code) setPasscode(code.toUpperCase())
@@ -21,7 +26,10 @@ export default function JoinPoolPage() {
     setError(''); setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setError('Not authenticated'); setLoading(false); return }
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(currentJoinRedirect())}`)
+      return
+    }
 
     const { data: pool, error: poolError } = await supabase
       .from('gpp_pools')

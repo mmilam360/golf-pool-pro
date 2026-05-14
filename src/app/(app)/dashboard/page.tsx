@@ -103,7 +103,14 @@ function BalanceBadge({ pool, activeEntryCount, tournament }: { pool: PoolRecord
     return <span className="inline-flex justify-center border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#7a5a19]">Est {formatMoney(quote.amountDueCents)}</span>
   }
 
-  return <span className="inline-flex justify-center border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#b21e23]">Due {formatMoney(quote.amountDueCents)}</span>
+  const dueDate = tournament?.start_date ? formatDate(tournament.start_date) : null
+
+  return (
+    <span className="inline-flex flex-col items-center justify-center border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-center text-xs font-bold uppercase leading-tight tracking-[0.12em] text-[#b21e23]">
+      <span>Due {formatMoney(quote.amountDueCents)}</span>
+      {dueDate ? <span className="mt-0.5 font-mono text-[10px] tracking-[0.08em]">{dueDate}</span> : null}
+    </span>
+  )
 }
 
 function formatScore(score: number | null) {
