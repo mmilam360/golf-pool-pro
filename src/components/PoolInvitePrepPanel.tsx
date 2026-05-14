@@ -12,8 +12,6 @@ type InvitePrepPanelProps = {
   joinLink: string
   pickCount: number
   countScores: number
-  obRuleEnabled: boolean
-  obPenaltyStrokes: number
 }
 
 function plural(value: number, singular: string, pluralWord = `${singular}s`) {
@@ -30,21 +28,20 @@ export function PoolInvitePrepPanel({
   joinLink,
   pickCount,
   countScores,
-  obRuleEnabled,
-  obPenaltyStrokes,
 }: InvitePrepPanelProps) {
   const [format, setFormat] = useState<'text' | 'email'>('text')
   const [copied, setCopied] = useState(false)
   const missingPickCount = Math.max(entryCount - submittedPickCount, 0)
-  const ruleLine = `${plural(pickCount, 'golfer')}, best ${countScores} score${countScores === 1 ? '' : 's'} count${obRuleEnabled ? `, OB rule is ${obPenaltyStrokes} over par` : ''}`
+  const ruleLine = `${plural(pickCount, 'golfer')}, best ${countScores} score${countScores === 1 ? '' : 's'} count`
+  const lockLine = `Picks lock before the first tee time on tournament day${startDateLabel !== 'Date TBA' ? ` (${startDateLabel})` : ''}.`
 
   const copy = useMemo(() => {
     if (format === 'email') {
-      return `Subject: ${poolName} golf pool\n\nI'm running ${poolName} for ${tournamentName}.\n\nJoin here: ${joinLink}\nPasscode: ${passcode}\nRules: pick ${plural(pickCount, 'golfer')}; best ${countScores} score${countScores === 1 ? '' : 's'} count${obRuleEnabled ? `; OB rule is ${obPenaltyStrokes} over par` : ''}.\n\nTournament starts ${startDateLabel}. Get your picks in before it locks.`
+      return `Subject: ${poolName} golf pool\n\nI set up the ${poolName} pool for the ${tournamentName}.\n\nJoin here:\n${joinLink}\n\nPasscode: ${passcode}\n\nRules are simple: pick ${plural(pickCount, 'golfer')}, best ${countScores} score${countScores === 1 ? '' : 's'} count. ${lockLine}\n\nGet your picks in when you get a chance.`
     }
 
-    return `Golf pool is open: ${poolName} for ${tournamentName}. Join here: ${joinLink} Passcode: ${passcode}. Rules: pick ${pickCount}, best ${countScores} count${obRuleEnabled ? `, OB ${obPenaltyStrokes} over par` : ''}. Locks ${startDateLabel}.`
-  }, [countScores, format, joinLink, obPenaltyStrokes, obRuleEnabled, passcode, pickCount, poolName, startDateLabel, tournamentName])
+    return `${poolName} golf pool is open for the ${tournamentName}.\n\nJoin: ${joinLink}\nPasscode: ${passcode}\n\nPick ${pickCount} golfers. Best ${countScores} score${countScores === 1 ? '' : 's'} count. ${lockLine}`
+  }, [countScores, format, joinLink, lockLine, passcode, pickCount, poolName, tournamentName])
 
   async function copyInvite() {
     try {

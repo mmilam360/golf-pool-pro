@@ -204,8 +204,6 @@ export default async function ManagePoolsPage() {
                       joinLink={`https://www.golfpoolspro.com/pool/join?code=${pool.passcode}`}
                       pickCount={pool.pick_count}
                       countScores={pool.count_scores}
-                      obRuleEnabled={pool.ob_rule_enabled}
-                      obPenaltyStrokes={pool.ob_penalty_strokes}
                     />
                   ) : null}
                 </div>
