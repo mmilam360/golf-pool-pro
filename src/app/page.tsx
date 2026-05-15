@@ -88,6 +88,15 @@ const pricingRows = [
   ['Maximum pool fee', '$25 cap'],
 ]
 
+const featureRows = [
+  ['Live standings', 'Follow the full pool leaderboard from the dashboard once scores start moving.'],
+  ['Smart alerts', 'Players can get notified when scoring starts, picks are due, or they jump into first.'],
+  ['Cut and OB scoring', 'Missed cuts and OB stand-ins are handled by the pool rules instead of spreadsheet math.'],
+  ['Fast invites', 'Invite by link, passcode, or previous-player list when you run the next pool.'],
+  ['Run it back', 'Pool runners can reuse the same group instead of rebuilding every tournament.'],
+  ['Capped host fee', 'Players join free. The host pays one capped pool fee after picks lock.'],
+]
+
 const faqItems = [
   {
     question: 'What happens if one of my golfers misses the cut?',
@@ -108,6 +117,18 @@ const faqItems = [
   {
     question: 'Can I use this for an office pool or a group text pool?',
     answer: 'Yes. Golf Pools Pro is built for the person who usually collects picks in a spreadsheet and posts standings manually. The app handles picks, rules, and the live board in one place.',
+  },
+  {
+    question: 'Can players get notifications?',
+    answer: 'Yes. Players can turn on alerts for live scoring, pick deadlines, and taking the lead.',
+  },
+  {
+    question: 'Can I run the same pool again?',
+    answer: 'Yes. Pool runners can reuse a previous group and invite those players back faster for the next tournament.',
+  },
+  {
+    question: 'Can I install Golf Pools Pro on my phone?',
+    answer: 'Yes. Golf Pools Pro is a Progressive Web App, so you can add it to your iPhone or Android home screen from the browser.',
   },
 ]
 
@@ -290,6 +311,24 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="mx-auto max-w-7xl px-5 py-14 md:px-8 md:py-20">
+          <div className="mb-8 max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">What runs the pool</p>
+            <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Everything your golf pool needs once picks lock.</h2>
+            <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
+              Golf Pools Pro keeps the useful parts in one place: picks, invites, scoring, alerts, and the live board your group actually checks.
+            </p>
+          </div>
+          <div className="grid border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0] md:grid-cols-2 lg:grid-cols-3">
+            {featureRows.map(([title, body]) => (
+              <div key={title} className="border-b-2 border-[#123c2f] p-5 md:border-r-2 lg:[&:nth-child(3n)]:border-r-0 md:[&:nth-child(even)]:border-r-0 lg:[&:nth-child(even)]:border-r-2 [&:nth-last-child(-n+1)]:border-b-0 md:[&:nth-last-child(-n+2)]:border-b-0 lg:[&:nth-last-child(-n+3)]:border-b-0">
+                <h3 className="font-black uppercase tracking-[0.06em] text-[#123c2f]">{title}</h3>
+                <p className="mt-3 leading-7 text-[#4f5b52]">{body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
 
         <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 md:grid-cols-[0.85fr_1.15fr] md:items-start md:px-8 md:py-20">
           <div>
@@ -330,6 +369,11 @@ export default function Home() {
                   <p className="px-5 pb-5 leading-7 text-[#4f5b52]">{item.answer}</p>
                 </details>
               ))}
+              <div className="border-t-2 border-[#123c2f] bg-[#fbf7ed] px-5 py-4 text-sm font-semibold leading-6 text-[#4f5b52]">
+                Official PWA install help: <a href="https://support.apple.com/en-us/104996" target="_blank" rel="noreferrer" className="font-black text-[#123c2f] underline decoration-[#b58a3a] underline-offset-4">Apple iPhone</a>
+                <span className="mx-2">/</span>
+                <a href="https://support.google.com/chrome/answer/9658361" target="_blank" rel="noreferrer" className="font-black text-[#123c2f] underline decoration-[#b58a3a] underline-offset-4">Chrome Android</a>
+              </div>
             </div>
           </div>
 

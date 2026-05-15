@@ -7,6 +7,75 @@ import { NotificationSettings } from '@/components/NotificationSettings'
 import { createClient } from '@/lib/supabase/client'
 
 type Tone = 'success' | 'error' | 'info'
+type InstallPlatform = 'ios' | 'android'
+
+const installSteps = {
+  ios: [
+    'Open Golf Pools Pro in Safari on your iPhone.',
+    'Tap the Share button in the Safari toolbar.',
+    'Scroll the share sheet and tap Add to Home Screen.',
+    'Tap Add. Open Golf Pools Pro from the new home-screen icon.',
+  ],
+  android: [
+    'Open Golf Pools Pro in Chrome on your Android phone.',
+    'Tap the three-dot menu in the top-right corner.',
+    'Tap Add to Home screen or Install app.',
+    'Confirm the install. Open Golf Pools Pro from the new home-screen icon.',
+  ],
+}
+
+function PwaInstallInstructions() {
+  const [platform, setPlatform] = useState<InstallPlatform>('ios')
+  const steps = installSteps[platform]
+
+  return (
+    <div className="mt-5 border-2 border-[#123c2f] bg-white p-5 shadow-[6px_6px_0_#d8cab0]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Install the app</p>
+          <h2 className="mt-1 text-xl font-black text-[#123c2f]">Add Golf Pools Pro to your phone</h2>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[#657168]">
+            Golf Pools Pro is a Progressive Web App. Install it from your browser so it opens like a normal app.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 border-2 border-[#123c2f] text-sm font-black uppercase tracking-[0.08em]">
+        <button
+          type="button"
+          onClick={() => setPlatform('ios')}
+          className={`border-r-2 border-[#123c2f] px-3 py-2 ${platform === 'ios' ? 'bg-[#123c2f] text-white' : 'bg-[#fbf7ed] text-[#123c2f]'}`}
+        >
+          iPhone
+        </button>
+        <button
+          type="button"
+          onClick={() => setPlatform('android')}
+          className={`px-3 py-2 ${platform === 'android' ? 'bg-[#123c2f] text-white' : 'bg-[#fbf7ed] text-[#123c2f]'}`}
+        >
+          Android
+        </button>
+      </div>
+
+      <ol className="mt-4 space-y-3">
+        {steps.map((step, index) => (
+          <li key={step} className="grid grid-cols-[32px_1fr] gap-3 text-sm font-semibold leading-6 text-[#1f2a24]">
+            <span className="flex h-8 w-8 items-center justify-center border border-[#d8cab0] bg-[#fbf7ed] font-black text-[#8a6724]">{index + 1}</span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-4 flex flex-col gap-2 border-t border-[#d8cab0] pt-4 text-sm font-semibold text-[#657168] sm:flex-row sm:items-center sm:justify-between">
+        <span>Official install help:</span>
+        <div className="flex flex-wrap gap-3">
+          <a href="https://support.apple.com/en-us/104996" target="_blank" rel="noreferrer" className="font-black text-[#123c2f] underline decoration-[#b58a3a] underline-offset-4">Apple iPhone</a>
+          <a href="https://support.google.com/chrome/answer/9658361" target="_blank" rel="noreferrer" className="font-black text-[#123c2f] underline decoration-[#b58a3a] underline-offset-4">Chrome Android</a>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function Toast({ message, tone }: { message: string; tone: Tone }) {
   const toneClass = tone === 'success'
@@ -205,6 +274,8 @@ export default function AccountPage() {
           {saving ? 'Saving...' : 'Save settings'}
         </button>
       </form>
+
+      <PwaInstallInstructions />
     </div>
   )
 }
