@@ -336,6 +336,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
   const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
+  const fieldReady = field.length > 0
+  const showPickList = !picksAreClosed && fieldReady
+  const showSelectedPicks = fieldReady || myPicks.length > 0
   const visibleEntries = activeEntries
 
   const maskHiddenPicks = useCallback((poolEntries: any[]) => {
@@ -647,6 +650,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (picksAreClosed) {
       setStatusMessage('Picks are closed for this pool.')
       showToast('Picks are closed for this pool.', 'error')
+      setTimeout(() => setStatusMessage(''), 2500)
+      return
+    }
+    if (!fieldReady) {
+      setStatusMessage('Tournament field is not loaded yet.')
+      showToast('Tournament field is not loaded yet.', 'info')
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
@@ -1228,27 +1237,32 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </div>
           ) : (
             <>
+              {!fieldReady && !picksAreClosed && (
+                <div className="mb-4 border-2 border-[#b58a3a] bg-[#fff4cf] p-4 shadow-[5px_5px_0_#d8cab0]">
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#7a5a19]">Tournament field pending</p>
+                  <p className="mt-1 text-lg font-black leading-6 text-[#123c2f]">Golfers are not available for this event yet.</p>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-[#1f2a24]">Check back closer to the tournament. Your entry is in the pool; picks open here as soon as the field loads.</p>
+                </div>
+              )}
+
               <div className="mb-4 border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[5px_5px_0_#d8cab0]">
                 <div className="flex flex-col gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f3df9c]">Make picks</p>
                     <h2 className="text-xl font-black text-white">Pick {pool.pick_count}. Best {pool.count_scores} count.</h2>
                   </div>
-                  {!picksAreClosed ? (
+                  {!picksAreClosed && fieldReady ? (
                     <button onClick={savePicks} disabled={saving}
                       className="border-2 border-[#f3df9c] bg-[#f3df9c] px-5 py-2 text-sm font-black uppercase text-[#123c2f] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">
                       {saving ? 'Saving...' : 'Save picks'}
                     </button>
-                  ) : (
+                  ) : picksAreClosed ? (
                     <span className="w-fit border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-800">Picks closed</span>
+                  ) : (
+                    <span className="w-fit border border-[#f3df9c] bg-[#f3df9c] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Field pending</span>
                   )}
                 </div>
-                <div className="grid gap-3 p-4 md:grid-cols-[1.2fr_0.8fr]">
-                  <div className="border border-[#d8cab0] bg-white p-3">
-                    <p className="text-sm font-semibold leading-6 text-[#1f2a24]">
-                      Choose your golfers before the pool locks. When scoring starts, your best {pool.count_scores} scores make up your total. Lower is better, just like tournament scoring.
-                    </p>
-                  </div>
+                <div className="p-4">
                   <details className="group border border-[#d8cab0] bg-white">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] [&::-webkit-details-marker]:hidden">
                       <span>How OB works</span>
@@ -1264,55 +1278,32 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </div>
               </div>
 
-              <div className="mb-4 rounded-none border border-stone-200 bg-white p-4 shadow-[4px_4px_0_#d8cab0]">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                  <div className="min-w-0 flex-1">
-                    <label className="mb-1 block text-sm font-medium text-stone-700">Entry name</label>
-                    <input
-                      type="text"
-                      value={entryNameValue}
-                      onChange={e => setEntryNameValue(e.target.value)}
-                      placeholder="Name shown on leaderboard"
-                      maxLength={60}
-                      className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                    />
-                    <p className="mt-1 text-xs text-stone-500">This is how your entry appears in this pool.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={saveEntryName}
-                    disabled={entryNameSaving || !entryNameValue.trim() || entryNameValue.trim() === myEntry.display_name}
-                    className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {entryNameSaving ? 'Saving...' : 'Save entry name'}
-                  </button>
-                </div>
-              </div>
-
               {/* Selected picks */}
-              <div className="mb-4 rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
-                <div className="flex items-center justify-between border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
-                  <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">
-                    Your picks ({myPicks.length}/{pool.pick_count})
-                  </h3>
-                  <span className="text-xs font-bold text-stone-500">Tap a name below to add or remove</span>
+              {showSelectedPicks && (
+                <div className="mb-4 rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
+                  <div className="flex flex-col gap-1 border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">
+                      Your picks ({myPicks.length}/{pool.pick_count})
+                    </h3>
+                    {fieldReady && <span className="text-xs font-bold text-stone-500">Tap a golfer below to add or remove</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-2 p-4">
+                    {myPicks.map(name => (
+                      <span key={name} className="flex items-center gap-2 rounded-none border border-[#123c2f] bg-[#eef7ef] px-3 py-1.5 text-sm font-bold text-[#123c2f]">
+                        {golferListName(name)}
+                        {!picksAreClosed && fieldReady && (
+                          <button type="button" onClick={() => togglePick(name)} className="border border-[#123c2f] px-1 text-[10px] font-black leading-4 text-[#123c2f] hover:border-[#b21e23] hover:text-[#b21e23]" aria-label={`Remove ${golferListName(name)}`}>×</button>
+                        )}
+                      </span>
+                    ))}
+                    {myPicks.length === 0 && <span className="text-sm font-semibold text-stone-500">No golfers selected yet.</span>}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2 p-4">
-                  {myPicks.map(name => (
-                    <span key={name} className="flex items-center gap-2 rounded-none border border-[#123c2f] bg-[#eef7ef] px-3 py-1.5 text-sm font-bold text-[#123c2f]">
-                      {golferListName(name)}
-                      {!picksAreClosed && (
-                        <button type="button" onClick={() => togglePick(name)} className="border border-[#123c2f] px-1 text-[10px] font-black leading-4 text-[#123c2f] hover:border-[#b21e23] hover:text-[#b21e23]" aria-label={`Remove ${golferListName(name)}`}>×</button>
-                      )}
-                    </span>
-                  ))}
-                  {myPicks.length === 0 && <span className="text-sm font-semibold text-stone-500">No golfers selected yet.</span>}
-                </div>
-              </div>
+              )}
 
               {/* Golfer list */}
-              {!picksAreClosed && field.length > 0 && (
-                <div className="overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
+              {showPickList && (
+                <div className="mb-4 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
                   <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">Tournament field</p>
                     <p className="mt-1 text-sm font-semibold text-stone-600">Sorted by last name for quick scanning.</p>
@@ -1338,11 +1329,35 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </div>
               )}
 
-              {field.length === 0 && (
-                <div className="bg-white rounded-none p-8 border border-stone-200 text-center">
-                  <p className="text-stone-600">Tournament field not loaded yet. Check back when the tournament is closer.</p>
+              <details className="group rounded-none border border-stone-200 bg-white shadow-[4px_4px_0_#d8cab0]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-[0.12em] text-stone-700 [&::-webkit-details-marker]:hidden">
+                  <span>Entry name</span>
+                  <span className="border border-stone-300 px-1.5 py-0.5 text-[10px] group-open:hidden">Edit</span>
+                </summary>
+                <div className="border-t border-stone-200 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div className="min-w-0 flex-1">
+                      <label className="mb-1 block text-sm font-medium text-stone-700">Name on leaderboard</label>
+                      <input
+                        type="text"
+                        value={entryNameValue}
+                        onChange={e => setEntryNameValue(e.target.value)}
+                        placeholder="Name shown on leaderboard"
+                        maxLength={60}
+                        className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={saveEntryName}
+                      disabled={entryNameSaving || !entryNameValue.trim() || entryNameValue.trim() === myEntry.display_name}
+                      className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {entryNameSaving ? 'Saving...' : 'Save entry name'}
+                    </button>
+                  </div>
                 </div>
-              )}
+              </details>
             </>
           )}
         </div>
