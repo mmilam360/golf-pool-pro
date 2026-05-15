@@ -41,6 +41,7 @@ async function loadPrefs(supabase: any) {
 }
 
 async function sendOnce(params: {
+  supabase: any
   userId: string
   poolId: string
   type: 'pick_deadline' | 'leaderboard_live' | 'took_lead'
@@ -48,6 +49,14 @@ async function sendOnce(params: {
   title: string
   body: string
 }) {
+  const { data: subscriptions, error: subscriptionError } = await params.supabase
+    .from('gpp_push_subscriptions')
+    .select('id')
+    .eq('user_id', params.userId)
+    .limit(1)
+  if (subscriptionError) throw subscriptionError
+  if (!subscriptions?.length) return { sent: 0, duplicate: false, noSubscription: true }
+
   const inserted = await recordNotificationEvent({
     userId: params.userId,
     poolId: params.poolId,
@@ -55,14 +64,14 @@ async function sendOnce(params: {
     dedupeKey: params.dedupeKey,
     payload: { title: params.title, body: params.body },
   })
-  if (!inserted) return { sent: 0, duplicate: true }
+  if (!inserted) return { sent: 0, duplicate: true, noSubscription: false }
   const result = await sendPushToUser(params.userId, {
     title: params.title,
     body: params.body,
     url: `/pool/${params.poolId}`,
     tag: params.dedupeKey,
   })
-  return { sent: result.sent, duplicate: false }
+  return { sent: result.sent, duplicate: false, noSubscription: false }
 }
 
 async function sendPickDeadlineReminders(supabase: any, prefsByUser: Map<string, Prefs>) {
@@ -94,6 +103,7 @@ async function sendPickDeadlineReminders(supabase: any, prefsByUser: Map<string,
       if (!notificationPrefsAllow(prefs, 'pick_deadline')) continue
       candidates += 1
       const result = await sendOnce({
+        supabase,
         userId: entry.user_id,
         poolId: pool.id,
         type: 'pick_deadline',
@@ -130,6 +140,7 @@ async function sendLeaderboardLiveAlerts(supabase: any, prefsByUser: Map<string,
       if (!notificationPrefsAllow(prefs, 'leaderboard_live')) continue
       candidates += 1
       const result = await sendOnce({
+        supabase,
         userId,
         poolId: pool.id,
         type: 'leaderboard_live',
@@ -178,6 +189,7 @@ async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Pref
       if (!notificationPrefsAllow(prefs, 'took_lead')) continue
       candidates += 1
       const result = await sendOnce({
+        supabase,
         userId,
         poolId: pool.id,
         type: 'took_lead',
