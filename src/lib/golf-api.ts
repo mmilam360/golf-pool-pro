@@ -8,6 +8,7 @@ const NEXT_REVALIDATE_MEDIUM = { next: { revalidate: 300 } } as RequestInit
 export interface GolfPlayer {
   id: string; name: string; firstName: string; lastName: string
   score: string; scoreToPar: number; thru: string; roundScore: string
+  teeTime?: string; startTee?: number | null
   position: string; strokes: number
   status: 'active' | 'cut' | 'wd' | 'dnq'; country: string; image?: string
 }
@@ -97,6 +98,68 @@ function thruFromLine(line: any) {
   return `${completed}${startedOnBackNine ? '*' : ''}`
 }
 
+function easternDateKey(value: Date | string) {
+  const parsed = value instanceof Date ? value : new Date(value)
+  if (!Number.isFinite(parsed.getTime())) return ''
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(parsed)
+}
+
+function hasLineStarted(line: any) {
+  const holes = Array.isArray(line?.linescores) ? line.linescores : []
+  if (holes.some((hole: any) => hole?.value != null || hole?.displayValue)) return true
+  const display = String(line?.displayValue || '').trim()
+  return Boolean(display && display !== '-')
+}
+
+type TeeInfo = { teeTime?: string; startTee?: number | null; roundScore?: string }
+
+function teeInfoForToday(linescores: any): TeeInfo | null {
+  const items = Array.isArray(linescores?.items) ? linescores.items : Array.isArray(linescores) ? linescores : []
+  const today = easternDateKey(new Date())
+  const todaysLine = items
+    .filter((line: any) => line?.teeTime && easternDateKey(line.teeTime) === today)
+    .sort((a: any, b: any) => Number(a.period || 0) - Number(b.period || 0))
+    .at(-1)
+
+  if (!todaysLine?.teeTime) return null
+  const startTee = Number(todaysLine.startTee || todaysLine.startPosition || 0)
+  return {
+    teeTime: todaysLine.teeTime,
+    startTee: Number.isFinite(startTee) && startTee > 0 ? startTee : null,
+    roundScore: hasLineStarted(todaysLine) ? todaysLine.displayValue || '' : '',
+  }
+}
+
+async function getCompetitorTeeInfo(eventId: string, competitionId: string, playerId: string): Promise<TeeInfo | null> {
+  try {
+    const res = await fetch(`${ESPN_CORE_EVENTS}/${eventId}/competitions/${competitionId}/competitors/${playerId}/linescores?lang=en&region=us`, NEXT_REVALIDATE_MEDIUM)
+    if (!res.ok) return null
+    return teeInfoForToday(await res.json())
+  } catch {
+    return null
+  }
+}
+
+async function enrichPlayersWithTeeTimes(eventId: string, competitionId: string, players: GolfPlayer[]) {
+  const entries = await Promise.all(players.map(async player => [player.id, await getCompetitorTeeInfo(eventId, competitionId, player.id)] as const))
+  const teeByPlayerId = new Map(entries.filter(([, info]) => Boolean(info)))
+  return players.map(player => {
+    const teeInfo = teeByPlayerId.get(player.id)
+    if (!teeInfo?.teeTime) return player
+    return {
+      ...player,
+      teeTime: teeInfo.teeTime,
+      startTee: teeInfo.startTee,
+      roundScore: teeInfo.roundScore || '',
+    }
+  })
+}
+
 export function mapCompetitorToPlayer(competitor: any): GolfPlayer {
   const athlete = competitor.athlete || {}
   const name = athlete.displayName || athlete.fullName || competitor.displayName || competitor.name || 'Unknown'
@@ -180,7 +243,7 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     const event = (scoreboard.events || []).find((candidate: any) => String(candidate.id) === String(eventId))
     if (event) {
       const competition = event.competitions?.[0]
-      const players = (competition?.competitors || []).map(mapCompetitorToPlayer)
+      const players = await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
       const course = event.courses?.find?.((candidate: any) => candidate.host)?.name
         || event.courses?.[0]?.name
         || event.venue?.fullName
@@ -207,7 +270,7 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
   if (!coreMetadata) throw new Error(`ESPN event metadata unavailable: ${eventId}`)
   const event = coreMetadata.event
   const competition = event.competitions?.[0]
-  const players = (competition?.competitors || []).map(mapCompetitorToPlayer)
+  const players = await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
 
   return {
     id: event.id,

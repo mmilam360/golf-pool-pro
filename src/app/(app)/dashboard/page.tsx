@@ -286,22 +286,29 @@ export default async function DashboardPage() {
     return aDate.localeCompare(bDate)
   })
   const activeExternalIds = Array.from(new Set(activePoolCards.map(card => card.tournament?.external_id).filter(Boolean) as string[]))
-  const cutLinesByExternalId = new Map(
+  const liveLeaderboardsByExternalId = new Map(
     (await Promise.all(activeExternalIds.map(async externalId => {
       try {
         const live = await getLeaderboard(externalId)
-        return [externalId, live?.cutLine ?? null] as const
+        return [externalId, live] as const
       } catch {
         return [externalId, null] as const
       }
-    }))).filter(([, cutLine]) => Boolean(cutLine))
+    }))).filter(([, live]) => Boolean(live))
   )
-  const activePoolCardsWithCutLines = activePoolCards.map(card => {
+  const activePoolCardsWithLiveBoards = activePoolCards.map(card => {
     const externalId = card.tournament?.external_id
-    if (!externalId) return card
-    const cutLine = cutLinesByExternalId.get(externalId) ?? null
-    if (!cutLine || !card.tournament) return card
-    return { ...card, tournament: { ...card.tournament, cutLine } }
+    if (!externalId || !card.tournament) return card
+    const live = liveLeaderboardsByExternalId.get(externalId) ?? null
+    if (!live) return card
+    return {
+      ...card,
+      tournament: {
+        ...card.tournament,
+        leaderboard_json: live.leaderboard.length ? live.leaderboard : card.tournament.leaderboard_json,
+        cutLine: live.cutLine ?? null,
+      },
+    }
   })
   const hasAnyPools = owned.length > 0 || joined.length > 0 || invites.length > 0
   const lastOwnedPool = owned
@@ -330,7 +337,7 @@ export default async function DashboardPage() {
           <Link href={`/pool/create?clone=${lastOwnedPool.id}`} className="mt-3 inline-flex border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25] sm:mt-0">Run it again</Link>
         </section>
       )}
-      <DashboardActivePools cards={activePoolCardsWithCutLines} entriesByPool={entriesByPool} />
+      <DashboardActivePools cards={activePoolCardsWithLiveBoards} entriesByPool={entriesByPool} />
 
       {!hasAnyPools ? (
         <section className="border-2 border-[#123c2f] bg-white p-5 shadow-[7px_7px_0_#d8cab0] sm:p-7">

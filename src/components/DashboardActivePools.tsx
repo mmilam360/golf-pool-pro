@@ -257,6 +257,15 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     .filter(Boolean)
   const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
   const showJumpToMyEntry = Boolean(currentScoredEntry && scoredEntries.length >= 10)
+  const jumpToCurrentEntry = () => {
+    if (!currentEntryId) return
+    onEntryToggle(currentEntryId, true)
+    window.setTimeout(() => {
+      const targets = Array.from(document.querySelectorAll<HTMLElement>(`[data-dashboard-entry-id="${currentEntryId}"]`))
+      const visibleTarget = targets.find(target => target.offsetParent !== null) || targets[0]
+      visibleTarget?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 0)
+  }
 
   if (scoredEntries.length === 0) {
     return (
@@ -274,9 +283,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
       <OpenPicksBar pool={pool} tournament={tournament} />
       {showJumpToMyEntry ? (
         <div className="mb-3 flex justify-center">
-          <a href={`#dashboard-entry-${currentEntryId}`} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0] hover:bg-[#fffdf8]">
+          <button type="button" onClick={jumpToCurrentEntry} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0] hover:bg-[#fffdf8]">
             Jump to my entry
-          </a>
+          </button>
         </div>
       ) : null}
       <div
@@ -299,7 +308,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const isCurrentEntry = entry.entryId === currentEntryId
                 const isOpen = openEntryIds ? openEntryIds.has(entry.entryId) : (entry.entryId === currentEntryId || (!currentEntryId && entryIndex === 0))
                 return (
-                  <details id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#111] last:border-b-0">
+                  <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#111] last:border-b-0">
                     <summary className="grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 bg-[#f7f7f2] px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden">
                       <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                       <div className="min-w-0">
@@ -361,7 +370,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                     const isCurrentEntry = entry.entryId === currentEntryId
                     return (
                       <Fragment key={entry.entryId}>
-                        <tr className="bg-[#f7f7f2]">
+                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className="scroll-mt-28 bg-[#f7f7f2]">
                           <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</td>
                           <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
                             <span className="flex min-w-0 items-center gap-1.5" title={entry.displayName}>

@@ -55,6 +55,18 @@ function updatedLabel(value?: string | null) {
   return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
+function teeTimeLabel(player: GolfPlayer) {
+  if (!player.teeTime || player.roundScore) return ''
+  const parsed = new Date(player.teeTime)
+  if (!Number.isFinite(parsed.getTime())) return ''
+  const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  return `${time}${player.startTee === 10 ? '*' : ''}`
+}
+
+function todayLabel(player: GolfPlayer) {
+  return player.roundScore || teeTimeLabel(player) || '—'
+}
+
 function shouldShowCutLineAfter(rows: GolfPlayer[], index: number, cutLine?: GolfCutLine | null) {
   if (!cutLine) return false
   if (cutLine.count && index + 1 === cutLine.count) return true
@@ -119,7 +131,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
                         {player.country ? <div className="text-[8px] font-bold uppercase tracking-[0.06em] text-[#657168] sm:text-[10px] sm:tracking-[0.08em]">{player.country}</div> : null}
                       </td>
                       <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${isPicked ? 'bg-[#dff0e2] text-[#123c2f]' : scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>
-                      <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{player.roundScore || '—'}</td>
+                      <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{todayLabel(player)}</td>
                       <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[10px] font-black uppercase text-[#1f2a24] sm:px-2 sm:py-1.5 sm:text-xs">{statusLabel(player)}</td>
                     </tr>
                     {showCutLine ? (
