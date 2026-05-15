@@ -178,6 +178,20 @@ const faqItems = [
   {
     question: 'Can I install Golf Pools Pro on my phone?',
     answer: 'Yes. Golf Pools Pro is a Progressive Web App, so you can add it to your iPhone or Android home screen from the browser.',
+    details: [
+      {
+        label: 'iPhone',
+        steps: ['Open Golf Pools Pro in Safari.', 'Tap the Share button.', 'Choose Add to Home Screen.', 'Tap Add.'],
+        href: 'https://support.apple.com/en-us/104996',
+        linkText: 'Apple iPhone PWA help',
+      },
+      {
+        label: 'Android',
+        steps: ['Open Golf Pools Pro in Chrome.', 'Tap the three-dot menu.', 'Choose Add to Home screen or Install app.', 'Tap Install or Add.'],
+        href: 'https://support.google.com/chrome/answer/9658361',
+        linkText: 'Chrome Android PWA help',
+      },
+    ],
   },
 ]
 
@@ -213,7 +227,7 @@ const faqSchema = {
     name: item.question,
     acceptedAnswer: {
       '@type': 'Answer',
-      text: item.answer,
+      text: `${item.answer}${item.details ? ` ${item.details.map(detail => `${detail.label}: ${detail.steps.join(' ')}`).join(' ')}` : ''}`,
     },
   })),
 }
@@ -436,14 +450,28 @@ export default function Home() {
                     <span className="text-2xl leading-none text-[#b21e23] group-open:hidden">+</span>
                     <span className="hidden text-2xl leading-none text-[#b21e23] group-open:block">–</span>
                   </summary>
-                  <p className="px-5 pb-5 leading-7 text-[#4f5b52]">{item.answer}</p>
+                  <div className="px-5 pb-5 leading-7 text-[#4f5b52]">
+                    <p>{item.answer}</p>
+                    {item.details ? (
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        {item.details.map(detail => (
+                          <div key={detail.label} className="border border-[#d8cab0] bg-[#fbf7ed] p-4">
+                            <p className="font-black uppercase tracking-[0.08em] text-[#123c2f]">{detail.label}</p>
+                            <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm leading-6">
+                              {detail.steps.map(step => (
+                                <li key={step}>{step}</li>
+                              ))}
+                            </ol>
+                            <a href={detail.href} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-black text-[#123c2f] underline decoration-[#b58a3a] underline-offset-4">
+                              {detail.linkText}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </details>
               ))}
-              <div className="border-t-2 border-[#123c2f] bg-[#fbf7ed] px-5 py-4 text-sm font-semibold leading-6 text-[#4f5b52]">
-                Official PWA install help: <a href="https://support.apple.com/en-us/104996" target="_blank" rel="noreferrer" className="font-black text-[#123c2f] underline decoration-[#b58a3a] underline-offset-4">Apple iPhone</a>
-                <span className="mx-2">/</span>
-                <a href="https://support.google.com/chrome/answer/9658361" target="_blank" rel="noreferrer" className="font-black text-[#123c2f] underline decoration-[#b58a3a] underline-offset-4">Chrome Android</a>
-              </div>
             </div>
           </div>
 
