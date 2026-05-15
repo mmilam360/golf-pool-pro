@@ -12,6 +12,7 @@ const navLinks = [
   { href: '/pool/create', label: 'Create Pool', match: ['/pool/create'] },
   { href: '/manage-pools', label: 'Manage Pools', match: ['/manage-pools'] },
   { href: '/account', label: 'Account', match: ['/account'] },
+  { href: '/help', label: 'Help', match: ['/help'] },
 ]
 
 function isActive(pathname: string, matches: string[]) {

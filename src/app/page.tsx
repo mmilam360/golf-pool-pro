@@ -396,6 +396,8 @@ export default function Home() {
         <span className="mx-3">/</span>
         <Link href="/blog" className="font-semibold hover:text-[#123c2f]">Guides</Link>
         <span className="mx-3">/</span>
+        <Link href="/help" className="font-semibold hover:text-[#123c2f]">Help</Link>
+        <span className="mx-3">/</span>
         <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
         <span className="mx-3">/</span>
         <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>

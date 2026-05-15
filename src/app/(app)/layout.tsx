@@ -11,6 +11,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <span className="mx-3">/</span>
         <Link href="/blog?from=dashboard" className="font-semibold hover:text-[#123c2f]">Pick Guides</Link>
         <span className="mx-3">/</span>
+        <Link href="/help" className="font-semibold hover:text-[#123c2f]">Help</Link>
+        <span className="mx-3">/</span>
         <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
         <span className="mx-3">/</span>
         <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>
