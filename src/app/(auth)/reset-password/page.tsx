@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -42,13 +42,56 @@ export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [sessionReady, setSessionReady] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
 
+  useEffect(() => {
+    let active = true
+
+    async function prepareRecoverySession() {
+      const client = createClient()
+      const url = new URL(window.location.href)
+      const code = url.searchParams.get('code')
+      const hash = new URLSearchParams(url.hash.replace(/^#/, ''))
+      const accessToken = hash.get('access_token')
+      const refreshToken = hash.get('refresh_token')
+
+      try {
+        if (code) {
+          const { error } = await client.auth.exchangeCodeForSession(code)
+          if (error) throw error
+          window.history.replaceState({}, '', '/reset-password')
+        } else if (accessToken && refreshToken) {
+          const { error } = await client.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          if (error) throw error
+          window.history.replaceState({}, '', '/reset-password')
+        }
+
+        const { data } = await client.auth.getSession()
+        if (!active) return
+        setSessionReady(Boolean(data.session))
+      } catch {
+        if (!active) return
+        setSessionReady(false)
+      } finally {
+        if (active) setCheckingSession(false)
+      }
+    }
+
+    prepareRecoverySession()
+    return () => { active = false }
+  }, [])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    if (!sessionReady) {
+      setError('This reset link is expired or opened without the recovery session. Request a new reset link and open it in the same browser.')
+      return
+    }
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
@@ -83,6 +126,12 @@ export default function ResetPasswordPage() {
       <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Choose a new password</h1>
 
       {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {!checkingSession && !sessionReady && (
+        <div className="mb-4 rounded-none border border-[#d8cab0] bg-[#fbf7ed] p-3 text-sm leading-6 text-[#123c2f]">
+          This reset link is expired or missing its recovery session. Request a fresh link, then open the latest email in the same browser.
+          <div className="mt-2"><Link href="/forgot-password" className="font-semibold underline">Send a new reset link</Link></div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <PasswordInput label="New password" value={password} onChange={setPassword} />
