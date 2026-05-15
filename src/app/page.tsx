@@ -418,7 +418,7 @@ export default function Home() {
             <div className="relative aspect-[1350/2760] w-full drop-shadow-[12px_14px_0_#001f17]">
               <div
                 className="absolute overflow-hidden bg-[#6f8172]"
-                style={{ left: '6.15%', top: '3.15%', width: '87.7%', height: '93.6%', borderRadius: '13% / 6.4%' }}
+                style={{ left: '5.35%', top: '2.35%', width: '89.35%', height: '95.15%', borderRadius: '12.4% / 5.9%' }}
               >
                 <iframe
                   title="Golf Pools Pro final score story-ready preview inside an iPhone 17 Pro frame"
