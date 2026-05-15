@@ -116,10 +116,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
                       <td className={`border-b border-r border-[#eadfca] px-1 py-1 text-center text-[10px] font-black sm:px-2 sm:py-1.5 sm:text-xs ${isPicked ? 'text-[#123c2f]' : 'text-[#657168]'}`}>{positionLabel(player, index)}</td>
                       <td className={`border-b border-[#eadfca] px-1.5 py-1 sm:px-2 sm:py-1.5 ${isPicked ? 'shadow-[inset_3px_0_0_#123c2f]' : ''}`}>
                         <div className={`min-w-0 truncate font-black leading-4 sm:leading-5 ${isPicked ? 'text-[#123c2f]' : 'text-[#1f2a24]'}`} title={player.name}>{player.name}</div>
-                        <div className="flex items-center gap-1.5">
-                          {player.country ? <span className="text-[8px] font-bold uppercase tracking-[0.06em] text-[#657168] sm:text-[10px] sm:tracking-[0.08em]">{player.country}</span> : null}
-                          {isPicked ? <span className="border border-[#123c2f] bg-white px-1 text-[8px] font-black uppercase tracking-[0.06em] text-[#123c2f]">Your pick</span> : null}
-                        </div>
+                        {player.country ? <div className="text-[8px] font-bold uppercase tracking-[0.06em] text-[#657168] sm:text-[10px] sm:tracking-[0.08em]">{player.country}</div> : null}
                       </td>
                       <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${isPicked ? 'bg-[#dff0e2] text-[#123c2f]' : scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>
                       <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{player.roundScore || '—'}</td>

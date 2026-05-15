@@ -416,6 +416,10 @@ function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: Entr
   return { rank: current.rank, totalScore: current.totalScore, fieldSize: scored.length }
 }
 
+function entryPicks(entry?: EntryRecord | null) {
+  return Array.isArray(entry?.golfer_picks) ? entry.golfer_picks as string[] : []
+}
+
 export default function DashboardActivePools({ cards, entriesByPool }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]> }) {
   const router = useRouter()
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set())
@@ -524,6 +528,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   leaderboard={tournament?.leaderboard_json}
                   tournamentName={tournament?.name}
                   lastUpdated={tournament?.last_scores_fetch}
+                  pickedGolfers={entryPicks(entry)}
                 />
               </div>
             </details>
