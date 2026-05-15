@@ -98,7 +98,7 @@ function ownershipByPick(entries: ScoredEntry[]) {
 
 export function buildHorsePickMap(entries: ScoredEntry[], maxPerEntry = 2): HorsePickMap {
   const poolEntries = realEntries(entries)
-  if (poolEntries.length < 4) return new Map()
+  if (poolEntries.length < 3) return new Map()
   const ownership = ownershipByPick(poolEntries)
   const horsePicks: HorsePickMap = new Map()
 
@@ -128,7 +128,7 @@ export function buildHorsePickMap(entries: ScoredEntry[], maxPerEntry = 2): Hors
 export function buildTurtlePickMap(entries: ScoredEntry[], viewerEntryId?: string | null, maxPerEntry = 2): HorsePickMap {
   if (!viewerEntryId) return new Map()
   const poolEntries = realEntries(entries)
-  if (poolEntries.length < 4) return new Map()
+  if (poolEntries.length < 3) return new Map()
   const viewerEntry = poolEntries.find(entry => entry.entryId === viewerEntryId)
   if (!viewerEntry) return new Map()
 
