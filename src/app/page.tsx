@@ -5,10 +5,10 @@ const leaderboardRows = [
   {
     rank: '1',
     name: 'Lonnie',
-    total: '-38',
+    total: '-26',
     golfers: [
       ['-8', 'Scheffler', 'F'],
-      ['-6', 'McIlroy', '17'],
+      ['-7', 'McIlroy', '17'],
       ['-6', 'Schauffele', 'F'],
       ['-5', 'Morikawa', '16'],
     ],
@@ -17,31 +17,31 @@ const leaderboardRows = [
   {
     rank: '2',
     name: 'Jeff',
-    total: '-34',
+    total: '-25',
     golfers: [
       ['-7', 'McIlroy', '17'],
-      ['-6', 'Scheffler', 'F'],
+      ['-8', 'Scheffler', 'F'],
       ['-5', 'Cantlay', 'F'],
       ['-5', 'Homa', '15'],
     ],
-    other: ['+3 Spieth F', '+5 Fowler F'],
+    other: ['+2 Spieth F', '+4 Fowler F'],
   },
   {
     rank: '3',
     name: 'Dan M',
-    total: '-31',
+    total: '-21',
     golfers: [
-      ['-7', 'Schauffele', 'F'],
+      ['-6', 'Schauffele', 'F'],
       ['-5', 'Morikawa', '16'],
-      ['-4', 'Scheffler', 'F'],
-      ['-4', 'Åberg', '15'],
+      ['-8', 'Scheffler', 'F'],
+      ['-2', 'Åberg', '15'],
     ],
-    other: ['+1 Spieth F', 'CUT Fowler'],
+    other: ['+2 Spieth F', '+4 Fowler F'],
   },
   {
     rank: '4',
     name: 'Mikey',
-    total: '-28',
+    total: '-18',
     golfers: [
       ['-6', 'Thomas', 'F'],
       ['-5', 'Fleetwood', '17'],
@@ -53,26 +53,26 @@ const leaderboardRows = [
   {
     rank: '5',
     name: 'Rick',
-    total: '-25',
+    total: '-17',
     golfers: [
       ['-6', 'Hovland', 'F'],
-      ['-4', 'Cantlay', '17'],
+      ['-5', 'Cantlay', '17'],
       ['-3', 'Day', 'F'],
       ['-2', 'Burns', '16'],
     ],
-    other: ['+4 Fowler F', 'CUT Spieth'],
+    other: ['+4 Fowler F', '+2 Spieth F'],
   },
   {
     rank: '6',
     name: 'Bryan',
-    total: '-22',
+    total: '-15',
     golfers: [
       ['-5', 'Rahm', 'F'],
       ['-4', 'Koepka', '17'],
-      ['-3', 'Homa', 'F'],
+      ['-5', 'Homa', 'F'],
       ['-1', 'Clark', '16'],
     ],
-    other: ['+3 Spieth F', 'CUT Fowler'],
+    other: ['+2 Spieth F', '+4 Fowler F'],
   },
 ]
 
@@ -97,12 +97,54 @@ const featureRows = [
   ['Capped host fee', 'Players join free. The host pays one capped pool fee after picks lock.'],
 ]
 
-const finalScoreRows = [
-  ['1', 'Lonnie', '-38'],
-  ['2', 'Jeff', '-34'],
-  ['3', 'Dan M', '-31'],
-  ['4', 'Mikey', '-28'],
-]
+const finalScoreRows = leaderboardRows.slice(0, 5).map(entry => [entry.rank, entry.name, entry.total])
+
+const finalScoreStoryHtml = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; width: 100vw; min-height: 100vh; background: #fbf7ed; color: #1f2a24; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
+    .story { width: 100vw; height: 100vh; display: flex; flex-direction: column; background-color: #fbf7ed; background-image: linear-gradient(to right, rgba(60,45,25,.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(60,45,25,.12) 1px, transparent 1px); background-size: 38px 38px; }
+    .top { padding: 6.2vh 7vw 2.4vh; text-align: center; }
+    .logo { width: 52vw; max-width: 230px; height: auto; display: block; margin: 0 auto 2.5vh; }
+    .eyebrow { margin: 0; color: #8a6724; font-size: clamp(9px, 3.2vw, 14px); font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { margin: 1vh 0 0; color: #0f2f25; font-family: Impact, 'Arial Black', Arial, sans-serif; font-size: clamp(32px, 11vw, 50px); line-height: .9; letter-spacing: -.04em; text-transform: uppercase; }
+    .board { margin: 0 7vw; border: 4px solid #123c2f; background: white; box-shadow: 8px 8px 0 #d8cab0; }
+    .boardHead { background: #123c2f; color: white; text-align: center; padding: 3vh 4vw 2.2vh; border-bottom: 4px solid #123c2f; }
+    .pool { margin: 0; color: #f3df9c; font-size: clamp(14px, 4.8vw, 20px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .event { margin: .8vh 0 0; color: #d8e3dc; font-size: clamp(9px, 3vw, 13px); font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    .winnerRow { background: #fbf7ed; min-height: 14vh; }
+    .winnerRow .name { color: #0f2f25; font-family: Impact, 'Arial Black', Arial, sans-serif; font-size: clamp(34px, 11vw, 54px); letter-spacing: -.03em; }
+    .winnerRow .score { font-size: clamp(28px, 9vw, 42px); }
+    .row { display: grid; grid-template-columns: 14vw 1fr 20vw; min-height: 8.2vh; align-items: center; border-bottom: 2px solid #d8cab0; background: #fff; font-size: clamp(14px, 4.4vw, 22px); font-weight: 900; }
+    .row:last-child { border-bottom: 0; }
+    .rank { height: 100%; display: flex; align-items: center; justify-content: center; border-right: 2px solid #d8cab0; color: #b21e23; }
+    .name { padding: 0 3.2vw; color: #111; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .04em; }
+    .score { height: 100%; display: flex; align-items: center; justify-content: center; border-left: 2px solid #d8cab0; color: #b21e23; font-variant-numeric: tabular-nums; }
+    .url { margin-top: auto; padding: 2.4vh 5vw 4.2vh; text-align: center; color: #123c2f; font-size: clamp(11px, 3.4vw, 17px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <main class="story">
+    <section class="top">
+      <img class="logo" src="https://www.golfpoolspro.com/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" />
+      <p class="eyebrow">Final board</p>
+      <h1>PGA Championship</h1>
+    </section>
+    <section class="board" aria-label="Tiger's Tribe final standings">
+      <div class="boardHead">
+        <p class="pool">Tiger's Tribe</p>
+        <p class="event">PGA Championship pool</p>
+      </div>
+      ${finalScoreRows.map(([rank, name, total], index) => `<div class="row${index === 0 ? ' winnerRow' : ''}"><div class="rank">${rank}</div><div class="name">${name}</div><div class="score">${total}</div></div>`).join('')}
+    </section>
+    <div class="url">golfpoolspro.com</div>
+  </main>
+</body>
+</html>`
 
 const faqItems = [
   {
@@ -337,69 +379,24 @@ export default function Home() {
         </section>
 
         <section className="border-y border-[#d8cab0] bg-[#0f2f25] px-5 py-14 text-white md:px-8 md:py-20">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
-            <div className="max-w-xl">
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f3df9c]">After the final putt</p>
-              <h2 className="mt-3 font-display text-3xl font-bold leading-tight md:text-5xl">Shareable bragging rights.</h2>
-              <p className="mt-4 text-base leading-7 text-[#d8e3dc] sm:text-lg">
-                When the pool ends, post the final board instead of another group-text screenshot. It looks clean on a story and makes the winner obvious.
-              </p>
-              <div className="mt-6 grid gap-3 text-sm font-black uppercase tracking-[0.08em] text-[#f5ead0] sm:grid-cols-2">
-                <div className="border border-white/20 bg-white/5 px-4 py-3">Final standings</div>
-                <div className="border border-white/20 bg-white/5 px-4 py-3">Winner highlighted</div>
-                <div className="border border-white/20 bg-white/5 px-4 py-3">Story-ready crop</div>
-                <div className="border border-white/20 bg-white/5 px-4 py-3">No spreadsheet mess</div>
-              </div>
-            </div>
+          <div className="mx-auto max-w-4xl text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f3df9c]">After the final putt</p>
+            <h2 className="mt-3 font-display text-3xl font-bold leading-tight md:text-5xl">Share the final board.</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#d8e3dc] sm:text-lg">
+              Pool name, five final scores, site URL, and full logo. Same template the final export will use.
+            </p>
+          </div>
 
-            <div className="mx-auto w-full max-w-[340px] sm:max-w-[430px] lg:max-w-[470px]">
-              <div className="border-[8px] border-[#111] bg-[#111] p-2 shadow-[8px_8px_0_#001f17] sm:border-[12px] sm:p-3 sm:shadow-[12px_12px_0_#001f17]">
-                <div className="relative overflow-hidden border border-[#2d2d2d] bg-[#fbf7ed] text-[#1f2a24]">
-                  <div className="absolute left-1/2 top-0 z-10 h-5 w-28 -translate-x-1/2 rounded-b-2xl bg-[#111]" aria-hidden="true" />
-                  <div className="border-b border-[#d8cab0] bg-white px-4 pb-3 pt-8">
-                    <div className="flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.14em] text-stone-600">
-                      <span>golfpoolspro</span>
-                      <span>Story preview</span>
-                    </div>
-                  </div>
-
-                  <div className="scorecard-paper px-4 py-5 sm:px-6 sm:py-6">
-                    <div className="mx-auto max-w-[330px] border-2 border-[#123c2f] bg-white shadow-[6px_6px_0_#d8cab0]">
-                      <div className="border-b-2 border-[#123c2f] bg-[#123c2f] px-4 py-4 text-center text-white">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f3df9c]">Final results</p>
-                        <h3 className="mt-1 font-display text-xl font-black leading-none sm:text-2xl">Tiger&apos;s Tribe</h3>
-                        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#d8e3dc] sm:text-[11px]">PGA Championship pool</p>
-                      </div>
-
-                      <div className="bg-[#fbf7ed] p-4 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Champion</p>
-                        <p className="mt-1 font-display text-3xl font-black leading-none text-[#0f2f25] sm:text-4xl">Lonnie</p>
-                        <p className="mt-1 text-2xl font-black leading-none tabular-nums text-[#b21e23] sm:text-3xl">-38</p>
-                      </div>
-
-                      <div className="border-t-2 border-[#123c2f]">
-                        {finalScoreRows.map(([rank, name, total]) => (
-                          <div key={rank} className="grid grid-cols-[36px_1fr_58px] items-center border-b border-[#d8cab0] bg-white text-xs font-black last:border-b-0 sm:grid-cols-[42px_1fr_68px] sm:text-sm">
-                            <div className="border-r border-[#d8cab0] py-3 text-center text-[#b21e23]">{rank}</div>
-                            <div className="min-w-0 px-3 uppercase tracking-[0.04em] text-[#111]">{name}</div>
-                            <div className="border-l border-[#d8cab0] py-3 text-center tabular-nums text-[#b21e23]">{total}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="border-t-2 border-[#123c2f] bg-[#f3df9c] px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.13em] text-[#0f2f25]">
-                        Final board by Golf Pools Pro
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-[#d8cab0] bg-white px-4 py-3">
-                    <div className="h-2 w-full bg-[#d8cab0]" aria-hidden="true" />
-                    <p className="mt-3 text-xs font-bold leading-5 text-stone-700">
-                      Lonnie took the pool. Screenshot lives forever.
-                    </p>
-                  </div>
-                </div>
+          <div className="mx-auto mt-9 w-full max-w-[340px] sm:max-w-[390px]">
+            <div className="rounded-[2.6rem] border-[10px] border-[#111] bg-[#111] p-2 shadow-[8px_8px_0_#001f17] sm:border-[12px] sm:shadow-[12px_12px_0_#001f17]">
+              <div className="relative overflow-hidden rounded-[2rem] bg-[#111]">
+                <div className="absolute left-1/2 top-0 z-10 h-6 w-32 -translate-x-1/2 rounded-b-2xl bg-[#111]" aria-hidden="true" />
+                <iframe
+                  title="Golf Pools Pro final score Instagram story export preview"
+                  srcDoc={finalScoreStoryHtml}
+                  className="block aspect-[9/16] w-full border-0 bg-[#fbf7ed]"
+                  loading="lazy"
+                />
               </div>
             </div>
           </div>
