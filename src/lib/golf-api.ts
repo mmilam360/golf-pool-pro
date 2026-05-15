@@ -44,8 +44,14 @@ function currentRoundLine(linescores: any[] | undefined) {
 
 function thruFromLine(line: any) {
   const holes = Array.isArray(line?.linescores) ? line.linescores : []
-  const completed = holes.filter((hole: any) => hole?.value != null || hole?.displayValue).length
-  return completed > 0 ? String(completed) : ''
+  const completedHoles = holes.filter((hole: any) => hole?.value != null || hole?.displayValue)
+  const completed = completedHoles.length
+  if (completed <= 0) return ''
+  if (completed >= 18) return 'F'
+
+  const firstHole = Number(completedHoles[0]?.period)
+  const startedOnBackNine = Number.isFinite(firstHole) && firstHole >= 10
+  return `${completed}${startedOnBackNine ? '*' : ''}`
 }
 
 export function mapCompetitorToPlayer(competitor: any): GolfPlayer {

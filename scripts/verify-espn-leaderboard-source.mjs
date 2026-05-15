@@ -27,6 +27,26 @@ assert(player.roundScore === '-1', `maps current-round score to par, got ${playe
 assert(player.thru === '4', `maps thru holes from ESPN current-round hole list, got ${player.thru}`)
 assert(player.position === '1', `maps leaderboard position, got ${player.position}`)
 
+const backNinePlayer = mapCompetitorToPlayer({
+  id: 'back-nine',
+  athlete: { displayName: 'Back Nine Starter' },
+  score: 'E',
+  linescores: [
+    { period: 2, displayValue: 'E', linescores: Array.from({ length: 9 }, (_, index) => ({ period: index + 10, value: 4 })) },
+  ],
+})
+assert(backNinePlayer.thru === '9*', `keeps ESPN-style back-nine thru marker, got ${backNinePlayer.thru}`)
+
+const finishedPlayer = mapCompetitorToPlayer({
+  id: 'finished',
+  athlete: { displayName: 'Finished Round' },
+  score: '-2',
+  linescores: [
+    { period: 2, displayValue: '-2', linescores: Array.from({ length: 18 }, (_, index) => ({ period: index + 1, value: 4 })) },
+  ],
+})
+assert(finishedPlayer.thru === 'F', `maps 18 completed holes to F, got ${finishedPlayer.thru}`)
+
 const golfApi = readFileSync(new URL('../src/lib/golf-api.ts', import.meta.url), 'utf8')
 const tournamentSync = readFileSync(new URL('../src/lib/tournament-sync.ts', import.meta.url), 'utf8')
 assert(!golfApi.includes('pgatour-api'), 'golf-api should not use PGA Tour leaderboard APIs')
