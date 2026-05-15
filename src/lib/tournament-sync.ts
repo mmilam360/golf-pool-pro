@@ -41,6 +41,105 @@ async function fetchScoreboardEvents() {
   return data.events || []
 }
 
+function rowFromEvent(event: any, season: number) {
+  const startDate = toDateOnly(event.date)
+  const endDate = toDateOnly(event.endDate || event.date)
+  const course = event.courses?.find?.((course: any) => course.host)?.name
+    || event.courses?.[0]?.name
+    || event.venue?.fullName
+    || null
+  const location = event.courses?.[0]?.address?.city
+    || event.venue?.address?.city
+    || null
+  const status = getStatus(event)
+  const players = extractPlayers(event)
+
+  if (!startDate || !endDate) return null
+
+  return {
+    row: {
+      external_id: String(event.id),
+      name: event.name,
+      start_date: startDate,
+      end_date: endDate,
+      course,
+      location,
+      season,
+      tour: 'pga',
+      status,
+    } as Record<string, any>,
+    players,
+    status,
+  }
+}
+
+async function syncLiveFromScoreboard(supabase: any, season: number): Promise<TournamentSyncResult> {
+  const scoreboardEvents = await fetchScoreboardEvents()
+  const result: TournamentSyncResult = {
+    season,
+    fetched: scoreboardEvents.length,
+    inserted: 0,
+    updated: 0,
+    fieldsUpdated: 0,
+    leaderboardsUpdated: 0,
+    poolsAutoLocked: 0,
+  }
+
+  const liveTournamentIds: string[] = []
+
+  for (const event of scoreboardEvents) {
+    const normalized = rowFromEvent(event, season)
+    if (!normalized) continue
+
+    const { row, players, status } = normalized
+    if (players.length > 0) {
+      row.field_json = players
+      result.fieldsUpdated++
+    }
+
+    if (status === 'live' && players.length > 0) {
+      row.leaderboard_json = players
+      row.last_scores_fetch = new Date().toISOString()
+      result.leaderboardsUpdated++
+    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from('gpp_tournaments')
+      .select('id')
+      .eq('external_id', row.external_id)
+      .maybeSingle()
+
+    if (existingError) throw existingError
+
+    if (existing) {
+      const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
+      if (error) throw error
+      result.updated++
+      if (status === 'live' || status === 'completed') liveTournamentIds.push(existing.id)
+    } else {
+      const { data: inserted, error } = await supabase.from('gpp_tournaments').insert(row).select('id').single()
+      if (error) throw error
+      result.inserted++
+      if ((status === 'live' || status === 'completed') && inserted?.id) liveTournamentIds.push(inserted.id)
+    }
+  }
+
+  if (liveTournamentIds.length > 0) {
+    const uniqueLiveTournamentIds = Array.from(new Set(liveTournamentIds))
+    const { data: lockedPools, error } = await supabase
+      .from('gpp_pools')
+      .update({ is_locked: true })
+      .in('tournament_id', uniqueLiveTournamentIds)
+      .eq('is_locked', false)
+      .select('id')
+
+    if (error) throw error
+    result.poolsAutoLocked = lockedPools?.length || 0
+  }
+
+  return result
+}
+
 export async function syncTournaments({
   season = new Date().getFullYear(),
   doLive = false,
@@ -56,6 +155,8 @@ export async function syncTournaments({
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey)
+  if (doLive) return syncLiveFromScoreboard(supabase, season)
+
   const schedule = await getSchedule(season)
   const scoreboardEvents = await fetchScoreboardEvents()
   const scoreboardById = new Map(scoreboardEvents.map((event: any) => [String(event.id), event]))
