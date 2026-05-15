@@ -67,7 +67,7 @@ function hasRecentScores(tournament: Tournament | null) {
   if (tournament?.status !== 'live' || !tournament.last_scores_fetch) return false
   const lastFetchMs = new Date(tournament.last_scores_fetch).getTime()
   if (!Number.isFinite(lastFetchMs)) return false
-  return Date.now() - lastFetchMs <= 3 * 60 * 1000
+  return Date.now() - lastFetchMs <= 5 * 60 * 1000
 }
 
 function LockGlyph({ locked }: { locked: boolean }) {
