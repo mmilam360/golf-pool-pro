@@ -56,18 +56,21 @@ function rowFromEvent(event: any, season: number) {
 
   if (!startDate || !endDate) return null
 
+  const row: Record<string, any> = {
+    external_id: String(event.id),
+    name: event.name,
+    start_date: startDate,
+    end_date: endDate,
+    season,
+    tour: 'pga',
+    status,
+  }
+
+  if (course) row.course = course
+  if (location) row.location = location
+
   return {
-    row: {
-      external_id: String(event.id),
-      name: event.name,
-      start_date: startDate,
-      end_date: endDate,
-      course,
-      location,
-      season,
-      tour: 'pga',
-      status,
-    } as Record<string, any>,
+    row,
     players,
     status,
   }

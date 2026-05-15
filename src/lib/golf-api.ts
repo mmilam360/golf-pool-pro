@@ -90,6 +90,19 @@ function eventStatus(event: any): 'upcoming' | 'live' | 'completed' {
   return 'upcoming'
 }
 
+async function getCoreEventMetadata(eventId: string) {
+  const res = await fetch(`${ESPN_CORE_EVENTS}/${eventId}?lang=en&region=us`, NEXT_REVALIDATE_MEDIUM)
+  if (!res.ok) return null
+  const event = await res.json()
+  const course = event.courses?.find?.((candidate: any) => candidate.host) || event.courses?.[0]
+
+  return {
+    event,
+    course: course?.name || event.venues?.[0]?.fullName || '',
+    location: course?.address?.city || event.venues?.[0]?.address?.city || '',
+  }
+}
+
 export async function getSchedule(season: number = new Date().getFullYear()): Promise<any[]> {
   const res = await fetch(`${ESPN_CORE_EVENTS}?dates=${season}&limit=1000`, NEXT_REVALIDATE_HOURLY)
   if (!res.ok) throw new Error(`ESPN core schedule: ${res.status}`)
@@ -124,13 +137,20 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     if (event) {
       const competition = event.competitions?.[0]
       const players = (competition?.competitors || []).map(mapCompetitorToPlayer)
+      const course = event.courses?.find?.((candidate: any) => candidate.host)?.name
+        || event.courses?.[0]?.name
+        || event.venue?.fullName
+        || ''
+      const location = event.venue?.address?.city || event.courses?.[0]?.address?.city || ''
+      const coreMetadata = course ? null : await getCoreEventMetadata(eventId)
+
       return {
         id: event.id,
         name: event.name,
         startDate: event.date,
         endDate: event.endDate || event.date,
-        course: event.courses?.[0]?.name || event.venue?.fullName || '',
-        location: event.venue?.address?.city || event.courses?.[0]?.address?.city || '',
+        course: course || coreMetadata?.course || '',
+        location: location || coreMetadata?.location || '',
         status: eventStatus(event),
         round: event.status?.period || competition?.status?.period || 0,
         leaderboard: players,
@@ -138,9 +158,9 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     }
   }
 
-  const res = await fetch(`${ESPN_CORE_EVENTS}/${eventId}?lang=en&region=us`, NEXT_REVALIDATE_MEDIUM)
-  if (!res.ok) throw new Error(`ESPN event: ${res.status}`)
-  const event = await res.json()
+  const coreMetadata = await getCoreEventMetadata(eventId)
+  if (!coreMetadata) throw new Error(`ESPN event metadata unavailable: ${eventId}`)
+  const event = coreMetadata.event
   const competition = event.competitions?.[0]
   const players = (competition?.competitors || []).map(mapCompetitorToPlayer)
 
@@ -149,8 +169,8 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     name: event.name,
     startDate: event.date,
     endDate: event.endDate || event.date,
-    course: event.courses?.find?.((c: any) => c.host)?.name || event.courses?.[0]?.name || '',
-    location: event.courses?.[0]?.address?.city || '',
+    course: coreMetadata.course,
+    location: coreMetadata.location,
     status: eventStatus(event),
     round: 0,
     leaderboard: players,
