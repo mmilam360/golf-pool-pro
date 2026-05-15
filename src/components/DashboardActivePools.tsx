@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
+import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import type { GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -518,6 +519,14 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   })
                 }}
               />
+              <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 pb-4 sm:px-5">
+                <TournamentLeaderboard
+                  leaderboard={tournament?.leaderboard_json}
+                  tournamentName={tournament?.name}
+                  lastUpdated={tournament?.last_scores_fetch}
+                  compact
+                />
+              </div>
             </details>
           )
         })}

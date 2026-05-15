@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { BackButton } from '@/components/BackButton'
 import { PoolInvitePrepPanel } from '@/components/PoolInvitePrepPanel'
 import { PreviousPlayersInvitePanel } from '@/components/PreviousPlayersInvitePanel'
+import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { createClient } from '@/lib/supabase/client'
 import { scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
@@ -1223,6 +1224,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </div>
             </div>
             <div className="gpp-board-post mx-auto -mb-8 -mt-[10px] h-36 w-16 border-x-4 border-[#003622] md:-mb-10 md:h-44 md:w-20" />
+            <div className="mt-12 md:mt-14">
+              <TournamentLeaderboard
+                leaderboard={leaderboard}
+                tournamentName={tournament?.name}
+                lastUpdated={tournament?.last_scores_fetch}
+              />
+            </div>
             </>
           )}
         </div>
