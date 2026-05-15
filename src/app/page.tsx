@@ -89,11 +89,11 @@ const pricingRows = [
 ]
 
 const featureRows = [
-  ['Live standings', 'Follow the full pool leaderboard from the dashboard once scores start moving.'],
+  ['Live standings', 'Watch the full pool leaderboard from the dashboard once scores start moving.'],
   ['Smart alerts', 'Players can get notified when scoring starts, picks are due, or they jump into first.'],
   ['Cut and OB scoring', 'Missed cuts and OB stand-ins are handled by the pool rules instead of spreadsheet math.'],
   ['Fast invites', 'Invite by link, passcode, or previous-player list when you run the next pool.'],
-  ['Run it back', 'Pool runners can reuse the same group instead of rebuilding every tournament.'],
+  ['Run it back', 'Reuse the same group for the next tournament instead of starting from scratch.'],
   ['Capped host fee', 'Players join free. The host pays one capped pool fee after picks lock.'],
 ]
 
@@ -108,16 +108,16 @@ const finalScoreStoryHtml = `<!doctype html>
     * { box-sizing: border-box; }
     body { margin: 0; width: 100vw; min-height: 100vh; background: #6f8172; color: #1f2a24; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
     .story { position: relative; width: 100vw; height: 100vh; overflow: hidden; border-radius: 28px; background: radial-gradient(circle at 24% 8%, rgba(255,255,255,.10), transparent 32%), linear-gradient(145deg, #748674 0%, #506755 100%); }
-    .progress { position: absolute; left: 6vw; right: 6vw; top: 2.8vh; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+    .progress { position: absolute; left: 6vw; right: 6vw; top: 8vh; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
     .progress span { height: 2px; border-radius: 99px; background: rgba(255,255,255,.46); }
     .progress span:first-child { background: rgba(255,255,255,.92); }
-    .profile { position: absolute; left: 6vw; right: 6vw; top: 4.2vh; display: flex; align-items: center; gap: 2.8vw; color: white; font-size: clamp(9px, 2.6vw, 13px); font-weight: 800; }
+    .profile { position: absolute; left: 6vw; right: 6vw; top: 9.5vh; display: flex; align-items: center; gap: 2.8vw; color: white; font-size: clamp(9px, 2.6vw, 13px); font-weight: 800; }
     .avatar { position: relative; width: 7.6vw; height: 7.6vw; min-width: 28px; min-height: 28px; border: 2px solid rgba(255,255,255,.88); border-radius: 999px; background: #fbf7ed; overflow: hidden; }
     .avatar:before { content: ''; position: absolute; left: 50%; top: 22%; width: 34%; height: 34%; transform: translateX(-50%); border-radius: 999px; background: #6f8172; }
     .avatar:after { content: ''; position: absolute; left: 50%; bottom: 8%; width: 62%; height: 38%; transform: translateX(-50%); border-radius: 999px 999px 35% 35%; background: #6f8172; }
     .time { color: rgba(255,255,255,.72); font-weight: 700; }
     .dots { margin-left: auto; letter-spacing: .18em; font-size: 18px; line-height: 1; }
-    .export { position: absolute; left: 9.2vw; right: 9.2vw; top: 18vh; background: #fbf7ed; border: 3px solid #123c2f; box-shadow: 6px 6px 0 rgba(15,47,37,.38); }
+    .export { position: absolute; left: 9.2vw; right: 9.2vw; top: 22vh; background: #fbf7ed; border: 3px solid #123c2f; box-shadow: 6px 6px 0 rgba(15,47,37,.38); }
     .top { padding: 2.2vh 5vw 1.5vh; text-align: center; }
     .logo { width: 34vw; max-width: 150px; height: auto; display: block; margin: 0 auto 1.2vh; }
     .eyebrow { margin: 0; color: #8a6724; font-size: clamp(8px, 2.7vw, 12px); font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
@@ -175,15 +175,15 @@ const faqItems = [
   },
   {
     question: 'Is there a limit on entries?',
-    answer: 'No. Add as many entries as you need. The pricing is the real break: a 12-entry pool costs $7 instead of the $20 flat fee most golf pool sites charge.',
+    answer: 'No. Add as many entries as you need. Pricing stays simple: a 12-entry pool costs $7 instead of the $20 flat fee most golf pool sites charge.',
   },
   {
     question: 'Do players need to pay to join?',
-    answer: 'No. Players join with the pool link or passcode, make picks, and follow the leaderboard. The host handles any pool fee after entries lock.',
+    answer: 'Players join with the pool link or passcode, make picks, and follow the leaderboard. The host handles the pool fee after entries lock.',
   },
   {
     question: 'Can I use this for an office pool or a group text pool?',
-    answer: 'Yes. Golf Pools Pro is built for the person who usually collects picks in a spreadsheet and posts standings manually. The app handles picks, rules, and the live board in one place.',
+    answer: 'Yes. If your pool usually lives in a spreadsheet or group text, Golf Pools Pro gives everyone one place for picks, rules, and the live board.',
   },
   {
     question: 'Can players get notifications?',
@@ -297,7 +297,7 @@ export default function Home() {
               <span className="block">the spreadsheet.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#4f5b52] sm:text-lg sm:leading-8">
-              Run a PGA golf pool, collect picks by link, lock entries at tee time, and show everyone the live leaderboard.
+              Create a golf pool, send one link, lock picks at the first tee time, and let everyone follow the live leaderboard.
             </p>
           </div>
 
@@ -395,9 +395,9 @@ export default function Home() {
         <section className="mx-auto max-w-7xl px-5 py-14 md:px-8 md:py-20">
           <div className="mb-8 max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">What runs the pool</p>
-            <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Everything your golf pool needs once picks lock.</h2>
+            <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Everything your golf pool needs after picks lock.</h2>
             <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
-              Golf Pools Pro keeps the useful parts in one place: picks, invites, scoring, alerts, and the live board your group actually checks.
+              Golf Pools Pro keeps picks, invites, scoring, alerts, and the live board your group actually checks in one place.
             </p>
           </div>
           <div className="grid border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0] md:grid-cols-2 lg:grid-cols-3">
@@ -422,7 +422,7 @@ export default function Home() {
                 title="Golf Pools Pro final score story-ready preview inside an iPhone 17 Pro frame"
                 srcDoc={finalScoreStoryHtml}
                 className="absolute border-0 bg-[#6f8172]"
-                style={{ left: '5.33%', top: '2.5%', width: '89.34%', height: '94.98%', borderRadius: '11%' }}
+                style={{ left: '4.9%', top: '2.15%', width: '90.2%', height: '95.7%' }}
                 loading="lazy"
               />
               <Image
@@ -463,8 +463,8 @@ export default function Home() {
           <div className="mb-10 grid gap-8 md:grid-cols-[0.8fr_1.2fr] md:items-start">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Common questions</p>
-              <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">The stuff every pool runner has to explain.</h2>
-              <p className="mt-4 max-w-xl leading-7 text-[#657168]">Rules, missed cuts, payment, and entry limits are handled up front so your group is not arguing in the chat on Sunday.</p>
+              <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Questions every pool runner gets.</h2>
+              <p className="mt-4 max-w-xl leading-7 text-[#657168]">Golf Pools Pro handles rules, missed cuts, fees, and entry limits up front, so Sunday is about the leaderboard, not the group chat.</p>
             </div>
             <div className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
               {faqItems.map(item => (
@@ -502,9 +502,9 @@ export default function Home() {
           <div className="grid gap-8 border-2 border-[#123c2f] bg-white p-6 shadow-[7px_7px_0_#d8cab0] md:grid-cols-[1fr_auto] md:items-center md:p-8">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Golf pool manager</p>
-              <h2 className="mt-3 font-display text-3xl font-bold text-[#0f2f25] md:text-4xl">Create the pool before the first tee time.</h2>
+              <h2 className="mt-3 font-display text-3xl font-bold text-[#0f2f25] md:text-4xl">Set up your next pool before the first tee time.</h2>
               <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
-                No spreadsheet cleanup. No group-text standings. Players enter picks, and the leaderboard carries the pool once scoring starts.
+                Skip the spreadsheet cleanup and group-text standings. Players enter their picks, then the live board takes over once scoring starts.
               </p>
             </div>
             <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white transition-colors hover:bg-[#0f2f25]">
