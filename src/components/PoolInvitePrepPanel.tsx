@@ -44,7 +44,6 @@ export function PoolInvitePrepPanel({
 
     return `${poolName} golf pool is open for the ${tournamentName}.\n\nJoin: ${joinLink}\nPasscode: ${passcode}\n\nPick ${pickCount} golfers. Best ${countScores} score${countScores === 1 ? '' : 's'} count. ${lockLine}`
   }, [countScores, format, joinLink, lockLine, passcode, pickCount, poolName, tournamentName])
-  const copyRows = Math.max(10, copy.split('\n').reduce((rows, line) => rows + Math.max(1, Math.ceil(line.length / 34)), 0) + 3)
 
   async function copyValue(value: string, type: 'invite' | 'passcode' | 'link') {
     try {
@@ -100,7 +99,9 @@ export function PoolInvitePrepPanel({
             <button type="button" onClick={() => setFormat('text')} className={`flex-1 border px-3 py-2 text-sm font-black uppercase tracking-[0.08em] ${format === 'text' ? 'border-[#123c2f] bg-[#123c2f] text-white' : 'border-[#d8cab0] bg-white text-[#123c2f]'}`}>Text</button>
             <button type="button" onClick={() => setFormat('email')} className={`flex-1 border px-3 py-2 text-sm font-black uppercase tracking-[0.08em] ${format === 'email' ? 'border-[#123c2f] bg-[#123c2f] text-white' : 'border-[#d8cab0] bg-white text-[#123c2f]'}`}>Email</button>
           </div>
-          <textarea readOnly value={copy} rows={copyRows} wrap="soft" className="mt-3 block w-full min-w-0 resize-none overflow-hidden border-2 border-[#123c2f] bg-white p-3 text-sm font-semibold leading-6 text-[#1f2a24]" />
+          <div className="mt-3 block w-full min-w-0 border-2 border-[#123c2f] bg-white p-3 text-sm font-semibold leading-6 text-[#1f2a24]">
+            <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{copy}</p>
+          </div>
           <button type="button" onClick={() => copyValue(copy, 'invite')} className="mt-3 w-full border-2 border-[#123c2f] bg-[#f3df9c] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#0f2f25]">
             {copied === 'invite' ? 'Copied' : `Copy ${format}`}
           </button>

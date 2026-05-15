@@ -84,7 +84,7 @@ export default function AppHeader() {
                     href={link.href}
                     aria-current={active ? 'page' : undefined}
                     onClick={closeMenu}
-                    className={`px-6 py-4 ${active ? 'my-2 border border-[#b58a3a] bg-[#fbf7ed] text-[#123c2f]' : 'border-b border-[#d8cab0]'}`}
+                    className={`px-6 py-4 ${active ? 'bg-[#fbf7ed] text-[#123c2f] shadow-[inset_4px_0_0_#b58a3a]' : 'border-b border-[#d8cab0]'}`}
                   >
                     {link.label}
                   </Link>
