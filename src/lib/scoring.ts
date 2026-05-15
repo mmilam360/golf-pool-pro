@@ -12,7 +12,8 @@ export interface ScoredEntry {
   rank: number | null; obStandIns: number
 }
 
-export type HorsePickMap = Map<string, Set<string>>
+export type LeveragePickMap = Map<string, Set<string>>
+export type HorsePickMap = LeveragePickMap
 
 export function normalizePickName(name: string) {
   return name.trim().toLowerCase()
@@ -96,11 +97,11 @@ function ownershipByPick(entries: ScoredEntry[]) {
   return ownership
 }
 
-export function buildHorsePickMap(entries: ScoredEntry[], maxPerEntry = 2): HorsePickMap {
+export function buildHarePickMap(entries: ScoredEntry[], maxPerEntry = 2): LeveragePickMap {
   const poolEntries = realEntries(entries)
   if (poolEntries.length < 3) return new Map()
   const ownership = ownershipByPick(poolEntries)
-  const horsePicks: HorsePickMap = new Map()
+  const harePicks: LeveragePickMap = new Map()
 
   for (const entry of poolEntries) {
     const candidates = entry.pickScores
@@ -119,13 +120,13 @@ export function buildHorsePickMap(entries: ScoredEntry[], maxPerEntry = 2): Hors
       .sort((a, b) => b.score - a.score)
       .slice(0, Math.max(1, Math.min(maxPerEntry, 2)))
 
-    if (candidates.length) horsePicks.set(entry.entryId, new Set(candidates.map(candidate => candidate.key)))
+    if (candidates.length) harePicks.set(entry.entryId, new Set(candidates.map(candidate => candidate.key)))
   }
 
-  return horsePicks
+  return harePicks
 }
 
-export function buildTurtlePickMap(entries: ScoredEntry[], viewerEntryId?: string | null, maxPerEntry = 2): HorsePickMap {
+export function buildTortoisePickMap(entries: ScoredEntry[], viewerEntryId?: string | null, maxPerEntry = 2): LeveragePickMap {
   if (!viewerEntryId) return new Map()
   const poolEntries = realEntries(entries)
   if (poolEntries.length < 3) return new Map()
@@ -134,7 +135,7 @@ export function buildTurtlePickMap(entries: ScoredEntry[], viewerEntryId?: strin
 
   const viewerPickNames = new Set(viewerEntry.pickScores.map(pick => normalizePickName(pick.name)))
   const ownership = ownershipByPick(poolEntries)
-  const turtlePicks: HorsePickMap = new Map()
+  const tortoisePicks: LeveragePickMap = new Map()
 
   for (const entry of poolEntries) {
     if (entry.entryId === viewerEntryId) continue
@@ -155,8 +156,11 @@ export function buildTurtlePickMap(entries: ScoredEntry[], viewerEntryId?: strin
       .sort((a, b) => b.score - a.score)
       .slice(0, Math.max(1, Math.min(maxPerEntry, 2)))
 
-    if (candidates.length) turtlePicks.set(entry.entryId, new Set(candidates.map(candidate => candidate.key)))
+    if (candidates.length) tortoisePicks.set(entry.entryId, new Set(candidates.map(candidate => candidate.key)))
   }
 
-  return turtlePicks
+  return tortoisePicks
 }
+
+export const buildHorsePickMap = buildHarePickMap
+export const buildTurtlePickMap = buildTortoisePickMap

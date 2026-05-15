@@ -2,7 +2,8 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
+import { buildHarePickMap, buildTortoisePickMap, normalizePickName, rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
+import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
@@ -261,6 +262,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
   const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
+  const harePickMap = buildHarePickMap(scoredEntries, 2)
+  const tortoisePickMap = buildTortoisePickMap(scoredEntries, currentEntryId, 2)
+  const showLeverageLegend = harePickMap.size > 0 || tortoisePickMap.size > 0
   const showJumpToMyEntry = Boolean(currentScoredEntry && scoredEntries.length >= 10)
   const jumpToCurrentEntry = () => {
     if (!currentEntryId) return
@@ -311,6 +315,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                 const allPickNames = golferNamePeers
                 const isCurrentEntry = entry.entryId === currentEntryId
+                const hareNames = isCurrentEntry ? harePickMap.get(entry.entryId) : undefined
+                const tortoiseNames = !isCurrentEntry ? tortoisePickMap.get(entry.entryId) : undefined
                 const isOpen = openEntryIds ? openEntryIds.has(entry.entryId) : (entry.entryId === currentEntryId || (!currentEntryId && entryIndex === 0))
                 return (
                   <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#111] last:border-b-0">
@@ -333,7 +339,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                       {Array.from({ length: countScores }, (_, i) => {
                         const pick = countingPicks[i]
                         return (
-                          <div key={i} className="border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
+                          <div key={i} className="relative border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
+                            <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />
                             <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                             <div className="mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                             <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
@@ -346,7 +353,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Out of Bounds Golfers</div>
                         <div className="flex flex-wrap gap-1">
                           {outOfBoundsPicks.map(pick => (
-                            <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                            <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                              {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
+                              {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
                               <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
                             </span>
                           ))}
@@ -373,6 +382,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                     const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                     const allPickNames = golferNamePeers
                     const isCurrentEntry = entry.entryId === currentEntryId
+                    const hareNames = isCurrentEntry ? harePickMap.get(entry.entryId) : undefined
+                    const tortoiseNames = !isCurrentEntry ? tortoisePickMap.get(entry.entryId) : undefined
                     return (
                       <Fragment key={entry.entryId}>
                         <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className="scroll-mt-28 bg-[#f7f7f2]">
@@ -387,7 +398,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                           {Array.from({ length: countScores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <td key={i} className="border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                              <td key={i} className="relative border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                                <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                 <div className="mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                                 <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
@@ -403,8 +415,10 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                             <td className="border-b border-[#111] bg-[#efeee6] px-2 py-1 text-left" colSpan={countScores + 1}>
                               <div className="flex flex-wrap gap-1">
                                 {outOfBoundsPicks.map(pick => (
-                                  <span key={`${entry.entryId}-${pick.name}`} className="border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
-                                    <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                                  <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                    {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
+                                    {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
+                                    <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span></span>
                                   </span>
                                 ))}
                               </div>
@@ -418,6 +432,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               </table>
             </div>
           </div>
+          {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="px-1 pt-2" /> : null}
         </div>
       </div>
       <div className="gpp-board-post mx-auto mt-[-8px] h-20 w-14 border-x-4 border-[#003622] md:h-28 md:w-16" />
