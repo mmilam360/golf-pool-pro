@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "blog:validate": "node scripts/validate-blog-posts.mjs",
-    "test:pool-invites": "node --experimental-strip-types scripts/verify-pool-invite-logic.mjs"
+    "test:pool-invites": "node --experimental-strip-types scripts/verify-pool-invite-logic.mjs",
+    "test:espn-leaderboard": "node --experimental-strip-types scripts/verify-espn-leaderboard-source.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

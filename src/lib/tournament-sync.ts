@@ -1,9 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { getLeaderboard, getSchedule, mapCompetitorToPlayer } from './golf-api'
-import { getPgaTourFieldForEvent } from './pgatour-api'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
-const PGA_CHAMPIONSHIP_PLAYERS_URL = 'https://www.pgachampionship.com/players'
 
 export interface TournamentSyncResult {
   season: number
@@ -34,52 +32,6 @@ function getStatus(event: any) {
 function extractPlayers(event: any) {
   const competitors = event.competitions?.[0]?.competitors || []
   return competitors.map(mapCompetitorToPlayer).filter((player: any) => player.name && player.name !== 'Unknown')
-}
-
-function decodeHtml(value: string) {
-  return value
-    .replace(/&amp;/g, '&')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-}
-
-function stripTags(value: string) {
-  return decodeHtml(value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
-}
-
-async function fetchPgaChampionshipPlayers() {
-  const res = await fetch(PGA_CHAMPIONSHIP_PLAYERS_URL)
-  if (!res.ok) return []
-
-  const html = await res.text()
-  const cards = html.match(/<div class="PlayerCard">[\s\S]*?<\/a>\s*<\/div>/g) || []
-
-  return cards.map((card, index) => {
-    const id = card.match(/data-pga-tour-api-id="([^"]+)"/)?.[1]
-      || card.match(/data-player-id="([^"]+)"/)?.[1]
-      || `pga-championship-player-${index + 1}`
-    const name = stripTags(card.match(/<div class="PlayerCard-name">([\s\S]*?)<\/div>/)?.[1] || '')
-    const country = stripTags(card.match(/<div class="PlayerCard-country-name">([\s\S]*?)<\/div>/)?.[1] || '')
-    const image = decodeHtml(card.match(/<img[^>]+class="Image"[^>]+src="([^"]+)"/)?.[1] || '')
-    const parts = name.split(/\s+/)
-
-    return {
-      id: String(id),
-      name,
-      firstName: parts[0] || '',
-      lastName: parts.slice(1).join(' '),
-      score: 'E',
-      scoreToPar: 0,
-      thru: '',
-      roundScore: '',
-      position: '',
-      strokes: 0,
-      status: 'active' as const,
-      country,
-      image: image || undefined,
-    }
-  }).filter(player => player.name)
 }
 
 async function fetchScoreboardEvents() {
@@ -135,20 +87,7 @@ export async function syncTournaments({
       || bestEvent.venue?.address?.city
       || null
     const status = getStatus(bestEvent)
-    let players = await getPgaTourFieldForEvent({
-      name: bestEvent.name || event.name,
-      date: bestEvent.date || event.date,
-      season,
-    }).catch(() => [])
-
-    if (players.length === 0) {
-      players = extractPlayers(bestEvent)
-    }
-
-    if (players.length === 0 && bestEvent.name === 'PGA Championship') {
-      const pgaChampionshipPlayers = await fetchPgaChampionshipPlayers().catch(() => [])
-      if (pgaChampionshipPlayers.length > 0) players = pgaChampionshipPlayers
-    }
+    const players = extractPlayers(bestEvent)
 
     if (!startDate || !endDate) continue
 

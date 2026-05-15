@@ -1,5 +1,3 @@
-import { getPgaTourLeaderboardForEvent } from './pgatour-api'
-
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/golf'
 const ESPN_CORE_EVENTS = 'https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events'
 const ESPN_SCOREBOARD = `${ESPN_BASE}/pga/scoreboard`
@@ -38,12 +36,25 @@ function splitName(name: string) {
   return { firstName: parts[0] || '', lastName: parts.slice(1).join(' ') }
 }
 
+function currentRoundLine(linescores: any[] | undefined) {
+  const lines = Array.isArray(linescores) ? linescores : []
+  return [...lines].reverse().find(line => Array.isArray(line.linescores) && line.linescores.length > 0)
+    || [...lines].reverse().find(line => line?.displayValue && line.displayValue !== '-')
+}
+
+function thruFromLine(line: any) {
+  const holes = Array.isArray(line?.linescores) ? line.linescores : []
+  const completed = holes.filter((hole: any) => hole?.value != null || hole?.displayValue).length
+  return completed > 0 ? String(completed) : ''
+}
+
 export function mapCompetitorToPlayer(competitor: any): GolfPlayer {
   const athlete = competitor.athlete || {}
   const name = athlete.displayName || athlete.fullName || competitor.displayName || competitor.name || 'Unknown'
   const split = splitName(name)
   const statusName = String(competitor.status?.type?.name || competitor.status?.type?.description || '').toLowerCase()
   const score = competitor.score?.displayValue ?? competitor.score ?? competitor.displayScore ?? 'E'
+  const roundLine = currentRoundLine(competitor.linescores)
 
   return {
     id: String(athlete.id || competitor.id || name),
@@ -52,8 +63,8 @@ export function mapCompetitorToPlayer(competitor: any): GolfPlayer {
     lastName: athlete.lastName || split.lastName,
     score: String(score),
     scoreToPar: parseScoreToPar(score),
-    thru: competitor.thru || competitor.statistics?.find?.((s: any) => s.name === 'thru')?.displayValue || '',
-    roundScore: competitor.roundScore || '',
+    thru: competitor.thru || competitor.statistics?.find?.((s: any) => s.name === 'thru')?.displayValue || thruFromLine(roundLine),
+    roundScore: competitor.roundScore || roundLine?.displayValue || '',
     position: String(competitor.order || competitor.rank || competitor.position || ''),
     strokes: Number(competitor.strokeTotal || competitor.strokes || 0),
     status: statusName.includes('cut') ? 'cut' : statusName.includes('wd') ? 'wd' : 'active',
@@ -106,26 +117,6 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     const event = (scoreboard.events || []).find((candidate: any) => String(candidate.id) === String(eventId))
     if (event) {
       const competition = event.competitions?.[0]
-      const pgaLeaderboard = await getPgaTourLeaderboardForEvent({
-        name: event.name,
-        date: event.date,
-        season: Number(String(event.date || '').slice(0, 4)) || undefined,
-      }).catch(() => null)
-
-      if (pgaLeaderboard?.leaderboard?.length) {
-        return {
-          ...pgaLeaderboard,
-          id: event.id,
-          name: event.name,
-          startDate: event.date,
-          endDate: event.endDate || event.date,
-          course: event.courses?.[0]?.name || event.venue?.fullName || pgaLeaderboard.course,
-          location: event.venue?.address?.city || event.courses?.[0]?.address?.city || pgaLeaderboard.location,
-          status: eventStatus(event),
-          round: pgaLeaderboard.round || event.status?.period || competition?.status?.period || 0,
-        }
-      }
-
       const players = (competition?.competitors || []).map(mapCompetitorToPlayer)
       return {
         id: event.id,
@@ -145,26 +136,6 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
   if (!res.ok) throw new Error(`ESPN event: ${res.status}`)
   const event = await res.json()
   const competition = event.competitions?.[0]
-  const pgaLeaderboard = await getPgaTourLeaderboardForEvent({
-    name: event.name,
-    date: event.date,
-    season: Number(String(event.date || '').slice(0, 4)) || undefined,
-  }).catch(() => null)
-
-  if (pgaLeaderboard?.leaderboard?.length) {
-    return {
-      ...pgaLeaderboard,
-      id: event.id,
-      name: event.name,
-      startDate: event.date,
-      endDate: event.endDate || event.date,
-      course: event.courses?.find?.((c: any) => c.host)?.name || event.courses?.[0]?.name || pgaLeaderboard.course,
-      location: event.courses?.[0]?.address?.city || pgaLeaderboard.location,
-      status: eventStatus(event),
-      round: pgaLeaderboard.round,
-    }
-  }
-
   const players = (competition?.competitors || []).map(mapCompetitorToPlayer)
 
   return {
