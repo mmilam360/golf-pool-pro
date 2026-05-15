@@ -12,11 +12,19 @@ export interface GolfPlayer {
   status: 'active' | 'cut' | 'wd' | 'dnq'; country: string; image?: string
 }
 
+export interface GolfCutLine {
+  score: string
+  scoreToPar: number
+  count?: number
+  projected: boolean
+}
+
 export interface GolfTournament {
   id: string; name: string; startDate: string; endDate: string
   course: string; location: string
   status: 'upcoming' | 'live' | 'completed'; round: number
   leaderboard: GolfPlayer[]
+  cutLine?: GolfCutLine | null
 }
 
 function httpsRef(ref?: string) {
@@ -29,6 +37,41 @@ function parseScoreToPar(score: unknown): number {
   const normalized = String(score).replace('+', '')
   const parsed = parseInt(normalized, 10)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+function parseCutScore(score: unknown): number | null {
+  if (score == null || score === '' || score === 'E') return 0
+  const normalized = String(score).replace('+', '').trim()
+  const parsed = parseInt(normalized, 10)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+export function parseProjectedCutLineFromHtml(html: string): GolfCutLine | null {
+  const match = html.match(/"cut"\s*:\s*\{\s*"score"\s*:\s*"([^"]+)"\s*,\s*"count"\s*:\s*(\d+)\s*,\s*"proj"\s*:\s*(true|false)/)
+  if (!match) return null
+
+  const scoreToPar = parseCutScore(match[1])
+  if (scoreToPar == null) return null
+
+  return {
+    score: match[1],
+    scoreToPar,
+    count: Number(match[2]),
+    projected: match[3] === 'true',
+  }
+}
+
+async function getProjectedCutLine(eventId: string): Promise<GolfCutLine | null> {
+  try {
+    const res = await fetch(`https://www.espn.com/golf/leaderboard?tournamentId=${encodeURIComponent(eventId)}`, {
+      ...NEXT_REVALIDATE_FAST,
+      headers: { 'user-agent': 'Mozilla/5.0 GolfPoolsPro/1.0' },
+    })
+    if (!res.ok) return null
+    return parseProjectedCutLineFromHtml(await res.text())
+  } catch {
+    return null
+  }
 }
 
 function splitName(name: string) {
@@ -130,6 +173,7 @@ export async function getSchedule(season: number = new Date().getFullYear()): Pr
 }
 
 export async function getLeaderboard(eventId: string): Promise<GolfTournament | null> {
+  const cutLinePromise = getProjectedCutLine(eventId)
   const scoreboardRes = await fetch(ESPN_SCOREBOARD, NEXT_REVALIDATE_FAST)
   if (scoreboardRes.ok) {
     const scoreboard = await scoreboardRes.json()
@@ -154,6 +198,7 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
         status: eventStatus(event),
         round: event.status?.period || competition?.status?.period || 0,
         leaderboard: players,
+        cutLine: await cutLinePromise,
       }
     }
   }
@@ -174,5 +219,6 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     status: eventStatus(event),
     round: 0,
     leaderboard: players,
+    cutLine: await cutLinePromise,
   }
 }

@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
-import type { GolfPlayer } from '@/lib/golf-api'
+import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -239,6 +239,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [poolName, setPoolName] = useState(pool.name)
   const [poolLocked, setPoolLocked] = useState(pool.is_locked)
   const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>([])
+  const [cutLine, setCutLine] = useState<GolfCutLine | null>(null)
   const [field, setField] = useState<GolfPlayer[]>([])
   const [myPicks, setMyPicks] = useState<string[]>(initialMyEntry?.golfer_picks || [])
   const [entryNameValue, setEntryNameValue] = useState(initialMyEntry?.display_name || '')
@@ -621,6 +622,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           setLeaderboard(liveLeaderboard)
           setField(liveLeaderboard)
         }
+        setCutLine(data.cutLine || null)
       }
       await refreshPoolEntries()
     } catch {}
@@ -1229,6 +1231,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 leaderboard={leaderboard}
                 tournamentName={tournament?.name}
                 lastUpdated={tournament?.last_scores_fetch}
+                pickedGolfers={myPicks}
+                cutLine={cutLine}
               />
             </div>
             </>

@@ -1,6 +1,7 @@
 'use client'
 
-import type { GolfPlayer } from '@/lib/golf-api'
+import { Fragment } from 'react'
+import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Props = {
   leaderboard?: GolfPlayer[] | null
@@ -8,6 +9,8 @@ type Props = {
   lastUpdated?: string | null
   defaultOpen?: boolean
   compact?: boolean
+  pickedGolfers?: string[]
+  cutLine?: GolfCutLine | null
 }
 
 function formatScore(score: number | null | undefined) {
@@ -19,6 +22,10 @@ function formatScore(score: number | null | undefined) {
 function scoreClass(score: number | null | undefined) {
   if (score == null) return 'text-[#657168]'
   return score < 0 ? 'text-[#b21e23]' : 'text-[#1f2a24]'
+}
+
+function normalizedName(name?: string | null) {
+  return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
 function positionLabel(player: GolfPlayer, index: number) {
@@ -48,11 +55,22 @@ function updatedLabel(value?: string | null) {
   return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false }: Props) {
+function shouldShowCutLineAfter(rows: GolfPlayer[], index: number, cutLine?: GolfCutLine | null) {
+  if (!cutLine) return false
+  if (cutLine.count && index + 1 === cutLine.count) return true
+  const current = rows[index]
+  const next = rows[index + 1]
+  if (!current || !next) return false
+  return current.scoreToPar <= cutLine.scoreToPar && next.scoreToPar > cutLine.scoreToPar
+}
+
+export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false, pickedGolfers = [], cutLine }: Props) {
   const rows = Array.isArray(leaderboard) ? leaderboard : []
   if (rows.length === 0) return null
 
   const updated = updatedLabel(lastUpdated)
+  const pickedNames = new Set(pickedGolfers.map(normalizedName).filter(Boolean))
+  const hasPickedGolfers = pickedNames.size > 0
 
   return (
     <details className="group border-2 border-[#d8cab0] bg-white shadow-[4px_4px_0_#eadfca]" open={defaultOpen}>
@@ -73,7 +91,8 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
       </summary>
       <div className="border-t border-[#d8cab0] bg-white">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#eadfca] px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#657168] sm:px-4 sm:text-[11px]">
-          <span>Full tournament field. Pool standings are separate.</span>
+          <span>{hasPickedGolfers ? 'Full tournament field. Your picks are highlighted.' : 'Full tournament field. Pool standings are separate.'}</span>
+          {cutLine ? <span>{cutLine.projected ? 'Projected cut' : 'Cut line'} {cutLine.score}</span> : null}
           {updated ? <span className="sm:hidden">Updated {updated}</span> : null}
         </div>
         <div className="max-h-[260px] overflow-y-auto overscroll-contain sm:max-h-[460px]">
@@ -88,18 +107,34 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
               </tr>
             </thead>
             <tbody>
-              {rows.map((player, index) => (
-                <tr key={`${player.id}-${index}`} className={index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>
-                  <td className="border-b border-r border-[#eadfca] px-1 py-1 text-center text-[10px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{positionLabel(player, index)}</td>
-                  <td className="border-b border-[#eadfca] px-1.5 py-1 sm:px-2 sm:py-1.5">
-                    <div className="min-w-0 truncate font-black leading-4 text-[#1f2a24] sm:leading-5" title={player.name}>{player.name}</div>
-                    {player.country ? <div className="text-[8px] font-bold uppercase tracking-[0.06em] text-[#657168] sm:text-[10px] sm:tracking-[0.08em]">{player.country}</div> : null}
-                  </td>
-                  <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>
-                  <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{player.roundScore || '—'}</td>
-                  <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[10px] font-black uppercase text-[#1f2a24] sm:px-2 sm:py-1.5 sm:text-xs">{statusLabel(player)}</td>
-                </tr>
-              ))}
+              {rows.map((player, index) => {
+                const isPicked = pickedNames.has(normalizedName(player.name))
+                const showCutLine = shouldShowCutLineAfter(rows, index, cutLine)
+                return (
+                  <Fragment key={`${player.id}-${index}`}>
+                    <tr className={isPicked ? 'bg-[#eef7ef]' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>
+                      <td className={`border-b border-r border-[#eadfca] px-1 py-1 text-center text-[10px] font-black sm:px-2 sm:py-1.5 sm:text-xs ${isPicked ? 'text-[#123c2f]' : 'text-[#657168]'}`}>{positionLabel(player, index)}</td>
+                      <td className={`border-b border-[#eadfca] px-1.5 py-1 sm:px-2 sm:py-1.5 ${isPicked ? 'shadow-[inset_3px_0_0_#123c2f]' : ''}`}>
+                        <div className={`min-w-0 truncate font-black leading-4 sm:leading-5 ${isPicked ? 'text-[#123c2f]' : 'text-[#1f2a24]'}`} title={player.name}>{player.name}</div>
+                        <div className="flex items-center gap-1.5">
+                          {player.country ? <span className="text-[8px] font-bold uppercase tracking-[0.06em] text-[#657168] sm:text-[10px] sm:tracking-[0.08em]">{player.country}</span> : null}
+                          {isPicked ? <span className="border border-[#123c2f] bg-white px-1 text-[8px] font-black uppercase tracking-[0.06em] text-[#123c2f]">Your pick</span> : null}
+                        </div>
+                      </td>
+                      <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${isPicked ? 'bg-[#dff0e2] text-[#123c2f]' : scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>
+                      <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{player.roundScore || '—'}</td>
+                      <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[10px] font-black uppercase text-[#1f2a24] sm:px-2 sm:py-1.5 sm:text-xs">{statusLabel(player)}</td>
+                    </tr>
+                    {showCutLine ? (
+                      <tr>
+                        <td colSpan={5} className="border-b border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#7a5a19]">
+                          {cutLine?.projected ? 'Projected cut' : 'Cut line'} {cutLine?.score}
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
+                )
+              })}
             </tbody>
           </table>
         </div>

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { mapCompetitorToPlayer } from '../src/lib/golf-api.ts'
+import { mapCompetitorToPlayer, parseProjectedCutLineFromHtml } from '../src/lib/golf-api.ts'
 
 function assert(condition, message) {
   if (!condition) throw new Error(message)
@@ -46,6 +46,12 @@ const finishedPlayer = mapCompetitorToPlayer({
   ],
 })
 assert(finishedPlayer.thru === 'F', `maps 18 completed holes to F, got ${finishedPlayer.thru}`)
+
+const cutLine = parseProjectedCutLineFromHtml('{"cut":{"score":"+3","count":72,"proj":true},"ldrs":[]}')
+assert(cutLine?.score === '+3', 'parses ESPN projected cut score')
+assert(cutLine?.scoreToPar === 3, `parses projected cut to par, got ${cutLine?.scoreToPar}`)
+assert(cutLine?.count === 72, `parses projected cut count, got ${cutLine?.count}`)
+assert(cutLine?.projected === true, 'parses projected cut flag')
 
 const golfApi = readFileSync(new URL('../src/lib/golf-api.ts', import.meta.url), 'utf8')
 const tournamentSync = readFileSync(new URL('../src/lib/tournament-sync.ts', import.meta.url), 'utf8')
