@@ -39,12 +39,12 @@ export function PoolInvitePrepPanel({
 
   const copy = useMemo(() => {
     if (format === 'email') {
-      return `Subject: ${poolName} golf pool\n\nI set up the ${poolName} pool for the ${tournamentName}.\n\nJoin here:\n${joinLink}\n\nPasscode: ${passcode}\n\nRules are simple: pick ${plural(pickCount, 'golfer')}, best ${countScores} score${countScores === 1 ? '' : 's'} count. ${lockLine}\n\nGet your picks in when you get a chance.`
+      return `I set up the ${poolName} pool for the ${tournamentName}.\n\nJoin here:\n${joinLink}\n\nPasscode: ${passcode}\n\nRules are simple: pick ${plural(pickCount, 'golfer')}, best ${countScores} score${countScores === 1 ? '' : 's'} count. ${lockLine}\n\nGet your picks in when you get a chance.`
     }
 
     return `${poolName} golf pool is open for the ${tournamentName}.\n\nJoin: ${joinLink}\nPasscode: ${passcode}\n\nPick ${pickCount} golfers. Best ${countScores} score${countScores === 1 ? '' : 's'} count. ${lockLine}`
   }, [countScores, format, joinLink, lockLine, passcode, pickCount, poolName, tournamentName])
-  const copyRows = Math.max(8, copy.split('\n').reduce((rows, line) => rows + Math.max(1, Math.ceil(line.length / 42)), 0) + 1)
+  const copyRows = Math.max(10, copy.split('\n').reduce((rows, line) => rows + Math.max(1, Math.ceil(line.length / 34)), 0) + 3)
 
   async function copyValue(value: string, type: 'invite' | 'passcode' | 'link') {
     try {
