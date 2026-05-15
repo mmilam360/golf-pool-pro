@@ -3,19 +3,12 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { rankEntries, scoreEntry } from '@/lib/scoring'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { notificationPrefsAllow, recordNotificationEvent, sendPushToUser } from '@/lib/notifications/push'
+import { requireCronAuth } from '@/lib/cron-auth'
 import type { GolfPlayer } from '@/lib/golf-api'
 
 export const runtime = 'nodejs'
 
 type Prefs = { user_id: string; pick_deadline?: boolean; leaderboard_live?: boolean; took_lead?: boolean }
-
-function isAuthorized(request: Request) {
-  const expectedSecret = process.env.CRON_SECRET
-  if (!expectedSecret) return true
-  const { searchParams } = new URL(request.url)
-  const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || searchParams.get('token')
-  return token === expectedSecret
-}
 
 function dateKey(value?: string | null) {
   return value ? value.split('T')[0] : new Date().toISOString().slice(0, 10)
@@ -204,7 +197,8 @@ async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Pref
 }
 
 export async function GET(request: Request) {
-  if (!isAuthorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = requireCronAuth(request)
+  if (authError) return authError
   const supabase = createServiceClient() as any
   const prefsByUser = await loadPrefs(supabase)
   const pickDeadline = await sendPickDeadlineReminders(supabase, prefsByUser)

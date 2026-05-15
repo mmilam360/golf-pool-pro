@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server'
 import { syncTournaments } from '@/lib/tournament-sync'
+import { requireCronAuth } from '@/lib/cron-auth'
 
 export const runtime = 'nodejs'
 
 export async function GET(request: Request) {
-  const expectedSecret = process.env.CRON_SECRET
-  if (expectedSecret) {
-    const { searchParams } = new URL(request.url)
-    const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || searchParams.get('token')
-    if (token !== expectedSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-  }
+  const authError = requireCronAuth(request)
+  if (authError) return authError
 
   const { searchParams } = new URL(request.url)
   const season = Number(searchParams.get('season')) || new Date().getFullYear()
