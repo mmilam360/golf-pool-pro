@@ -29,9 +29,9 @@ function PasswordInput({ value, onChange, label }: { value: string; onChange: (v
           onChange={e => onChange(e.target.value)}
           required
           minLength={6}
-          className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 pr-12 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+          className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 pr-12 text-stone-900 focus:outline-none focus:border-[#123c2f] focus:ring-2 focus:ring-[#d8cab0]"
         />
-        <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-500 hover:text-emerald-800 p-2">
+        <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-500 hover:text-[#123c2f] p-2">
           <EyeIcon visible={show} />
         </button>
       </div>
@@ -124,7 +124,7 @@ export default function SignupPage() {
             value={displayName}
             onChange={e => setDisplayName(e.target.value)}
             required
-            className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-[#123c2f] focus:ring-2 focus:ring-[#d8cab0]"
           />
         </div>
         <div>
@@ -134,7 +134,7 @@ export default function SignupPage() {
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-[#123c2f] focus:ring-2 focus:ring-[#d8cab0]"
           />
         </div>
         <PasswordInput label="Password" value={password} onChange={setPassword} />
@@ -144,24 +144,24 @@ export default function SignupPage() {
             type="checkbox"
             checked={marketingOptIn}
             onChange={e => setMarketingOptIn(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-stone-300 text-emerald-700 focus:ring-emerald-600"
+            className="mt-1 h-4 w-4 rounded border-stone-300 text-[#123c2f] focus:ring-[#123c2f]"
           />
           <span>Send me Golf Pools Pro product updates and tournament reminders. I can unsubscribe later.</span>
         </label>
         <p className="text-xs leading-5 text-stone-500">
-          By creating an account, you agree to the <Link href="/terms" className="font-semibold text-emerald-800 hover:underline">Terms</Link> and <Link href="/privacy" className="font-semibold text-emerald-800 hover:underline">Privacy Policy</Link>.
+          By creating an account, you agree to the <Link href="/terms" className="font-semibold text-[#123c2f] hover:underline">Terms</Link> and <Link href="/privacy" className="font-semibold text-[#123c2f] hover:underline">Privacy Policy</Link>.
         </p>
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-none transition-colors disabled:opacity-50"
+          className="w-full bg-[#123c2f] hover:bg-[#0f2f25] text-white font-semibold py-3 rounded-none transition-colors disabled:opacity-50"
         >
           {loading ? 'Creating account...' : 'Sign up'}
         </button>
       </form>
       <p className="text-stone-600 text-sm mt-5 text-center">
         Already have an account?{' '}
-        <Link href={getLoginHref()} className="text-emerald-800 font-semibold hover:underline">Sign in</Link>
+        <Link href={getLoginHref()} className="text-[#123c2f] font-semibold hover:underline">Sign in</Link>
       </p>
     </div>
   )

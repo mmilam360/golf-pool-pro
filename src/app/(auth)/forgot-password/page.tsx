@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
       <p className="mb-6 text-sm leading-6 text-stone-600">Enter your account email and we’ll send a reset link.</p>
 
       {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-      {success && <div className="mb-4 rounded-none border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">If that email exists, a reset link has been sent.</div>}
+      {success && <div className="mb-4 rounded-none border border-[#d8cab0] bg-[#fbf7ed] p-3 text-sm text-[#123c2f]">If that email exists, a reset link has been sent.</div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -45,17 +45,17 @@ export default function ForgotPasswordPage() {
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0]"
           />
         </div>
-        <button type="submit" disabled={loading} className="w-full rounded-none bg-emerald-700 py-3 font-semibold text-white transition-colors hover:bg-emerald-800 disabled:opacity-50">
+        <button type="submit" disabled={loading} className="w-full rounded-none bg-[#123c2f] py-3 font-semibold text-white transition-colors hover:bg-[#0f2f25] disabled:opacity-50">
           {loading ? 'Sending...' : 'Send reset link'}
         </button>
       </form>
 
       <p className="mt-5 text-center text-sm text-stone-600">
         Remembered it?{' '}
-        <Link href="/login" className="font-semibold text-emerald-800 hover:underline">Sign in</Link>
+        <Link href="/login" className="font-semibold text-[#123c2f] hover:underline">Sign in</Link>
       </p>
     </div>
   )

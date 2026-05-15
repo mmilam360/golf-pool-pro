@@ -72,13 +72,13 @@ export default function LoginPage() {
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-[#123c2f] focus:ring-2 focus:ring-[#d8cab0]"
           />
         </div>
         <div>
           <div className="mb-1 flex items-center justify-between gap-3">
             <label className="block text-stone-700 text-sm font-medium">Password</label>
-            <Link href="/forgot-password" className="text-xs font-semibold text-emerald-800 hover:underline">Forgot password?</Link>
+            <Link href="/forgot-password" className="text-xs font-semibold text-[#123c2f] hover:underline">Forgot password?</Link>
           </div>
           <div className="relative">
             <input
@@ -86,9 +86,9 @@ export default function LoginPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 pr-12 text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 pr-12 text-stone-900 focus:outline-none focus:border-[#123c2f] focus:ring-2 focus:ring-[#d8cab0]"
             />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-500 hover:text-emerald-800 p-2">
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-500 hover:text-[#123c2f] p-2">
               <EyeIcon visible={showPassword} />
             </button>
           </div>
@@ -96,14 +96,14 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-none transition-colors disabled:opacity-50"
+          className="w-full bg-[#123c2f] hover:bg-[#0f2f25] text-white font-semibold py-3 rounded-none transition-colors disabled:opacity-50"
         >
           {loading ? 'Signing in...' : 'Sign in'}
         </button>
       </form>
       <p className="text-stone-600 text-sm mt-5 text-center">
         No account?{' '}
-        <Link href={signupHref} className="text-emerald-800 font-semibold hover:underline">Sign up</Link>
+        <Link href={signupHref} className="text-[#123c2f] font-semibold hover:underline">Sign up</Link>
       </p>
     </div>
   )
