@@ -112,7 +112,9 @@ const finalScoreStoryHtml = `<!doctype html>
     .progress span { height: 2px; border-radius: 99px; background: rgba(255,255,255,.46); }
     .progress span:first-child { background: rgba(255,255,255,.92); }
     .profile { position: absolute; left: 6vw; right: 6vw; top: 4.2vh; display: flex; align-items: center; gap: 2.8vw; color: white; font-size: clamp(9px, 2.6vw, 13px); font-weight: 800; }
-    .avatar { width: 7.6vw; height: 7.6vw; min-width: 28px; min-height: 28px; border: 2px solid rgba(255,255,255,.88); border-radius: 999px; background: #fbf7ed; }
+    .avatar { position: relative; width: 7.6vw; height: 7.6vw; min-width: 28px; min-height: 28px; border: 2px solid rgba(255,255,255,.88); border-radius: 999px; background: #fbf7ed; overflow: hidden; }
+    .avatar:before { content: ''; position: absolute; left: 50%; top: 22%; width: 34%; height: 34%; transform: translateX(-50%); border-radius: 999px; background: #6f8172; }
+    .avatar:after { content: ''; position: absolute; left: 50%; bottom: 8%; width: 62%; height: 38%; transform: translateX(-50%); border-radius: 999px 999px 35% 35%; background: #6f8172; }
     .time { color: rgba(255,255,255,.72); font-weight: 700; }
     .dots { margin-left: auto; letter-spacing: .18em; font-size: 18px; line-height: 1; }
     .export { position: absolute; left: 9.2vw; right: 9.2vw; top: 18vh; background: #fbf7ed; border: 3px solid #123c2f; box-shadow: 6px 6px 0 rgba(15,47,37,.38); }
@@ -141,7 +143,7 @@ const finalScoreStoryHtml = `<!doctype html>
 <body>
   <main class="story">
     <div class="progress" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-    <div class="profile" aria-hidden="true"><div class="avatar"></div><strong>golfpoolspro</strong><span class="time">22h</span><span class="dots">⋮</span></div>
+    <div class="profile" aria-hidden="true"><div class="avatar"></div><strong>lonnie72</strong><span class="time">22h</span><span class="dots">⋮</span></div>
     <section class="export" aria-label="Tiger's Tribe final standings story export">
       <div class="top">
         <img class="logo" src="https://www.golfpoolspro.com/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" />
@@ -414,13 +416,22 @@ export default function Home() {
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight md:text-5xl">Share the final board.</h2>
           </div>
 
-          <div className="mx-auto mt-9 w-full max-w-[330px] sm:max-w-[370px]">
-            <div className="bg-[#e6ebe4] p-4 shadow-[8px_8px_0_#001f17] sm:p-5 sm:shadow-[12px_12px_0_#001f17]">
+          <div className="mx-auto mt-9 w-full max-w-[300px] sm:max-w-[340px]">
+            <div className="relative aspect-[1350/2760] w-full drop-shadow-[12px_14px_0_#001f17]">
               <iframe
-                title="Golf Pools Pro final score story-ready preview"
+                title="Golf Pools Pro final score story-ready preview inside an iPhone 17 Pro frame"
                 srcDoc={finalScoreStoryHtml}
-                className="block aspect-[9/16] w-full rounded-[28px] border-0 bg-[#6f8172]"
+                className="absolute border-0 bg-[#6f8172]"
+                style={{ left: '5.33%', top: '2.5%', width: '89.34%', height: '94.98%', borderRadius: '11%' }}
                 loading="lazy"
+              />
+              <Image
+                unoptimized
+                src="/device-frames/iphone-17-pro-deep-blue-portrait.png"
+                alt="iPhone 17 Pro frame showing a Golf Pools Pro final board story preview"
+                width={1350}
+                height={2760}
+                className="pointer-events-none absolute inset-0 z-10 h-full w-full select-none"
               />
             </div>
           </div>
