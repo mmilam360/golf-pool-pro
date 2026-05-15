@@ -445,7 +445,6 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   <span className="mr-auto hidden items-center border border-[#123c2f] bg-[#123c2f] px-2 py-1 text-white group-open:inline-flex" aria-label="Collapse leaderboard">
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
-                  <span className="whitespace-nowrap border border-[#d8cab0] bg-white px-2 py-1 text-[#657168]">{role}</span>
                   {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
                   <ScoreBadge score={rankPreview?.totalScore} />
                 </div>

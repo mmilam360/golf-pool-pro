@@ -121,6 +121,12 @@ export default function AccountPage() {
       },
     })
 
+    await fetch('/api/notifications/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefs: notificationPrefs }),
+    }).catch(() => undefined)
+
     if (metadataError) {
       setToast({ message: 'Name saved, but account metadata did not update.', tone: 'info' })
     } else {

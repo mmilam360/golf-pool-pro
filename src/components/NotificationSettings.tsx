@@ -8,6 +8,15 @@ type NotificationPrefs = {
   took_lead?: boolean
 }
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; i += 1) outputArray[i] = rawData.charCodeAt(i)
+  return outputArray
+}
+
 export function NotificationSettings({
   initialPrefs,
   onChange,
@@ -34,6 +43,27 @@ export function NotificationSettings({
     return 'Turn on notifications before choosing reminder types.'
   }, [permission])
 
+  async function registerPushSubscription(nextPrefs: NotificationPrefs) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      throw new Error('Push notifications are not supported on this browser.')
+    }
+    const keyResponse = await fetch('/api/notifications/subscribe')
+    const { publicKey } = await keyResponse.json()
+    if (!publicKey) throw new Error('Notification keys are not configured yet.')
+    const registration = await navigator.serviceWorker.register('/sw.js')
+    const existing = await registration.pushManager.getSubscription()
+    const subscription = existing || await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    })
+    const response = await fetch('/api/notifications/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: subscription.toJSON(), prefs: nextPrefs }),
+    })
+    if (!response.ok) throw new Error('Could not save notification settings.')
+  }
+
   async function enableNotifications() {
     if (!('Notification' in window)) return
     const nextPermission = await Notification.requestPermission()
@@ -45,12 +75,18 @@ export function NotificationSettings({
         leaderboard_live: true,
         took_lead: prefs.took_lead ?? false,
       }
-      setPrefs(next)
-      onChange(next)
-      new Notification('Golf Pools Pro notifications are on', {
-        body: 'Pick deadline reminders are ready on this device.',
-        tag: 'gpp-test',
-      })
+      try {
+        await registerPushSubscription(next)
+        setPrefs(next)
+        onChange(next)
+        new Notification('Golf Pools Pro notifications are on', {
+          body: 'Pick deadline reminders are ready on this device.',
+          tag: 'gpp-test',
+        })
+      } catch (error) {
+        setPermission(Notification.permission)
+        window.alert(error instanceof Error ? error.message : 'Could not enable notifications on this device.')
+      }
     }
   }
 

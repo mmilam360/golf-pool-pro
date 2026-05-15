@@ -15,6 +15,40 @@ self.addEventListener('activate', event => {
   self.clients.claim()
 })
 
+self.addEventListener('push', event => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch {
+    data = {}
+  }
+  const title = data.title || 'Golf Pools Pro'
+  const options = {
+    body: data.body || 'Pool update available.',
+    tag: data.tag || 'gpp-notification',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: { url: data.url || '/dashboard' },
+  }
+  event.waitUntil(self.registration.showNotification(title, options))
+})
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close()
+  const url = event.notification?.data?.url || '/dashboard'
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if ('focus' in client && client.url.includes(self.location.origin)) {
+          client.navigate(url)
+          return client.focus()
+        }
+      }
+      return clients.openWindow(url)
+    })
+  )
+})
+
 self.addEventListener('fetch', event => {
   const request = event.request
   if (request.method !== 'GET') return
