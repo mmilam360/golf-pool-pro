@@ -6,15 +6,17 @@ import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
-import type { GolfPlayer } from '@/lib/golf-api'
+import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
   name?: string | null
+  external_id?: string | null
   start_date?: string | null
   end_date?: string | null
   status?: string | null
   leaderboard_json?: GolfPlayer[] | null
   last_scores_fetch?: string | null
+  cutLine?: GolfCutLine | null
 }
 
 type PoolRecord = {
@@ -529,6 +531,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   tournamentName={tournament?.name}
                   lastUpdated={tournament?.last_scores_fetch}
                   pickedGolfers={entryPicks(entry)}
+                  cutLine={tournament?.cutLine}
                 />
               </div>
             </details>
