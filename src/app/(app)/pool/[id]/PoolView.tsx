@@ -213,36 +213,43 @@ function thruLabel(thru?: string) {
 function PickMarkerIcon({ kind }: { kind: 'horse' | 'turtle' }) {
   if (kind === 'horse') {
     return (
-      <svg className="h-3.5 w-4" viewBox="0 0 32 24" fill="currentColor" aria-hidden="true">
-        <path d="M5 20h4l1.2-6.2 4.2 1.6L16 20h3l-.8-4.5 4.4-.7 1.4 5.2h3l-1.2-7.8 2.2-3.1-2.8-4.1-4.6-.6-2.5-2.4-1.9 2.4H8.4L5 8.2l2.4 2.6L5 20Z" />
+      <svg className="h-3 w-3.5" viewBox="0 0 48 32" fill="currentColor" aria-hidden="true">
+        <path d="M5 26h5l2.4-10.2 7 2.2 2.9 8h5l-1.7-7.6 7.2-1.2 3.2 8.8h5l-2.4-12.7 4.5-5.2-4.9-5.2-7.5-.7-3.9-3-3.3 3.2H12.7L7 7.8l3.8 4.3L5 26Z" />
       </svg>
     )
   }
 
   return (
-    <svg className="h-3.5 w-4" viewBox="0 0 32 24" fill="currentColor" aria-hidden="true">
-      <path d="M8.8 17.5H6.2l-2.3 2.3 2.2 1.6 2.9-1.8h13.8l2.9 1.8 2.2-1.6-2.3-2.3H23c1.4-1 2.1-2.4 2.1-4.1 0-4.5-3.9-8-9.1-8s-9.1 3.5-9.1 8c0 1.7.7 3.1 1.9 4.1Zm18-7.4 2.5-.8 1 2.2-1.7 1.4-2.1-.8.3-2Z" />
+    <svg className="h-3 w-3.5" viewBox="0 0 48 32" fill="currentColor" aria-hidden="true">
+      <path d="M11.5 23.5H7.8l-3.4 3.1 3.2 2.1 4.2-2.3h21l4.3 2.3 3.2-2.1-3.5-3.1h-4.2c2.2-1.4 3.4-3.5 3.4-6.1 0-6.6-5.9-11.5-13.6-11.5S8.9 10.8 8.9 17.4c0 2.6.9 4.7 2.6 6.1Zm27.4-10.9 3.5-1.1 1.5 3.1-2.5 2-3.1-1.1.6-2.9Z" />
     </svg>
   )
 }
 
 function PickMarker({ kind }: { kind: 'horse' | 'turtle' }) {
   const label = kind === 'horse' ? 'Horse: best golfer to root for' : 'Turtle: opponent golfer you want to slow down'
-  const className = kind === 'horse'
-    ? 'border-[#1f6b4a] bg-[#eef7ef] text-[#123c2f]'
-    : 'border-[#b58a3a] bg-[#fff4cf] text-[#7a5a19]'
+  const className = kind === 'horse' ? 'text-[#123c2f]' : 'text-[#7a5a19]'
   return (
-    <span title={label} aria-label={label} className={`inline-flex h-5 w-5 items-center justify-center border ${className}`}>
+    <span title={label} aria-label={label} className={`inline-flex h-3.5 w-4 shrink-0 items-center justify-center ${className}`}>
       <PickMarkerIcon kind={kind} />
+    </span>
+  )
+}
+
+function PickMarkerCluster({ kind }: { kind?: 'horse' | 'turtle' }) {
+  if (!kind) return null
+  return (
+    <span className="absolute left-1 top-1 z-[1]">
+      <PickMarker kind={kind} />
     </span>
   )
 }
 
 function PickMarkerRow({ showTurtles }: { showTurtles: boolean }) {
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2 border-2 border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f]">
-      <span className="inline-flex items-center gap-1.5"><PickMarker kind="horse" /> Horse = best golfer to root for</span>
-      {showTurtles ? <span className="inline-flex items-center gap-1.5"><PickMarker kind="turtle" /> Turtle = opponent golfer you want to slow down</span> : null}
+    <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#123c2f]">
+      <span className="inline-flex items-center gap-1"><PickMarker kind="horse" /> Horse = best golfer to root for</span>
+      {showTurtles ? <span className="inline-flex items-center gap-1"><PickMarker kind="turtle" /> Turtle = opponent to root against</span> : null}
     </div>
   )
 }
@@ -1137,8 +1144,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
                     const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                     const allPickNames = golferNamePeers
-                    const horseNames = horsePickMap.get(entry.entryId)
-                    const turtleNames = turtlePickMap.get(entry.entryId)
+                    const horseNames = isMe ? horsePickMap.get(entry.entryId) : undefined
+                    const turtleNames = !isMe ? turtlePickMap.get(entry.entryId) : undefined
                     return (
                       <details id={`entry-card-${entry.entryId}`} key={entry.entryId} open={entryIndex === 0 || forceOpenEntryId === entry.entryId} className={`group border-b-2 border-[#111] transition-colors ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : ''}`}>
                         <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>
@@ -1169,12 +1176,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           {Array.from({ length: pool.count_scores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <div key={i} className={`border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0 ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
+                              <div key={i} className={`relative border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0 ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
+                                <PickMarkerCluster kind={pick && horseNames?.has(normalizePickName(pick.name)) ? 'horse' : pick && turtleNames?.has(normalizePickName(pick.name)) ? 'turtle' : undefined} />
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className={`mt-1 flex min-w-0 items-center justify-center gap-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
-                                  {pick && horseNames?.has(normalizePickName(pick.name)) ? <PickMarker kind="horse" /> : null}
-                                  {pick && turtleNames?.has(normalizePickName(pick.name)) ? <PickMarker kind="turtle" /> : null}
-                                  <span className="min-w-0 truncate">{pick ? shortName(pick.name, allPickNames) : '—'}</span>
+                                <div className={`mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
+                                  {pick ? shortName(pick.name, allPickNames) : '—'}
                                 </div>
                                 <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                               </div>
@@ -1216,8 +1222,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
                         const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
                         const allPickNames = golferNamePeers
-                        const horseNames = horsePickMap.get(entry.entryId)
-                        const turtleNames = turtlePickMap.get(entry.entryId)
+                        const horseNames = isMe ? horsePickMap.get(entry.entryId) : undefined
+                        const turtleNames = !isMe ? turtlePickMap.get(entry.entryId) : undefined
                         return (
                           <Fragment key={entry.entryId}>
                             <tr id={`entry-row-${entry.entryId}`} key={`${entry.entryId}-top`} className={`bg-[#f7f7f2] transition-colors ${highlightedEntryId === entry.entryId ? 'outline outline-4 outline-[#f3df9c]' : ''}`}>
@@ -1238,13 +1244,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               {Array.from({ length: pool.count_scores }, (_, i) => {
                                 const pick = countingPicks[i]
                                 return (
-                                  <td key={i} title={picksHidden ? 'Picks hidden until the pool locks' : pick?.name || ''} className={`border-b border-r border-[#111] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] ${picksHidden ? 'bg-[#efeee6]' : 'bg-[#fbfbf5]'}`}>
+                                  <td key={i} title={picksHidden ? 'Picks hidden until the pool locks' : pick?.name || ''} className={`relative border-b border-r border-[#111] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] ${picksHidden ? 'bg-[#efeee6]' : 'bg-[#fbfbf5]'}`}>
+                                    <PickMarkerCluster kind={pick && horseNames?.has(normalizePickName(pick.name)) ? 'horse' : pick && turtleNames?.has(normalizePickName(pick.name)) ? 'turtle' : undefined} />
                                     <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                    <div className={`mt-0.5 flex min-w-0 items-center justify-center gap-1 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>
-                                      {pick && horseNames?.has(normalizePickName(pick.name)) ? <PickMarker kind="horse" /> : null}
-                                      {pick && turtleNames?.has(normalizePickName(pick.name)) ? <PickMarker kind="turtle" /> : null}
-                                      <span className="min-w-0 truncate">{pick ? shortName(pick.name, allPickNames) : '—'}</span>
-                                    </div>
+                                    <div className={`mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                                     <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
                                   </td>
                                 )
