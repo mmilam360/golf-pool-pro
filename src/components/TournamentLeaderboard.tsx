@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Props = {
@@ -12,6 +12,8 @@ type Props = {
   pickedGolfers?: string[]
   cutLine?: GolfCutLine | null
 }
+
+const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 
 function formatScore(score: number | null | undefined) {
   if (score == null) return '—'
@@ -55,16 +57,16 @@ function updatedLabel(value?: string | null) {
   return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-function teeTimeLabel(player: GolfPlayer) {
+function teeTimeLabel(player: GolfPlayer, timeZone: string) {
   if (!player.teeTime || player.roundScore) return ''
   const parsed = new Date(player.teeTime)
   if (!Number.isFinite(parsed.getTime())) return ''
-  const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
   return `${time}${player.startTee === 10 ? '*' : ''}`
 }
 
-function todayLabel(player: GolfPlayer) {
-  return player.roundScore || teeTimeLabel(player) || '—'
+function todayLabel(player: GolfPlayer, timeZone: string) {
+  return player.roundScore || teeTimeLabel(player, timeZone) || '—'
 }
 
 function shouldShowCutLineAfter(rows: GolfPlayer[], index: number, cutLine?: GolfCutLine | null) {
@@ -79,7 +81,14 @@ function shouldShowCutLineAfter(rows: GolfPlayer[], index: number, cutLine?: Gol
 }
 
 export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false, pickedGolfers = [], cutLine }: Props) {
+  const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const rows = Array.isArray(leaderboard) ? leaderboard : []
+
+  useEffect(() => {
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (detected) setTeeTimeZone(detected)
+  }, [])
+
   if (rows.length === 0) return null
 
   const updated = updatedLabel(lastUpdated)
@@ -133,7 +142,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
                         {player.country ? <div className="text-[8px] font-bold uppercase tracking-[0.06em] text-[#657168] sm:text-[10px] sm:tracking-[0.08em]">{player.country}</div> : null}
                       </td>
                       <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${isPicked ? 'bg-[#dff0e2] text-[#123c2f]' : scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>
-                      <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{todayLabel(player)}</td>
+                      <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{todayLabel(player, teeTimeZone)}</td>
                       <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[10px] font-black uppercase text-[#1f2a24] sm:px-2 sm:py-1.5 sm:text-xs">{statusLabel(player)}</td>
                     </tr>
                     {showCutLine ? (
