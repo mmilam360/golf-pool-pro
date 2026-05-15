@@ -48,16 +48,15 @@ function updatedLabel(value?: string | null) {
   return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false, compact = false }: Props) {
+export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false }: Props) {
   const rows = Array.isArray(leaderboard) ? leaderboard : []
   if (rows.length === 0) return null
 
-  const visibleRows = compact ? rows.slice(0, 30) : rows
   const updated = updatedLabel(lastUpdated)
 
   return (
-    <details className="group mt-4 border-2 border-[#d8cab0] bg-white shadow-[5px_5px_0_#eadfca]" open={defaultOpen}>
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-[#fbf7ed] px-3 py-3 text-left [&::-webkit-details-marker]:hidden sm:px-4">
+    <details className="group border-2 border-[#d8cab0] bg-white shadow-[4px_4px_0_#eadfca]" open={defaultOpen}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 bg-[#fbf7ed] px-2.5 py-2 text-left [&::-webkit-details-marker]:hidden sm:px-4 sm:py-3">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#657168]">Tournament leaderboard</p>
           <p className="mt-0.5 truncate text-base font-black leading-5 text-[#123c2f] sm:text-lg">{tournamentName || 'Full tournament field'}</p>
@@ -73,42 +72,37 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
         </div>
       </summary>
       <div className="border-t border-[#d8cab0] bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#eadfca] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168] sm:px-4">
-          <span>This is the full tournament field. Pool standings are separate.</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#eadfca] px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#657168] sm:px-4 sm:text-[11px]">
+          <span>Full tournament field. Pool standings are separate.</span>
           {updated ? <span className="sm:hidden">Updated {updated}</span> : null}
         </div>
-        <div className="max-h-[520px] overflow-y-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 z-10 bg-[#123c2f] text-[10px] font-black uppercase tracking-[0.12em] text-white">
+        <div className="max-h-[260px] overflow-y-auto overscroll-contain sm:max-h-[460px]">
+          <table className="w-full table-fixed border-collapse text-xs sm:text-sm">
+            <thead className="sticky top-0 z-10 bg-[#123c2f] text-[9px] font-black uppercase tracking-[0.08em] text-white sm:text-[10px] sm:tracking-[0.12em]">
               <tr>
-                <th className="w-12 border-r border-[#2c5b4c] px-2 py-2 text-center">Pos</th>
-                <th className="px-2 py-2 text-left">Golfer</th>
-                <th className="w-16 border-l border-[#2c5b4c] px-2 py-2 text-center">Score</th>
-                <th className="w-14 border-l border-[#2c5b4c] px-2 py-2 text-center">Thru</th>
-                <th className="hidden w-16 border-l border-[#2c5b4c] px-2 py-2 text-center sm:table-cell">Today</th>
+                <th className="w-9 border-r border-[#2c5b4c] px-1 py-1.5 text-center sm:w-12 sm:px-2 sm:py-2">Pos</th>
+                <th className="px-1.5 py-1.5 text-left sm:px-2 sm:py-2">Golfer</th>
+                <th className="w-12 border-l border-[#2c5b4c] px-1 py-1.5 text-center sm:w-16 sm:px-2 sm:py-2">Tot</th>
+                <th className="w-12 border-l border-[#2c5b4c] px-1 py-1.5 text-center sm:w-16 sm:px-2 sm:py-2">Today</th>
+                <th className="w-10 border-l border-[#2c5b4c] px-1 py-1.5 text-center sm:w-14 sm:px-2 sm:py-2">Thru</th>
               </tr>
             </thead>
             <tbody>
-              {visibleRows.map((player, index) => (
+              {rows.map((player, index) => (
                 <tr key={`${player.id}-${index}`} className={index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>
-                  <td className="border-b border-r border-[#eadfca] px-2 py-2 text-center text-xs font-black text-[#657168]">{positionLabel(player, index)}</td>
-                  <td className="border-b border-[#eadfca] px-2 py-2">
-                    <div className="min-w-0 font-black leading-5 text-[#1f2a24]">{player.name}</div>
-                    {player.country ? <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#657168]">{player.country}</div> : null}
+                  <td className="border-b border-r border-[#eadfca] px-1 py-1 text-center text-[10px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{positionLabel(player, index)}</td>
+                  <td className="border-b border-[#eadfca] px-1.5 py-1 sm:px-2 sm:py-1.5">
+                    <div className="min-w-0 truncate font-black leading-4 text-[#1f2a24] sm:leading-5" title={player.name}>{player.name}</div>
+                    {player.country ? <div className="text-[8px] font-bold uppercase tracking-[0.06em] text-[#657168] sm:text-[10px] sm:tracking-[0.08em]">{player.country}</div> : null}
                   </td>
-                  <td className={`border-b border-l border-[#eadfca] px-2 py-2 text-center text-lg font-black ${scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>
-                  <td className="border-b border-l border-[#eadfca] px-2 py-2 text-center text-xs font-black uppercase text-[#1f2a24]">{statusLabel(player)}</td>
-                  <td className="hidden border-b border-l border-[#eadfca] px-2 py-2 text-center text-xs font-black text-[#657168] sm:table-cell">{player.roundScore || '—'}</td>
+                  <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>
+                  <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{player.roundScore || '—'}</td>
+                  <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[10px] font-black uppercase text-[#1f2a24] sm:px-2 sm:py-1.5 sm:text-xs">{statusLabel(player)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        {compact && rows.length > visibleRows.length ? (
-          <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-2 text-xs font-bold text-[#657168] sm:px-4">
-            Showing top {visibleRows.length} of {rows.length}. Open the pool page for the full field.
-          </div>
-        ) : null}
       </div>
     </details>
   )

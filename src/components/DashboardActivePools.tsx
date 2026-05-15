@@ -91,7 +91,7 @@ function LockGlyph({ locked }: { locked: boolean }) {
 
 function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>
       {label === 'Passed' ? null : <LockGlyph locked={locked || label === 'Live'} />}
       {label}
     </span>
@@ -519,12 +519,11 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   })
                 }}
               />
-              <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 pb-4 sm:px-5">
+              <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
                 <TournamentLeaderboard
                   leaderboard={tournament?.leaderboard_json}
                   tournamentName={tournament?.name}
                   lastUpdated={tournament?.last_scores_fetch}
-                  compact
                 />
               </div>
             </details>

@@ -1223,8 +1223,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               )}
             </div>
             </div>
-            <div className="gpp-board-post mx-auto -mb-8 -mt-[10px] h-36 w-16 border-x-4 border-[#003622] md:-mb-10 md:h-44 md:w-20" />
-            <div className="mt-12 md:mt-14">
+            <div className="gpp-board-post mx-auto -mt-[10px] h-36 w-16 border-x-4 border-[#003622] md:h-44 md:w-20" />
+            <div>
               <TournamentLeaderboard
                 leaderboard={leaderboard}
                 tournamentName={tournament?.name}
