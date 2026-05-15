@@ -12,6 +12,12 @@ export interface ScoredEntry {
   rank: number | null; obStandIns: number
 }
 
+export type HorsePickMap = Map<string, Set<string>>
+
+export function normalizePickName(name: string) {
+  return name.trim().toLowerCase()
+}
+
 export function scoreEntry(
   picks: string[], leaderboard: GolfPlayer[],
   options: { countScores: number; obRuleEnabled: boolean; obPenaltyStrokes: number }
@@ -71,4 +77,86 @@ export function rankEntries(entries: ScoredEntry[]): ScoredEntry[] {
     }
   })
   return ranked
+}
+
+function realEntries(entries: ScoredEntry[]) {
+  return entries.filter(entry => !entry.picks.includes('__hidden__') && entry.pickScores.some(pick => !pick.isObStandIn && pick.name !== 'Picks hidden'))
+}
+
+function ownershipByPick(entries: ScoredEntry[]) {
+  const ownership = new Map<string, number>()
+  for (const entry of entries) {
+    const entryPickNames = new Set(
+      entry.pickScores
+        .filter(pick => !pick.isObStandIn && pick.name && pick.name !== 'Picks hidden')
+        .map(pick => normalizePickName(pick.name))
+    )
+    entryPickNames.forEach(name => ownership.set(name, (ownership.get(name) || 0) + 1))
+  }
+  return ownership
+}
+
+export function buildHorsePickMap(entries: ScoredEntry[], maxPerEntry = 2): HorsePickMap {
+  const poolEntries = realEntries(entries)
+  if (poolEntries.length < 4) return new Map()
+  const ownership = ownershipByPick(poolEntries)
+  const horsePicks: HorsePickMap = new Map()
+
+  for (const entry of poolEntries) {
+    const candidates = entry.pickScores
+      .filter(pick => !pick.isObStandIn && pick.name && pick.name !== 'Picks hidden')
+      .map(pick => {
+        const key = normalizePickName(pick.name)
+        const ownerCount = ownership.get(key) || poolEntries.length
+        const uniqueness = 1 - ownerCount / poolEntries.length
+        const uniqueBonus = ownerCount === 1 ? 0.45 : 0
+        const countingBonus = pick.counted ? 0.35 : 0
+        const closeBonus = !pick.counted && pick.scoreToPar !== null && pick.status === 'active' ? 0.12 : 0
+        const deadPenalty = pick.status === 'cut' || pick.status === 'wd' || pick.status === 'dnq' ? 0.35 : 0
+        return { key, score: uniqueness + uniqueBonus + countingBonus + closeBonus - deadPenalty }
+      })
+      .filter(candidate => candidate.score >= 1.05)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.max(1, Math.min(maxPerEntry, 2)))
+
+    if (candidates.length) horsePicks.set(entry.entryId, new Set(candidates.map(candidate => candidate.key)))
+  }
+
+  return horsePicks
+}
+
+export function buildTurtlePickMap(entries: ScoredEntry[], viewerEntryId?: string | null, maxPerEntry = 2): HorsePickMap {
+  if (!viewerEntryId) return new Map()
+  const poolEntries = realEntries(entries)
+  if (poolEntries.length < 4) return new Map()
+  const viewerEntry = poolEntries.find(entry => entry.entryId === viewerEntryId)
+  if (!viewerEntry) return new Map()
+
+  const viewerPickNames = new Set(viewerEntry.pickScores.map(pick => normalizePickName(pick.name)))
+  const ownership = ownershipByPick(poolEntries)
+  const turtlePicks: HorsePickMap = new Map()
+
+  for (const entry of poolEntries) {
+    if (entry.entryId === viewerEntryId) continue
+    const candidates = entry.pickScores
+      .filter(pick => !pick.isObStandIn && pick.name && pick.name !== 'Picks hidden' && !viewerPickNames.has(normalizePickName(pick.name)))
+      .map(pick => {
+        const key = normalizePickName(pick.name)
+        const ownerCount = ownership.get(key) || poolEntries.length
+        const uniqueness = 1 - ownerCount / poolEntries.length
+        const uniqueBonus = ownerCount === 1 ? 0.35 : 0
+        const countingBonus = pick.counted ? 0.45 : 0
+        const closeBonus = !pick.counted && pick.scoreToPar !== null && pick.status === 'active' ? 0.14 : 0
+        const scorePressure = pick.scoreToPar !== null ? Math.max(0, 8 - pick.scoreToPar) / 20 : 0
+        const deadPenalty = pick.status === 'cut' || pick.status === 'wd' || pick.status === 'dnq' ? 0.5 : 0
+        return { key, score: uniqueness + uniqueBonus + countingBonus + closeBonus + scorePressure - deadPenalty }
+      })
+      .filter(candidate => candidate.score >= 1.05)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.max(1, Math.min(maxPerEntry, 2)))
+
+    if (candidates.length) turtlePicks.set(entry.entryId, new Set(candidates.map(candidate => candidate.key)))
+  }
+
+  return turtlePicks
 }
