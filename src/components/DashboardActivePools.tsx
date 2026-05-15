@@ -72,6 +72,12 @@ function hasRecentScores(tournament: Tournament | null) {
   return Date.now() - lastFetchMs <= 5 * 60 * 1000
 }
 
+function hasEventBegun(tournament: Tournament | null) {
+  if (tournament?.status === 'live' || tournament?.status === 'completed') return true
+  if (hasOnCourseScores(tournament?.leaderboard_json)) return true
+  return false
+}
+
 function LockGlyph({ locked }: { locked: boolean }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="square" strokeLinejoin="miter">
@@ -107,6 +113,25 @@ function ScoreBadge({ score }: { score: number | null | undefined }) {
   return (
     <span className="whitespace-nowrap border border-[#b21e23] bg-[#fff1ef] px-2 py-1 font-black text-[#b21e23]">
       Score {text}
+    </span>
+  )
+}
+
+function DateIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
+      <path d="M7 3v4M17 3v4M4 9h16" />
+      <rect x="4" y="5" width="16" height="16" />
+      <path d="M8 13h2M12 13h2M16 13h2M8 17h2M12 17h2" />
+    </svg>
+  )
+}
+
+function StartDateBadge({ date }: { date?: string | null }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 font-black text-[#7a5a19]">
+      <DateIcon />
+      Starts {formatEventDate(date)}
     </span>
   )
 }
@@ -442,6 +467,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
           const rankPreview = entry ? buildRankPreview(entry, pool, poolEntries) : null
           const isPoolOpen = expandedPoolIds.has(pool.id)
           const openEntryIds = expandedEntryIds[pool.id] ?? null
+          const eventBegun = hasEventBegun(tournament)
           return (
             <details
               key={`${role}-${pool.id}`}
@@ -473,7 +499,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
                   {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
-                  <ScoreBadge score={rankPreview?.totalScore} />
+                  {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : <StartDateBadge date={tournament?.start_date} />}
                 </div>
               </summary>
               <InlineLeaderboard
