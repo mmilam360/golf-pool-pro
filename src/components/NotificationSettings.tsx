@@ -26,6 +26,7 @@ export function NotificationSettings({
 }) {
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('unsupported')
   const [prefs, setPrefs] = useState<NotificationPrefs>(initialPrefs || {})
+  const [subscriptionSynced, setSubscriptionSynced] = useState(false)
 
   useEffect(() => {
     if (!('Notification' in window)) {
@@ -79,6 +80,7 @@ export function NotificationSettings({
         await registerPushSubscription(next)
         setPrefs(next)
         onChange(next)
+        setSubscriptionSynced(true)
         new Notification('Golf Pools Pro notifications are on', {
           body: 'Pick deadline reminders are ready on this device.',
           tag: 'gpp-test',
@@ -89,6 +91,23 @@ export function NotificationSettings({
       }
     }
   }
+
+  useEffect(() => {
+    if (permission !== 'granted' || subscriptionSynced) return
+    const next = {
+      ...prefs,
+      pick_deadline: prefs.pick_deadline !== false,
+      leaderboard_live: prefs.leaderboard_live !== false,
+      took_lead: Boolean(prefs.took_lead),
+    }
+    registerPushSubscription(next)
+      .then(() => {
+        setPrefs(next)
+        onChange(next)
+        setSubscriptionSynced(true)
+      })
+      .catch(() => setSubscriptionSynced(true))
+  }, [permission, subscriptionSynced])
 
   function update(key: keyof NotificationPrefs, checked: boolean) {
     const next = { ...prefs, [key]: checked }
