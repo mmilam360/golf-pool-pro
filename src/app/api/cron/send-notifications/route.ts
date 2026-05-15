@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { rankEntries, scoreEntry } from '@/lib/scoring'
+import { hasOnCourseScores } from '@/lib/golf-live'
 import { notificationPrefsAllow, recordNotificationEvent, sendPushToUser } from '@/lib/notifications/push'
 import type { GolfPlayer } from '@/lib/golf-api'
 
@@ -29,6 +30,7 @@ function hoursUntil(value?: string | null) {
 
 function hasRecentScores(tournament: any) {
   if (tournament?.status !== 'live' || !tournament.last_scores_fetch) return false
+  if (!hasOnCourseScores(Array.isArray(tournament.leaderboard_json) ? tournament.leaderboard_json : [])) return false
   const lastFetchMs = new Date(tournament.last_scores_fetch).getTime()
   return Number.isFinite(lastFetchMs) && Date.now() - lastFetchMs <= 10 * 60 * 1000
 }
@@ -108,7 +110,7 @@ async function sendPickDeadlineReminders(supabase: any, prefsByUser: Map<string,
 async function sendLeaderboardLiveAlerts(supabase: any, prefsByUser: Map<string, Prefs>) {
   const { data: pools, error } = await supabase
     .from('gpp_pools')
-    .select('id, name, owner_id, gpp_tournaments(name, status, last_scores_fetch)')
+    .select('id, name, owner_id, gpp_tournaments(name, status, last_scores_fetch, leaderboard_json)')
     .eq('is_completed', false)
   if (error) throw error
 

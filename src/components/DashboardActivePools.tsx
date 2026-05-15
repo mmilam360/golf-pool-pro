@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
+import { hasOnCourseScores } from '@/lib/golf-live'
 import type { GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -65,6 +66,7 @@ function statusClass(label: string) {
 
 function hasRecentScores(tournament: Tournament | null) {
   if (tournament?.status !== 'live' || !tournament.last_scores_fetch) return false
+  if (!hasOnCourseScores(tournament.leaderboard_json)) return false
   const lastFetchMs = new Date(tournament.last_scores_fetch).getTime()
   if (!Number.isFinite(lastFetchMs)) return false
   return Date.now() - lastFetchMs <= 5 * 60 * 1000
@@ -157,6 +159,27 @@ function boardTitle(tournament: Tournament | null) {
   return tournament?.name || 'Leaderboard'
 }
 
+function formatEventDate(value?: string | null) {
+  if (!value) return 'Date TBA'
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value))
+}
+
+function poolIsOpenForPicks(pool: PoolRecord, tournament: Tournament | null) {
+  return !pool.is_locked && !pool.is_completed && tournament?.status !== 'live' && tournament?.status !== 'completed'
+}
+
+function OpenPicksBar({ pool, tournament }: { pool: PoolRecord; tournament: Tournament | null }) {
+  if (!poolIsOpenForPicks(pool, tournament)) return null
+  return (
+    <div className="mb-3 flex flex-col gap-2 border border-[#d8cab0] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-[#657168]">Event starts: <span className="text-[#123c2f]">{formatEventDate(tournament?.start_date)}</span></span>
+      <a href={`/pool/${pool.id}#make-picks`} className="inline-flex w-fit border border-[#123c2f] bg-[#fbf7ed] px-3 py-1.5 text-[#123c2f] hover:bg-[#fff4cf]">
+        Edit picks
+      </a>
+    </div>
+  )
+}
+
 function thruLabel(thru?: string) {
   if (!thru) return '—'
   const value = String(thru).toUpperCase()
@@ -209,14 +232,18 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
 
   if (scoredEntries.length === 0) {
     return (
-      <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-4 py-4 text-sm font-semibold text-[#657168] sm:px-5">
-        The full leaderboard board appears here once scoring is live.
+      <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-4 py-4 sm:px-5">
+        <OpenPicksBar pool={pool} tournament={tournament} />
+        <div className="text-sm font-semibold text-[#657168]">
+          The full leaderboard board appears here once scoring is live.
+        </div>
       </div>
     )
   }
 
   return (
     <div className="overflow-hidden border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-4 sm:px-5">
+      <OpenPicksBar pool={pool} tournament={tournament} />
       {showJumpToMyEntry ? (
         <div className="mb-3 flex justify-center">
           <a href={`#dashboard-entry-${currentEntryId}`} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0] hover:bg-[#fffdf8]">

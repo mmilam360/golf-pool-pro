@@ -268,6 +268,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (window.location.hash === '#make-picks') {
+      setTab('my-team')
+      window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+    }
+  }, [])
   const supabase = useMemo(() => createClient(), [])
 
   const dismissToast = useCallback((id: number) => {
@@ -1214,7 +1221,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       {/* My Team Tab */}
       {tab === 'my-team' && (
-        <div>
+        <div id="make-picks" className="scroll-mt-24">
           {!myEntry ? (
             <div className="bg-white rounded-none p-8 border border-stone-200 text-center">
               <p className="text-stone-600">You haven't joined this pool yet.</p>
