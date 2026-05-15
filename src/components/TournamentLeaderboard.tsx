@@ -69,11 +69,13 @@ function todayLabel(player: GolfPlayer) {
 
 function shouldShowCutLineAfter(rows: GolfPlayer[], index: number, cutLine?: GolfCutLine | null) {
   if (!cutLine) return false
-  if (cutLine.count && index + 1 === cutLine.count) return true
   const current = rows[index]
   const next = rows[index + 1]
   if (!current || !next) return false
-  return current.scoreToPar <= cutLine.scoreToPar && next.scoreToPar > cutLine.scoreToPar
+  if (Number.isFinite(cutLine.scoreToPar)) {
+    return current.scoreToPar <= cutLine.scoreToPar && next.scoreToPar > cutLine.scoreToPar
+  }
+  return Boolean(cutLine.count && index + 1 === cutLine.count)
 }
 
 export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false, pickedGolfers = [], cutLine }: Props) {

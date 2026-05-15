@@ -111,9 +111,7 @@ function easternDateKey(value: Date | string) {
 
 function hasLineStarted(line: any) {
   const holes = Array.isArray(line?.linescores) ? line.linescores : []
-  if (holes.some((hole: any) => hole?.value != null || hole?.displayValue)) return true
-  const display = String(line?.displayValue || '').trim()
-  return Boolean(display && display !== '-')
+  return holes.some((hole: any) => hole?.value != null || hole?.displayValue)
 }
 
 type TeeInfo = { teeTime?: string; startTee?: number | null; roundScore?: string }
