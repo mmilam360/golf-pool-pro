@@ -6,6 +6,7 @@ import { sendPoolInvites } from '@/app/(app)/pool-invites/actions'
 type PreviousPlayerCandidate = {
   userId: string
   displayName: string
+  suggested?: boolean
 }
 
 type InviteSummary = {
@@ -23,8 +24,10 @@ export function PreviousPlayersInvitePanel({
   candidates: PreviousPlayerCandidate[]
   summary: InviteSummary
 }) {
-  const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState(() => new Set(candidates.map(candidate => candidate.userId)))
+  const suggestedCandidates = candidates.filter(candidate => candidate.suggested)
+  const hasCloneSuggestions = suggestedCandidates.length > 0
+  const [open, setOpen] = useState(hasCloneSuggestions)
+  const [selected, setSelected] = useState(() => new Set((hasCloneSuggestions ? suggestedCandidates : candidates).map(candidate => candidate.userId)))
   const [isPending, startTransition] = useTransition()
   const selectedCount = selected.size
   const summaryLine = useMemo(() => {
@@ -78,7 +81,9 @@ export function PreviousPlayersInvitePanel({
       {open ? (
         <div className="mt-3 space-y-3">
           <p className="break-words border border-[#d8cab0] bg-white px-3 py-2 text-xs font-semibold leading-5 text-[#657168]">
-            In-app invite only. No email is sent — let players know the invite is waiting for them in their Golf Pools Pro account.
+            {hasCloneSuggestions
+              ? 'Players from the cloned pool are preselected. Add players from other past pools below if you want.'
+              : 'In-app invite only. No email is sent — let players know the invite is waiting for them in their Golf Pools Pro account.'}
           </p>
           {candidates.length ? (
             <>
@@ -96,6 +101,7 @@ export function PreviousPlayersInvitePanel({
                       className="h-4 w-4 accent-[#123c2f]"
                     />
                     <span className="min-w-0 truncate">{candidate.displayName}</span>
+                    {candidate.suggested ? <span className="ml-auto shrink-0 border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#7a5a19]">Last pool</span> : null}
                   </label>
                 ))}
               </div>

@@ -281,10 +281,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [dismissToast])
 
   const activeEntries = entries.filter(e => !e.is_removed)
-  const submittedPickCount = activeEntries.filter(entry => {
+  const entriesNeedingPicks = activeEntries.filter(entry => {
     const pickCount = entry.submitted_pick_count ?? ((entry.golfer_picks as string[]) || []).length
-    return pickCount >= pool.pick_count
-  }).length
+    return pickCount < pool.pick_count
+  })
+  const submittedPickCount = activeEntries.length - entriesNeedingPicks.length
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
   const picksAreClosed = isLocked || scoringIsLive
@@ -811,6 +812,128 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
 
+  async function copyNeedsPicksReminder() {
+    if (!entriesNeedingPicks.length) {
+      showToast('Everyone has picks in.', 'success')
+      return
+    }
+    const names = entriesNeedingPicks.map(entry => entry.display_name || 'Player').join('\n')
+    const lockDay = tournament?.start_date
+      ? new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(tournament.start_date))
+      : 'tournament day'
+    const message = `Still need picks:\n\n${names}\n\nDon't forget to make your picks before the first tee time ${lockDay} for ${poolName} — ${tournament?.name || 'the tournament'}.${inviteUrl ? `\n\n${inviteUrl}` : ''}`
+    try {
+      await navigator.clipboard.writeText(message)
+      showToast('Reminder copied.', 'success')
+    } catch {
+      const textarea = document.createElement('textarea')
+      textarea.value = message
+      textarea.setAttribute('readonly', 'true')
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      showToast('Reminder copied.', 'success')
+    }
+  }
+
+  async function shareFinalResultsImage() {
+    if (scoredEntries.length === 0) {
+      showToast('Final results are not ready yet.', 'info')
+      return
+    }
+
+    const width = 1080
+    const height = 1920
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    ctx.fillStyle = '#fbf7ed'
+    ctx.fillRect(0, 0, width, height)
+    ctx.fillStyle = '#123c2f'
+    ctx.fillRect(52, 52, width - 104, height - 104)
+    ctx.fillStyle = '#f7f7f2'
+    ctx.fillRect(86, 86, width - 172, height - 172)
+    ctx.strokeStyle = '#111111'
+    ctx.lineWidth = 6
+    ctx.strokeRect(86, 86, width - 172, height - 172)
+
+    ctx.textAlign = 'center'
+    ctx.fillStyle = '#b21e23'
+    ctx.font = '900 42px Arial'
+    ctx.fillText('FINAL RESULTS', width / 2, 170)
+    ctx.fillStyle = '#111111'
+    ctx.font = '900 58px Arial'
+    ctx.fillText((poolName || 'Golf Pool').toUpperCase().slice(0, 28), width / 2, 245)
+    ctx.fillStyle = '#005b3c'
+    ctx.font = '900 34px Arial'
+    ctx.fillText((tournament?.name || 'Tournament').toUpperCase().slice(0, 34), width / 2, 305)
+
+    const topEntries = scoredEntries.slice(0, 5)
+    topEntries.forEach((entry, index) => {
+      const y = 410 + index * 245
+      ctx.fillStyle = index === 0 ? '#fff4cf' : '#ffffff'
+      ctx.fillRect(132, y, width - 264, 205)
+      ctx.strokeStyle = '#111111'
+      ctx.lineWidth = 4
+      ctx.strokeRect(132, y, width - 264, 205)
+      ctx.fillStyle = '#b21e23'
+      ctx.font = '900 64px Arial'
+      ctx.textAlign = 'left'
+      ctx.fillText(`#${entry.rank || index + 1}`, 165, y + 82)
+      ctx.fillStyle = '#111111'
+      ctx.font = '900 42px Arial'
+      ctx.fillText(String(entry.displayName || 'Entry').toUpperCase().slice(0, 22), 300, y + 62)
+      ctx.textAlign = 'right'
+      ctx.font = '900 64px Arial'
+      ctx.fillText(formatScore(entry.totalScore), width - 165, y + 82)
+      ctx.textAlign = 'left'
+      ctx.fillStyle = '#1f2a24'
+      ctx.font = '800 26px Arial'
+      const picks = entry.pickScores
+        .filter(pick => pick.counted && !pick.isObStandIn)
+        .slice(0, 5)
+        .map(pick => shortName(pick.name, golferNamePeers))
+        .join('  •  ')
+      ctx.fillText(picks.slice(0, 52), 165, y + 145)
+    })
+
+    ctx.textAlign = 'center'
+    ctx.fillStyle = '#123c2f'
+    ctx.font = '900 48px Arial'
+    ctx.fillText('GOLF POOLS PRO', width / 2, 1715)
+    ctx.fillStyle = '#657168'
+    ctx.font = '800 30px Arial'
+    ctx.fillText('Run your pool at GolfPoolsPro.com', width / 2, 1770)
+
+    canvas.toBlob(async blob => {
+      if (!blob) return
+      const file = new File([blob], `${poolName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-final-results.png`, { type: 'image/png' })
+      const nav = navigator as any
+      if (nav.canShare?.({ files: [file] })) {
+        try {
+          await nav.share({ files: [file], title: `${poolName} final results` })
+          showToast('Results image ready to share.', 'success')
+          return
+        } catch (error: any) {
+          if (error?.name === 'AbortError') return
+        }
+      }
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = file.name
+      link.click()
+      URL.revokeObjectURL(url)
+      showToast('Results image downloaded.', 'success')
+    }, 'image/png')
+  }
+
   return (
     <div>
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
@@ -908,8 +1031,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </div>
           ) : (
             <>
-            {myEntry && scoredEntries.length >= 10 && scoredEntries.some(entry => entry.entryId === myEntry.id) && (
-              <div className="mb-3 flex justify-end">
+            <div className="mb-3 flex flex-wrap justify-end gap-2">
+              {(pool.is_completed || tournament?.status === 'completed') && (
+                <button
+                  type="button"
+                  onClick={shareFinalResultsImage}
+                  className="border-2 border-[#b21e23] bg-[#fff1ef] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#b21e23] transition-colors hover:bg-white"
+                >
+                  Share final results
+                </button>
+              )}
+              {myEntry && scoredEntries.length >= 10 && scoredEntries.some(entry => entry.entryId === myEntry.id) && (
                 <button
                   type="button"
                   onClick={jumpToMyEntry}
@@ -917,8 +1049,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 >
                   Jump to my entry
                 </button>
-              </div>
-            )}
+              )}
+            </div>
             <div
               className="gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]"
               style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
@@ -1354,6 +1486,35 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
             )}
           </section>
+
+          {!picksAreClosed && (
+            <section className="border border-[#d8cab0] bg-[#fbf7ed] p-5 shadow-[5px_5px_0_#d8cab0]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Pick reminders</p>
+                  <h3 className="mt-1 text-xl font-black text-[#123c2f]">Still need picks: {entriesNeedingPicks.length}</h3>
+                  <p className="mt-1 text-sm font-semibold text-[#657168]">Copy this list into your group text before picks lock.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyNeedsPicksReminder}
+                  disabled={entriesNeedingPicks.length === 0}
+                  className="border-2 border-[#123c2f] bg-white px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-[#123c2f] transition-colors hover:bg-[#eef7ef] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Copy reminder
+                </button>
+              </div>
+              {entriesNeedingPicks.length ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {entriesNeedingPicks.map(entry => (
+                    <span key={entry.id} className="border border-[#d8cab0] bg-white px-2.5 py-1 text-sm font-bold text-[#1f2a24]">{entry.display_name || 'Player'}</span>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Everyone has picks in.</p>
+              )}
+            </section>
+          )}
           {/* Entries management */}
           <div className="bg-white rounded-none border border-stone-200 overflow-hidden shadow-[5px_5px_0_#d8cab0]">
             <div className="px-5 py-4 border-b border-stone-200 bg-stone-50">

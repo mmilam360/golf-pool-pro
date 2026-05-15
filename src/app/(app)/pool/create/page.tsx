@@ -117,6 +117,8 @@ export default function CreatePoolPage() {
   const [obPenalty, setObPenalty] = useState<PoolNumber>(2)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [cloneSourceId, setCloneSourceId] = useState('')
+  const [cloneSourceName, setCloneSourceName] = useState('')
   const router = useRouter()
   const supabase = createClient()
   const tournament = tournaments.find(t => t.id === selectedTournament)
@@ -142,8 +144,29 @@ export default function CreatePoolPage() {
       setTournaments(openTournaments)
 
       const params = new URLSearchParams(window.location.search)
+      const cloneId = params.get('clone') || ''
       const requestedTournament = params.get('tournament')
       const requestedStart = params.get('start')
+      if (cloneId) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: sourcePool } = await supabase
+            .from('gpp_pools')
+            .select('id, name, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes')
+            .eq('id', cloneId)
+            .eq('owner_id', user.id)
+            .maybeSingle()
+          if (sourcePool) {
+            setCloneSourceId(sourcePool.id)
+            setCloneSourceName(sourcePool.name || '')
+            setPoolName(`${sourcePool.name || 'Golf Pool'} - new week`)
+            setPickCount(sourcePool.pick_count || 12)
+            setCountScores(sourcePool.count_scores || 8)
+            setObEnabled(Boolean(sourcePool.ob_rule_enabled))
+            setObPenalty(sourcePool.ob_penalty_strokes || 2)
+          }
+        }
+      }
       if (requestedTournament) {
         const requestedKey = normalizeTournamentKey(requestedTournament)
         const match = data.find(t => {
@@ -248,7 +271,7 @@ export default function CreatePoolPage() {
         return
       }
 
-      router.push(`/pool/${data.id}`)
+      router.push(`/pool/${data.id}${cloneSourceId ? `?inviteFrom=${cloneSourceId}` : ''}`)
     }
   }
 
@@ -258,6 +281,11 @@ export default function CreatePoolPage() {
         <BackButton />
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Tournament setup</p>
         <h1 className="mb-6 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Create a Pool</h1>
+        {cloneSourceName && (
+          <div className="mb-4 border border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-sm font-semibold text-[#123c2f]">
+            Running it back from {cloneSourceName}. Edit anything here, then choose the new tournament.
+          </div>
+        )}
         {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
         <form onSubmit={handleCreate} className="w-[calc(100%-4px)] space-y-6 rounded-none border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0] sm:w-full sm:p-6 sm:shadow-[6px_6px_0_#d8cab0]">

@@ -89,6 +89,15 @@ function isActivePool(pool: PoolRecord, tournament: Tournament | null) {
   return startDate >= today
 }
 
+function isRecentlyEndedPool(pool: PoolRecord, tournament: Tournament | null) {
+  if (!pool.is_completed && tournament?.status !== 'completed') return false
+  const endValue = tournament?.end_date || tournament?.start_date
+  if (!endValue) return false
+  const endMs = new Date(endValue).getTime()
+  if (!Number.isFinite(endMs)) return false
+  return Date.now() - endMs <= 24 * 60 * 60 * 1000
+}
+
 function LockGlyph({ locked }: { locked: boolean }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="square" strokeLinejoin="miter">
@@ -240,19 +249,29 @@ export default async function DashboardPage() {
   }, {})
   const activePoolCards = [
     ...owned
-      .filter(pool => isActivePool(pool, getTournament(pool)))
-      .map(pool => ({ pool, tournament: getTournament(pool), role: 'Running', entry: myEntryByPool[pool.id] ?? null as EntryRecord | null })),
+      .filter(pool => isActivePool(pool, getTournament(pool)) || isRecentlyEndedPool(pool, getTournament(pool)))
+      .map(pool => ({ pool, tournament: getTournament(pool), role: isRecentlyEndedPool(pool, getTournament(pool)) ? 'Recently ended' : 'Running', entry: myEntryByPool[pool.id] ?? null as EntryRecord | null })),
     ...joined
       .map(entry => ({ entry, pool: getPool(entry) }))
-      .filter((item): item is { entry: EntryRecord; pool: PoolRecord } => Boolean(item.pool && isActivePool(item.pool, getTournament(item.pool))))
+      .filter((item): item is { entry: EntryRecord; pool: PoolRecord } => Boolean(item.pool && (isActivePool(item.pool, getTournament(item.pool)) || isRecentlyEndedPool(item.pool, getTournament(item.pool)))))
       .filter(item => !ownedPoolIds.includes(item.pool.id))
-      .map(item => ({ pool: item.pool, tournament: getTournament(item.pool), role: 'Playing', entry: item.entry })),
+      .map(item => ({ pool: item.pool, tournament: getTournament(item.pool), role: isRecentlyEndedPool(item.pool, getTournament(item.pool)) ? 'Recently ended' : 'Playing', entry: item.entry })),
   ].sort((a, b) => {
+    const aRecent = isRecentlyEndedPool(a.pool, a.tournament) ? 0 : 1
+    const bRecent = isRecentlyEndedPool(b.pool, b.tournament) ? 0 : 1
+    if (aRecent !== bRecent) return aRecent - bRecent
     const aDate = a.tournament?.start_date || '9999-12-31'
     const bDate = b.tournament?.start_date || '9999-12-31'
     return aDate.localeCompare(bDate)
   })
   const hasAnyPools = owned.length > 0 || joined.length > 0 || invites.length > 0
+  const lastOwnedPool = owned
+    .filter(pool => pool.is_completed || getTournament(pool)?.status === 'completed')
+    .sort((a, b) => {
+      const aDate = getTournament(a)?.end_date || getTournament(a)?.start_date || ''
+      const bDate = getTournament(b)?.end_date || getTournament(b)?.start_date || ''
+      return bDate.localeCompare(aDate)
+    })[0]
 
   return (
     <div className="space-y-8">
@@ -263,6 +282,15 @@ export default async function DashboardPage() {
       </section>
 
       <PendingInvites invites={invites} />
+      {lastOwnedPool && (
+        <section className="border border-[#d8cab0] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0] sm:flex sm:items-center sm:justify-between sm:gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Pool runner shortcut</p>
+            <h2 className="mt-1 font-display text-2xl font-bold text-[#0f2f25]">Run another pool with your last group</h2>
+          </div>
+          <Link href={`/pool/create?clone=${lastOwnedPool.id}`} className="mt-3 inline-flex border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25] sm:mt-0">Run it again</Link>
+        </section>
+      )}
       <DashboardActivePools cards={activePoolCards} entriesByPool={entriesByPool} />
 
       {!hasAnyPools ? (

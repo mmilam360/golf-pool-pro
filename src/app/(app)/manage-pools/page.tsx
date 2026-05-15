@@ -187,6 +187,13 @@ export default async function ManagePoolsPage() {
                     <span className="hidden sm:block"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
                     <span className="hidden sm:block"><BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} /></span>
                   </Link>
+                  {(pool.is_completed || tournament?.status === 'completed') && (
+                    <div className="border-b border-[#eadfca] px-4 pb-3 sm:px-5">
+                      <Link href={`/pool/create?clone=${pool.id}`} className="inline-flex border border-[#123c2f] bg-white px-3 py-1.5 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f] hover:bg-[#eef7ef]">
+                        Run it again
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )
             })}

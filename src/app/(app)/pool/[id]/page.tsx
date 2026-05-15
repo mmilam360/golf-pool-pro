@@ -4,8 +4,10 @@ import { redirect } from 'next/navigation'
 import PoolView from './PoolView'
 import { buildPreviousPlayerCandidates, summarizeInviteStatuses } from '@/lib/pool-invite-logic'
 
-export default async function PoolPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PoolPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ inviteFrom?: string }> }) {
   const { id } = await params
+  const query = searchParams ? await searchParams : {}
+  const inviteFromPoolId = typeof query?.inviteFrom === 'string' ? query.inviteFrom : ''
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirect=${encodeURIComponent(`/pool/${id}`)}`)
@@ -47,7 +49,7 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
   // Get current user's entry
   const myEntry = safeEntries.find(e => e.user_id === user.id && !e.is_removed) || null
 
-  let previousPlayerCandidates: { userId: string; displayName: string }[] = []
+  let previousPlayerCandidates: { userId: string; displayName: string; sourcePoolIds?: string[]; suggested?: boolean }[] = []
   let inviteSummary = { pending: 0, accepted: 0, declined: 0 }
 
   if (isOwner) {
@@ -63,7 +65,7 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
     const { data: previousEntries } = previousPoolIds.length
       ? await supabase
         .from('gpp_entries')
-        .select('user_id, display_name')
+        .select('pool_id, user_id, display_name')
         .in('pool_id', previousPoolIds)
         .eq('is_removed', false)
       : { data: [] }
@@ -82,7 +84,10 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
       currentPoolEntryUserIds,
       existingInviteUserIds: (poolInvites || []).map(invite => invite.invited_user_id),
       ownerUserId: user.id,
-    })
+    }).map(candidate => ({
+      ...candidate,
+      suggested: Boolean(inviteFromPoolId && candidate.sourcePoolIds?.includes(inviteFromPoolId)),
+    })).sort((a, b) => Number(Boolean(b.suggested)) - Number(Boolean(a.suggested)) || a.displayName.localeCompare(b.displayName))
     inviteSummary = summarizeInviteStatuses(poolInvites || [])
   }
 

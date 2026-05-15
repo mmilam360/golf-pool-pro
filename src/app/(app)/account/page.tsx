@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BackButton } from '@/components/BackButton'
+import { NotificationSettings } from '@/components/NotificationSettings'
 import { createClient } from '@/lib/supabase/client'
 
 type Tone = 'success' | 'error' | 'info'
@@ -28,6 +29,8 @@ export default function AccountPage() {
   const [name, setName] = useState('')
   const [originalName, setOriginalName] = useState('')
   const [marketingOptIn, setMarketingOptIn] = useState(false)
+  const [notificationPrefs, setNotificationPrefs] = useState({ pick_deadline: false, leaderboard_live: false, took_lead: false })
+  const [originalNotificationPrefs, setOriginalNotificationPrefs] = useState({ pick_deadline: false, leaderboard_live: false, took_lead: false })
   const [originalMarketingOptIn, setOriginalMarketingOptIn] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -57,11 +60,14 @@ export default function AccountPage() {
         || ''
       const nextName = profile?.display_name || fallbackName
       const nextMarketing = Boolean(user.user_metadata?.marketing_emails)
+      const nextNotifications = user.user_metadata?.notification_prefs || { pick_deadline: false, leaderboard_live: false, took_lead: false }
 
       setEmail(profile?.email || user.email || '')
       setName(nextName)
       setOriginalName(nextName)
       setMarketingOptIn(nextMarketing)
+      setNotificationPrefs(nextNotifications)
+      setOriginalNotificationPrefs(nextNotifications)
       setOriginalMarketingOptIn(nextMarketing)
       setLoading(false)
     }
@@ -111,6 +117,7 @@ export default function AccountPage() {
         display_name: trimmedName,
         full_name: trimmedName,
         marketing_emails: marketingOptIn,
+        notification_prefs: notificationPrefs,
       },
     })
 
@@ -122,10 +129,12 @@ export default function AccountPage() {
 
     setOriginalName(trimmedName)
     setOriginalMarketingOptIn(marketingOptIn)
+    setOriginalNotificationPrefs(notificationPrefs)
     setSaving(false)
   }
 
-  const dirty = name.trim() !== originalName || marketingOptIn !== originalMarketingOptIn
+  const notificationPrefsDirty = JSON.stringify(notificationPrefs) !== JSON.stringify(originalNotificationPrefs)
+  const dirty = name.trim() !== originalName || marketingOptIn !== originalMarketingOptIn || notificationPrefsDirty
 
   if (loading) {
     return (
@@ -179,6 +188,8 @@ export default function AccountPage() {
           />
           <span>Send me Golf Pools Pro product updates and tournament reminders.</span>
         </label>
+
+        <NotificationSettings initialPrefs={notificationPrefs} onChange={setNotificationPrefs} />
 
         <button
           type="submit"

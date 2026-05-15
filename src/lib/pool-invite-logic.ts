@@ -1,4 +1,5 @@
 export type PreviousPlayerEntry = {
+  pool_id?: string | null
   user_id: string | null
   display_name?: string | null
 }
@@ -19,19 +20,23 @@ export function buildPreviousPlayerCandidates({
   ownerUserId: string
 }) {
   const blocked = new Set([ownerUserId, ...currentPoolEntryUserIds, ...existingInviteUserIds].filter(Boolean))
-  const seen = new Set<string>()
-  const candidates: { userId: string; displayName: string }[] = []
+  const seen = new Map<string, { userId: string; displayName: string; sourcePoolIds: string[] }>()
 
   for (const entry of previousEntries) {
-    if (!entry.user_id || blocked.has(entry.user_id) || seen.has(entry.user_id)) continue
-    seen.add(entry.user_id)
-    candidates.push({
+    if (!entry.user_id || blocked.has(entry.user_id)) continue
+    const existing = seen.get(entry.user_id)
+    if (existing) {
+      if (entry.pool_id && !existing.sourcePoolIds.includes(entry.pool_id)) existing.sourcePoolIds.push(entry.pool_id)
+      continue
+    }
+    seen.set(entry.user_id, {
       userId: entry.user_id,
       displayName: entry.display_name?.trim() || 'Player',
+      sourcePoolIds: entry.pool_id ? [entry.pool_id] : [],
     })
   }
 
-  return candidates.sort((a, b) => a.displayName.localeCompare(b.displayName))
+  return Array.from(seen.values()).sort((a, b) => a.displayName.localeCompare(b.displayName))
 }
 
 export function summarizeInviteStatuses(invites: InviteStatus[]) {

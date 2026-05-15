@@ -405,7 +405,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
   return (
     <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
       <div className="flex items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:px-5">
-        <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Active pools</h2>
+        <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Active / recent pools</h2>
         <span className="border border-[#d7c99f] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#f3df9c]">Refresh {secondsToRefresh}s</span>
       </div>
       <div className="divide-y divide-[#eadfca]">
@@ -439,8 +439,13 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   {hasRecentScores(tournament) ? <LivePulseBadge /> : <StatusBadge label={label} locked={Boolean(pool.is_locked)} />}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
-                  <span className="mr-auto whitespace-nowrap border border-[#123c2f] bg-white px-2 py-1 text-[#123c2f] group-open:hidden">Expand</span>
-                  <span className="mr-auto hidden whitespace-nowrap border border-[#123c2f] bg-[#123c2f] px-2 py-1 text-white group-open:inline-flex">Collapse</span>
+                  <span className="mr-auto inline-flex items-center border border-[#123c2f] bg-white px-2 py-1 text-[#123c2f] group-open:hidden" aria-label="Expand leaderboard">
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
+                  </span>
+                  <span className="mr-auto hidden items-center border border-[#123c2f] bg-[#123c2f] px-2 py-1 text-white group-open:inline-flex" aria-label="Collapse leaderboard">
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
+                  </span>
+                  <span className="whitespace-nowrap border border-[#d8cab0] bg-white px-2 py-1 text-[#657168]">{role}</span>
                   {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
                   <ScoreBadge score={rankPreview?.totalScore} />
                 </div>
