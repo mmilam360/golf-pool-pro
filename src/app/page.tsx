@@ -106,42 +106,58 @@ const finalScoreStoryHtml = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; width: 100vw; min-height: 100vh; background: #fbf7ed; color: #1f2a24; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
-    .story { width: 100vw; height: 100vh; display: flex; flex-direction: column; background-color: #fbf7ed; background-image: linear-gradient(to right, rgba(60,45,25,.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(60,45,25,.12) 1px, transparent 1px); background-size: 38px 38px; }
-    .top { padding: 6.2vh 7vw 2.4vh; text-align: center; }
-    .logo { width: 52vw; max-width: 230px; height: auto; display: block; margin: 0 auto 2.5vh; }
-    .eyebrow { margin: 0; color: #8a6724; font-size: clamp(9px, 3.2vw, 14px); font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
-    h1 { margin: 1vh 0 0; color: #0f2f25; font-family: Impact, 'Arial Black', Arial, sans-serif; font-size: clamp(32px, 11vw, 50px); line-height: .9; letter-spacing: -.04em; text-transform: uppercase; }
-    .board { margin: 0 7vw; border: 4px solid #123c2f; background: white; box-shadow: 8px 8px 0 #d8cab0; }
-    .boardHead { background: #123c2f; color: white; text-align: center; padding: 3vh 4vw 2.2vh; border-bottom: 4px solid #123c2f; }
-    .pool { margin: 0; color: #f3df9c; font-size: clamp(14px, 4.8vw, 20px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-    .event { margin: .8vh 0 0; color: #d8e3dc; font-size: clamp(9px, 3vw, 13px); font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
-    .winnerRow { background: #fbf7ed; min-height: 14vh; }
-    .winnerRow .name { color: #0f2f25; font-family: Impact, 'Arial Black', Arial, sans-serif; font-size: clamp(34px, 11vw, 54px); letter-spacing: -.03em; }
-    .winnerRow .score { font-size: clamp(28px, 9vw, 42px); }
-    .row { display: grid; grid-template-columns: 14vw 1fr 20vw; min-height: 8.2vh; align-items: center; border-bottom: 2px solid #d8cab0; background: #fff; font-size: clamp(14px, 4.4vw, 22px); font-weight: 900; }
+    body { margin: 0; width: 100vw; min-height: 100vh; background: #6f8172; color: #1f2a24; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
+    .story { position: relative; width: 100vw; height: 100vh; overflow: hidden; border-radius: 28px; background: radial-gradient(circle at 24% 8%, rgba(255,255,255,.10), transparent 32%), linear-gradient(145deg, #748674 0%, #506755 100%); }
+    .progress { position: absolute; left: 6vw; right: 6vw; top: 2.8vh; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+    .progress span { height: 2px; border-radius: 99px; background: rgba(255,255,255,.46); }
+    .progress span:first-child { background: rgba(255,255,255,.92); }
+    .profile { position: absolute; left: 6vw; right: 6vw; top: 4.2vh; display: flex; align-items: center; gap: 2.8vw; color: white; font-size: clamp(9px, 2.6vw, 13px); font-weight: 800; }
+    .avatar { width: 7.6vw; height: 7.6vw; min-width: 28px; min-height: 28px; border: 2px solid rgba(255,255,255,.88); border-radius: 999px; background: #fbf7ed; }
+    .time { color: rgba(255,255,255,.72); font-weight: 700; }
+    .dots { margin-left: auto; letter-spacing: .18em; font-size: 18px; line-height: 1; }
+    .export { position: absolute; left: 9.2vw; right: 9.2vw; top: 18vh; background: #fbf7ed; border: 3px solid #123c2f; box-shadow: 6px 6px 0 rgba(15,47,37,.38); }
+    .top { padding: 2.2vh 5vw 1.5vh; text-align: center; }
+    .logo { width: 34vw; max-width: 150px; height: auto; display: block; margin: 0 auto 1.2vh; }
+    .eyebrow { margin: 0; color: #8a6724; font-size: clamp(8px, 2.7vw, 12px); font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { margin: .6vh 0 0; color: #0f2f25; font-family: Impact, 'Arial Black', Arial, sans-serif; font-size: clamp(21px, 6.5vw, 32px); line-height: .9; letter-spacing: -.04em; text-transform: uppercase; }
+    .board { margin: 0 4.2vw 2vh; border: 3px solid #123c2f; background: white; box-shadow: 4px 4px 0 #d8cab0; }
+    .boardHead { background: #123c2f; color: white; text-align: center; padding: 1.55vh 3vw 1.2vh; border-bottom: 3px solid #123c2f; }
+    .pool { margin: 0; color: #f3df9c; font-size: clamp(12px, 3.7vw, 17px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .event { margin: .6vh 0 0; color: #d8e3dc; font-size: clamp(8px, 2.5vw, 11px); font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    .winnerRow { background: #fbf7ed; min-height: 8.5vh; }
+    .winnerRow .name { color: #0f2f25; font-family: Impact, 'Arial Black', Arial, sans-serif; font-size: clamp(23px, 6.8vw, 34px); letter-spacing: -.03em; }
+    .winnerRow .score { font-size: clamp(20px, 5.8vw, 29px); }
+    .row { display: grid; grid-template-columns: 11vw 1fr 17vw; min-height: 5.55vh; align-items: center; border-bottom: 2px solid #d8cab0; background: #fff; font-size: clamp(10px, 3.1vw, 16px); font-weight: 900; }
     .row:last-child { border-bottom: 0; }
     .rank { height: 100%; display: flex; align-items: center; justify-content: center; border-right: 2px solid #d8cab0; color: #b21e23; }
-    .name { padding: 0 3.2vw; color: #111; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .04em; }
+    .name { padding: 0 2.8vw; color: #111; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .04em; }
     .score { height: 100%; display: flex; align-items: center; justify-content: center; border-left: 2px solid #d8cab0; color: #b21e23; font-variant-numeric: tabular-nums; }
-    .url { margin-top: auto; padding: 2.4vh 5vw 4.2vh; text-align: center; color: #123c2f; font-size: clamp(11px, 3.4vw, 17px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    .url { padding: 0 5vw 2vh; text-align: center; color: #123c2f; font-size: clamp(8px, 2.3vw, 12px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    .reply { position: absolute; left: 6vw; right: 6vw; bottom: 4.5vh; display: flex; align-items: center; gap: 3vw; color: white; }
+    .message { flex: 1; border: 1.5px solid rgba(255,255,255,.82); border-radius: 999px; padding: 1.4vh 4vw; color: rgba(255,255,255,.9); font-size: clamp(9px, 2.7vw, 12px); font-weight: 700; }
+    .icon { width: 6vw; height: 6vw; min-width: 22px; min-height: 22px; }
   </style>
 </head>
 <body>
   <main class="story">
-    <section class="top">
-      <img class="logo" src="https://www.golfpoolspro.com/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" />
-      <p class="eyebrow">Final board</p>
-      <h1>PGA Championship</h1>
-    </section>
-    <section class="board" aria-label="Tiger's Tribe final standings">
-      <div class="boardHead">
-        <p class="pool">Tiger's Tribe</p>
-        <p class="event">PGA Championship pool</p>
+    <div class="progress" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div class="profile" aria-hidden="true"><div class="avatar"></div><strong>golfpoolspro</strong><span class="time">22h</span><span class="dots">⋮</span></div>
+    <section class="export" aria-label="Tiger's Tribe final standings story export">
+      <div class="top">
+        <img class="logo" src="https://www.golfpoolspro.com/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" />
+        <p class="eyebrow">Final board</p>
+        <h1>PGA Championship</h1>
       </div>
-      ${finalScoreRows.map(([rank, name, total], index) => `<div class="row${index === 0 ? ' winnerRow' : ''}"><div class="rank">${rank}</div><div class="name">${name}</div><div class="score">${total}</div></div>`).join('')}
+      <section class="board" aria-label="Tiger's Tribe final standings">
+        <div class="boardHead">
+          <p class="pool">Tiger's Tribe</p>
+          <p class="event">PGA Championship pool</p>
+        </div>
+        ${finalScoreRows.map(([rank, name, total], index) => `<div class="row${index === 0 ? ' winnerRow' : ''}"><div class="rank">${rank}</div><div class="name">${name}</div><div class="score">${total}</div></div>`).join('')}
+      </section>
+      <div class="url">golfpoolspro.com</div>
     </section>
-    <div class="url">golfpoolspro.com</div>
+    <div class="reply" aria-hidden="true"><div class="message">Send message</div><svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" stroke="currentColor" stroke-width="1.8"/></svg><svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 5l16 7-16 7 4-7-4-7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
   </main>
 </body>
 </html>`
@@ -398,17 +414,14 @@ export default function Home() {
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight md:text-5xl">Share the final board.</h2>
           </div>
 
-          <div className="mx-auto mt-9 w-full max-w-[340px] sm:max-w-[390px]">
-            <div className="rounded-[2.6rem] border-[10px] border-[#111] bg-[#111] p-2 shadow-[8px_8px_0_#001f17] sm:border-[12px] sm:shadow-[12px_12px_0_#001f17]">
-              <div className="relative overflow-hidden rounded-[2rem] bg-[#111]">
-                <div className="absolute left-1/2 top-0 z-10 h-6 w-32 -translate-x-1/2 rounded-b-2xl bg-[#111]" aria-hidden="true" />
-                <iframe
-                  title="Golf Pools Pro final score Instagram story export preview"
-                  srcDoc={finalScoreStoryHtml}
-                  className="block aspect-[9/16] w-full border-0 bg-[#fbf7ed]"
-                  loading="lazy"
-                />
-              </div>
+          <div className="mx-auto mt-9 w-full max-w-[330px] sm:max-w-[370px]">
+            <div className="bg-[#e6ebe4] p-4 shadow-[8px_8px_0_#001f17] sm:p-5 sm:shadow-[12px_12px_0_#001f17]">
+              <iframe
+                title="Golf Pools Pro final score story-ready preview"
+                srcDoc={finalScoreStoryHtml}
+                className="block aspect-[9/16] w-full rounded-[28px] border-0 bg-[#6f8172]"
+                loading="lazy"
+              />
             </div>
           </div>
         </section>

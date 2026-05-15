@@ -13,6 +13,7 @@ This file is the taste ledger. Read it before any UI work and update it after Mi
 - 3D depth correction: use old-school extruded-box construction with a front face plus skewed parallelogram right/bottom depth faces so the corners read diagonal. Avoid fragile `clip-path` notches/wedges and negative-z oddities that create disconnected artifacts on mobile. On the homepage hero, the leaderboard post should run into the next green section with no blank gap below it.
 - Pool money is private. Product UI must not include wagering, buy-in, payout, purse, cash, paid/unpaid, or pot language.
 - Logo direction: simplified vintage golf pennant/flag system. Full version should read “Golf Pools Pro”; compact favicon/small-logo version should read “GPP” per Michael’s correction. Use bold angular block lettering, deep green/cream/gold, and simple pennant geometry. Avoid clipart-style balls, clubs, trophies, mascots, shields, crests, and busy detail.
+- Landing final-score story preview: use a muted green story-style template with simple top/bottom social chrome and the GPP final board inset in the middle. The board should not run edge to edge inside the story frame.
 
 ## Rejected
 
