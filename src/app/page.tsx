@@ -382,9 +382,6 @@ export default function Home() {
           <div className="mx-auto max-w-4xl text-center">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f3df9c]">After the final putt</p>
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight md:text-5xl">Share the final board.</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#d8e3dc] sm:text-lg">
-              Pool name, five final scores, site URL, and full logo. Same template the final export will use.
-            </p>
           </div>
 
           <div className="mx-auto mt-9 w-full max-w-[340px] sm:max-w-[390px]">
