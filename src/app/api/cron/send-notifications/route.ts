@@ -108,8 +108,8 @@ async function sendPickDeadlineReminders(supabase: any, prefsByUser: Map<string,
         poolId: pool.id,
         type: 'pick_deadline',
         dedupeKey: `pick_deadline:${pool.id}:${entry.user_id}:${dateKey(tournament.start_date)}`,
-        title: 'Make your Golf Pools Pro picks',
-        body: `${pool.name}: picks lock before the first tee time for ${tournament.name || 'the tournament'}.`,
+        title: 'Picks are due soon',
+        body: `${pool.name}: get your golfers in before the first tee time.`,
       })
       sent += result.sent
     }
@@ -145,8 +145,8 @@ async function sendLeaderboardLiveAlerts(supabase: any, prefsByUser: Map<string,
         poolId: pool.id,
         type: 'leaderboard_live',
         dedupeKey: `leaderboard_live:${pool.id}:${userId}`,
-        title: 'Leaderboard is live',
-        body: `${pool.name}: live scores are updating now.`,
+        title: 'Scores are live',
+        body: 'The board is moving. Time to watch your picks.',
       })
       sent += result.sent
     }
@@ -194,8 +194,8 @@ async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Pref
         poolId: pool.id,
         type: 'took_lead',
         dedupeKey: `took_lead:${pool.id}:${userId}:${leader.entryId}`,
-        title: 'You are leading your pool',
-        body: `${pool.name}: your entry is currently in first place.`,
+        title: "You're in first",
+        body: `${pool.name}: you just jumped to the top.`,
       })
       sent += result.sent
     }
