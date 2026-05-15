@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { createSquarePayment } from '@/lib/payments/square'
+import { createSquareCard, createSquareCustomer, createSquarePayment } from '@/lib/payments/square'
 import { getPoolPaymentQuote, getPromoDiscountCents } from '@/lib/payments/pricing'
 
 export const runtime = 'nodejs'
@@ -19,11 +19,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { poolId, sourceId, promoCode: rawPromoCode } = await request.json()
+    const { poolId, sourceId, promoCode: rawPromoCode, saveCard, savedCardId } = await request.json()
     const promoCode = normalizePromoCode(rawPromoCode)
 
     if (typeof poolId !== 'string' || typeof sourceId !== 'string') {
       return NextResponse.json({ error: 'Missing payment details' }, { status: 400 })
+    }
+
+    if (savedCardId !== undefined && typeof savedCardId !== 'string') {
+      return NextResponse.json({ error: 'Saved card is invalid' }, { status: 400 })
     }
 
     const { data: pool, error: poolError } = await supabase
@@ -151,8 +155,81 @@ export async function POST(request: Request) {
 
     const compactPoolId = poolId.replace(/-/g, '')
     const idempotencyKey = `gpp_${compactPoolId}_${activeEntryCount}_${finalAmountDueCents}`
+    let paymentSourceId = sourceId
+    let squareCustomerId: string | null = null
+    let savedCardForResponse: any = null
+
+    if (savedCardId) {
+      const { data: savedCard, error: savedCardError } = await serviceSupabase
+        .from('gpp_saved_cards')
+        .select('id, square_customer_id, square_card_id, brand, last_4')
+        .eq('id', savedCardId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (savedCardError || !savedCard) {
+        return NextResponse.json({ error: 'Saved card not found' }, { status: 404 })
+      }
+
+      paymentSourceId = savedCard.square_card_id
+      squareCustomerId = savedCard.square_customer_id
+    } else if (saveCard) {
+      const compactUserId = user.id.replace(/-/g, '')
+      const { data: existingCard } = await serviceSupabase
+        .from('gpp_saved_cards')
+        .select('square_customer_id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const { data: profile } = await serviceSupabase
+        .from('gpp_profiles')
+        .select('display_name, email')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      squareCustomerId = existingCard?.square_customer_id || null
+      if (!squareCustomerId) {
+        const customer = await createSquareCustomer({
+          idempotencyKey: `gpp_cus_${compactUserId}`,
+          userId: user.id,
+          email: profile?.email || user.email || null,
+          displayName: profile?.display_name || user.user_metadata?.display_name || user.user_metadata?.full_name || null,
+        })
+        squareCustomerId = customer?.id || null
+      }
+
+      if (!squareCustomerId) {
+        return NextResponse.json({ error: 'Saved card setup failed' }, { status: 500 })
+      }
+
+      const card = await createSquareCard({
+        idempotencyKey: `gpp_card_${compactUserId.slice(0, 18)}_${Date.now().toString(36)}`,
+        sourceId,
+        customerId: squareCustomerId,
+        cardholderName: profile?.display_name || user.user_metadata?.display_name || user.user_metadata?.full_name || null,
+      })
+      paymentSourceId = card?.id || sourceId
+
+      const { data: savedCard } = await serviceSupabase.from('gpp_saved_cards').upsert({
+        user_id: user.id,
+        square_customer_id: squareCustomerId,
+        square_card_id: card?.id,
+        brand: card?.card_brand || null,
+        last_4: card?.last_4 || null,
+        exp_month: card?.exp_month || null,
+        exp_year: card?.exp_year || null,
+        cardholder_name: card?.cardholder_name || null,
+        is_default: true,
+        updated_at: new Date().toISOString(),
+      } as any, { onConflict: 'square_card_id' }).select('id, brand, last_4, exp_month, exp_year').maybeSingle()
+      savedCardForResponse = savedCard || null
+    }
+
     const payment = await createSquarePayment({
-      sourceId,
+      sourceId: paymentSourceId,
+      customerId: squareCustomerId,
       idempotencyKey,
       amountCents: finalAmountDueCents,
       poolId,
@@ -205,6 +282,7 @@ export async function POST(request: Request) {
       promoCode: promo?.code || null,
       entryLimit: quote.entryLimit,
       paymentStatus: 'active',
+      savedCard: savedCardForResponse,
     })
   } catch (error: any) {
     const message = error?.message === 'Square is not configured'

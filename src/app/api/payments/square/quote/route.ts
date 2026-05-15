@@ -40,6 +40,13 @@ async function getOwnedPoolQuote(poolId: string) {
   const amountPaidCents = Number((pool as any).amount_paid_cents || 0)
   const quote = getPoolPaymentQuote(count || 0, amountPaidCents)
 
+  const { data: savedCards } = await supabase
+    .from('gpp_saved_cards')
+    .select('id, brand, last_4, exp_month, exp_year, is_default, created_at')
+    .eq('user_id', user.id)
+    .order('is_default', { ascending: false })
+    .order('created_at', { ascending: false })
+
   const storedPaymentStatus = (pool as any).payment_status || 'draft'
   const paymentStatus = getPoolPaymentStatus(storedPaymentStatus, count || 0, amountPaidCents)
 
@@ -63,6 +70,7 @@ async function getOwnedPoolQuote(poolId: string) {
       paymentStatus,
       paidEntryLimit: Number((pool as any).paid_entry_limit || 5),
       square: getSquareBrowserConfig(),
+      savedCards: savedCards || [],
     },
   }
 }

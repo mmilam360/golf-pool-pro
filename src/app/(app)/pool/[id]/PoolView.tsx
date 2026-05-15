@@ -19,6 +19,14 @@ type PaymentQuote = {
   requiresCustomQuote: boolean
   paymentStatus: string
   paidEntryLimit: number
+  savedCards: {
+    id: string
+    brand: string | null
+    last_4: string | null
+    exp_month: number | null
+    exp_year: number | null
+    is_default: boolean
+  }[]
   square: {
     applicationId: string
     locationId: string
@@ -251,6 +259,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [promoCode, setPromoCode] = useState('')
   const [promoLoading, setPromoLoading] = useState(false)
   const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null)
+  const [selectedSavedCardId, setSelectedSavedCardId] = useState('')
+  const [saveCard, setSaveCard] = useState(false)
   const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null)
   const [forceOpenEntryId, setForceOpenEntryId] = useState<string | null>(null)
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
@@ -283,6 +293,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const paymentCollectionOpen = isLocked || scoringIsLive
   const feeDueDate = formatShortDate(getTournamentSaturday(tournament?.start_date))
   const amountPaidCents = paymentQuote?.amountPaidCents ?? Number(pool.amount_paid_cents || 0)
+  const savedCards = paymentQuote?.savedCards || []
+  const selectedSavedCard = savedCards.find(card => card.id === selectedSavedCardId) || null
+  const useSavedCard = Boolean(selectedSavedCard && finalAmountDueCents > 0)
   const feeLabel = paymentStatus === 'active'
     ? (amountPaidCents > 0 ? 'Paid' : 'Free')
     : finalAmountDueCents === 0
@@ -377,8 +390,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const quote = await res.json()
     setPaymentQuote(quote)
     setPaymentStatus(quote.paymentStatus || 'draft')
+    if ((quote.savedCards || []).length > 0 && !selectedSavedCardId) {
+      setSelectedSavedCardId(quote.savedCards[0].id)
+    }
     if ((quote.amountDueCents || 0) <= 0) setAppliedPromo(null)
-  }, [isOwner, pool.id])
+  }, [isOwner, pool.id, selectedSavedCardId])
 
   useEffect(() => {
     refreshPaymentQuote()
@@ -463,7 +479,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     async function mountSquareCard() {
       if (!isOwner || tab !== 'admin' || !paymentQuote || paymentQuote.paymentStatus === 'active') return
       if (!paymentCollectionOpen) return
-      if (paymentQuote.requiresCustomQuote || finalAmountDueCents <= 0) return
+      if (paymentQuote.requiresCustomQuote || finalAmountDueCents <= 0 || useSavedCard) return
       if (!paymentQuote.square.applicationId || !paymentQuote.square.locationId) return
       if (paymentCardRef.current) return
 
@@ -492,16 +508,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     return () => {
       cancelled = true
     }
-  }, [finalAmountDueCents, isOwner, paymentQuote, paymentCollectionOpen, showToast, tab])
+  }, [finalAmountDueCents, isOwner, paymentQuote, paymentCollectionOpen, showToast, tab, useSavedCard])
 
   useEffect(() => {
-    if (tab === 'admin' && paymentQuote?.paymentStatus !== 'active' && paymentCollectionOpen && finalAmountDueCents > 0) return
+    const shouldKeepCard = isOwner && tab === 'admin' && paymentQuote?.paymentStatus !== 'active' && paymentCollectionOpen && finalAmountDueCents > 0 && !useSavedCard
+    if (shouldKeepCard) return
     if (paymentCardRef.current) {
       paymentCardRef.current.destroy?.()
       paymentCardRef.current = null
       setPaymentCardReady(false)
     }
-  }, [finalAmountDueCents, paymentCollectionOpen, tab, paymentQuote?.paymentStatus])
+  }, [finalAmountDueCents, isOwner, paymentCollectionOpen, tab, paymentQuote?.paymentStatus, useSavedCard])
 
   async function activatePool() {
     if (!paymentQuote) {
@@ -533,7 +550,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const amountDue = finalAmountDueCents
       let sourceId = appliedPromo && amountDue === 0 ? 'promo-code' : 'free-entry-credit'
 
-      if (amountDue > 0) {
+      if (amountDue > 0 && useSavedCard) {
+        sourceId = 'saved-card'
+      } else if (amountDue > 0) {
         const card = paymentCardRef.current
         if (!card) {
           throw new Error('Enter payment details first.')
@@ -549,7 +568,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const res = await fetch('/api/payments/square/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poolId: pool.id, sourceId, promoCode: appliedPromo?.code || null }),
+        body: JSON.stringify({
+          poolId: pool.id,
+          sourceId,
+          promoCode: appliedPromo?.code || null,
+          saveCard: amountDue > 0 && !useSavedCard && saveCard,
+          savedCardId: useSavedCard ? selectedSavedCardId : null,
+        }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Payment failed.')
@@ -1260,16 +1285,61 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           <span className="hidden h-4 w-px bg-stone-300 sm:block" />
                           <SquareTrustMark />
                         </div>
-                        <div id="square-card-container" className="gpp-square-card-frame" />
-                        {!paymentCardReady && (
-                          <p className="text-xs font-semibold text-stone-600">Card form is loading.</p>
+                        {savedCards.length > 0 && (
+                          <div className="space-y-2 border border-stone-200 bg-white p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.12em] text-emerald-900">Saved card</p>
+                            {savedCards.map(card => (
+                              <label key={card.id} className="flex cursor-pointer items-center justify-between gap-3 border border-stone-200 bg-[#fbf7ed] px-3 py-2 text-sm font-semibold text-stone-800">
+                                <span className="min-w-0 truncate">{card.brand || 'Card'} ending {card.last_4 || '••••'}</span>
+                                <input
+                                  type="radio"
+                                  name="saved-card"
+                                  checked={selectedSavedCardId === card.id}
+                                  onChange={() => setSelectedSavedCardId(card.id)}
+                                  className="h-4 w-4 accent-[#123c2f]"
+                                />
+                              </label>
+                            ))}
+                            <label className="flex cursor-pointer items-center justify-between gap-3 border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-800">
+                              <span>Use a different card</span>
+                              <input
+                                type="radio"
+                                name="saved-card"
+                                checked={!selectedSavedCardId}
+                                onChange={() => setSelectedSavedCardId('')}
+                                className="h-4 w-4 accent-[#123c2f]"
+                              />
+                            </label>
+                          </div>
+                        )}
+                        {!useSavedCard && (
+                          <>
+                            <div id="square-card-container" className="gpp-square-card-frame" />
+                            {!paymentCardReady && (
+                              <p className="text-xs font-semibold text-stone-600">Card form is loading.</p>
+                            )}
+                            <label className="flex cursor-pointer items-start gap-2 border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-800">
+                              <input
+                                type="checkbox"
+                                checked={saveCard}
+                                onChange={event => setSaveCard(event.target.checked)}
+                                className="mt-0.5 h-4 w-4 shrink-0 accent-[#123c2f]"
+                              />
+                              <span>Save this card for faster pool payments. No auto-pay.</span>
+                            </label>
+                          </>
+                        )}
+                        {useSavedCard && selectedSavedCard && (
+                          <p className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                            Paying with {selectedSavedCard.brand || 'card'} ending {selectedSavedCard.last_4 || '••••'}. No auto-pay.
+                          </p>
                         )}
                       </div>
                     )}
                     <button
                       type="button"
                       onClick={activatePool}
-                      disabled={paymentLoading || !paymentQuote || (!paymentCardReady && finalAmountDueCents > 0)}
+                      disabled={paymentLoading || !paymentQuote || (!useSavedCard && !paymentCardReady && finalAmountDueCents > 0)}
                       className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {paymentLoading ? 'Processing...' : finalAmountDueCents === 0 ? 'Open results' : `Pay ${formatCents(finalAmountDueCents)}`}

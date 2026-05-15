@@ -38,6 +38,11 @@ export interface Database {
         Insert: { id?: string; pool_id: string; provider?: string; square_payment_id?: string | null; square_order_id?: string | null; amount_cents: number; entry_count_at_payment: number; entry_limit: number; status: string; created_at?: string }
         Update: { provider?: string; square_payment_id?: string | null; square_order_id?: string | null; amount_cents?: number; entry_count_at_payment?: number; entry_limit?: number; status?: string }
       }
+      gpp_saved_cards: {
+        Row: { id: string; user_id: string; square_customer_id: string; square_card_id: string; brand: string | null; last_4: string | null; exp_month: number | null; exp_year: number | null; cardholder_name: string | null; is_default: boolean; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; square_customer_id: string; square_card_id: string; brand?: string | null; last_4?: string | null; exp_month?: number | null; exp_year?: number | null; cardholder_name?: string | null; is_default?: boolean; created_at?: string; updated_at?: string }
+        Update: { square_customer_id?: string; square_card_id?: string; brand?: string | null; last_4?: string | null; exp_month?: number | null; exp_year?: number | null; cardholder_name?: string | null; is_default?: boolean; updated_at?: string }
+      }
       gpp_promo_codes: {
         Row: { id: string; code: string; description: string | null; free_pool: boolean; discount_cents: number | null; max_redemptions: number | null; times_redeemed: number; starts_at: string | null; expires_at: string | null; is_active: boolean; created_at: string; updated_at: string }
         Insert: { id?: string; code: string; description?: string | null; free_pool?: boolean; discount_cents?: number | null; max_redemptions?: number | null; times_redeemed?: number; starts_at?: string | null; expires_at?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
