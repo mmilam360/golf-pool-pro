@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import DashboardActivePools from '@/components/DashboardActivePools'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
+import { hasOnCourseScores } from '@/lib/golf-live'
 import type { GolfPlayer } from '@/lib/golf-api'
 import { acceptPoolInvite, declinePoolInvite } from '@/app/(app)/pool-invites/actions'
 
@@ -62,12 +63,13 @@ function getInvitePool(invite: PendingInviteRecord): PoolRecord | null {
 
 function formatDate(value?: string | null) {
   if (!value) return 'Date TBA'
-  return new Intl.DateTimeFormat('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).format(new Date(value))
+  const datePart = value.split('T')[0]
+  return new Intl.DateTimeFormat('en-US', { month: '2-digit', day: '2-digit', year: '2-digit', timeZone: 'UTC' }).format(new Date(`${datePart}T00:00:00Z`))
 }
 
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
-  if (tournament?.status === 'live') return 'Live'
   if (pool.is_completed || tournament?.status === 'completed') return 'Passed'
+  if (tournament?.status === 'live') return 'Live'
   if (pool.is_locked) return 'Locked'
   return 'Open'
 }
@@ -112,6 +114,24 @@ function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
     <span className={`inline-flex items-center gap-1.5 border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>
       {label === 'Passed' ? null : <LockGlyph locked={locked || label === 'Live'} />}
       {label}
+    </span>
+  )
+}
+
+function hasEventBegun(tournament: Tournament | null) {
+  if (tournament?.status === 'live' || tournament?.status === 'completed') return true
+  if (hasOnCourseScores(tournament?.leaderboard_json)) return true
+  return false
+}
+
+function isUpcomingEntry(pool: PoolRecord, tournament: Tournament | null) {
+  return !pool.is_completed && tournament?.status !== 'completed' && !hasEventBegun(tournament)
+}
+
+function UpcomingBadge() {
+  return (
+    <span className="inline-flex min-w-[116px] justify-center border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#7a5a19]">
+      Upcoming
     </span>
   )
 }
@@ -344,6 +364,7 @@ export default async function DashboardPage() {
               const tournament = getTournament(pool)
               const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
               const label = statusLabel(pool, tournament)
+              const isUpcoming = isUpcomingEntry(pool, tournament)
               const rankPreview = buildRankPreview(entry, pool, entriesByPool[pool.id] || [entry])
               const rankText = rankPreview?.rank ? `#${rankPreview.rank}` : '—'
               const scoreText = rankPreview ? formatScore(rankPreview.totalScore) : '—'
@@ -357,8 +378,14 @@ export default async function DashboardPage() {
                     <span className="mt-2 inline-flex sm:hidden"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
                   </span>
                   <span className="hidden text-[#657168] sm:block">{tournament?.name || 'Tournament'}</span>
-                  <span className="text-center font-black text-[#123c2f]">{rankText}</span>
-                  <span className="text-center font-black text-[#b21e23]">{scoreText}</span>
+                  {isUpcoming ? (
+                    <span className="col-span-2 flex justify-center"><UpcomingBadge /></span>
+                  ) : (
+                    <>
+                      <span className="text-center font-black text-[#123c2f]">{rankText}</span>
+                      <span className="text-center font-black text-[#b21e23]">{scoreText}</span>
+                    </>
+                  )}
                   <span className="text-right font-mono text-[#657168] sm:text-left">{formatDate(tournament?.start_date)}</span>
                   <span className="hidden sm:block"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
                 </Link>

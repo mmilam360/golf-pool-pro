@@ -51,8 +51,8 @@ type RankPreview = {
 }
 
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
-  if (tournament?.status === 'live') return 'Live'
   if (pool.is_completed || tournament?.status === 'completed') return 'Passed'
+  if (tournament?.status === 'live') return 'Live'
   if (pool.is_locked) return 'Locked'
   return 'Open'
 }
@@ -186,7 +186,8 @@ function boardTitle(tournament: Tournament | null) {
 
 function formatEventDate(value?: string | null) {
   if (!value) return 'Date TBA'
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value))
+  const datePart = value.split('T')[0]
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${datePart}T00:00:00Z`))
 }
 
 function poolIsOpenForPicks(pool: PoolRecord, tournament: Tournament | null) {
