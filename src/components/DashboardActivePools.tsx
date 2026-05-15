@@ -112,10 +112,15 @@ function LivePulseBadge() {
   )
 }
 
+function scoreBadgeClass(score: number | null | undefined) {
+  if (typeof score === 'number' && score < 0) return 'border-[#b21e23] bg-[#fff1ef] text-[#b21e23]'
+  return 'border-[#d8cab0] bg-white text-[#111]'
+}
+
 function ScoreBadge({ score }: { score: number | null | undefined }) {
   const text = typeof score === 'number' ? formatScore(score) : '—'
   return (
-    <span className="whitespace-nowrap border border-[#b21e23] bg-[#fff1ef] px-2 py-1 font-black text-[#b21e23]">
+    <span className={`whitespace-nowrap border px-2 py-1 font-black ${scoreBadgeClass(score)}`}>
       Score {text}
     </span>
   )
