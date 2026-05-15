@@ -127,9 +127,9 @@ function isUpcomingEntry(pool: PoolRecord, tournament: Tournament | null) {
   return !pool.is_completed && tournament?.status !== 'completed' && !hasEventBegun(tournament)
 }
 
-function UpcomingBadge() {
+function UpcomingBadge({ compact = false }: { compact?: boolean }) {
   return (
-    <span className="inline-flex min-w-[116px] justify-center border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#7a5a19]">
+    <span className={`inline-flex justify-center border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 font-black uppercase text-[#7a5a19] ${compact ? 'w-full max-w-[96px] text-[10px] tracking-[0.08em]' : 'min-w-[116px] text-xs tracking-[0.12em]'}`}>
       Upcoming
     </span>
   )
@@ -349,11 +349,12 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="overflow-hidden">
-            <div className="grid grid-cols-[minmax(0,1fr)_86px_86px_66px] border-b border-stone-200 bg-[#fbf7ed] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#657168] sm:grid-cols-[1.3fr_1fr_66px_76px_86px_104px] sm:px-5 sm:text-xs sm:tracking-[0.16em]">
+            <div className="grid grid-cols-[minmax(0,1fr)_100px_66px] border-b border-stone-200 bg-[#fbf7ed] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#657168] sm:grid-cols-[1.3fr_1fr_66px_76px_86px_104px] sm:px-5 sm:text-xs sm:tracking-[0.16em]">
               <span>Pool</span>
               <span className="hidden sm:block">Tournament</span>
-              <span className="text-center">Rank</span>
-              <span className="text-center">Score</span>
+              <span className="text-center sm:hidden">Standing</span>
+              <span className="hidden text-center sm:block">Rank</span>
+              <span className="hidden text-center sm:block">Score</span>
               <span className="text-right sm:text-left">Date</span>
               <span className="hidden sm:block">Status</span>
             </div>
@@ -369,7 +370,7 @@ export default async function DashboardPage() {
               const scoreText = rankPreview ? formatScore(rankPreview.totalScore) : '—'
 
               return (
-                <Link key={entry.id} href={`/pool/${pool.id}`} className={`grid grid-cols-[minmax(0,1fr)_86px_86px_66px] items-center border-b border-stone-200 px-4 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_66px_76px_86px_104px] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
+                <Link key={entry.id} href={`/pool/${pool.id}`} className={`grid grid-cols-[minmax(0,1fr)_100px_66px] items-center border-b border-stone-200 px-4 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_66px_76px_86px_104px] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
                   <span className="min-w-0 pr-3">
                     <span className="block truncate font-semibold text-[#1f2a24]">{pool.name}</span>
                     <span className="mt-1 block text-xs leading-5 text-[#657168]">{entry.display_name || 'Your entry'} · {picks.length ? `${picks.length} picks` : 'Pick team'}</span>
@@ -377,12 +378,22 @@ export default async function DashboardPage() {
                     <span className="mt-2 inline-flex sm:hidden"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
                   </span>
                   <span className="hidden text-[#657168] sm:block">{tournament?.name || 'Tournament'}</span>
+                  <span className="flex justify-center sm:hidden">
+                    {isUpcoming ? (
+                      <UpcomingBadge compact />
+                    ) : (
+                      <span className="grid grid-cols-2 gap-2 text-center leading-none">
+                        <span className="font-black text-[#123c2f]">{rankText}</span>
+                        <span className="font-black text-[#b21e23]">{scoreText}</span>
+                      </span>
+                    )}
+                  </span>
                   {isUpcoming ? (
-                    <span className="col-span-2 flex justify-center"><UpcomingBadge /></span>
+                    <span className="hidden sm:col-span-2 sm:flex sm:justify-center"><UpcomingBadge /></span>
                   ) : (
                     <>
-                      <span className="text-center font-black text-[#123c2f]">{rankText}</span>
-                      <span className="text-center font-black text-[#b21e23]">{scoreText}</span>
+                      <span className="hidden text-center font-black text-[#123c2f] sm:block">{rankText}</span>
+                      <span className="hidden text-center font-black text-[#b21e23] sm:block">{scoreText}</span>
                     </>
                   )}
                   <span className="text-right font-mono text-[#657168] sm:text-left">{formatDate(tournament?.start_date)}</span>
