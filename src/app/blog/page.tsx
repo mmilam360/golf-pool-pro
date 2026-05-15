@@ -3,6 +3,7 @@ import Image from 'next/image'
 import type { Metadata } from 'next'
 import AppHeader from '@/components/AppHeader'
 import { getAllBlogPosts } from '@/lib/blog'
+import { formatDateOnly } from '@/lib/date-utils'
 
 export const metadata: Metadata = {
   title: 'Tournament Pick Guides | Golf Pools Pro',
@@ -51,7 +52,7 @@ export default async function BlogIndexPage({ searchParams }: BlogIndexPageProps
         <div className="mt-10 grid gap-5">
           {posts.map(post => (
             <Link key={post.slug} href={`/blog/${post.slug}${postSuffix}`} className="block border-2 border-[#123c2f] bg-white p-6 shadow-[7px_7px_0_#d8cab0] transition-transform hover:-translate-y-0.5">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">{post.category} / {new Date(`${post.publishedAt}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">{post.category} / {formatDateOnly(post.publishedAt, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
               <h2 className="mt-2 font-display text-3xl font-black leading-tight text-[#0f2f25]">{post.title}</h2>
               <p className="mt-3 max-w-3xl leading-7 text-[#4f5b52]">{post.description}</p>
             </Link>

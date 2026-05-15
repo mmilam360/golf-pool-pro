@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { hasDateOnlyStarted } from '@/lib/date-utils'
 
 function formValues(formData: FormData, key: string) {
   return formData.getAll(key).map(value => String(value)).filter(Boolean)
@@ -32,7 +33,7 @@ export async function sendPoolInvites(formData: FormData) {
     .single()
 
   const tournament = Array.isArray((pool as any)?.gpp_tournaments) ? (pool as any).gpp_tournaments[0] : (pool as any)?.gpp_tournaments
-  const eventStarted = tournament?.start_date ? new Date(tournament.start_date).getTime() <= Date.now() : false
+  const eventStarted = hasDateOnlyStarted(tournament?.start_date)
   const canInvite = pool?.owner_id === user.id && !pool?.is_locked && !pool?.is_completed && !eventStarted && tournament?.status !== 'live' && tournament?.status !== 'completed'
 
   if (!canInvite) {

@@ -6,6 +6,7 @@ import { Fragment, type ReactNode } from 'react'
 import AppHeader from '@/components/AppHeader'
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
 import { createClient } from '@/lib/supabase/server'
+import { formatDateOnly } from '@/lib/date-utils'
 
 const siteUrl = 'https://www.golfpoolspro.com'
 
@@ -119,7 +120,7 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
 
       <main className="mx-auto max-w-4xl px-5 py-10 md:py-14">
         <article className="border-2 border-[#123c2f] bg-white p-5 shadow-[7px_7px_0_#d8cab0] md:p-9">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">{post.category} / {new Date(`${post.publishedAt}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">{post.category} / {formatDateOnly(post.publishedAt, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
           <h1 className="mt-3 font-display text-4xl font-black leading-tight text-[#0f2f25] md:text-6xl">{post.title}</h1>
           <p className="mt-5 text-lg leading-8 text-[#4f5b52]">{post.description}</p>
 

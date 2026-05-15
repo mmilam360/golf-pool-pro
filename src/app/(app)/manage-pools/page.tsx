@@ -3,7 +3,8 @@ export const runtime = 'edge'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { formatMoney, getPoolPaymentQuote, getPoolPaymentStatus } from '@/lib/payments/pricing'
+import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
+import { getPoolPaymentQuote, getPoolPaymentStatus, formatMoney } from '@/lib/payments/pricing'
 
 type Tournament = {
   name?: string | null
@@ -39,8 +40,7 @@ function getTournament(pool?: PoolRecord | null): Tournament | null {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return 'Date TBA'
-  return new Intl.DateTimeFormat('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).format(new Date(value))
+  return formatDateOnly(value)
 }
 
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
@@ -58,7 +58,7 @@ function statusClass(label: string) {
 }
 
 function canShowInvitePrep(pool: PoolRecord, tournament: Tournament | null) {
-  const eventStarted = tournament?.start_date ? new Date(tournament.start_date).getTime() <= Date.now() : false
+  const eventStarted = hasDateOnlyStarted(tournament?.start_date)
   return !pool.is_locked && !pool.is_completed && !eventStarted && tournament?.status !== 'live' && tournament?.status !== 'completed'
 }
 

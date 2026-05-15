@@ -7,6 +7,7 @@ import { PreviousPlayersInvitePanel } from '@/components/PreviousPlayersInvitePa
 import { createClient } from '@/lib/supabase/client'
 import { scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
+import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import type { GolfPlayer } from '@/lib/golf-api'
 
 type PaymentQuote = {
@@ -419,6 +420,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   function formatShortDate(value?: string | Date | null) {
     if (!value) return null
+    if (typeof value === 'string') return formatDateOnly(value)
     const date = value instanceof Date ? value : new Date(value)
     if (Number.isNaN(date.getTime())) return null
     return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCFullYear()).slice(-2)}`
@@ -834,9 +836,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       return
     }
     const names = entriesNeedingPicks.map(entry => entry.display_name || 'Player').join('\n')
-    const lockDay = tournament?.start_date
-      ? new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(tournament.start_date))
-      : 'tournament day'
+    const lockDay = formatDateOnlyWeekday(tournament?.start_date) || 'tournament day'
     const message = `Still need picks:\n\n${names}\n\nDon't forget to make your picks before the first tee time ${lockDay} for ${poolName} — ${tournament?.name || 'the tournament'}.${inviteUrl ? `\n\n${inviteUrl}` : ''}`
     try {
       await navigator.clipboard.writeText(message)

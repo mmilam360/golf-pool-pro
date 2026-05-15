@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import { hasOnCourseScores } from '@/lib/golf-live'
+import { formatDateOnly } from '@/lib/date-utils'
 import type { GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -185,9 +186,7 @@ function boardTitle(tournament: Tournament | null) {
 }
 
 function formatEventDate(value?: string | null) {
-  if (!value) return 'Date TBA'
-  const datePart = value.split('T')[0]
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${datePart}T00:00:00Z`))
+  return formatDateOnly(value, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function poolIsOpenForPicks(pool: PoolRecord, tournament: Tournament | null) {

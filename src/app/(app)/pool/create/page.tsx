@@ -4,6 +4,7 @@ import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import ShortUniqueId from 'short-unique-id'
+import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
 
 interface Tournament {
   id: string; name: string; start_date: string; end_date: string; course: string; status: string
@@ -27,17 +28,9 @@ function normalizeTournamentKey(value?: string | null) {
     .trim()
 }
 
-function getTournamentStart(value?: string) {
-  if (!value) return null
-  const [year, month, day] = value.split('T')[0].split('-').map(Number)
-  if (!year || !month || !day) return null
-  return new Date(year, month - 1, day)
-}
-
 function hasTournamentStarted(tournament: Tournament, now = new Date()) {
   if (tournament.status !== 'upcoming') return true
-  const start = getTournamentStart(tournament.start_date)
-  return !start || start <= now
+  return hasDateOnlyStarted(tournament.start_date, now)
 }
 
 function eventClosedMessage(name?: string | null) {
@@ -303,14 +296,14 @@ export default function CreatePoolPage() {
               <option value="">Select a tournament...</option>
               {tournaments.map(t => (
                 <option key={t.id} value={t.id}>
-                  {t.name} - {t.course || 'TBD'} ({t.start_date})
+                  {t.name} - {t.course || 'TBD'} ({formatDateOnly(t.start_date)})
                 </option>
               ))}
             </select>
             {tournament ? (
               <div className="mt-3 border border-[#d8cab0] bg-[#fbf7ed] px-3 py-3 text-sm text-[#1f2a24]">
                 <p className="font-black uppercase tracking-[0.08em] text-[#123c2f]">{tournament.name}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#657168]">{tournament.course || 'Course TBA'} · {tournament.start_date || 'Date TBA'}</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#657168]">{tournament.course || 'Course TBA'} · {formatDateOnly(tournament.start_date)}</p>
               </div>
             ) : null}
             {tournaments.length === 0 && (

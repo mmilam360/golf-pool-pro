@@ -3,10 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import DashboardActivePools from '@/components/DashboardActivePools'
+import { dateOnlyEndMs, formatDateOnly, getDateOnly, todayDateOnly } from '@/lib/date-utils'
+import { acceptPoolInvite, declinePoolInvite } from '@/app/(app)/pool-invites/actions'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import type { GolfPlayer } from '@/lib/golf-api'
-import { acceptPoolInvite, declinePoolInvite } from '@/app/(app)/pool-invites/actions'
 
 type Tournament = {
   name?: string | null
@@ -62,9 +63,7 @@ function getInvitePool(invite: PendingInviteRecord): PoolRecord | null {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return 'Date TBA'
-  const datePart = value.split('T')[0]
-  return new Intl.DateTimeFormat('en-US', { month: '2-digit', day: '2-digit', year: '2-digit', timeZone: 'UTC' }).format(new Date(`${datePart}T00:00:00Z`))
+  return formatDateOnly(value)
 }
 
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
@@ -86,8 +85,8 @@ function isActivePool(pool: PoolRecord, tournament: Tournament | null) {
   if (tournament?.status === 'live') return true
   if (!tournament?.start_date) return true
 
-  const today = new Date().toISOString().slice(0, 10)
-  const startDate = tournament.start_date.split('T')[0]
+  const today = todayDateOnly()
+  const startDate = getDateOnly(tournament.start_date) || tournament.start_date
   return startDate >= today
 }
 
@@ -95,8 +94,8 @@ function isRecentlyEndedPool(pool: PoolRecord, tournament: Tournament | null) {
   if (!pool.is_completed && tournament?.status !== 'completed') return false
   const endValue = tournament?.end_date || tournament?.start_date
   if (!endValue) return false
-  const endMs = new Date(endValue).getTime()
-  if (!Number.isFinite(endMs)) return false
+  const endMs = dateOnlyEndMs(endValue)
+  if (!endMs) return false
   return Date.now() - endMs <= 24 * 60 * 60 * 1000
 }
 

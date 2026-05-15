@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { getAllBlogPosts } from '@/lib/blog'
+import { dateOnlyToUtcDate } from '@/lib/date-utils'
 
 const siteUrl = 'https://www.golfpoolspro.com'
 
@@ -58,7 +59,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     ...blogPosts.map(post => ({
       url: `${siteUrl}/blog/${post.slug}`,
-      lastModified: new Date(`${post.updatedAt || post.publishedAt}T00:00:00`),
+      lastModified: dateOnlyToUtcDate(post.updatedAt || post.publishedAt) || lastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.65,
     })),
