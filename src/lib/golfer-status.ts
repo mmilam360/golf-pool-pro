@@ -33,6 +33,16 @@ function parsedTeeTime(player: GolferStatusFields) {
   return Number.isFinite(parsed.getTime()) ? parsed : null
 }
 
+function hasRoundScoreToday(player: GolferStatusFields) {
+  return Boolean(String(player.roundScore ?? '').trim())
+}
+
+function hasStartedCurrentRound(player: GolferStatusFields) {
+  if (hasRoundScoreToday(player)) return true
+  const thru = String(player.thru ?? '').trim().toUpperCase()
+  return Boolean(thru && thru !== 'F')
+}
+
 export function thruLabel(thru?: string | null, withPrefix = true) {
   if (!thru) return '—'
   const value = String(thru).toUpperCase()
@@ -41,29 +51,29 @@ export function thruLabel(thru?: string | null, withPrefix = true) {
 }
 
 export function shouldHoldFinishedStatus(player: GolferStatusFields, timeZone: string, now = new Date()) {
-  if (player.thru || player.status !== 'active' || player.scoreToPar == null) return false
+  if (player.thru || player.status !== 'active' || !hasRoundScoreToday(player)) return false
   const teeTime = parsedTeeTime(player)
   if (!teeTime || teeTime.getTime() > now.getTime()) return false
   return sameLocalDate(teeTime, now, timeZone)
 }
 
-export function teeTimeLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
+export function teeTimeLabel(player: GolferStatusFields, timeZone: string) {
   const teeTime = parsedTeeTime(player)
-  if (!teeTime || player.roundScore || teeTime.getTime() <= now.getTime()) return ''
+  if (!teeTime || hasStartedCurrentRound(player)) return ''
   const time = teeTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
   return `${time}${player.startTee === 10 ? '*' : ''}`
 }
 
 export function pickStatusLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
   if (player.isObStandIn) return 'OB'
-  return teeTimeLabel(player, timeZone, now) || (shouldHoldFinishedStatus(player, timeZone, now) ? 'F' : thruLabel(player.thru))
+  return teeTimeLabel(player, timeZone) || (shouldHoldFinishedStatus(player, timeZone, now) ? 'F' : thruLabel(player.thru))
 }
 
 export function tournamentThruLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
   if (player.status === 'cut') return 'CUT'
   if (player.status === 'wd') return 'WD'
   if (player.status === 'dnq') return 'DNQ'
-  if (teeTimeLabel(player, timeZone, now)) return '—'
+  if (teeTimeLabel(player, timeZone)) return '—'
   if (shouldHoldFinishedStatus(player, timeZone, now)) return 'F'
   return thruLabel(player.thru, false)
 }
