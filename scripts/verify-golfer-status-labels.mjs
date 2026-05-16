@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { applyOfficialCutStatus } from '../src/lib/golf-api.ts'
 import { leaderboardBackedPickProgressLabel, leaderboardBackedPickStatusLabel, pickProgressLabel, pickStatusLabel, teeTimeLabel, tournamentThruLabel } from '../src/lib/golfer-status.ts'
 
 const timeZone = 'America/New_York'
@@ -143,5 +144,16 @@ assert.equal(
   'CUT',
   'full tournament thru cell should show CUT for cut golfers'
 )
+
+const cutApplied = applyOfficialCutStatus(
+  [
+    { id: 'made', name: 'Made Cut', firstName: 'Made', lastName: 'Cut', score: '+7', scoreToPar: 7, thru: '8', roundScore: '+5', teeTime: '2026-05-16T14:00:00Z', position: '100', strokes: 0, status: 'active', country: '' },
+    { id: 'missed', name: 'Missed Cut', firstName: 'Missed', lastName: 'Cut', score: '+5', scoreToPar: 5, thru: 'F', roundScore: '+3', position: '80', strokes: 0, status: 'active', country: '' },
+  ],
+  { score: '+4', scoreToPar: 4, projected: false }
+)
+assert.equal(cutApplied[0].status, 'active', 'player above cut line who has a Saturday tee/current-round row should stay active')
+assert.equal(cutApplied[1].status, 'cut', 'official cut should mark over-line players with no Saturday tee/current-round row as CUT')
+assert.equal(cutApplied[1].roundScore, '', 'cut player should not keep stale Friday round score as today score')
 
 console.log('golfer status label checks passed')

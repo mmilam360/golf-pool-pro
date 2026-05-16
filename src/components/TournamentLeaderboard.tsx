@@ -69,6 +69,13 @@ function shouldShowCutLineAfter(rows: GolfPlayer[], index: number, cutLine?: Gol
 export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false, pickedGolfers = [], cutLine }: Props) {
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const rows = Array.isArray(leaderboard) ? leaderboard : []
+  const displayRows = [...rows].sort((a, b) => {
+    const aCut = a.status === 'cut'
+    const bCut = b.status === 'cut'
+    if (aCut !== bCut) return aCut ? 1 : -1
+    return (a.scoreToPar ?? 999) - (b.scoreToPar ?? 999)
+  })
+  const hasOfficialCuts = displayRows.some(player => player.status === 'cut') && cutLine && !cutLine.projected
 
   useEffect(() => {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -101,7 +108,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
       <div className="border-t border-[#d8cab0] bg-white">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#eadfca] px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#657168] sm:px-4 sm:text-[11px]">
           <span>{hasPickedGolfers ? 'Full tournament field. Your picks are highlighted.' : 'Full tournament field. Pool standings are separate.'}</span>
-          {cutLine ? <span>{cutLine.projected ? 'Projected cut' : 'Cut line'} {cutLine.score}</span> : null}
+          {cutLine && !hasOfficialCuts ? <span>{cutLine.projected ? 'Projected cut' : 'Cut line'} {cutLine.score}</span> : null}
           {updated ? <span className="sm:hidden">Updated {updated}</span> : null}
         </div>
         <div className="max-h-[260px] overflow-y-auto overscroll-contain sm:max-h-[460px]">
@@ -116,9 +123,9 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
               </tr>
             </thead>
             <tbody>
-              {rows.map((player, index) => {
+              {displayRows.map((player, index) => {
                 const isPicked = pickedNames.has(normalizedName(player.name))
-                const showCutLine = shouldShowCutLineAfter(rows, index, cutLine)
+                const showCutLine = !hasOfficialCuts && shouldShowCutLineAfter(displayRows, index, cutLine)
                 return (
                   <Fragment key={`${player.id}-${index}`}>
                     <tr className={isPicked ? 'bg-[#eef7ef]' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>

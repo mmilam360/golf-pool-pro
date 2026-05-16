@@ -159,6 +159,20 @@ async function enrichPlayersWithTeeTimes(eventId: string, competitionId: string,
   })
 }
 
+export function applyOfficialCutStatus(players: GolfPlayer[], cutLine?: GolfCutLine | null) {
+  if (!cutLine || cutLine.projected || !Number.isFinite(cutLine.scoreToPar)) return players
+  return players.map(player => {
+    if (player.status !== 'active') return player
+    if (player.scoreToPar <= cutLine.scoreToPar) return player
+    // ESPN keeps missed-cut golfers in the scoreboard with their Friday round line as
+    // roundScore/thru. If there is no tee time/current-round line for today after the
+    // official cut, treat them as cut so pool scoring and display stop ranking them
+    // above worse-scoring golfers who actually made the weekend.
+    if (player.teeTime) return player
+    return { ...player, status: 'cut' as const, thru: '', roundScore: '', position: 'CUT' }
+  })
+}
+
 export function mapCompetitorToPlayer(competitor: any): GolfPlayer {
   const athlete = competitor.athlete || {}
   const name = athlete.displayName || athlete.fullName || competitor.displayName || competitor.name || 'Unknown'
@@ -242,7 +256,9 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     const event = (scoreboard.events || []).find((candidate: any) => String(candidate.id) === String(eventId))
     if (event) {
       const competition = event.competitions?.[0]
-      const players = await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
+      const rawPlayers = await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
+      const cutLine = await cutLinePromise
+      const players = applyOfficialCutStatus(rawPlayers, cutLine)
       const course = event.courses?.find?.((candidate: any) => candidate.host)?.name
         || event.courses?.[0]?.name
         || event.venue?.fullName
@@ -260,7 +276,7 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
         status: eventStatus(event),
         round: event.status?.period || competition?.status?.period || 0,
         leaderboard: players,
-        cutLine: await cutLinePromise,
+        cutLine,
       }
     }
   }
@@ -269,7 +285,9 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
   if (!coreMetadata) throw new Error(`ESPN event metadata unavailable: ${eventId}`)
   const event = coreMetadata.event
   const competition = event.competitions?.[0]
-  const players = await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
+  const rawPlayers = await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
+  const cutLine = await cutLinePromise
+  const players = applyOfficialCutStatus(rawPlayers, cutLine)
 
   return {
     id: event.id,
@@ -281,6 +299,6 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     status: eventStatus(event),
     round: 0,
     leaderboard: players,
-    cutLine: await cutLinePromise,
+    cutLine,
   }
 }
