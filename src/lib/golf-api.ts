@@ -10,8 +10,16 @@ export interface GolfPlayer {
   id: string; name: string; firstName: string; lastName: string
   score: string; scoreToPar: number; thru: string; roundScore: string
   teeTime?: string; startTee?: number | null
+  roundScores?: GolfRoundScore[]
   position: string; strokes: number
   status: 'active' | 'cut' | 'wd' | 'dnq'; country: string; image?: string
+}
+
+export interface GolfRoundScore {
+  round: number
+  roundScoreToPar: number
+  cumulativeScoreToPar: number
+  complete: boolean
 }
 
 export interface GolfCutLine {
@@ -97,6 +105,29 @@ function thruFromLine(line: any) {
   const firstHole = Number(completedHoles[0]?.period)
   const startedOnBackNine = Number.isFinite(firstHole) && firstHole >= 10
   return `${completed}${startedOnBackNine ? '*' : ''}`
+}
+
+function completedHoleCount(line: any) {
+  const holes = Array.isArray(line?.linescores) ? line.linescores : []
+  return holes.filter((hole: any) => hole?.value != null || hole?.displayValue).length
+}
+
+function roundScoresFromLines(linescores: any[] | undefined): GolfRoundScore[] {
+  const lines = Array.isArray(linescores) ? linescores : []
+  let cumulative = 0
+  return [...lines]
+    .filter(line => Number.isFinite(Number(line?.period)) && line?.displayValue && line.displayValue !== '-')
+    .sort((a, b) => Number(a.period) - Number(b.period))
+    .map(line => {
+      const roundScoreToPar = parseScoreToPar(line.displayValue)
+      cumulative += roundScoreToPar
+      return {
+        round: Number(line.period),
+        roundScoreToPar,
+        cumulativeScoreToPar: cumulative,
+        complete: completedHoleCount(line) >= 18,
+      }
+    })
 }
 
 function easternDateKey(value: Date | string) {
@@ -190,6 +221,7 @@ export function mapCompetitorToPlayer(competitor: any): GolfPlayer {
     scoreToPar: parseScoreToPar(score),
     thru: competitor.thru || competitor.statistics?.find?.((s: any) => s.name === 'thru')?.displayValue || thruFromLine(roundLine),
     roundScore: competitor.roundScore || roundLine?.displayValue || '',
+    roundScores: roundScoresFromLines(competitor.linescores),
     position: String(competitor.order || competitor.rank || competitor.position || ''),
     strokes: Number(competitor.strokeTotal || competitor.strokes || 0),
     status: statusName.includes('cut') ? 'cut' : statusName.includes('wd') ? 'wd' : 'active',

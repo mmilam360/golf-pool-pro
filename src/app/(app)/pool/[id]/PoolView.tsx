@@ -7,7 +7,7 @@ import { PreviousPlayersInvitePanel } from '@/components/PreviousPlayersInvitePa
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { createClient } from '@/lib/supabase/client'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
-import { buildHarePickMap, buildTortoisePickMap, normalizePickName, scoreEntry, rankEntries, type PickScore, type ScoredEntry } from '@/lib/scoring'
+import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
@@ -232,6 +232,11 @@ function SquareTrustMark() {
 
 const REFRESH_SECONDS = 60
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
+const ROUND_LABELS: Record<number, string> = { 1: 'Thursday', 2: 'Friday', 3: 'Saturday', 4: 'Sunday' }
+
+function roundLabel(round: number) {
+  return ROUND_LABELS[round] || `Round ${round}`
+}
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary }: Props) {
   const router = useRouter()
@@ -274,6 +279,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
+  const [selectedRound, setSelectedRound] = useState<number | null>(null)
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
 
@@ -308,6 +314,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const submittedPickCount = activeEntries.length - entriesNeedingPicks.length
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
+  const availableHistoricalRounds = useMemo(() => availableCompletedRounds(leaderboard), [leaderboard])
+  const selectedLeaderboard = useMemo(
+    () => selectedRound ? leaderboardForCompletedRound(leaderboard, selectedRound) : leaderboard,
+    [leaderboard, selectedRound]
+  )
+  const selectedBoardLabel = selectedRound ? roundLabel(selectedRound) : 'Current'
+  const selectedBoardIsHistorical = selectedRound !== null
+  const selectedScoringIsLive = scoringIsLive || selectedBoardIsHistorical
+  useEffect(() => {
+    if (selectedRound && !availableHistoricalRounds.includes(selectedRound)) setSelectedRound(null)
+  }, [availableHistoricalRounds, selectedRound])
   const picksAreClosed = isLocked || scoringIsLive
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
@@ -826,20 +843,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }
 
   // Compute scored entries
-  const scoredEntries: ScoredEntry[] = scoringIsLive
-    ? rankEntries(
-        visibleEntries.map(entry => ({
-          ...scoreEntry(
-            (entry.golfer_picks as string[]) || [],
-            leaderboard,
-            { countScores: pool.count_scores, obRuleEnabled: pool.ob_rule_enabled, obPenaltyStrokes: pool.ob_penalty_strokes }
-          ),
-          entryId: entry.id,
-          displayName: entry.display_name,
-        }))
+  const scoredEntries: ScoredEntry[] = selectedScoringIsLive
+    ? scoreEntriesForLeaderboard(
+        visibleEntries,
+        selectedLeaderboard,
+        { countScores: pool.count_scores, obRuleEnabled: pool.ob_rule_enabled, obPenaltyStrokes: pool.ob_penalty_strokes }
       )
     : visibleEntries.map(entry => buildPreScoringEntry(entry, pool.count_scores))
-  const leaderboardRows = leaderboard.length ? leaderboard : field
+  const leaderboardRows = selectedLeaderboard.length ? selectedLeaderboard : field
   const leaderboardByName = new Map(leaderboardRows.map(player => [normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()), player]))
   const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
@@ -1096,13 +1107,22 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="relative border-b-2 border-[#111] px-3 py-2">
                   <p className="mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]" title={tournament?.name || 'Leaderboard'}>{tournament?.name || 'Leaderboard'}</p>
                   <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{poolName}</p>
-                  <div className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c]" title="Auto-refresh countdown">
+                  {availableHistoricalRounds.length > 0 && (
+                    <div className="mt-2 flex flex-wrap items-center justify-center gap-1 text-[10px] font-black uppercase tracking-[0.08em]">
+                      <button type="button" onClick={() => setSelectedRound(null)} className={`border border-[#111] px-2 py-1 ${selectedRound === null ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`}>Current</button>
+                      {availableHistoricalRounds.map(round => (
+                        <button key={round} type="button" onClick={() => setSelectedRound(round)} className={`border border-[#111] px-2 py-1 ${selectedRound === round ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`}>{roundLabel(round)}</button>
+                      ))}
+                    </div>
+                  )}
+                  {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">Standings through {selectedBoardLabel}</p> : null}
+                  {!selectedBoardIsHistorical && <div className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c]" title="Auto-refresh countdown">
                     <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                       <path d="M13 8a5 5 0 1 1-1.46-3.54" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />
                       <path d="M13 3v4H9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" strokeLinejoin="miter" />
                     </svg>
                     {refreshCountdown}s
-                  </div>
+                  </div>}
                 </div>
                 <div className="bg-[#f7f7f2] lg:hidden">
                   {scoredEntries.map((entry, entryIndex) => {
@@ -1137,9 +1157,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
                               <span className="min-w-0 flex-1 break-words text-sm font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
                             </div>
-                            {(picksHidden || !scoringIsLive || entry.obStandIns > 0) && (
+                            {(picksHidden || !selectedScoringIsLive || entry.obStandIns > 0) && (
                               <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                                {picksHidden ? 'Picks hidden until lock' : scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                                {picksHidden ? 'Picks hidden until lock' : selectedScoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
                               </div>
                             )}
                           </div>
@@ -1215,9 +1235,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
                                   <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
                                 </div>
-                                {(picksHidden || !scoringIsLive || entry.obStandIns > 0) && (
+                                {(picksHidden || !selectedScoringIsLive || entry.obStandIns > 0) && (
                                   <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                                    {picksHidden ? 'Picks hidden until lock' : scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                                    {picksHidden ? 'Picks hidden until lock' : selectedScoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
                                   </div>
                                 )}
                               </td>
@@ -1262,7 +1282,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </div>
               </div>
               {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="mt-1" /> : null}
-              {!scoringIsLive && (
+              {!selectedScoringIsLive && (
                 <p className="mt-2 border-2 border-[#111] bg-[#f7f7f2] px-4 py-3 text-xs font-bold uppercase tracking-[0.08em] text-[#111]">Live scoring appears here when the tournament starts.</p>
               )}
             </div>

@@ -1,5 +1,12 @@
 import type { GolfPlayer } from './golf-api'
 
+type EntryLike = { id: string; display_name: string | null; golfer_picks: unknown; is_removed?: boolean | null }
+
+function formatScoreToPar(score: number) {
+  if (score === 0) return 'E'
+  return score > 0 ? `+${score}` : String(score)
+}
+
 export interface PickScore {
   name: string; scoreToPar: number | null; strokes: number | null
   thru: string; status: 'active' | 'cut' | 'wd' | 'dnq'
@@ -73,6 +80,66 @@ export function scoreEntry(
   ]
   const totalScore = counting.length >= countScores ? counting.reduce((s, p) => s + (p.scoreToPar ?? 0), 0) : null
   return { entryId: '', displayName: '', picks, pickScores: allScored, totalScore, rank: null, obStandIns }
+}
+
+export function availableCompletedRounds(leaderboard: GolfPlayer[]) {
+  const players = Array.isArray(leaderboard) ? leaderboard : []
+  const rounds = new Set<number>()
+  for (const player of players) {
+    for (const round of player.roundScores || []) {
+      if (round.complete) rounds.add(round.round)
+    }
+  }
+
+  return Array.from(rounds)
+    .filter(roundNumber => players
+      .filter(player => player.status === 'active')
+      .every(player => player.roundScores?.some(round => round.round === roundNumber && round.complete))
+    )
+    .sort((a, b) => a - b)
+}
+
+export function leaderboardForCompletedRound(leaderboard: GolfPlayer[], roundNumber: number): GolfPlayer[] {
+  return (Array.isArray(leaderboard) ? leaderboard : [])
+    .map(player => {
+      const round = player.roundScores?.find(item => item.round === roundNumber)
+      if (!round?.complete) {
+        return {
+          ...player,
+          score: player.status === 'wd' ? 'WD' : player.status === 'dnq' ? 'DNQ' : 'CUT',
+          scoreToPar: player.scoreToPar,
+          thru: '',
+          roundScore: '',
+          position: player.status === 'wd' ? 'WD' : player.status === 'dnq' ? 'DNQ' : 'CUT',
+          status: player.status === 'wd' || player.status === 'dnq' ? player.status : 'cut' as const,
+        }
+      }
+      return {
+        ...player,
+        score: formatScoreToPar(round.cumulativeScoreToPar),
+        scoreToPar: round.cumulativeScoreToPar,
+        thru: 'F',
+        roundScore: formatScoreToPar(round.roundScoreToPar),
+        position: '',
+        status: 'active' as const,
+      }
+    })
+}
+
+export function scoreEntriesForLeaderboard(
+  entries: EntryLike[],
+  leaderboard: GolfPlayer[],
+  options: { countScores: number; obRuleEnabled: boolean; obPenaltyStrokes: number }
+): ScoredEntry[] {
+  return rankEntries(
+    entries
+      .filter(entry => !entry.is_removed)
+      .map(entry => ({
+        ...scoreEntry((entry.golfer_picks as string[]) || [], leaderboard, options),
+        entryId: entry.id,
+        displayName: entry.display_name || 'Player',
+      }))
+  )
 }
 
 export function rankEntries(entries: ScoredEntry[]): ScoredEntry[] {
