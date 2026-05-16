@@ -49,6 +49,9 @@ function updatedLabel(value?: string | null) {
 }
 
 function todayLabel(player: GolfPlayer, timeZone: string) {
+  if (player.status === 'cut') return 'CUT'
+  if (player.status === 'wd') return 'WD'
+  if (player.status === 'dnq') return 'DNQ'
   return player.roundScore || teeTimeLabel(player, timeZone) || '—'
 }
 
@@ -125,8 +128,14 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
                         {player.country ? <div className="text-[8px] font-bold uppercase tracking-[0.06em] text-[#657168] sm:text-[10px] sm:tracking-[0.08em]">{player.country}</div> : null}
                       </td>
                       <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${isPicked ? 'bg-[#dff0e2] text-[#123c2f]' : scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>
-                      <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{todayLabel(player, teeTimeZone)}</td>
-                      <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[10px] font-black uppercase text-[#1f2a24] sm:px-2 sm:py-1.5 sm:text-xs">{statusLabel(player, teeTimeZone)}</td>
+                      {player.status === 'cut' ? (
+                        <td colSpan={2} className="border-b border-l border-[#eadfca] bg-[#efeee6] px-1 py-1 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#b21e23] sm:px-2 sm:py-1.5 sm:text-xs">CUT</td>
+                      ) : (
+                        <>
+                          <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{todayLabel(player, teeTimeZone)}</td>
+                          <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[10px] font-black uppercase text-[#1f2a24] sm:px-2 sm:py-1.5 sm:text-xs">{statusLabel(player, teeTimeZone)}</td>
+                        </>
+                      )}
                     </tr>
                     {showCutLine ? (
                       <tr>

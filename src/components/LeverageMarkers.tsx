@@ -1,5 +1,21 @@
 type MarkerKind = 'hare' | 'tortoise'
 
+export function ObMarker() {
+  return (
+    <span title="OB: out of bounds stand-in score" aria-label="OB: out of bounds stand-in score" className="inline-flex h-[0.78rem] min-w-[1.1rem] items-center justify-center border border-[#b21e23] bg-[#fff1ef] px-0.5 text-[8px] font-black leading-none text-[#b21e23]">
+      OB
+    </span>
+  )
+}
+
+export function ObMarkerCorner() {
+  return (
+    <span className="absolute right-0.5 top-0.5 z-[1] overflow-visible leading-none">
+      <ObMarker />
+    </span>
+  )
+}
+
 export function LeverageMarkerIcon({ kind }: { kind: MarkerKind }) {
   if (kind === 'hare') {
     return (

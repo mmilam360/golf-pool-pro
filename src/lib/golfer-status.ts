@@ -37,6 +37,18 @@ function hasRoundScoreToday(player: GolferStatusFields) {
   return Boolean(String(player.roundScore ?? '').trim())
 }
 
+function isCutStatus(player: GolferStatusFields) {
+  return String(player.status ?? '').trim().toLowerCase() === 'cut'
+}
+
+function isWdStatus(player: GolferStatusFields) {
+  return String(player.status ?? '').trim().toLowerCase() === 'wd'
+}
+
+function isDnqStatus(player: GolferStatusFields) {
+  return String(player.status ?? '').trim().toLowerCase() === 'dnq'
+}
+
 function hasStartedCurrentRound(player: GolferStatusFields) {
   if (hasRoundScoreToday(player)) return true
   const thru = String(player.thru ?? '').trim().toUpperCase()
@@ -58,6 +70,7 @@ export function shouldHoldFinishedStatus(player: GolferStatusFields, timeZone: s
 }
 
 export function teeTimeLabel(player: GolferStatusFields, timeZone: string) {
+  if (isCutStatus(player) || isWdStatus(player) || isDnqStatus(player)) return ''
   const teeTime = parsedTeeTime(player)
   if (!teeTime || hasStartedCurrentRound(player)) return ''
   const time = teeTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
@@ -66,6 +79,9 @@ export function teeTimeLabel(player: GolferStatusFields, timeZone: string) {
 
 export function pickStatusLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
   if (player.isObStandIn) return 'OB'
+  if (isCutStatus(player)) return 'CUT'
+  if (isWdStatus(player)) return 'WD'
+  if (isDnqStatus(player)) return 'DNQ'
   return teeTimeLabel(player, timeZone) || (shouldHoldFinishedStatus(player, timeZone, now) ? 'F' : thruLabel(player.thru))
 }
 
@@ -90,9 +106,9 @@ export function leaderboardBackedPickProgressLabel(pick: GolferStatusFields, lea
 }
 
 export function tournamentThruLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
-  if (player.status === 'cut') return 'CUT'
-  if (player.status === 'wd') return 'WD'
-  if (player.status === 'dnq') return 'DNQ'
+  if (isCutStatus(player)) return 'CUT'
+  if (isWdStatus(player)) return 'WD'
+  if (isDnqStatus(player)) return 'DNQ'
   if (teeTimeLabel(player, timeZone)) return '—'
   if (shouldHoldFinishedStatus(player, timeZone, now)) return 'F'
   return thruLabel(player.thru, false)

@@ -121,4 +121,27 @@ assert.equal(
   'pool pick progress should still show tee time, not score prefix, before start'
 )
 
+assert.equal(
+  pickStatusLabel({ teeTime: '2026-05-16T23:40:00Z', thru: '', roundScore: '', status: 'cut', isObStandIn: false }, timeZone, now),
+  'CUT',
+  'cut golfer pick should show CUT instead of tee time or thru'
+)
+
+assert.equal(
+  leaderboardBackedPickProgressLabel(
+    { name: 'Cut Golfer', thru: 'F', roundScore: '', status: 'active', isObStandIn: false },
+    { name: 'Cut Golfer', teeTime: '2026-05-16T18:30:00Z', thru: 'F', roundScore: '', status: 'cut' },
+    timeZone,
+    now
+  ),
+  'CUT',
+  'pool pick progress should use canonical leaderboard CUT status'
+)
+
+assert.equal(
+  tournamentThruLabel({ teeTime: '2026-05-16T23:40:00Z', thru: '', status: 'cut' }, timeZone, now),
+  'CUT',
+  'full tournament thru cell should show CUT for cut golfers'
+)
+
 console.log('golfer status label checks passed')
