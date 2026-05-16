@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { applyOfficialCutStatus } from '../src/lib/golf-api.ts'
+import { scoreEntry } from '../src/lib/scoring.ts'
 import { leaderboardBackedPickProgressLabel, leaderboardBackedPickStatusLabel, pickProgressLabel, pickStatusLabel, teeTimeLabel, tournamentThruLabel } from '../src/lib/golfer-status.ts'
 
 const timeZone = 'America/New_York'
@@ -155,5 +156,24 @@ const cutApplied = applyOfficialCutStatus(
 assert.equal(cutApplied[0].status, 'active', 'player above cut line who has a Saturday tee/current-round row should stay active')
 assert.equal(cutApplied[1].status, 'cut', 'official cut should mark over-line players with no Saturday tee/current-round row as CUT')
 assert.equal(cutApplied[1].roundScore, '', 'cut player should not keep stale Friday round score as today score')
+
+const obEntry = scoreEntry(
+  ['Safe A', 'Safe B', 'Cut Pick'],
+  [
+    { id: 'a', name: 'Safe A', firstName: 'Safe', lastName: 'A', score: '-2', scoreToPar: -2, strokes: 0, thru: 'F', position: '1', status: 'active', country: '' },
+    { id: 'b', name: 'Safe B', firstName: 'Safe', lastName: 'B', score: '+1', scoreToPar: 1, strokes: 0, thru: 'F', position: '2', status: 'active', country: '' },
+    { id: 'worst', name: 'Worst Active', firstName: 'Worst', lastName: 'Active', score: '+16', scoreToPar: 16, strokes: 0, thru: 'F', position: '80', status: 'active', country: '' },
+    { id: 'cut', name: 'Cut Pick', firstName: 'Cut', lastName: 'Pick', score: '+5', scoreToPar: 5, strokes: 0, thru: '', position: 'CUT', status: 'cut', country: '' },
+  ],
+  { countScores: 3, obRuleEnabled: true, obPenaltyStrokes: 2 }
+)
+const obPick = obEntry.pickScores.find(pick => pick.isObStandIn)
+assert.equal(obPick?.name, 'Cut Pick', 'OB replacement should keep the original golfer name')
+assert.equal(obPick?.scoreToPar, 18, 'OB replacement should use worst active score plus penalty')
+assert.equal(
+  leaderboardBackedPickProgressLabel(obPick, { name: 'Cut Pick', status: 'cut', scoreToPar: 5, thru: '', roundScore: '' }, timeZone, now),
+  'CUT',
+  'OB replacement status text should show CUT, while main score carries the adjusted OB score'
+)
 
 console.log('golfer status label checks passed')

@@ -98,7 +98,10 @@ export function pickProgressLabel(player: GolferStatusFields, timeZone: string, 
 }
 
 export function leaderboardBackedPickProgressLabel(pick: GolferStatusFields, leaderboardPlayer: GolferStatusFields | undefined, timeZone: string, now = new Date()) {
-  if (pick.isObStandIn) return 'OB'
+  if (pick.isObStandIn) {
+    const source = leaderboardPlayer ?? pick
+    return pickStatusLabel({ ...source, roundScore: '', isObStandIn: false }, timeZone, now)
+  }
   const player = leaderboardPlayer ?? pick
   const teeLabel = leaderboardPlayer ? teeTimeLabel(leaderboardPlayer, timeZone) : ''
   if (teeLabel) return teeLabel

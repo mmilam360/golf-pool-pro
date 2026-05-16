@@ -49,14 +49,28 @@ export function scoreEntry(
       const scoredPlayers = leaderboard.filter(p => p.status === 'active' && p.scoreToPar !== null)
       scoredPlayers.sort((a, b) => (b.scoreToPar ?? -999) - (a.scoreToPar ?? -999))
       const worstScore = scoredPlayers.length > 0 ? scoredPlayers[0].scoreToPar : 0
-      for (let i = 0; i < standInsNeeded; i++) {
-        counting.push({ name: `OB Stand-in #${i + 1}`, scoreToPar: worstScore + obPenaltyStrokes, strokes: null, thru: 'F', status: 'active', counted: true, isObStandIn: true })
+      const standInPicks = obEligiblePicks.slice(0, standInsNeeded)
+      for (const pick of standInPicks) {
+        counting.push({
+          ...pick,
+          scoreToPar: worstScore + obPenaltyStrokes,
+          strokes: null,
+          thru: '',
+          roundScore: '',
+          counted: true,
+          isObStandIn: true,
+        })
       }
       obStandIns = standInsNeeded
     }
   }
   counting.forEach(p => p.counted = true)
-  const allScored = [...counting, ...active.filter(p => !p.counted), ...pickScores.filter(p => p.status !== 'active')]
+  const replacedObNames = new Set(counting.filter(p => p.isObStandIn).map(p => normalizePickName(p.name)))
+  const allScored = [
+    ...counting,
+    ...active.filter(p => !p.counted),
+    ...pickScores.filter(p => p.status !== 'active' && !replacedObNames.has(normalizePickName(p.name))),
+  ]
   const totalScore = counting.length >= countScores ? counting.reduce((s, p) => s + (p.scoreToPar ?? 0), 0) : null
   return { entryId: '', displayName: '', picks, pickScores: allScored, totalScore, rank: null, obStandIns }
 }
