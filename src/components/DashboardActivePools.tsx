@@ -56,6 +56,13 @@ type RankPreview = {
   fieldSize: number
 }
 
+type LiveLeaderboardCache = Record<string, {
+  leaderboard: GolfPlayer[]
+  cutLine?: GolfCutLine | null
+  status?: string | null
+  lastFetchedAt: string
+}>
+
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
@@ -455,11 +462,49 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
   const [secondsToRefresh, setSecondsToRefresh] = useState(60)
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
+  const [liveLeaderboards, setLiveLeaderboards] = useState<LiveLeaderboardCache>({})
 
   useEffect(() => {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
     if (detected) setTeeTimeZone(detected)
   }, [])
+
+  useEffect(() => {
+    const eventIds = Array.from(new Set(cards
+      .map(card => (Array.isArray(card.tournament) ? card.tournament[0] : card.tournament)?.external_id)
+      .filter(Boolean) as string[]))
+    if (eventIds.length === 0) return
+
+    const controller = new AbortController()
+    Promise.all(eventIds.map(async eventId => {
+      const response = await fetch(`/api/tournaments/leaderboard?id=${encodeURIComponent(eventId)}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      if (!response.ok) return null
+      const data = await response.json()
+      const leaderboard = Array.isArray(data.leaderboard) ? data.leaderboard as GolfPlayer[] : []
+      if (leaderboard.length === 0) return null
+      return [eventId, {
+        leaderboard,
+        cutLine: data.cutLine ?? null,
+        status: data.status ?? null,
+        lastFetchedAt: new Date().toISOString(),
+      }] as const
+    })).then(results => {
+      setLiveLeaderboards(current => {
+        const next = { ...current }
+        for (const result of results) {
+          if (result) next[result[0]] = result[1]
+        }
+        return next
+      })
+    }).catch(error => {
+      if (error?.name !== 'AbortError') console.error('Failed to refresh active pool leaderboards', error)
+    })
+
+    return () => controller.abort()
+  }, [cards])
 
   useEffect(() => {
     const countdownId = window.setInterval(() => {
@@ -502,12 +547,21 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
       </div>
       <div className="divide-y divide-[#eadfca]">
         {cards.map(({ pool, tournament, role, entry }, index) => {
-          const label = statusLabel(pool, tournament)
+          const liveLeaderboard = tournament?.external_id ? liveLeaderboards[tournament.external_id] : null
+          const displayTournament = liveLeaderboard ? {
+            ...tournament,
+            status: liveLeaderboard.status || tournament?.status,
+            leaderboard_json: liveLeaderboard.leaderboard,
+            last_scores_fetch: liveLeaderboard.lastFetchedAt,
+            cutLine: liveLeaderboard.cutLine ?? tournament?.cutLine,
+          } : tournament
+          const displayPool = liveLeaderboard ? { ...pool, gpp_tournaments: displayTournament } : pool
+          const label = statusLabel(displayPool, displayTournament)
           const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
-          const rankPreview = entry ? buildRankPreview(entry, pool, poolEntries) : null
+          const rankPreview = entry ? buildRankPreview(entry, displayPool, poolEntries) : null
           const isPoolOpen = expandedPoolIds.has(pool.id)
           const openEntryIds = expandedEntryIds[pool.id] ?? null
-          const eventBegun = hasEventBegun(tournament)
+          const eventBegun = hasEventBegun(displayTournament)
           return (
             <details
               key={`${role}-${pool.id}`}
@@ -527,9 +581,9 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                   <div className="min-w-0">
                     <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
-                    <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#1f2a24]">{tournament?.name || 'Tournament'}</p>
+                    <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#1f2a24]">{displayTournament?.name || 'Tournament'}</p>
                   </div>
-                  {hasRecentScores(tournament) ? <LivePulseBadge /> : <StatusBadge label={label} locked={Boolean(pool.is_locked)} />}
+                  {hasRecentScores(displayTournament) ? <LivePulseBadge /> : <StatusBadge label={label} locked={Boolean(displayPool.is_locked)} />}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
                   <span className="mr-auto inline-flex items-center border border-[#123c2f] bg-white px-2 py-1 text-[#123c2f] group-open:hidden" aria-label="Expand leaderboard">
@@ -539,11 +593,11 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
                   {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
-                  {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : <StartDateBadge date={tournament?.start_date} />}
+                  {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : <StartDateBadge date={displayTournament?.start_date} />}
                 </div>
               </summary>
               <InlineLeaderboard
-                pool={pool}
+                pool={displayPool}
                 entries={poolEntries}
                 currentEntryId={entry?.id}
                 openEntryIds={openEntryIds}
@@ -561,11 +615,11 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
               />
               <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
                 <TournamentLeaderboard
-                  leaderboard={tournament?.leaderboard_json}
-                  tournamentName={tournament?.name}
-                  lastUpdated={tournament?.last_scores_fetch}
+                  leaderboard={displayTournament?.leaderboard_json}
+                  tournamentName={displayTournament?.name}
+                  lastUpdated={displayTournament?.last_scores_fetch}
                   pickedGolfers={entryPicks(entry)}
-                  cutLine={tournament?.cutLine}
+                  cutLine={displayTournament?.cutLine}
                 />
               </div>
             </details>
