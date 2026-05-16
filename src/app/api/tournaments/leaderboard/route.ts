@@ -1,4 +1,5 @@
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { getLeaderboard } from '@/lib/golf-api'
 
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
   try {
     const tournament = await getLeaderboard(eventId)
     if (!tournament) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json(tournament)
+    return NextResponse.json(tournament, { headers: { 'Cache-Control': 'no-store, max-age=0' } })
   } catch {
     return NextResponse.json({ error: 'Leaderboard unavailable' }, { status: 502 })
   }

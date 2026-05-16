@@ -55,6 +55,8 @@ type RankPreview = {
   fieldSize: number
 }
 
+const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
+
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
   if (pool.is_completed || tournament?.status === 'completed') return 'Passed'
   if (tournament?.status === 'live') return 'Live'
@@ -220,10 +222,23 @@ function thruLabel(thru?: string) {
   return value === 'F' ? 'F' : `THRU ${value}`
 }
 
+function teeTimeLabel(pick: ScoredEntry['pickScores'][number], timeZone: string) {
+  if (!pick.teeTime || pick.roundScore) return ''
+  const parsed = new Date(pick.teeTime)
+  if (!Number.isFinite(parsed.getTime())) return ''
+  const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
+  return `${time}${pick.startTee === 10 ? '*' : ''}`
+}
+
+function pickStatusLabel(pick: ScoredEntry['pickScores'][number], timeZone: string) {
+  if (pick.isObStandIn) return 'OB'
+  return teeTimeLabel(pick, timeZone) || thruLabel(pick.thru)
+}
+
 function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): ScoredEntry[] {
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
-  const canShowRank = Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed')
+  const canShowRank = Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard))
 
   if (!canShowRank || leaderboard.length === 0) return []
 
@@ -248,12 +263,13 @@ function CurrentUserMarker({ className = '' }: { className?: string }) {
   return <span aria-label="Your entry" title="Your entry" className={`inline-block h-2.5 w-2.5 shrink-0 bg-[#1f6b4a] ${className}`} />
 }
 
-function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntryToggle }: {
+function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntryToggle, teeTimeZone }: {
   pool: PoolRecord
   entries: EntryRecord[]
   currentEntryId?: string | null
   openEntryIds: Set<string> | null
   onEntryToggle: (entryId: string, open: boolean) => void
+  teeTimeZone: string
 }) {
   const scoredEntries = buildScoredEntries(pool, entries)
   const countScores = pool.count_scores || 4
@@ -343,7 +359,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                             <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />
                             <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                             <div className="mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? pickStatusLabel(pick, teeTimeZone) : '—'}</div>
                           </div>
                         )
                       })}
@@ -356,7 +372,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                             <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                               {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                               {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                              <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span>
+                              <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pickStatusLabel(pick, teeTimeZone)}</span>
                             </span>
                           ))}
                         </div>
@@ -402,7 +418,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                                 <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                 <div className="mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? pickStatusLabel(pick, teeTimeZone) : '—'}</div>
                               </td>
                             )
                           })}
@@ -418,7 +434,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                                   <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                     {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                     {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                                    <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span></span>
+                                    <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pickStatusLabel(pick, teeTimeZone)}</span></span>
                                   </span>
                                 ))}
                               </div>
@@ -456,6 +472,12 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set())
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
   const [secondsToRefresh, setSecondsToRefresh] = useState(60)
+  const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
+
+  useEffect(() => {
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (detected) setTeeTimeZone(detected)
+  }, [])
 
   useEffect(() => {
     const countdownId = window.setInterval(() => {
@@ -553,6 +575,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                     return next
                   })
                 }}
+                teeTimeZone={teeTimeZone}
               />
               <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
                 <TournamentLeaderboard

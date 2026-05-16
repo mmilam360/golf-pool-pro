@@ -4,6 +4,7 @@ export interface PickScore {
   name: string; scoreToPar: number | null; strokes: number | null
   thru: string; status: 'active' | 'cut' | 'wd' | 'dnq'
   counted: boolean; isObStandIn: boolean
+  teeTime?: string; startTee?: number | null; roundScore?: string
 }
 
 export interface ScoredEntry {
@@ -30,7 +31,7 @@ export function scoreEntry(
       `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase()
     )
     if (!player) return { name, scoreToPar: null, strokes: null, thru: '', status: 'dnq' as const, counted: false, isObStandIn: false }
-    return { name: player.name, scoreToPar: player.scoreToPar, strokes: player.strokes, thru: player.thru, status: player.status, counted: false, isObStandIn: false }
+    return { name: player.name, scoreToPar: player.scoreToPar, strokes: player.strokes, thru: player.thru, status: player.status, counted: false, isObStandIn: false, teeTime: player.teeTime, startTee: player.startTee, roundScore: player.roundScore }
   })
 
   const active = pickScores.filter(p => p.status === 'active' && p.scoreToPar !== null)

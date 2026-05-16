@@ -2,6 +2,7 @@ const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/golf'
 const ESPN_CORE_EVENTS = 'https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events'
 const ESPN_SCOREBOARD = `${ESPN_BASE}/pga/scoreboard`
 const NEXT_REVALIDATE_HOURLY = { next: { revalidate: 3600 } } as RequestInit
+const NEXT_NO_STORE = { cache: 'no-store' } as RequestInit
 const NEXT_REVALIDATE_FAST = { next: { revalidate: 60 } } as RequestInit
 const NEXT_REVALIDATE_MEDIUM = { next: { revalidate: 300 } } as RequestInit
 
@@ -235,7 +236,7 @@ export async function getSchedule(season: number = new Date().getFullYear()): Pr
 
 export async function getLeaderboard(eventId: string): Promise<GolfTournament | null> {
   const cutLinePromise = getProjectedCutLine(eventId)
-  const scoreboardRes = await fetch(ESPN_SCOREBOARD, NEXT_REVALIDATE_FAST)
+  const scoreboardRes = await fetch(ESPN_SCOREBOARD, NEXT_NO_STORE)
   if (scoreboardRes.ok) {
     const scoreboard = await scoreboardRes.json()
     const event = (scoreboard.events || []).find((candidate: any) => String(candidate.id) === String(eventId))

@@ -10,6 +10,7 @@ import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend } from '@/co
 import { buildHarePickMap, buildTortoisePickMap, normalizePickName, scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
+import { hasOnCourseScores } from '@/lib/golf-live'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type PaymentQuote = {
@@ -211,6 +212,19 @@ function thruLabel(thru?: string) {
   return value === 'F' ? 'F' : `THRU ${value}`
 }
 
+function teeTimeLabel(pick: ScoredEntry['pickScores'][number], timeZone: string) {
+  if (!pick.teeTime || pick.roundScore) return ''
+  const parsed = new Date(pick.teeTime)
+  if (!Number.isFinite(parsed.getTime())) return ''
+  const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
+  return `${time}${pick.startTee === 10 ? '*' : ''}`
+}
+
+function pickStatusLabel(pick: ScoredEntry['pickScores'][number], timeZone: string) {
+  if (pick.isObStandIn) return 'OB'
+  return teeTimeLabel(pick, timeZone) || thruLabel(pick.thru)
+}
+
 function TrustCheckIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -231,6 +245,7 @@ function SquareTrustMark() {
 }
 
 const REFRESH_SECONDS = 60
+const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary }: Props) {
   const router = useRouter()
@@ -239,9 +254,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [poolName, setPoolName] = useState(pool.name)
   const [poolLocked, setPoolLocked] = useState(pool.is_locked)
-  const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>([])
-  const [cutLine, setCutLine] = useState<GolfCutLine | null>(null)
-  const [field, setField] = useState<GolfPlayer[]>([])
+  const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>(() => Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [])
+  const [cutLine, setCutLine] = useState<GolfCutLine | null>(() => tournament?.cutLine || null)
+  const [field, setField] = useState<GolfPlayer[]>(() => Array.isArray(tournament?.field_json) ? tournament.field_json as GolfPlayer[] : Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [])
   const [myPicks, setMyPicks] = useState<string[]>(initialMyEntry?.golfer_picks || [])
   const [entryNameValue, setEntryNameValue] = useState(initialMyEntry?.display_name || '')
   const [entryNameSaving, setEntryNameSaving] = useState(false)
@@ -270,8 +285,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
   const [toasts, setToasts] = useState<ToastMessage[]>([])
+  const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (detected) setTeeTimeZone(detected)
+  }, [])
 
   useEffect(() => {
     if (window.location.hash === '#make-picks') {
@@ -298,7 +319,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   })
   const submittedPickCount = activeEntries.length - entriesNeedingPicks.length
   const isLocked = poolLocked
-  const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
+  const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
   const picksAreClosed = isLocked || scoringIsLive
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
@@ -615,7 +636,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (!tournament?.external_id) return
     setLoadingScores(true)
     try {
-      const res = await fetch(`/api/tournaments/leaderboard?id=${tournament.external_id}`)
+      const res = await fetch(`/api/tournaments/leaderboard?id=${tournament.external_id}`, { cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
         const liveLeaderboard = data.leaderboard || []
@@ -1138,7 +1159,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 <div className={`mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
                                   {pick ? shortName(pick.name, allPickNames) : '—'}
                                 </div>
-                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? pickStatusLabel(pick, teeTimeZone) : '—'}</div>
                               </div>
                             )
                           })}
@@ -1151,7 +1172,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                   {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                   {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                                  <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span></span>
+                                  <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pickStatusLabel(pick, teeTimeZone)}</span></span>
                                 </span>
                               ))}
                             </div>
@@ -1204,7 +1225,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                     <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />
                                     <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                     <div className={`mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.isObStandIn ? 'OB' : thruLabel(pick.thru)) : '—'}</div>
+                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? pickStatusLabel(pick, teeTimeZone) : '—'}</div>
                                   </td>
                                 )
                               })}
@@ -1222,7 +1243,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                       <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                         {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                         {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                                        <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pick.isObStandIn ? 'OB' : thruLabel(pick.thru)}</span></span>
+                                        <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pickStatusLabel(pick, teeTimeZone)}</span></span>
                                       </span>
                                     ))}
                                   </div>
