@@ -879,9 +879,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
-  const harePickMap = leaderboardModeIsCurrent ? buildHarePickMap(scoredEntries, 2) : new Map()
-  const tortoisePickMap = leaderboardModeIsCurrent ? buildTortoisePickMap(scoredEntries, myEntry?.id, 2) : new Map()
-  const showLeverageLegend = leaderboardModeIsCurrent && (harePickMap.size > 0 || tortoisePickMap.size > 0)
+  const harePickMap = leaderboardModeIsCurrent && !publicView ? buildHarePickMap(scoredEntries, 2) : new Map()
+  const tortoisePickMap = leaderboardModeIsCurrent && !publicView ? buildTortoisePickMap(scoredEntries, myEntry?.id, 2) : new Map()
+  const showLeverageLegend = leaderboardModeIsCurrent && !publicView && (harePickMap.size > 0 || tortoisePickMap.size > 0)
 
   async function copyNeedsPicksReminder() {
     if (!entriesNeedingPicks.length) {
