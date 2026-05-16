@@ -7,7 +7,7 @@ import { PreviousPlayersInvitePanel } from '@/components/PreviousPlayersInvitePa
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { createClient } from '@/lib/supabase/client'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
-import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
+import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
@@ -234,8 +234,26 @@ const REFRESH_SECONDS = 60
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 const ROUND_LABELS: Record<number, string> = { 1: 'Thursday', 2: 'Friday', 3: 'Saturday', 4: 'Sunday' }
 
+type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
+
 function roundLabel(round: number) {
   return ROUND_LABELS[round] || `Round ${round}`
+}
+
+function shortRoundLabel(round: number) {
+  return roundLabel(round).slice(0, 5).toUpperCase()
+}
+
+function modeKey(mode: LeaderboardMode) {
+  return mode.type === 'current' ? 'current' : `${mode.type}-${mode.round}`
+}
+
+function modeFromKey(key: string): LeaderboardMode {
+  if (key === 'current') return { type: 'current' }
+  const [type, roundText] = key.split('-')
+  const round = Number(roundText)
+  if ((type === 'thru' || type === 'day') && Number.isFinite(round)) return { type, round } as LeaderboardMode
+  return { type: 'current' }
 }
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary }: Props) {
@@ -279,7 +297,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
-  const [selectedRound, setSelectedRound] = useState<number | null>(null)
+  const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
 
@@ -315,16 +333,22 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(leaderboard), [leaderboard])
-  const selectedLeaderboard = useMemo(
-    () => selectedRound ? leaderboardForCompletedRound(leaderboard, selectedRound) : leaderboard,
-    [leaderboard, selectedRound]
-  )
-  const selectedBoardLabel = selectedRound ? roundLabel(selectedRound) : 'Current'
-  const selectedBoardIsHistorical = selectedRound !== null
+  const selectedLeaderboard = useMemo(() => {
+    if (leaderboardMode.type === 'thru') return leaderboardForCompletedRound(leaderboard, leaderboardMode.round)
+    if (leaderboardMode.type === 'day') return leaderboardForRoundOnly(leaderboard, leaderboardMode.round)
+    return leaderboard
+  }, [leaderboard, leaderboardMode])
+  const leaderboardModeIsCurrent = leaderboardMode.type === 'current'
+  const selectedBoardLabel = leaderboardMode.type === 'current'
+    ? 'Current'
+    : leaderboardMode.type === 'thru'
+      ? `Thru ${shortRoundLabel(leaderboardMode.round)}`
+      : shortRoundLabel(leaderboardMode.round)
+  const selectedBoardIsHistorical = !leaderboardModeIsCurrent
   const selectedScoringIsLive = scoringIsLive || selectedBoardIsHistorical
   useEffect(() => {
-    if (selectedRound && !availableHistoricalRounds.includes(selectedRound)) setSelectedRound(null)
-  }, [availableHistoricalRounds, selectedRound])
+    if (!leaderboardModeIsCurrent && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
+  }, [availableHistoricalRounds, leaderboardMode, leaderboardModeIsCurrent])
   const picksAreClosed = isLocked || scoringIsLive
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
@@ -855,9 +879,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
-  const harePickMap = buildHarePickMap(scoredEntries, 2)
-  const tortoisePickMap = buildTortoisePickMap(scoredEntries, myEntry?.id, 2)
-  const showLeverageLegend = harePickMap.size > 0 || tortoisePickMap.size > 0
+  const harePickMap = leaderboardModeIsCurrent ? buildHarePickMap(scoredEntries, 2) : new Map()
+  const tortoisePickMap = leaderboardModeIsCurrent ? buildTortoisePickMap(scoredEntries, myEntry?.id, 2) : new Map()
+  const showLeverageLegend = leaderboardModeIsCurrent && (harePickMap.size > 0 || tortoisePickMap.size > 0)
 
   async function copyNeedsPicksReminder() {
     if (!entriesNeedingPicks.length) {
@@ -1108,14 +1132,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   <p className="mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]" title={tournament?.name || 'Leaderboard'}>{tournament?.name || 'Leaderboard'}</p>
                   <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{poolName}</p>
                   {availableHistoricalRounds.length > 0 && (
-                    <div className="mt-2 flex flex-wrap items-center justify-center gap-1 text-[10px] font-black uppercase tracking-[0.08em]">
-                      <button type="button" onClick={() => setSelectedRound(null)} className={`border border-[#111] px-2 py-1 ${selectedRound === null ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`}>Current</button>
-                      {availableHistoricalRounds.map(round => (
-                        <button key={round} type="button" onClick={() => setSelectedRound(round)} className={`border border-[#111] px-2 py-1 ${selectedRound === round ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`}>{roundLabel(round)}</button>
-                      ))}
+                    <div className="mt-2 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.08em]">
+                      <label className="text-[#657168]" htmlFor="pool-leaderboard-mode">View</label>
+                      <select
+                        id="pool-leaderboard-mode"
+                        value={modeKey(leaderboardMode)}
+                        onChange={event => setLeaderboardMode(modeFromKey(event.target.value))}
+                        className="border-2 border-[#111] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[2px_2px_0_#111]"
+                      >
+                        <option value="current">Current</option>
+                        {availableHistoricalRounds.map(round => (
+                          <optgroup key={round} label={shortRoundLabel(round)}>
+                            <option value={`thru-${round}`}>Thru {shortRoundLabel(round)}</option>
+                            <option value={`day-${round}`}>{shortRoundLabel(round)}</option>
+                          </optgroup>
+                        ))}
+                      </select>
                     </div>
                   )}
-                  {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">Standings through {selectedBoardLabel}</p> : null}
+                  {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{leaderboardMode.type === 'day' ? `${selectedBoardLabel} daily scores only` : `Standings through ${selectedBoardLabel.replace('Thru ', '')}`}</p> : null}
                   {!selectedBoardIsHistorical && <div className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c]" title="Auto-refresh countdown">
                     <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                       <path d="M13 8a5 5 0 1 1-1.46-3.54" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />

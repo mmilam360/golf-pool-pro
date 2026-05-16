@@ -99,25 +99,44 @@ export function availableCompletedRounds(leaderboard: GolfPlayer[]) {
     .sort((a, b) => a - b)
 }
 
+function inactiveRoundPlayer(player: GolfPlayer): GolfPlayer {
+  return {
+    ...player,
+    score: player.status === 'wd' ? 'WD' : player.status === 'dnq' ? 'DNQ' : 'CUT',
+    scoreToPar: player.scoreToPar,
+    thru: '',
+    roundScore: '',
+    position: player.status === 'wd' ? 'WD' : player.status === 'dnq' ? 'DNQ' : 'CUT',
+    status: player.status === 'wd' || player.status === 'dnq' ? player.status : 'cut' as const,
+  }
+}
+
 export function leaderboardForCompletedRound(leaderboard: GolfPlayer[], roundNumber: number): GolfPlayer[] {
   return (Array.isArray(leaderboard) ? leaderboard : [])
     .map(player => {
       const round = player.roundScores?.find(item => item.round === roundNumber)
-      if (!round?.complete) {
-        return {
-          ...player,
-          score: player.status === 'wd' ? 'WD' : player.status === 'dnq' ? 'DNQ' : 'CUT',
-          scoreToPar: player.scoreToPar,
-          thru: '',
-          roundScore: '',
-          position: player.status === 'wd' ? 'WD' : player.status === 'dnq' ? 'DNQ' : 'CUT',
-          status: player.status === 'wd' || player.status === 'dnq' ? player.status : 'cut' as const,
-        }
-      }
+      if (!round?.complete) return inactiveRoundPlayer(player)
       return {
         ...player,
         score: formatScoreToPar(round.cumulativeScoreToPar),
         scoreToPar: round.cumulativeScoreToPar,
+        thru: 'F',
+        roundScore: formatScoreToPar(round.roundScoreToPar),
+        position: '',
+        status: 'active' as const,
+      }
+    })
+}
+
+export function leaderboardForRoundOnly(leaderboard: GolfPlayer[], roundNumber: number): GolfPlayer[] {
+  return (Array.isArray(leaderboard) ? leaderboard : [])
+    .map(player => {
+      const round = player.roundScores?.find(item => item.round === roundNumber)
+      if (!round?.complete) return inactiveRoundPlayer(player)
+      return {
+        ...player,
+        score: formatScoreToPar(round.roundScoreToPar),
+        scoreToPar: round.roundScoreToPar,
         thru: 'F',
         roundScore: formatScoreToPar(round.roundScoreToPar),
         position: '',

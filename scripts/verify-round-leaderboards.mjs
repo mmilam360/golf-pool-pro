@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { availableCompletedRounds, leaderboardForCompletedRound, scoreEntriesForLeaderboard } from '../src/lib/scoring.ts'
+import { availableCompletedRounds, leaderboardForCompletedRound, leaderboardForRoundOnly, scoreEntriesForLeaderboard } from '../src/lib/scoring.ts'
 
 const players = [
   {
@@ -48,5 +48,21 @@ const scored = scoreEntriesForLeaderboard(
 assert.equal(scored[0].entryId, 'entry-2', 'Friday standings should rank by cumulative through selected round')
 assert.equal(scored[0].totalScore, -2)
 assert.equal(scored[1].totalScore, 5)
+
+const fridayOnlyBoard = leaderboardForRoundOnly(players, 2)
+const fridayOnly = scoreEntriesForLeaderboard(
+  [
+    { id: 'entry-1', display_name: 'Entry One', golfer_picks: ['Steady A', 'Friday Cut'], is_removed: false },
+    { id: 'entry-2', display_name: 'Entry Two', golfer_picks: ['Incomplete C', 'Steady A'], is_removed: false },
+  ],
+  fridayOnlyBoard,
+  { countScores: 2, obRuleEnabled: true, obPenaltyStrokes: 2 }
+)
+
+assert.equal(fridayOnly[0].entryId, 'entry-2', 'daily board should rank by selected round only')
+assert.equal(fridayOnly[0].totalScore, 1)
+assert.equal(fridayOnly[1].totalScore, 4)
+assert.equal(fridayOnlyBoard.find(player => player.name === 'Steady A')?.scoreToPar, 1)
+assert.equal(fridayOnlyBoard.find(player => player.name === 'Friday Cut')?.scoreToPar, 3)
 
 console.log('round leaderboard checks passed')
