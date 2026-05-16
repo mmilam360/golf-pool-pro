@@ -7,12 +7,9 @@ import { useEffect, useState } from 'react'
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', match: ['/dashboard'] },
-  { href: '/pool/join', label: 'Join Pool', match: ['/pool/join'] },
   { href: '/blog?from=dashboard', label: 'Pick Guides', match: ['/blog'] },
-  { href: '/pool/create', label: 'Create Pool', match: ['/pool/create'] },
   { href: '/manage-pools', label: 'Manage Pools', match: ['/manage-pools'] },
   { href: '/account', label: 'Account', match: ['/account'] },
-  { href: '/help', label: 'Help', match: ['/help'] },
 ]
 
 function isActive(pathname: string, matches: string[]) {

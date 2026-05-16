@@ -61,6 +61,7 @@ interface Props {
   userId: string
   previousPlayerCandidates: { userId: string; displayName: string }[]
   inviteSummary: { pending: number; accepted: number; declined: number }
+  publicView?: boolean
 }
 
 type Tab = 'leaderboard' | 'my-team' | 'admin'
@@ -247,9 +248,9 @@ function roundScoreLabel(round: number) {
   return ROUND_SCORE_LABELS[round] || `R${round}`
 }
 
-export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary }: Props) {
+export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false }: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>(initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-team')
+  const [tab, setTab] = useState<Tab>(publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-team')
   const [entries, setEntries] = useState(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [poolName, setPoolName] = useState(pool.name)
@@ -265,6 +266,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [inviteUrl, setInviteUrl] = useState('')
+  const [publicLeaderboardUrl, setPublicLeaderboardUrl] = useState('')
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
   const [removeReason, setRemoveReason] = useState('')
   const [renameValue, setRenameValue] = useState(pool.name)
@@ -435,7 +437,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   useEffect(() => {
     setInviteUrl(`${window.location.origin}/pool/join?code=${pool.passcode}`)
-  }, [pool.passcode])
+    setPublicLeaderboardUrl(`${window.location.origin}/leaderboard/${pool.id}`)
+  }, [pool.id, pool.passcode])
 
   useEffect(() => {
     setEntryNameValue(myEntry?.display_name || '')
@@ -905,6 +908,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
   }
 
+  async function copyPublicLeaderboardLink() {
+    const url = publicLeaderboardUrl || `${window.location.origin}/leaderboard/${pool.id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      showToast('Public leaderboard link copied.', 'success')
+    } catch {
+      const textarea = document.createElement('textarea')
+      textarea.value = url
+      textarea.setAttribute('readonly', 'true')
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      showToast('Public leaderboard link copied.', 'success')
+    }
+  }
+
   async function shareFinalResultsImage() {
     if (scoredEntries.length === 0) {
       showToast('Final results are not ready yet.', 'info')
@@ -1005,7 +1027,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
       {/* Header */}
       <div className="mb-6">
-        <BackButton />
+        {!publicView ? <BackButton /> : null}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="break-words text-3xl font-bold">{poolName}</h1>
@@ -1013,7 +1035,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           </div>
           {tournament?.status === 'live' && <LivePulseBadge />}
         </div>
-        {!scoringIsLive && <div className="flex items-center gap-4 mt-2 text-sm">
+        {!publicView && !scoringIsLive && <div className="flex items-center gap-4 mt-2 text-sm">
           <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
           <span className="text-stone-600">Field: {field.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.length || 0)} golfers</span>
@@ -1042,7 +1064,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         </div>
       )}
 
-      {canInvitePlayers && (
+      {!publicView && canInvitePlayers && (
         <div className="mb-6">
           <PoolInvitePrepPanel
             poolName={poolName}
@@ -1064,6 +1086,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           />
         </div>
       )}
+      {!publicView && (
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-none p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-team', ...(isOwner ? ['admin'] as Tab[] : [])] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
@@ -1074,6 +1097,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           </button>
         ))}
       </div>
+      )}
 
       {/* Leaderboard Tab */}
       {tab === 'leaderboard' && (
@@ -1500,6 +1524,23 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {/* Admin Tab */}
       {tab === 'admin' && isOwner && (
         <div ref={adminSectionRef} className="scroll-mt-6 space-y-6">
+          <section className="border-2 border-[#123c2f] bg-[#fbf7ed] p-5 shadow-[5px_5px_0_#d8cab0]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Public leaderboard</p>
+                <h3 className="mt-1 text-xl font-black text-[#123c2f]">Share a view-only board</h3>
+                <p className="mt-1 text-sm font-semibold leading-6 text-[#657168]">Send this link to friends who are not in the pool. They can view the leaderboard without signing in.</p>
+                <p className="mt-3 break-all border border-[#d8cab0] bg-white px-3 py-2 font-mono text-xs text-[#1f2a24]">{publicLeaderboardUrl || `/leaderboard/${pool.id}`}</p>
+              </div>
+              <button
+                type="button"
+                onClick={copyPublicLeaderboardLink}
+                className="shrink-0 border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]"
+              >
+                Copy link
+              </button>
+            </div>
+          </section>
           <section className="border border-stone-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
