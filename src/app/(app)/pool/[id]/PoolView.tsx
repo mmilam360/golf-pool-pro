@@ -261,6 +261,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [paymentCardReady, setPaymentCardReady] = useState(false)
   const [paymentFeedback, setPaymentFeedback] = useState('')
   const [promoOpen, setPromoOpen] = useState(false)
+  const [obRulesOpen, setObRulesOpen] = useState(false)
+  const [openEntryIds, setOpenEntryIds] = useState<Set<string>>(() => new Set())
   const [promoCode, setPromoCode] = useState('')
   const [promoLoading, setPromoLoading] = useState(false)
   const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null)
@@ -1111,8 +1113,23 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     const allPickNames = golferNamePeers
                     const hareNames = isMe ? harePickMap.get(entry.entryId) : undefined
                     const tortoiseNames = !isMe ? tortoisePickMap.get(entry.entryId) : undefined
+                    const isEntryOpen = openEntryIds.has(entry.entryId) || entryIndex === 0 || forceOpenEntryId === entry.entryId
                     return (
-                      <details id={`entry-card-${entry.entryId}`} key={entry.entryId} open={entryIndex === 0 || forceOpenEntryId === entry.entryId} className={`group border-b-2 border-[#111] transition-colors ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : ''}`}>
+                      <details
+                        id={`entry-card-${entry.entryId}`}
+                        key={entry.entryId}
+                        open={isEntryOpen}
+                        onToggle={event => {
+                          const open = event.currentTarget.open
+                          setOpenEntryIds(current => {
+                            const next = new Set(current)
+                            if (open) next.add(entry.entryId)
+                            else next.delete(entry.entryId)
+                            return next
+                          })
+                        }}
+                        className={`group border-b-2 border-[#111] transition-colors ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : ''}`}
+                      >
                         <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>
                           <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                           <div className="min-w-0">
@@ -1127,12 +1144,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             )}
                           </div>
                           <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
-                          <div className="flex items-center justify-center text-[#111]">
-                            <svg className="h-4 w-4 group-open:hidden" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
-                            </svg>
-                            <svg className="hidden h-4 w-4 group-open:block" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                              <path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
+                          <div className="flex items-center justify-center text-[#111]" aria-label={isEntryOpen ? 'Collapse entry' : 'Expand entry'}>
+                            <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                              <path d={isEntryOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
                             </svg>
                             <span className="sr-only">Toggle entry</span>
                           </div>
@@ -1303,11 +1317,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   )}
                 </div>
                 <div className="p-4">
-                  <details className="group border border-[#d8cab0] bg-white">
+                  <details className="group border border-[#d8cab0] bg-white" open={obRulesOpen} onToggle={event => setObRulesOpen(event.currentTarget.open)}>
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] [&::-webkit-details-marker]:hidden">
                       <span>How OB works</span>
-                      <span className="border border-[#123c2f] px-1.5 py-0.5 text-[10px] group-open:hidden">Open</span>
-                      <span className="hidden border border-[#123c2f] bg-[#123c2f] px-1.5 py-0.5 text-[10px] text-white group-open:inline">Close</span>
+                      <span className={`border border-[#123c2f] px-1.5 py-0.5 text-[10px] ${obRulesOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`}>{obRulesOpen ? 'Close' : 'Open'}</span>
                     </summary>
                     <div className="space-y-2 border-t border-[#d8cab0] px-3 py-3 text-sm leading-6 text-stone-700">
                       <p>If one of your golfers misses the cut, withdraws, or never posts a usable score, that pick is out of bounds.</p>

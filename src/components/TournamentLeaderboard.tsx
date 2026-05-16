@@ -68,6 +68,7 @@ function shouldShowCutLineAfter(rows: GolfPlayer[], index: number, cutLine?: Gol
 
 export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false, pickedGolfers = [], cutLine }: Props) {
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
+  const [isOpen, setIsOpen] = useState(defaultOpen)
   const rows = Array.isArray(leaderboard) ? leaderboard : []
   const displayRows = [...rows].sort((a, b) => {
     const aCut = a.status === 'cut'
@@ -89,7 +90,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
   const hasPickedGolfers = pickedNames.size > 0
 
   return (
-    <details className="group border-2 border-[#d8cab0] bg-white shadow-[4px_4px_0_#eadfca]" open={defaultOpen}>
+    <details className="group border-2 border-[#d8cab0] bg-white shadow-[4px_4px_0_#eadfca]" open={isOpen} onToggle={event => setIsOpen(event.currentTarget.open)}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 bg-[#fbf7ed] px-2.5 py-2 text-left [&::-webkit-details-marker]:hidden sm:px-4 sm:py-3">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#657168]">Tournament leaderboard</p>
@@ -97,11 +98,8 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {updated ? <span className="hidden border border-[#d8cab0] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#657168] sm:inline-flex">Updated {updated}</span> : null}
-          <span className="border border-[#123c2f] bg-white px-2 py-1 text-[#123c2f] group-open:hidden" aria-label="Open tournament leaderboard">
-            <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
-          </span>
-          <span className="hidden border border-[#123c2f] bg-[#123c2f] px-2 py-1 text-white group-open:inline-flex" aria-label="Close tournament leaderboard">
-            <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
+          <span className={`border border-[#123c2f] px-2 py-1 ${isOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`} aria-label={isOpen ? 'Close tournament leaderboard' : 'Open tournament leaderboard'}>
+            <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
           </span>
         </div>
       </summary>
