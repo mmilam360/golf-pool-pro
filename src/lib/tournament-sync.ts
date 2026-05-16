@@ -35,7 +35,7 @@ function extractPlayers(event: any) {
 }
 
 async function fetchScoreboardEvents() {
-  const res = await fetch(ESPN_SCOREBOARD_URL)
+  const res = await fetch(ESPN_SCOREBOARD_URL, { cache: 'no-store' })
   if (!res.ok) return []
   const data = await res.json()
   return data.events || []
@@ -95,13 +95,16 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     if (!normalized) continue
 
     const { row, players, status } = normalized
-    if (players.length > 0) {
-      row.field_json = players
+    const liveLeaderboard = status === 'live' ? await getLeaderboard(row.external_id).catch(() => null) : null
+    const playersForStorage = liveLeaderboard?.leaderboard?.length ? liveLeaderboard.leaderboard : players
+
+    if (playersForStorage.length > 0) {
+      row.field_json = playersForStorage
       result.fieldsUpdated++
     }
 
-    if (status === 'live' && players.length > 0) {
-      row.leaderboard_json = players
+    if (status === 'live' && playersForStorage.length > 0) {
+      row.leaderboard_json = playersForStorage
       row.last_scores_fetch = new Date().toISOString()
       result.leaderboardsUpdated++
     }
