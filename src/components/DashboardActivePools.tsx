@@ -223,7 +223,7 @@ function thruLabel(thru?: string) {
 }
 
 function teeTimeLabel(pick: ScoredEntry['pickScores'][number], timeZone: string) {
-  if (!pick.teeTime || pick.roundScore) return ''
+  if (!pick.teeTime || pick.roundScore || pick.thru) return ''
   const parsed = new Date(pick.teeTime)
   if (!Number.isFinite(parsed.getTime())) return ''
   const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })

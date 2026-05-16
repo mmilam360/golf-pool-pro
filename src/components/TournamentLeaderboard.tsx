@@ -58,7 +58,7 @@ function updatedLabel(value?: string | null) {
 }
 
 function teeTimeLabel(player: GolfPlayer, timeZone: string) {
-  if (!player.teeTime || player.roundScore) return ''
+  if (!player.teeTime || player.roundScore || player.thru) return ''
   const parsed = new Date(player.teeTime)
   if (!Number.isFinite(parsed.getTime())) return ''
   const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
