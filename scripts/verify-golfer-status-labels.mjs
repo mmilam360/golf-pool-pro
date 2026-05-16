@@ -23,6 +23,12 @@ assert.equal(
 )
 
 assert.equal(
+  pickStatusLabel({ teeTime: '2026-05-16T23:40:00Z', thru: 'F', scoreToPar: -4, status: 'active', isObStandIn: false }, timeZone, now),
+  '7:40 PM',
+  'future tee time should beat ESPN stale F marker before start'
+)
+
+assert.equal(
   pickStatusLabel({ teeTime: '2026-05-16T23:40:00Z', startTee: 10, thru: '', status: 'active', isObStandIn: false }, timeZone, now),
   '7:40 PM*',
   'back-nine start should keep asterisk'
@@ -32,6 +38,12 @@ assert.equal(
   pickStatusLabel({ teeTime: '2026-05-16T14:00:00Z', scoreToPar: -2, thru: '', status: 'active', isObStandIn: false }, timeZone, new Date('2026-05-17T04:01:00Z')),
   '—',
   'after local midnight reset, old same-day F fallback should clear'
+)
+
+assert.equal(
+  tournamentThruLabel({ teeTime: '2026-05-16T23:40:00Z', thru: 'F', scoreToPar: -4, status: 'active' }, timeZone, now),
+  '—',
+  'full tournament thru cell should not show stale F before future tee time'
 )
 
 assert.equal(

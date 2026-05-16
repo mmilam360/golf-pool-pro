@@ -49,21 +49,21 @@ export function shouldHoldFinishedStatus(player: GolferStatusFields, timeZone: s
 
 export function teeTimeLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
   const teeTime = parsedTeeTime(player)
-  if (!teeTime || player.roundScore || player.thru || teeTime.getTime() <= now.getTime()) return ''
+  if (!teeTime || player.roundScore || teeTime.getTime() <= now.getTime()) return ''
   const time = teeTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
   return `${time}${player.startTee === 10 ? '*' : ''}`
 }
 
 export function pickStatusLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
   if (player.isObStandIn) return 'OB'
-  if (shouldHoldFinishedStatus(player, timeZone, now)) return 'F'
-  return teeTimeLabel(player, timeZone, now) || thruLabel(player.thru)
+  return teeTimeLabel(player, timeZone, now) || (shouldHoldFinishedStatus(player, timeZone, now) ? 'F' : thruLabel(player.thru))
 }
 
 export function tournamentThruLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
   if (player.status === 'cut') return 'CUT'
   if (player.status === 'wd') return 'WD'
   if (player.status === 'dnq') return 'DNQ'
+  if (teeTimeLabel(player, timeZone, now)) return '—'
   if (shouldHoldFinishedStatus(player, timeZone, now)) return 'F'
   return thruLabel(player.thru, false)
 }
