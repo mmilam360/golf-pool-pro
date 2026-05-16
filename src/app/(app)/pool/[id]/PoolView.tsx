@@ -234,28 +234,12 @@ function SquareTrustMark() {
 
 const REFRESH_SECONDS = 60
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
-const ROUND_LABELS: Record<number, string> = { 1: 'Thursday', 2: 'Friday', 3: 'Saturday', 4: 'Sunday' }
+const SHORT_ROUND_LABELS: Record<number, string> = { 1: 'THURS', 2: 'FRI', 3: 'SAT', 4: 'SUN' }
 
 type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
 
-function roundLabel(round: number) {
-  return ROUND_LABELS[round] || `Round ${round}`
-}
-
 function shortRoundLabel(round: number) {
-  return roundLabel(round).slice(0, 5).toUpperCase()
-}
-
-function modeKey(mode: LeaderboardMode) {
-  return mode.type === 'current' ? 'current' : `${mode.type}-${mode.round}`
-}
-
-function modeFromKey(key: string): LeaderboardMode {
-  if (key === 'current') return { type: 'current' }
-  const [type, roundText] = key.split('-')
-  const round = Number(roundText)
-  if ((type === 'thru' || type === 'day') && Number.isFinite(round)) return { type, round } as LeaderboardMode
-  return { type: 'current' }
+  return SHORT_ROUND_LABELS[round] || `R${round}`
 }
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary }: Props) {
@@ -300,6 +284,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
+  const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
 
@@ -1139,23 +1124,44 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   <p className="mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]" title={tournament?.name || 'Leaderboard'}>{tournament?.name || 'Leaderboard'}</p>
                   <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{poolName}</p>
                   {availableHistoricalRounds.length > 0 && (
-                    <div className="mt-2 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.08em]">
-                      <label className="text-[#657168]" htmlFor="pool-leaderboard-mode">View</label>
-                      <select
-                        id="pool-leaderboard-mode"
-                        value={modeKey(leaderboardMode)}
-                        onChange={event => setLeaderboardMode(modeFromKey(event.target.value))}
-                        className="border-2 border-[#111] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[2px_2px_0_#111]"
-                      >
-                        <option value="current">Current</option>
+                    <details
+                      className="relative z-50 mx-auto mt-2 w-fit text-left"
+                      open={leaderboardMenuOpen}
+                      onToggle={event => setLeaderboardMenuOpen(event.currentTarget.open)}
+                    >
+                      <summary className="list-none border-2 border-[#123c2f] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] marker:hidden [&::-webkit-details-marker]:hidden">
+                        <span className="mr-2 text-[#657168]">View</span>{selectedBoardLabel}
+                        <span className="ml-2 inline-block text-[#123c2f]">▾</span>
+                      </summary>
+                      <div className="absolute left-1/2 top-[calc(100%+6px)] z-[220] w-44 -translate-x-1/2 border-2 border-[#123c2f] bg-[#fffdf8] p-2 text-[11px] font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[5px_5px_0_#d8cab0]">
+                        <button
+                          type="button"
+                          onClick={() => { setLeaderboardMode({ type: 'current' }); setLeaderboardMenuOpen(false) }}
+                          className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'current' ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : 'border-b border-[#d8cab0]'}`}
+                        >
+                          Current
+                        </button>
                         {availableHistoricalRounds.map(round => (
-                          <optgroup key={round} label={shortRoundLabel(round)}>
-                            <option value={`thru-${round}`}>Thru {shortRoundLabel(round)}</option>
-                            <option value={`day-${round}`}>{shortRoundLabel(round)}</option>
-                          </optgroup>
+                          <div key={round} className="border-b border-[#d8cab0] py-1 last:border-b-0">
+                            <div className="px-3 pb-1 pt-2 text-[9px] text-[#657168]">{shortRoundLabel(round)}</div>
+                            <button
+                              type="button"
+                              onClick={() => { setLeaderboardMode({ type: 'thru', round }); setLeaderboardMenuOpen(false) }}
+                              className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'thru' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                            >
+                              Thru {shortRoundLabel(round)}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
+                              className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                            >
+                              {shortRoundLabel(round)}
+                            </button>
+                          </div>
                         ))}
-                      </select>
-                    </div>
+                      </div>
+                    </details>
                   )}
                   {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{leaderboardMode.type === 'day' ? `${selectedBoardLabel} daily scores only` : `Standings through ${selectedBoardLabel.replace('Thru ', '')}`}</p> : null}
                   {!selectedBoardIsHistorical && <div className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c]" title="Auto-refresh countdown">
