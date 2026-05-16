@@ -176,4 +176,21 @@ assert.equal(
   'OB replacement status text should show CUT, while main score carries the adjusted OB score'
 )
 
+assert.equal(
+  pickProgressLabel({ teeTime: '2026-05-16T14:00:00Z', thru: 'F', roundScore: '+2', status: 'cut', isObStandIn: false }, timeZone, now),
+  'CUT',
+  'cut golfers should not show stale today score in outside-top/player chips'
+)
+
+assert.equal(
+  leaderboardBackedPickProgressLabel(
+    { name: 'Cut Golfer', thru: 'F', roundScore: '+2', status: 'cut', isObStandIn: false },
+    { name: 'Cut Golfer', teeTime: undefined, thru: '', roundScore: '', status: 'cut' },
+    timeZone,
+    now
+  ),
+  'CUT',
+  'leaderboard-backed cut golfers should show CUT without a today score'
+)
+
 console.log('golfer status label checks passed')

@@ -93,7 +93,7 @@ export function leaderboardBackedPickStatusLabel(pick: GolferStatusFields, leade
 export function pickProgressLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
   const status = pickStatusLabel(player, timeZone, now)
   const roundScore = String(player.roundScore ?? '').trim()
-  if (!roundScore || status === 'OB' || status === '—' || status.includes(':')) return status
+  if (!roundScore || status === 'OB' || status === 'CUT' || status === 'WD' || status === 'DNQ' || status === '—' || status.includes(':')) return status
   return `${roundScore} ${status}`
 }
 
