@@ -51,10 +51,16 @@ export default async function BlogIndexPage({ searchParams }: BlogIndexPageProps
 
         <div className="mt-10 grid gap-5">
           {posts.map(post => (
-            <Link key={post.slug} href={`/blog/${post.slug}${postSuffix}`} className="block border-2 border-[#123c2f] bg-white p-6 shadow-[7px_7px_0_#d8cab0] transition-transform hover:-translate-y-0.5">
+            <Link key={post.slug} href={`/blog/${post.slug}${postSuffix}`} className="group block border-2 border-[#123c2f] bg-white p-6 shadow-[7px_7px_0_#d8cab0] transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-[#d8cab0]">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">{post.category} / {formatDateOnly(post.publishedAt, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
               <h2 className="mt-2 font-display text-3xl font-black leading-tight text-[#0f2f25]">{post.title}</h2>
               <p className="mt-3 max-w-3xl leading-7 text-[#4f5b52]">{post.description}</p>
+              <div className="mt-5 flex justify-end">
+                <span className="inline-flex items-center border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#123c2f] transition-colors group-hover:bg-[#123c2f] group-hover:text-white">
+                  Read more
+                  <span className="ml-2 text-sm leading-none" aria-hidden="true">→</span>
+                </span>
+              </div>
             </Link>
           ))}
         </div>
