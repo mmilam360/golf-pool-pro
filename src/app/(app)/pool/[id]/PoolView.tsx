@@ -1149,14 +1149,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               onClick={() => { setLeaderboardMode({ type: 'thru', round }); setLeaderboardMenuOpen(false) }}
                               className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'thru' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                             >
-                              Thru {roundMenuLabel(round)}
+                              Scores Through
                             </button>
                             <button
                               type="button"
                               onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
                               className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                             >
-                              {roundMenuLabel(round)}
+                              Daily Winner
                             </button>
                           </div>
                         ))}
