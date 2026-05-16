@@ -1236,7 +1236,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   </table>
                 </div>
               </div>
-              {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="px-1 pt-2" /> : null}
+              {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="mt-1" /> : null}
               {!scoringIsLive && (
                 <p className="mt-2 border-2 border-[#111] bg-[#f7f7f2] px-4 py-3 text-xs font-bold uppercase tracking-[0.08em] text-[#111]">Live scoring appears here when the tournament starts.</p>
               )}

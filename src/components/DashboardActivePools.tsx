@@ -432,7 +432,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               </table>
             </div>
           </div>
-          {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="px-1 pt-2" /> : null}
+          {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="mt-1" /> : null}
         </div>
       </div>
       <div className="gpp-board-post mx-auto mt-[-8px] h-20 w-14 border-x-4 border-[#003622] md:h-28 md:w-16" />
