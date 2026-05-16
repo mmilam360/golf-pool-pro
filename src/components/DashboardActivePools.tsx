@@ -6,6 +6,7 @@ import { buildHarePickMap, buildTortoisePickMap, normalizePickName, rankEntries,
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
+import { pickStatusLabel } from '@/lib/golfer-status'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
@@ -214,25 +215,6 @@ function OpenPicksBar({ pool, tournament }: { pool: PoolRecord; tournament: Tour
       </a>
     </div>
   )
-}
-
-function thruLabel(thru?: string) {
-  if (!thru) return '—'
-  const value = String(thru).toUpperCase()
-  return value === 'F' ? 'F' : `THRU ${value}`
-}
-
-function teeTimeLabel(pick: ScoredEntry['pickScores'][number], timeZone: string) {
-  if (!pick.teeTime || pick.roundScore || pick.thru) return ''
-  const parsed = new Date(pick.teeTime)
-  if (!Number.isFinite(parsed.getTime())) return ''
-  const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
-  return `${time}${pick.startTee === 10 ? '*' : ''}`
-}
-
-function pickStatusLabel(pick: ScoredEntry['pickScores'][number], timeZone: string) {
-  if (pick.isObStandIn) return 'OB'
-  return teeTimeLabel(pick, timeZone) || thruLabel(pick.thru)
 }
 
 function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): ScoredEntry[] {

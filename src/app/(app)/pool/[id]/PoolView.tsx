@@ -11,6 +11,7 @@ import { buildHarePickMap, buildTortoisePickMap, normalizePickName, scoreEntry, 
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
+import { pickStatusLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type PaymentQuote = {
@@ -204,25 +205,6 @@ function golferListName(name: string) {
   const lastName = parts.pop()
   const firstNames = parts.join(' ')
   return `${lastName}, ${firstNames}${suffix ? ` ${suffix}` : ''}`
-}
-
-function thruLabel(thru?: string) {
-  if (!thru) return '—'
-  const value = String(thru).toUpperCase()
-  return value === 'F' ? 'F' : `THRU ${value}`
-}
-
-function teeTimeLabel(pick: ScoredEntry['pickScores'][number], timeZone: string) {
-  if (!pick.teeTime || pick.roundScore || pick.thru) return ''
-  const parsed = new Date(pick.teeTime)
-  if (!Number.isFinite(parsed.getTime())) return ''
-  const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
-  return `${time}${pick.startTee === 10 ? '*' : ''}`
-}
-
-function pickStatusLabel(pick: ScoredEntry['pickScores'][number], timeZone: string) {
-  if (pick.isObStandIn) return 'OB'
-  return teeTimeLabel(pick, timeZone) || thruLabel(pick.thru)
 }
 
 function TrustCheckIcon() {

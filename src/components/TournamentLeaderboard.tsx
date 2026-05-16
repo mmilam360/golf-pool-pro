@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useEffect, useState } from 'react'
+import { teeTimeLabel, tournamentThruLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Props = {
@@ -36,18 +37,8 @@ function positionLabel(player: GolfPlayer, index: number) {
   return String(index + 1)
 }
 
-function thruLabel(thru?: string) {
-  if (!thru) return '—'
-  const value = String(thru).toUpperCase()
-  if (value === 'F') return 'F'
-  return value
-}
-
-function statusLabel(player: GolfPlayer) {
-  if (player.status === 'cut') return 'CUT'
-  if (player.status === 'wd') return 'WD'
-  if (player.status === 'dnq') return 'DNQ'
-  return thruLabel(player.thru)
+function statusLabel(player: GolfPlayer, timeZone: string) {
+  return tournamentThruLabel(player, timeZone)
 }
 
 function updatedLabel(value?: string | null) {
@@ -55,14 +46,6 @@ function updatedLabel(value?: string | null) {
   const parsed = new Date(value)
   if (!Number.isFinite(parsed.getTime())) return ''
   return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
-
-function teeTimeLabel(player: GolfPlayer, timeZone: string) {
-  if (!player.teeTime || player.roundScore || player.thru) return ''
-  const parsed = new Date(player.teeTime)
-  if (!Number.isFinite(parsed.getTime())) return ''
-  const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
-  return `${time}${player.startTee === 10 ? '*' : ''}`
 }
 
 function todayLabel(player: GolfPlayer, timeZone: string) {
@@ -143,7 +126,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
                       </td>
                       <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${isPicked ? 'bg-[#dff0e2] text-[#123c2f]' : scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>
                       <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[11px] font-black text-[#657168] sm:px-2 sm:py-1.5 sm:text-xs">{todayLabel(player, teeTimeZone)}</td>
-                      <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[10px] font-black uppercase text-[#1f2a24] sm:px-2 sm:py-1.5 sm:text-xs">{statusLabel(player)}</td>
+                      <td className="border-b border-l border-[#eadfca] px-1 py-1 text-center text-[10px] font-black uppercase text-[#1f2a24] sm:px-2 sm:py-1.5 sm:text-xs">{statusLabel(player, teeTimeZone)}</td>
                     </tr>
                     {showCutLine ? (
                       <tr>
