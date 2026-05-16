@@ -4,7 +4,7 @@ export function LeverageMarkerIcon({ kind }: { kind: MarkerKind }) {
   if (kind === 'hare') {
     return (
       <svg
-        className="block h-5 w-7 overflow-visible"
+        className="block h-2.5 w-3.5 overflow-visible"
         viewBox="0 0 497.930001 369.418408"
         preserveAspectRatio="xMidYMid meet"
         fill="currentColor"
@@ -19,7 +19,7 @@ export function LeverageMarkerIcon({ kind }: { kind: MarkerKind }) {
 
   return (
     <svg
-      className="block h-5 w-7 overflow-visible"
+      className="block h-2.5 w-3.5 overflow-visible"
       viewBox="0 0 494.433958 253.794037"
       preserveAspectRatio="xMidYMid meet"
       fill="currentColor"
@@ -41,7 +41,7 @@ export function LeverageMarker({ kind }: { kind: MarkerKind }) {
   const label = kind === 'hare' ? 'Hare: your golfer to root for' : 'Tortoise: opponent golfer to root against'
   const className = 'text-[#111]'
   return (
-    <span title={label} aria-label={label} className={`inline-flex h-5 w-7 shrink-0 items-center justify-center overflow-visible leading-none ${className}`}>
+    <span title={label} aria-label={label} className={`inline-flex h-2.5 w-3.5 shrink-0 items-center justify-center overflow-visible leading-none ${className}`}>
       <LeverageMarkerIcon kind={kind} />
     </span>
   )
@@ -50,7 +50,7 @@ export function LeverageMarker({ kind }: { kind: MarkerKind }) {
 export function LeverageMarkerCorner({ kind }: { kind?: MarkerKind }) {
   if (!kind) return null
   return (
-    <span className="absolute left-0.5 top-0.5 z-[1] overflow-visible leading-none">
+    <span className="absolute right-0.5 top-0.5 z-[1] overflow-visible leading-none">
       <LeverageMarker kind={kind} />
     </span>
   )
