@@ -11,7 +11,7 @@ import { buildHarePickMap, buildTortoisePickMap, normalizePickName, scoreEntry, 
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
-import { leaderboardBackedPickStatusLabel } from '@/lib/golfer-status'
+import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type PaymentQuote = {
@@ -186,7 +186,7 @@ function shortName(name: string, peerNames: string[] = []) {
 }
 
 function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<string, GolfPlayer>, timeZone: string) {
-  return leaderboardBackedPickStatusLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
+  return leaderboardBackedPickProgressLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
 }
 
 function LivePulseBadge() {

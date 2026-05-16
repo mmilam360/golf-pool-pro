@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { leaderboardBackedPickStatusLabel, pickStatusLabel, teeTimeLabel, tournamentThruLabel } from '../src/lib/golfer-status.ts'
+import { leaderboardBackedPickProgressLabel, leaderboardBackedPickStatusLabel, pickProgressLabel, pickStatusLabel, teeTimeLabel, tournamentThruLabel } from '../src/lib/golfer-status.ts'
 
 const timeZone = 'America/New_York'
 const now = new Date('2026-05-16T22:00:00Z') // 6:00 PM ET
@@ -90,6 +90,35 @@ assert.equal(
   ),
   'OB',
   'OB stand-in still wins even when a leaderboard row has a tee time'
+)
+
+assert.equal(
+  pickProgressLabel({ teeTime: '2026-05-16T14:00:00Z', thru: '3', roundScore: '-1', status: 'active', isObStandIn: false }, timeZone, now),
+  '-1 THRU 3',
+  'pool pick progress should show current-round score before holes played'
+)
+
+assert.equal(
+  pickProgressLabel({ teeTime: '2026-05-16T14:00:00Z', thru: '2', roundScore: '+6', status: 'active', isObStandIn: false }, timeZone, now),
+  '+6 THRU 2',
+  'over-par current round score should show before holes played'
+)
+
+assert.equal(
+  pickProgressLabel({ teeTime: '2026-05-16T14:00:00Z', thru: 'F', roundScore: 'E', status: 'active', isObStandIn: false }, timeZone, now),
+  'E F',
+  'even-par finished current round should keep round score before F'
+)
+
+assert.equal(
+  leaderboardBackedPickProgressLabel(
+    { name: 'Chris Gotterup', teeTime: undefined, thru: 'F', roundScore: '', status: 'active', isObStandIn: false },
+    { name: 'Chris Gotterup', teeTime: '2026-05-16T18:30:00Z', thru: 'F', roundScore: '', status: 'active' },
+    timeZone,
+    now
+  ),
+  '2:30 PM',
+  'pool pick progress should still show tee time, not score prefix, before start'
 )
 
 console.log('golfer status label checks passed')

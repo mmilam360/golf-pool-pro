@@ -6,7 +6,7 @@ import { buildHarePickMap, buildTortoisePickMap, normalizePickName, rankEntries,
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
-import { leaderboardBackedPickStatusLabel } from '@/lib/golfer-status'
+import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
@@ -242,7 +242,7 @@ function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): Scored
 }
 
 function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<string, GolfPlayer>, timeZone: string) {
-  return leaderboardBackedPickStatusLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
+  return leaderboardBackedPickProgressLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
 }
 
 function CurrentUserMarker({ className = '' }: { className?: string }) {
