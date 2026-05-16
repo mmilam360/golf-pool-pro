@@ -235,11 +235,16 @@ function SquareTrustMark() {
 const REFRESH_SECONDS = 60
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 const ROUND_MENU_LABELS: Record<number, string> = { 1: 'THURSDAY', 2: 'FRIDAY', 3: 'SATURDAY', 4: 'SUNDAY' }
+const ROUND_SCORE_LABELS: Record<number, string> = { 1: 'THU', 2: 'FRI', 3: 'SAT', 4: 'SUN' }
 
 type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
 
 function roundMenuLabel(round: number) {
   return ROUND_MENU_LABELS[round] || `ROUND ${round}`
+}
+
+function roundScoreLabel(round: number) {
+  return ROUND_SCORE_LABELS[round] || `R${round}`
 }
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary }: Props) {
@@ -335,7 +340,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const totalScoreSubLabel = leaderboardMode.type === 'current'
     ? 'TODAY'
     : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
-      ? roundMenuLabel(leaderboardMode.round)
+      ? roundScoreLabel(leaderboardMode.round)
       : null
   const selectedScoringIsLive = scoringIsLive || selectedBoardIsHistorical
   useEffect(() => {
@@ -1214,7 +1219,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           <div className="text-right">
                             <div className={`text-2xl font-black leading-none ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
                             {totalScoreSubLabel && entry.todayScore !== null ? (
-                              <div className="mt-0.5 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.08em] text-[#777]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div>
+                              <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div>
                             ) : null}
                           </div>
                           <div className="flex items-center justify-center text-[#111]" aria-label={isEntryOpen ? 'Collapse entry' : 'Expand entry'}>
@@ -1308,7 +1313,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle ${scoreClass(entry.totalScore)}`}>
                                 <div className="text-3xl font-black leading-none">{formatScore(entry.totalScore)}</div>
                                 {totalScoreSubLabel && entry.todayScore !== null ? (
-                                  <div className="mt-0.5 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.08em] text-[#777]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div>
+                                  <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div>
                                 ) : null}
                               </td>
                             </tr>
