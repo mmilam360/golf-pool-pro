@@ -334,7 +334,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
   const totalScoreSubLabel = leaderboardMode.type === 'current'
     ? 'TODAY'
-    : leaderboardMode.type === 'thru'
+    : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
       ? roundMenuLabel(leaderboardMode.round)
       : null
   const selectedScoringIsLive = scoringIsLive || selectedBoardIsHistorical
