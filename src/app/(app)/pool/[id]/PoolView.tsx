@@ -124,6 +124,7 @@ function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
         isObStandIn: false,
       })),
       totalScore: null,
+      todayScore: null,
       rank: null,
       obStandIns: 0,
     }
@@ -146,6 +147,7 @@ function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
     picks: orderedPicks,
     pickScores,
     totalScore: null,
+    todayScore: null,
     rank: null,
     obStandIns: 0,
   }
@@ -345,6 +347,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ? `Thru ${shortRoundLabel(leaderboardMode.round)}`
       : shortRoundLabel(leaderboardMode.round)
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
+  const totalScoreSubLabel = leaderboardMode.type === 'current'
+    ? 'TODAY'
+    : leaderboardMode.type === 'thru'
+      ? shortRoundLabel(leaderboardMode.round)
+      : null
   const selectedScoringIsLive = scoringIsLive || selectedBoardIsHistorical
   useEffect(() => {
     if (!leaderboardModeIsCurrent && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
@@ -1198,7 +1205,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               </div>
                             )}
                           </div>
-                          <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
+                          <div className="text-right">
+                            <div className={`text-2xl font-black leading-none ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
+                            {totalScoreSubLabel && entry.todayScore !== null ? (
+                              <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#777]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div>
+                            ) : null}
+                          </div>
                           <div className="flex items-center justify-center text-[#111]" aria-label={isEntryOpen ? 'Collapse entry' : 'Expand entry'}>
                             <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                               <path d={isEntryOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
@@ -1287,8 +1299,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   </td>
                                 )
                               })}
-                              <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>
-                                {formatScore(entry.totalScore)}
+                              <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle ${scoreClass(entry.totalScore)}`}>
+                                <div className="text-3xl font-black leading-none">{formatScore(entry.totalScore)}</div>
+                                {totalScoreSubLabel && entry.todayScore !== null ? (
+                                  <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#777]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div>
+                                ) : null}
                               </td>
                             </tr>
                             {outOfBoundsPicks.length > 0 && (

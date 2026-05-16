@@ -47,6 +47,7 @@ const scored = scoreEntriesForLeaderboard(
 
 assert.equal(scored[0].entryId, 'entry-2', 'Friday standings should rank by cumulative through selected round')
 assert.equal(scored[0].totalScore, -2)
+assert.equal(scored[0].todayScore, 1, 'through-round board should still expose selected day team score')
 assert.equal(scored[1].totalScore, 5)
 
 const fridayOnlyBoard = leaderboardForRoundOnly(players, 2)
@@ -61,6 +62,7 @@ const fridayOnly = scoreEntriesForLeaderboard(
 
 assert.equal(fridayOnly[0].entryId, 'entry-2', 'daily board should rank by selected round only')
 assert.equal(fridayOnly[0].totalScore, 1)
+assert.equal(fridayOnly[0].todayScore, 1)
 assert.equal(fridayOnly[1].totalScore, 4)
 assert.equal(fridayOnlyBoard.find(player => player.name === 'Steady A')?.scoreToPar, 1)
 assert.equal(fridayOnlyBoard.find(player => player.name === 'Friday Cut')?.scoreToPar, 3)

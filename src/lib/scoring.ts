@@ -7,6 +7,15 @@ function formatScoreToPar(score: number) {
   return score > 0 ? `+${score}` : String(score)
 }
 
+function scoreStringToPar(score?: string | null) {
+  if (!score) return null
+  const normalized = String(score).trim().toUpperCase()
+  if (!normalized || normalized === '-' || normalized === '—') return null
+  if (normalized === 'E') return 0
+  const parsed = Number(normalized.replace('+', ''))
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export interface PickScore {
   name: string; scoreToPar: number | null; strokes: number | null
   thru: string; status: 'active' | 'cut' | 'wd' | 'dnq'
@@ -16,7 +25,7 @@ export interface PickScore {
 
 export interface ScoredEntry {
   entryId: string; displayName: string; picks: string[]
-  pickScores: PickScore[]; totalScore: number | null
+  pickScores: PickScore[]; totalScore: number | null; todayScore: number | null
   rank: number | null; obStandIns: number
 }
 
@@ -79,7 +88,11 @@ export function scoreEntry(
     ...pickScores.filter(p => p.status !== 'active' && !replacedObNames.has(normalizePickName(p.name))),
   ]
   const totalScore = counting.length >= countScores ? counting.reduce((s, p) => s + (p.scoreToPar ?? 0), 0) : null
-  return { entryId: '', displayName: '', picks, pickScores: allScored, totalScore, rank: null, obStandIns }
+  const todayScores = counting.map(p => scoreStringToPar(p.roundScore))
+  const todayScore = counting.length >= countScores && todayScores.every(score => score !== null)
+    ? todayScores.reduce((sum, score) => sum + (score ?? 0), 0)
+    : null
+  return { entryId: '', displayName: '', picks, pickScores: allScored, totalScore, todayScore, rank: null, obStandIns }
 }
 
 export function availableCompletedRounds(leaderboard: GolfPlayer[]) {
