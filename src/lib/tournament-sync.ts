@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { getLeaderboard, getSchedule, mapCompetitorToPlayer } from './golf-api'
+import { findPgaTourTournament, getPgaTourField, getPgaTourSchedule } from './pga-tour-field'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 
@@ -166,6 +167,7 @@ export async function syncTournaments({
   const schedule = await getSchedule(season)
   const scoreboardEvents = await fetchScoreboardEvents()
   const scoreboardById = new Map(scoreboardEvents.map((event: any) => [String(event.id), event]))
+  const pgaTourSchedule = await getPgaTourSchedule(season).catch(() => [])
 
   const result: TournamentSyncResult = {
     season,
@@ -194,7 +196,18 @@ export async function syncTournaments({
       || bestEvent.venue?.address?.city
       || null
     const status = getStatus(bestEvent)
-    const players = extractPlayers(bestEvent)
+    let players = extractPlayers(bestEvent)
+    if (players.length === 0 && status === 'upcoming') {
+      const pgaTourTournament = findPgaTourTournament({
+        pgaSchedule: pgaTourSchedule,
+        eventName: bestEvent.name || event.name,
+        startDate,
+      })
+      if (pgaTourTournament?.tournamentId) {
+        const earlyField = await getPgaTourField(pgaTourTournament.tournamentId).catch(() => [])
+        if (earlyField.length > 0) players = earlyField
+      }
+    }
 
     if (!startDate || !endDate) continue
 
