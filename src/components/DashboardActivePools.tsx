@@ -2,11 +2,11 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { buildHarePickMap, buildTortoisePickMap, normalizePickName, rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
+import { buildHarePickMap, buildTortoisePickMap, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
-import { pickStatusLabel } from '@/lib/golfer-status'
+import { leaderboardBackedPickStatusLabel } from '@/lib/golfer-status'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
@@ -241,6 +241,10 @@ function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): Scored
   )
 }
 
+function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<string, GolfPlayer>, timeZone: string) {
+  return leaderboardBackedPickStatusLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
+}
+
 function CurrentUserMarker({ className = '' }: { className?: string }) {
   return <span aria-label="Your entry" title="Your entry" className={`inline-block h-2.5 w-2.5 shrink-0 bg-[#1f6b4a] ${className}`} />
 }
@@ -256,7 +260,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const scoredEntries = buildScoredEntries(pool, entries)
   const countScores = pool.count_scores || 4
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
-  const golferNamePeers = (Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : [])
+  const leaderboardRows = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
+  const leaderboardByName = new Map(leaderboardRows.map(player => [normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()), player]))
+  const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
   const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
@@ -341,7 +347,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                             <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />
                             <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                             <div className="mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? pickStatusLabel(pick, teeTimeZone) : '—'}</div>
+                            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone) : '—'}</div>
                           </div>
                         )
                       })}
@@ -354,7 +360,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                             <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                               {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                               {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                              <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pickStatusLabel(pick, teeTimeZone)}</span>
+                              <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span>
                             </span>
                           ))}
                         </div>
@@ -400,7 +406,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                                 <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                 <div className="mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? pickStatusLabel(pick, teeTimeZone) : '—'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone) : '—'}</div>
                               </td>
                             )
                           })}
@@ -416,7 +422,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                                   <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                     {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                     {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                                    <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pickStatusLabel(pick, teeTimeZone)}</span></span>
+                                    <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                                   </span>
                                 ))}
                               </div>

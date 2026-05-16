@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { pickStatusLabel, teeTimeLabel, tournamentThruLabel } from '../src/lib/golfer-status.ts'
+import { leaderboardBackedPickStatusLabel, pickStatusLabel, teeTimeLabel, tournamentThruLabel } from '../src/lib/golfer-status.ts'
 
 const timeZone = 'America/New_York'
 const now = new Date('2026-05-16T22:00:00Z') // 6:00 PM ET
@@ -68,6 +68,28 @@ assert.equal(
   pickStatusLabel({ isObStandIn: true, thru: 'F', status: 'active' }, timeZone, now),
   'OB',
   'OB stand-in still wins'
+)
+
+assert.equal(
+  leaderboardBackedPickStatusLabel(
+    { name: 'Chris Gotterup', teeTime: undefined, thru: 'F', roundScore: '', status: 'active', isObStandIn: false },
+    { name: 'Chris Gotterup', teeTime: '2026-05-16T18:30:00Z', thru: 'F', roundScore: '', status: 'active' },
+    timeZone,
+    now
+  ),
+  '2:30 PM',
+  'active pool pick should use the full leaderboard row tee time before falling back to stale pick F'
+)
+
+assert.equal(
+  leaderboardBackedPickStatusLabel(
+    { name: 'Chris Gotterup', teeTime: undefined, thru: 'F', roundScore: '', status: 'active', isObStandIn: true },
+    { name: 'Chris Gotterup', teeTime: '2026-05-16T18:30:00Z', thru: 'F', roundScore: '', status: 'active' },
+    timeZone,
+    now
+  ),
+  'OB',
+  'OB stand-in still wins even when a leaderboard row has a tee time'
 )
 
 console.log('golfer status label checks passed')

@@ -7,11 +7,11 @@ import { PreviousPlayersInvitePanel } from '@/components/PreviousPlayersInvitePa
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { createClient } from '@/lib/supabase/client'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend } from '@/components/LeverageMarkers'
-import { buildHarePickMap, buildTortoisePickMap, normalizePickName, scoreEntry, rankEntries, type ScoredEntry } from '@/lib/scoring'
+import { buildHarePickMap, buildTortoisePickMap, normalizePickName, scoreEntry, rankEntries, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
-import { pickStatusLabel } from '@/lib/golfer-status'
+import { leaderboardBackedPickStatusLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type PaymentQuote = {
@@ -183,6 +183,10 @@ function shortName(name: string, peerNames: string[] = []) {
   }
 
   return `${firstName}. ${lastName}`
+}
+
+function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<string, GolfPlayer>, timeZone: string) {
+  return leaderboardBackedPickStatusLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
 }
 
 function LivePulseBadge() {
@@ -833,7 +837,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         }))
       )
     : visibleEntries.map(entry => buildPreScoringEntry(entry, pool.count_scores))
-  const golferNamePeers = (leaderboard.length ? leaderboard : field)
+  const leaderboardRows = leaderboard.length ? leaderboard : field
+  const leaderboardByName = new Map(leaderboardRows.map(player => [normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()), player]))
+  const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
   const harePickMap = buildHarePickMap(scoredEntries, 2)
@@ -1141,7 +1147,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 <div className={`mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
                                   {pick ? shortName(pick.name, allPickNames) : '—'}
                                 </div>
-                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? pickStatusLabel(pick, teeTimeZone) : '—'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone) : '—'}</div>
                               </div>
                             )
                           })}
@@ -1154,7 +1160,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                   {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                   {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                                  <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pickStatusLabel(pick, teeTimeZone)}</span></span>
+                                  <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                                 </span>
                               ))}
                             </div>
@@ -1207,7 +1213,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                     <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />
                                     <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                     <div className={`mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? pickStatusLabel(pick, teeTimeZone) : '—'}</div>
+                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone) : '—'}</div>
                                   </td>
                                 )
                               })}
@@ -1225,7 +1231,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                       <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                         {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                         {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                                        <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{pickStatusLabel(pick, teeTimeZone)}</span></span>
+                                        <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                                       </span>
                                     ))}
                                   </div>

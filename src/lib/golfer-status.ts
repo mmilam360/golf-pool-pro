@@ -69,6 +69,11 @@ export function pickStatusLabel(player: GolferStatusFields, timeZone: string, no
   return teeTimeLabel(player, timeZone) || (shouldHoldFinishedStatus(player, timeZone, now) ? 'F' : thruLabel(player.thru))
 }
 
+export function leaderboardBackedPickStatusLabel(pick: GolferStatusFields, leaderboardPlayer: GolferStatusFields | undefined, timeZone: string, now = new Date()) {
+  if (pick.isObStandIn) return 'OB'
+  return (leaderboardPlayer ? teeTimeLabel(leaderboardPlayer, timeZone) : '') || pickStatusLabel(leaderboardPlayer ?? pick, timeZone, now)
+}
+
 export function tournamentThruLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
   if (player.status === 'cut') return 'CUT'
   if (player.status === 'wd') return 'WD'
