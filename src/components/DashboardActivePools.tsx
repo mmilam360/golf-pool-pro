@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { buildHarePickMap, buildTortoisePickMap, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
-import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarkerCorner } from '@/components/LeverageMarkers'
+import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
@@ -354,10 +354,11 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                     </div>
                     {outOfBoundsPicks.length > 0 && (
                       <div className="border-t-2 border-[#111] bg-[#efeee6] px-2 py-1.5 text-left">
-                        <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Out of Bounds Golfers</div>
+                        <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Outside Top {countScores}</div>
                         <div className="flex flex-wrap gap-1">
                           {outOfBoundsPicks.map(pick => (
                             <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                              {pick.isObStandIn ? <ObMarker /> : null}
                               {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                               {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
                               <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span>
@@ -415,11 +416,12 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         {outOfBoundsPicks.length > 0 && (
                           <tr className="bg-[#efeee6]">
                             <td className="border-b border-r-2 border-[#111] bg-[#efeee6]" />
-                            <td className="border-b border-r-2 border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Out of Bounds Golfers</td>
+                            <td className="border-b border-r-2 border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Outside Top {countScores}</td>
                             <td className="border-b border-[#111] bg-[#efeee6] px-2 py-1 text-left" colSpan={countScores + 1}>
                               <div className="flex flex-wrap gap-1">
                                 {outOfBoundsPicks.map(pick => (
                                   <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                    {pick.isObStandIn ? <ObMarker /> : null}
                                     {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                     {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
                                     <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
