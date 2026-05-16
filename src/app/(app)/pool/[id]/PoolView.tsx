@@ -234,12 +234,12 @@ function SquareTrustMark() {
 
 const REFRESH_SECONDS = 60
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
-const SHORT_ROUND_LABELS: Record<number, string> = { 1: 'THURS', 2: 'FRI', 3: 'SAT', 4: 'SUN' }
+const ROUND_MENU_LABELS: Record<number, string> = { 1: 'THURSDAY', 2: 'FRIDAY', 3: 'SATURDAY', 4: 'SUNDAY' }
 
 type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
 
-function shortRoundLabel(round: number) {
-  return SHORT_ROUND_LABELS[round] || `R${round}`
+function roundMenuLabel(round: number) {
+  return ROUND_MENU_LABELS[round] || `ROUND ${round}`
 }
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary }: Props) {
@@ -329,13 +329,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const selectedBoardLabel = leaderboardMode.type === 'current'
     ? 'Current'
     : leaderboardMode.type === 'thru'
-      ? `Thru ${shortRoundLabel(leaderboardMode.round)}`
-      : shortRoundLabel(leaderboardMode.round)
+      ? `Thru ${roundMenuLabel(leaderboardMode.round)}`
+      : roundMenuLabel(leaderboardMode.round)
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
   const totalScoreSubLabel = leaderboardMode.type === 'current'
     ? 'TODAY'
     : leaderboardMode.type === 'thru'
-      ? shortRoundLabel(leaderboardMode.round)
+      ? roundMenuLabel(leaderboardMode.round)
       : null
   const selectedScoringIsLive = scoringIsLive || selectedBoardIsHistorical
   useEffect(() => {
@@ -1143,20 +1143,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         </button>
                         {availableHistoricalRounds.map(round => (
                           <div key={round} className="border-b border-[#d8cab0] py-1 last:border-b-0">
-                            <div className="px-3 pb-1 pt-2 text-[9px] text-[#657168]">{shortRoundLabel(round)}</div>
+                            <div className="px-3 pb-1 pt-2 text-[9px] text-[#657168]">{roundMenuLabel(round)}</div>
                             <button
                               type="button"
                               onClick={() => { setLeaderboardMode({ type: 'thru', round }); setLeaderboardMenuOpen(false) }}
                               className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'thru' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                             >
-                              Thru {shortRoundLabel(round)}
+                              Thru {roundMenuLabel(round)}
                             </button>
                             <button
                               type="button"
                               onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
                               className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                             >
-                              {shortRoundLabel(round)}
+                              {roundMenuLabel(round)}
                             </button>
                           </div>
                         ))}
