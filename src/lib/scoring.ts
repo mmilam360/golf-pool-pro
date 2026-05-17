@@ -24,17 +24,36 @@ function worstActiveRoundScore(players: GolfPlayer[], penalty: number) {
   return formatScoreToPar(Math.max(...roundScores) + penalty)
 }
 
+function finalNineScore(player?: GolfPlayer | null): number | null {
+  const rounds = [...(player?.roundScores || [])].sort((a, b) => b.round - a.round)
+  const finalRound = rounds[0]
+  if (!finalRound?.complete || !finalRound.holes?.length) return null
+  const finalNine = finalRound.holes
+    .filter(hole => hole.hole >= 10 && hole.hole <= 18)
+    .sort((a, b) => a.hole - b.hole)
+  if (finalNine.length !== 9) return null
+  return finalNine.reduce((sum, hole) => sum + hole.scoreToPar, 0)
+}
+
+function worstActiveFinalNineScore(players: GolfPlayer[], penalty: number) {
+  const scores = players
+    .map(player => finalNineScore(player))
+    .filter((score): score is number => score !== null)
+  if (!scores.length) return null
+  return Math.max(...scores) + penalty
+}
+
 export interface PickScore {
   name: string; scoreToPar: number | null; strokes: number | null
   thru: string; status: 'active' | 'cut' | 'wd' | 'dnq'
   counted: boolean; isObStandIn: boolean
-  teeTime?: string; startTee?: number | null; roundScore?: string
+  teeTime?: string; startTee?: number | null; roundScore?: string; finalNineScore?: number | null
 }
 
 export interface ScoredEntry {
   entryId: string; displayName: string; picks: string[]
   pickScores: PickScore[]; totalScore: number | null; todayScore: number | null
-  rank: number | null; obStandIns: number
+  finalNineScore: number | null; rank: number | null; obStandIns: number
 }
 
 export type LeveragePickMap = Map<string, Set<string>>
@@ -54,8 +73,8 @@ export function scoreEntry(
       p.name.toLowerCase() === name.toLowerCase() ||
       `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase()
     )
-    if (!player) return { name, scoreToPar: null, strokes: null, thru: '', status: 'dnq' as const, counted: false, isObStandIn: false }
-    return { name: player.name, scoreToPar: player.scoreToPar, strokes: player.strokes, thru: player.thru, status: player.status, counted: false, isObStandIn: false, teeTime: player.teeTime, startTee: player.startTee, roundScore: player.roundScore }
+    if (!player) return { name, scoreToPar: null, strokes: null, thru: '', status: 'dnq' as const, counted: false, isObStandIn: false, finalNineScore: null }
+    return { name: player.name, scoreToPar: player.scoreToPar, strokes: player.strokes, thru: player.thru, status: player.status, counted: false, isObStandIn: false, teeTime: player.teeTime, startTee: player.startTee, roundScore: player.roundScore, finalNineScore: finalNineScore(player) }
   })
 
   const active = pickScores.filter(p => p.status === 'active' && p.scoreToPar !== null)
@@ -74,6 +93,7 @@ export function scoreEntry(
       scoredPlayers.sort((a, b) => (b.scoreToPar ?? -999) - (a.scoreToPar ?? -999))
       const worstScore = scoredPlayers.length > 0 ? scoredPlayers[0].scoreToPar : 0
       const obRoundScore = worstActiveRoundScore(scoredPlayers, obPenaltyStrokes)
+      const obFinalNineScore = worstActiveFinalNineScore(scoredPlayers, obPenaltyStrokes)
       const standInPicks = obEligiblePicks.slice(0, standInsNeeded)
       for (const pick of standInPicks) {
         counting.push({
@@ -82,6 +102,7 @@ export function scoreEntry(
           strokes: null,
           thru: '',
           roundScore: obRoundScore,
+          finalNineScore: obFinalNineScore,
           counted: true,
           isObStandIn: true,
         })
@@ -101,7 +122,11 @@ export function scoreEntry(
   const todayScore = counting.length >= countScores && todayScores.every(score => score !== null)
     ? todayScores.reduce((sum, score) => sum + (score ?? 0), 0)
     : null
-  return { entryId: '', displayName: '', picks, pickScores: allScored, totalScore, todayScore, rank: null, obStandIns }
+  const finalNineScores = counting.map(p => p.finalNineScore ?? null)
+  const teamFinalNineScore = counting.length >= countScores && finalNineScores.every(score => score !== null)
+    ? finalNineScores.reduce((sum, score) => sum + (score ?? 0), 0)
+    : null
+  return { entryId: '', displayName: '', picks, pickScores: allScored, totalScore, todayScore, finalNineScore: teamFinalNineScore, rank: null, obStandIns }
 }
 
 export function availableCompletedRounds(leaderboard: GolfPlayer[]) {
@@ -187,14 +212,18 @@ export function rankEntries(entries: ScoredEntry[]): ScoredEntry[] {
   const ranked = [...entries].sort((a, b) => {
     if (a.totalScore === null && b.totalScore === null) return 0
     if (a.totalScore === null) return 1; if (b.totalScore === null) return -1
-    return a.totalScore - b.totalScore
+    const totalDiff = a.totalScore - b.totalScore
+    if (totalDiff !== 0) return totalDiff
+    if (a.finalNineScore === null && b.finalNineScore === null) return 0
+    if (a.finalNineScore === null) return 1; if (b.finalNineScore === null) return -1
+    return a.finalNineScore - b.finalNineScore
   })
   ranked.forEach((e, i) => {
     if (e.totalScore === null) {
       e.rank = null
     } else if (i === 0 || ranked[i - 1].totalScore === null) {
       e.rank = 1
-    } else if (e.totalScore === ranked[i - 1].totalScore) {
+    } else if (e.totalScore === ranked[i - 1].totalScore && e.finalNineScore === ranked[i - 1].finalNineScore) {
       e.rank = ranked[i - 1].rank
     } else {
       e.rank = i + 1

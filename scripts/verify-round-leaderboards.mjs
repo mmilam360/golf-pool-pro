@@ -1,12 +1,20 @@
 import assert from 'node:assert/strict'
 import { availableCompletedRounds, leaderboardForCompletedRound, leaderboardForRoundOnly, scoreEntriesForLeaderboard } from '../src/lib/scoring.ts'
 
+function holes(backNineTotal) {
+  const front = Array.from({ length: 9 }, (_, index) => ({ hole: index + 1, score: 4, par: 4, scoreToPar: 0 }))
+  const back = Array.from({ length: 9 }, (_, index) => ({ hole: index + 10, score: 4, par: 4, scoreToPar: 0 }))
+  back[0].scoreToPar = backNineTotal
+  back[0].score = 4 + backNineTotal
+  return [...front, ...back]
+}
+
 const players = [
   {
     id: 'a', name: 'Steady A', firstName: 'Steady', lastName: 'A', score: '-1', scoreToPar: -1, strokes: 0, thru: 'F', roundScore: '-1', position: '1', status: 'active', country: '',
     roundScores: [
       { round: 1, roundScoreToPar: -2, cumulativeScoreToPar: -2, complete: true },
-      { round: 2, roundScoreToPar: 1, cumulativeScoreToPar: -1, complete: true },
+      { round: 2, roundScoreToPar: 1, cumulativeScoreToPar: -1, complete: true, holes: holes(2) },
       { round: 3, roundScoreToPar: 0, cumulativeScoreToPar: -1, complete: false },
     ],
   },
@@ -14,14 +22,14 @@ const players = [
     id: 'b', name: 'Friday Cut', firstName: 'Friday', lastName: 'Cut', score: '+6', scoreToPar: 6, strokes: 0, thru: '', roundScore: '', position: 'CUT', status: 'cut', country: '',
     roundScores: [
       { round: 1, roundScoreToPar: 3, cumulativeScoreToPar: 3, complete: true },
-      { round: 2, roundScoreToPar: 3, cumulativeScoreToPar: 6, complete: true },
+      { round: 2, roundScoreToPar: 3, cumulativeScoreToPar: 6, complete: true, holes: holes(0) },
     ],
   },
   {
     id: 'c', name: 'Incomplete C', firstName: 'Incomplete', lastName: 'C', score: '+2', scoreToPar: 2, strokes: 0, thru: '7', roundScore: '+3', position: '20', status: 'active', country: '',
     roundScores: [
       { round: 1, roundScoreToPar: -1, cumulativeScoreToPar: -1, complete: true },
-      { round: 2, roundScoreToPar: 0, cumulativeScoreToPar: -1, complete: true },
+      { round: 2, roundScoreToPar: 0, cumulativeScoreToPar: -1, complete: true, holes: holes(-1) },
       { round: 3, roundScoreToPar: 3, cumulativeScoreToPar: 2, complete: false },
     ],
   },
@@ -78,5 +86,24 @@ const currentWithOb = scoreEntriesForLeaderboard(
 assert.equal(currentWithOb[0].obStandIns, 1)
 assert.equal(currentWithOb[0].totalScore, 3, 'OB stand-in total should use worst active total plus penalty')
 assert.equal(currentWithOb[0].todayScore, 4, 'OB stand-in today score should use worst active today plus penalty')
+
+const tieBreak = scoreEntriesForLeaderboard(
+  [
+    { id: 'entry-a', display_name: 'Entry A', golfer_picks: ['Steady A', 'Friday Cut'], is_removed: false },
+    { id: 'entry-b', display_name: 'Entry B', golfer_picks: ['Incomplete C', 'Friday Cut'], is_removed: false },
+  ],
+  [
+    { ...players[0], scoreToPar: -1, roundScores: players[0].roundScores.filter(round => round.complete) },
+    { ...players[1], scoreToPar: 1, status: 'active', position: '20' },
+    { ...players[2], scoreToPar: -1, roundScores: players[2].roundScores.filter(round => round.complete) },
+  ],
+  { countScores: 2, obRuleEnabled: false, obPenaltyStrokes: 2 }
+)
+
+assert.equal(tieBreak[0].entryId, 'entry-b', 'final-nine tiebreak should sort tied totals by aggregate counting-player back-nine score')
+assert.equal(tieBreak[0].totalScore, 0)
+assert.equal(tieBreak[0].finalNineScore, -1)
+assert.equal(tieBreak[0].rank, 1)
+assert.equal(tieBreak[1].rank, 2)
 
 console.log('round leaderboard checks passed')

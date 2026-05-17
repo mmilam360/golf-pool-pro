@@ -20,6 +20,14 @@ export interface GolfRoundScore {
   roundScoreToPar: number
   cumulativeScoreToPar: number
   complete: boolean
+  holes?: GolfHoleScore[]
+}
+
+export interface GolfHoleScore {
+  hole: number
+  score: number
+  par: number
+  scoreToPar: number
 }
 
 export interface GolfCutLine {
@@ -112,6 +120,33 @@ function completedHoleCount(line: any) {
   return holes.filter((hole: any) => hole?.value != null || hole?.displayValue).length
 }
 
+function scoreTypeToPar(scoreType: any): number | null {
+  const display = scoreType?.displayValue
+  if (display == null || display === '' || display === '-') return null
+  return parseScoreToPar(display)
+}
+
+function holeScoresFromLine(line: any): GolfHoleScore[] {
+  const holes = Array.isArray(line?.linescores) ? line.linescores : []
+  return holes
+    .map((hole: any) => {
+      const score = Number(hole?.value)
+      const par = Number(hole?.par)
+      const scoreToPar = Number.isFinite(score) && Number.isFinite(par)
+        ? score - par
+        : scoreTypeToPar(hole?.scoreType)
+      const period = Number(hole?.period)
+      if (!Number.isFinite(period) || !Number.isFinite(score) || !Number.isFinite(scoreToPar)) return null
+      return {
+        hole: period,
+        score,
+        par: Number.isFinite(par) ? par : score - scoreToPar,
+        scoreToPar,
+      }
+    })
+    .filter((hole): hole is GolfHoleScore => Boolean(hole))
+}
+
 function roundScoresFromLines(linescores: any[] | undefined): GolfRoundScore[] {
   const lines = Array.isArray(linescores) ? linescores : []
   let cumulative = 0
@@ -120,12 +155,14 @@ function roundScoresFromLines(linescores: any[] | undefined): GolfRoundScore[] {
     .sort((a, b) => Number(a.period) - Number(b.period))
     .map(line => {
       const roundScoreToPar = parseScoreToPar(line.displayValue)
+      const holes = holeScoresFromLine(line)
       cumulative += roundScoreToPar
       return {
         round: Number(line.period),
         roundScoreToPar,
         cumulativeScoreToPar: cumulative,
         complete: completedHoleCount(line) >= 18,
+        holes,
       }
     })
 }
