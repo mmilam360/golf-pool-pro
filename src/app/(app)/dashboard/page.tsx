@@ -73,18 +73,11 @@ function formatDate(value?: string | null) {
   return formatDateOnly(value)
 }
 
-function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
-  if (pool.is_completed || tournament?.status === 'completed') return 'Passed'
-  if (tournament?.status === 'live') return 'Live'
-  if (pool.is_locked) return 'Locked'
-  return 'Open'
-}
-
-function statusClass(label: string) {
-  if (label === 'Live') return 'border-[#1f6b4a] bg-[#123c2f] text-white'
-  if (label === 'Locked') return 'border-[#b58a3a] bg-[#fbf0c9] text-[#7a5a19]'
-  if (label === 'Passed') return 'border-[#d8cab0] bg-[#f3ede0] text-[#657168]'
-  return 'border-[#cfe0d3] bg-[#eef7ef] text-[#1f6b4a]'
+function formatDateRange(start?: string | null, end?: string | null) {
+  const startText = formatDateOnly(start)
+  const endText = formatDateOnly(end)
+  if (!end || startText === endText) return startText
+  return `${startText}–${endText}`
 }
 
 function isActivePool(pool: PoolRecord, tournament: Tournament | null) {
@@ -95,24 +88,6 @@ function isActivePool(pool: PoolRecord, tournament: Tournament | null) {
   const today = todayDateOnly()
   const startDate = getDateOnly(tournament.start_date) || tournament.start_date
   return startDate >= today
-}
-
-function LockGlyph({ locked }: { locked: boolean }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="square" strokeLinejoin="miter">
-      <rect x="5" y="10" width="14" height="10" />
-      {locked ? <path d="M8 10V7a4 4 0 0 1 8 0v3" /> : <path d="M8 10V7a4 4 0 0 1 7.2-2.4" />}
-    </svg>
-  )
-}
-
-function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
-  return (
-    <span className={`inline-flex items-center gap-1.5 border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>
-      {label === 'Passed' ? null : <LockGlyph locked={locked || label === 'Live'} />}
-      {label}
-    </span>
-  )
 }
 
 function hasEventBegun(tournament: Tournament | null) {
@@ -206,6 +181,22 @@ function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: Entr
   const current = scored.find(scoredEntry => scoredEntry.entryId === entry.id)
   if (!current) return null
   return { rank: current.rank, totalScore: current.totalScore, fieldSize: scored.length }
+}
+
+function winnerLabel(pool: PoolRecord, allEntries: EntryRecord[]) {
+  const winners = buildScoredEntries(pool, allEntries).filter(entry => entry.rank === 1)
+  if (winners.length === 0) return null
+  if (winners.length === 1) return winners[0].displayName
+  return `${winners[0].displayName} + ${winners.length - 1}`
+}
+
+function WinnerBadge({ name }: { name?: string | null }) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1.5 border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-xs font-black uppercase tracking-[0.08em] text-[#7a5a19]">
+      <span className="shrink-0">Winner</span>
+      <span className="min-w-0 truncate text-[#123c2f]">{name || '—'}</span>
+    </span>
+  )
 }
 
 export default async function DashboardPage() {
@@ -395,7 +386,7 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="overflow-hidden">
-            <div className="grid grid-cols-[minmax(0,1fr)_100px_66px] border-b border-stone-200 bg-[#fbf7ed] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#657168] sm:grid-cols-[1.3fr_1fr_66px_76px_86px_104px] sm:px-5 sm:text-xs sm:tracking-[0.16em]">
+            <div className="grid grid-cols-[minmax(0,1fr)_112px_96px] border-b border-stone-200 bg-[#fbf7ed] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#657168] sm:grid-cols-[minmax(220px,2fr)_minmax(150px,1fr)_64px_72px_116px_150px] sm:px-5 sm:text-xs sm:tracking-[0.16em]">
               <span>Pool</span>
               <span className="hidden sm:block">Tournament</span>
               <span className="text-center sm:hidden">Standing</span>
@@ -409,19 +400,19 @@ export default async function DashboardPage() {
               if (!pool) return null
               const tournament = getTournament(pool)
               const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
-              const label = statusLabel(pool, tournament)
               const isUpcoming = isUpcomingEntry(pool, tournament)
               const rankPreview = buildRankPreview(entry, pool, entriesByPool[pool.id] || [entry])
+              const winner = winnerLabel(pool, entriesByPool[pool.id] || [entry])
               const rankText = rankPreview?.rank ? `#${rankPreview.rank}` : '—'
               const scoreText = rankPreview ? formatScore(rankPreview.totalScore) : '—'
 
               return (
-                <Link key={entry.id} href={`/pool/${pool.id}`} className={`grid grid-cols-[minmax(0,1fr)_100px_66px] items-center border-b border-stone-200 px-4 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_66px_76px_86px_104px] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
+                <Link key={entry.id} href={`/pool/${pool.id}`} className={`grid grid-cols-[minmax(0,1fr)_112px_96px] items-center border-b border-stone-200 px-4 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#f7efdf] sm:grid-cols-[minmax(220px,2fr)_minmax(150px,1fr)_64px_72px_116px_150px] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
                   <span className="min-w-0 pr-3">
-                    <span className="block truncate font-semibold text-[#1f2a24]">{pool.name}</span>
+                    <span className="block break-words font-semibold leading-5 text-[#1f2a24]">{pool.name}</span>
                     <span className="mt-1 block text-xs leading-5 text-[#657168]">{entry.display_name || 'Your entry'} · {picks.length ? `${picks.length} picks` : 'Pick team'}</span>
                     <span className="mt-1 block text-xs leading-5 text-[#657168] sm:hidden">{tournament?.name || 'Tournament'}</span>
-                    <span className="mt-2 inline-flex sm:hidden"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
+                    <span className="mt-2 inline-flex max-w-full sm:hidden"><WinnerBadge name={winner} /></span>
                   </span>
                   <span className="hidden text-[#657168] sm:block">{tournament?.name || 'Tournament'}</span>
                   <span className="flex justify-center sm:hidden">
@@ -442,8 +433,8 @@ export default async function DashboardPage() {
                       <span className="hidden text-center font-black text-[#b21e23] sm:block">{scoreText}</span>
                     </>
                   )}
-                  <span className="text-right font-mono text-[#657168] sm:text-left">{formatDate(tournament?.start_date)}</span>
-                  <span className="hidden sm:block"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
+                  <span className="text-right font-mono text-[#657168] sm:text-left">{formatDateRange(tournament?.start_date, tournament?.end_date)}</span>
+                  <span className="hidden min-w-0 sm:block"><WinnerBadge name={winner} /></span>
                 </Link>
               )
             })}

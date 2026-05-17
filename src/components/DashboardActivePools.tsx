@@ -629,7 +629,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
   return (
     <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
       <div className="flex items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:px-5">
-        <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Active / recent pools</h2>
+        <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Active pools</h2>
         <span className="border border-[#d7c99f] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#f3df9c]">Refresh {secondsToRefresh}s</span>
       </div>
       <div className="divide-y divide-[#eadfca]">
