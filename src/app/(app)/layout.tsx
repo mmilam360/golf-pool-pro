@@ -7,15 +7,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <AppHeader />
       <main className="mx-auto max-w-7xl flex-1 px-4 py-8 sm:px-5 md:px-8 md:py-10">{children}</main>
       <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-5 text-center text-sm text-[#657168]">
-        <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
-        <span className="mx-3">/</span>
-        <Link href="/blog?from=dashboard" className="font-semibold hover:text-[#123c2f]">Pick Guides</Link>
-        <span className="mx-3">/</span>
-        <Link href="/help" className="font-semibold hover:text-[#123c2f]">Help</Link>
-        <span className="mx-3">/</span>
-        <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
-        <span className="mx-3">/</span>
-        <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>
+        <div>
+          <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
+          <span className="mx-3">/</span>
+          <Link href="/blog?from=dashboard" className="font-semibold hover:text-[#123c2f]">Pick Guides</Link>
+          <span className="mx-3">/</span>
+          <Link href="/help" className="font-semibold hover:text-[#123c2f]">Help</Link>
+          <span className="mx-3">/</span>
+          <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
+          <span className="mx-3">/</span>
+          <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>
+        </div>
+        <p className="mt-3 text-xs">© {new Date().getFullYear()} Golf Pools Pro. All rights reserved.</p>
       </footer>
     </div>
   )

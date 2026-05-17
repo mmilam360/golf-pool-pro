@@ -4,7 +4,7 @@ import { BackButton } from '@/components/BackButton'
 
 export const metadata: Metadata = {
   title: 'Golf Pool Rules and OB Scoring | Golf Pools Pro',
-  description: 'Clear golf pool rules for picks, counted scores, missed cuts, OB scoring, live leaderboards, and host payment timing.',
+  description: 'Clear golf pool rules for picks, counted scores, missed cuts, OB scoring, final-nine tiebreakers, live leaderboards, and host payment timing.',
   alternates: { canonical: 'https://www.golfpoolspro.com/rules' },
 }
 
@@ -58,6 +58,17 @@ export default function RulesPage() {
                 <p className="mt-2">Your entry has three active counted scores: -4, -2, and E. Your fourth needed golfer missed the cut.</p>
                 <p className="mt-2">If the worst active counted score anywhere in the pool is +6, your OB stand-in becomes +8. That is +6 plus the 2-stroke OB penalty.</p>
                 <p className="mt-2 font-black">Your counted total would be -4, -2, E, and +8 = +2.</p>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-black text-[#0f2f25]">Tiebreakers</h2>
+              <p className="mt-2">If two entries finish with the same counted total, Golf Pools Pro uses a scorecard-style tiebreaker.</p>
+              <div className="mt-3 border-2 border-[#111] bg-[#f7f7f2] p-4 text-[#111]">
+                <p className="font-black uppercase tracking-[0.08em]">Final-nine tiebreak</p>
+                <p className="mt-2">We add up the final-nine score for each entry's counted golfers. Lower final-nine total wins the tie.</p>
+                <p className="mt-2">Only counted golfers are used. If your pool counts the best 4 scores, the tiebreak uses those same 4 golfers.</p>
+                <p className="mt-2">If the entries are still tied after the final-nine tiebreak, they stay tied.</p>
               </div>
             </section>
 

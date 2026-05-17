@@ -16,6 +16,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <span className="mx-2">/</span>
           <Link href="/terms" className="font-semibold text-[#123c2f] hover:underline">Terms</Link>
         </p>
+        <p className="mt-3 text-center text-xs text-stone-500">© {new Date().getFullYear()} Golf Pools Pro. All rights reserved.</p>
       </div>
     </div>
   )

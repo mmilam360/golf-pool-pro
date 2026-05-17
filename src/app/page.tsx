@@ -529,15 +529,18 @@ export default function Home() {
         </section>
       </main>
       <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-6 text-center text-sm text-[#657168]">
-        <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
-        <span className="mx-3">/</span>
-        <Link href="/blog" className="font-semibold hover:text-[#123c2f]">Guides</Link>
-        <span className="mx-3">/</span>
-        <Link href="/help" className="font-semibold hover:text-[#123c2f]">Help</Link>
-        <span className="mx-3">/</span>
-        <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
-        <span className="mx-3">/</span>
-        <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>
+        <div>
+          <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
+          <span className="mx-3">/</span>
+          <Link href="/blog" className="font-semibold hover:text-[#123c2f]">Guides</Link>
+          <span className="mx-3">/</span>
+          <Link href="/help" className="font-semibold hover:text-[#123c2f]">Help</Link>
+          <span className="mx-3">/</span>
+          <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
+          <span className="mx-3">/</span>
+          <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>
+        </div>
+        <p className="mt-3 text-xs">© {new Date().getFullYear()} Golf Pools Pro. All rights reserved.</p>
       </footer>
     </div>
   )
