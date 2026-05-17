@@ -964,69 +964,130 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    ctx.fillStyle = '#fbf7ed'
-    ctx.fillRect(0, 0, width, height)
-    ctx.fillStyle = '#123c2f'
-    ctx.fillRect(52, 52, width - 104, height - 104)
-    ctx.fillStyle = '#f7f7f2'
-    ctx.fillRect(86, 86, width - 172, height - 172)
-    ctx.strokeStyle = '#111111'
-    ctx.lineWidth = 6
-    ctx.strokeRect(86, 86, width - 172, height - 172)
+    const fitText = (text: string, x: number, y: number, maxWidth: number, font: string, fillStyle: string, align: CanvasTextAlign = 'left') => {
+      ctx.font = font
+      ctx.fillStyle = fillStyle
+      ctx.textAlign = align
+      const value = text.toUpperCase()
+      if (ctx.measureText(value).width <= maxWidth) {
+        ctx.fillText(value, x, y)
+        return
+      }
+      let trimmed = value
+      while (trimmed.length > 2 && ctx.measureText(`${trimmed}…`).width > maxWidth) trimmed = trimmed.slice(0, -1)
+      ctx.fillText(`${trimmed}…`, x, y)
+    }
 
-    ctx.textAlign = 'center'
+    const loadLogo = () => new Promise<HTMLImageElement | null>(resolve => {
+      const image = new Image()
+      image.onload = () => resolve(image)
+      image.onerror = () => resolve(null)
+      image.src = '/brand/golf-pools-pro-wordmark.png'
+    })
+
+    const drawRect = (x: number, y: number, w: number, h: number, fill: string, stroke?: string, lineWidth = 1) => {
+      ctx.fillStyle = fill
+      ctx.fillRect(x, y, w, h)
+      if (stroke) {
+        ctx.strokeStyle = stroke
+        ctx.lineWidth = lineWidth
+        ctx.strokeRect(x, y, w, h)
+      }
+    }
+
     const imageTitle = selectedBoardIsHistorical
       ? leaderboardMode.type === 'day'
-        ? `${selectedBoardLabel} DAILY WINNER`
-        : `SCORES THROUGH ${selectedBoardLabel.replace('Thru ', '')}`
-      : 'FINAL RESULTS'
+        ? `${selectedBoardLabel} daily winner`
+        : `Scores through ${selectedBoardLabel.replace('Thru ', '')}`
+      : 'Final board'
 
-    ctx.fillStyle = '#b21e23'
-    ctx.font = '900 42px Arial'
-    ctx.fillText(imageTitle, width / 2, 170)
-    ctx.fillStyle = '#111111'
-    ctx.font = '900 58px Arial'
-    ctx.fillText((poolName || 'Golf Pool').toUpperCase().slice(0, 28), width / 2, 245)
-    ctx.fillStyle = '#005b3c'
-    ctx.font = '900 34px Arial'
-    ctx.fillText((tournament?.name || 'Tournament').toUpperCase().slice(0, 34), width / 2, 305)
+    const backgroundGradient = ctx.createLinearGradient(0, 0, width, height)
+    backgroundGradient.addColorStop(0, '#748674')
+    backgroundGradient.addColorStop(1, '#506755')
+    ctx.fillStyle = backgroundGradient
+    ctx.fillRect(0, 0, width, height)
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'
+    ctx.beginPath()
+    ctx.arc(245, 150, 280, 0, Math.PI * 2)
+    ctx.fill()
+
+    drawRect(64, 118, 952, 4, 'rgba(255,255,255,0.92)')
+    for (let i = 1; i < 4; i += 1) drawRect(64 + i * 238, 118, 222, 4, 'rgba(255,255,255,0.42)')
+    ctx.fillStyle = '#fbf7ed'
+    ctx.beginPath()
+    ctx.arc(106, 174, 34, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+    ctx.lineWidth = 4
+    ctx.stroke()
+    fitText('golfpoolspro', 158, 185, 240, '800 28px Arial', '#ffffff')
+    fitText('22h', 364, 185, 60, '700 26px Arial', 'rgba(255,255,255,0.72)')
+    ctx.textAlign = 'right'
+    ctx.fillStyle = '#ffffff'
+    ctx.font = '800 34px Arial'
+    ctx.fillText('•••', width - 72, 185)
+
+    drawRect(100, 405, 880, 1040, '#fbf7ed', '#123c2f', 6)
+    ctx.fillStyle = 'rgba(15,47,37,0.28)'
+    ctx.fillRect(112, 1447, 880, 14)
+    ctx.fillRect(982, 417, 14, 1040)
+
+    const logo = await loadLogo()
+    if (logo) {
+      const logoWidth = 330
+      const logoHeight = logo.height * (logoWidth / logo.width)
+      ctx.drawImage(logo, (width - logoWidth) / 2, 450, logoWidth, logoHeight)
+    } else {
+      fitText('GOLF POOLS PRO', width / 2, 515, 390, '900 42px Arial', '#123c2f', 'center')
+    }
+
+    fitText(imageTitle, width / 2, 610, 720, '900 30px Arial', '#8a6724', 'center')
+    fitText(tournament?.name || 'Tournament', width / 2, 685, 720, "900 58px Impact, 'Arial Black', Arial", '#0f2f25', 'center')
+
+    const boardX = 146
+    const boardY = 755
+    const boardW = 788
+    const boardHeadH = 118
+    const rowH = 96
+    drawRect(boardX, boardY, boardW, boardHeadH + rowH * 5, '#ffffff', '#123c2f', 6)
+    drawRect(boardX, boardY, boardW, boardHeadH, '#123c2f')
+    fitText(poolName || 'Golf Pool', width / 2, boardY + 48, boardW - 90, '900 34px Arial', '#f3df9c', 'center')
+    fitText(`${tournament?.name || 'Tournament'} pool`, width / 2, boardY + 88, boardW - 90, '900 22px Arial', '#d8e3dc', 'center')
 
     const topEntries = scoredEntries.slice(0, 5)
     topEntries.forEach((entry, index) => {
-      const y = 410 + index * 245
-      ctx.fillStyle = index === 0 ? '#fff4cf' : '#ffffff'
-      ctx.fillRect(132, y, width - 264, 205)
-      ctx.strokeStyle = '#111111'
+      const y = boardY + boardHeadH + index * rowH
+      drawRect(boardX, y, boardW, rowH, index === 0 ? '#fbf7ed' : '#ffffff')
+      ctx.strokeStyle = '#d8cab0'
       ctx.lineWidth = 4
-      ctx.strokeRect(132, y, width - 264, 205)
-      ctx.fillStyle = '#b21e23'
-      ctx.font = '900 64px Arial'
-      ctx.textAlign = 'left'
-      ctx.fillText(`#${entry.rank || index + 1}`, 165, y + 82)
-      ctx.fillStyle = '#111111'
-      ctx.font = '900 42px Arial'
-      ctx.fillText(String(entry.displayName || 'Entry').toUpperCase().slice(0, 22), 300, y + 62)
-      ctx.textAlign = 'right'
-      ctx.font = '900 64px Arial'
-      ctx.fillText(formatScore(entry.totalScore), width - 165, y + 82)
-      ctx.textAlign = 'left'
-      ctx.fillStyle = '#1f2a24'
-      ctx.font = '800 26px Arial'
-      const picks = entry.pickScores
-        .filter(pick => pick.counted && !pick.isObStandIn)
-        .slice(0, 5)
-        .map(pick => shortName(pick.name, golferNamePeers))
-        .join('  •  ')
-      ctx.fillText(picks.slice(0, 52), 165, y + 145)
+      ctx.beginPath()
+      ctx.moveTo(boardX, y)
+      ctx.lineTo(boardX + boardW, y)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(boardX + 112, y)
+      ctx.lineTo(boardX + 112, y + rowH)
+      ctx.moveTo(boardX + boardW - 170, y)
+      ctx.lineTo(boardX + boardW - 170, y + rowH)
+      ctx.stroke()
+      fitText(String(entry.rank || index + 1), boardX + 56, y + 62, 86, '900 34px Arial', '#b21e23', 'center')
+      fitText(String(entry.displayName || 'Entry'), boardX + 142, y + 62, boardW - 330, index === 0 ? "900 46px Impact, 'Arial Black', Arial" : '900 34px Arial', '#111111')
+      fitText(formatScore(entry.totalScore), boardX + boardW - 85, y + 62, 135, '900 40px Arial', '#b21e23', 'center')
     })
 
-    ctx.textAlign = 'center'
-    ctx.fillStyle = '#123c2f'
-    ctx.font = '900 48px Arial'
-    ctx.fillText('GOLF POOLS PRO', width / 2, 1715)
-    ctx.fillStyle = '#657168'
-    ctx.font = '800 30px Arial'
-    ctx.fillText('Run your pool at GolfPoolsPro.com', width / 2, 1770)
+    fitText('golfpoolspro.com', width / 2, 1402, 520, '900 24px Arial', '#123c2f', 'center')
+
+    drawRect(64, 1794, 760, 62, 'transparent', 'rgba(255,255,255,0.82)', 2)
+    fitText('Send message', 104, 1834, 360, '700 25px Arial', 'rgba(255,255,255,0.9)')
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.moveTo(890, 1805)
+    ctx.lineTo(946, 1827)
+    ctx.lineTo(890, 1849)
+    ctx.lineTo(904, 1827)
+    ctx.closePath()
+    ctx.stroke()
 
     canvas.toBlob(async blob => {
       if (!blob) return
