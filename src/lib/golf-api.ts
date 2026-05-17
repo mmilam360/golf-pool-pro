@@ -185,7 +185,7 @@ async function enrichPlayersWithTeeTimes(eventId: string, competitionId: string,
       ...player,
       teeTime: teeInfo.teeTime,
       startTee: teeInfo.startTee,
-      roundScore: teeInfo.roundScore || '',
+      roundScore: teeInfo.roundScore || player.roundScore || '',
     }
   })
 }
