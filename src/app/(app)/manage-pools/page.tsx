@@ -5,8 +5,10 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
 import { getPoolPaymentQuote, getPoolPaymentStatus, formatMoney } from '@/lib/payments/pricing'
+import { selectNextRunItBackTournament } from '@/lib/run-it-back'
 
 type Tournament = {
+  id?: string | null
   name?: string | null
   start_date?: string | null
   status?: string | null
@@ -118,7 +120,14 @@ export default async function ManagePoolsPage() {
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
+  const { data: upcomingTournaments } = await supabase
+    .from('gpp_tournaments')
+    .select('id, name, start_date, status')
+    .in('status', ['upcoming', 'live'])
+    .order('start_date', { ascending: true })
+
   const owned = (ownedPools ?? []) as PoolRecord[]
+  const nextOpenTournament = selectNextRunItBackTournament((upcomingTournaments ?? []) as Tournament[])
   const ownedPoolIds = owned.map(pool => pool.id)
   const { data: ownedPoolEntries } = ownedPoolIds.length
     ? await supabase
@@ -188,13 +197,14 @@ export default async function ManagePoolsPage() {
                     <span className="hidden sm:block"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
                     <span className="hidden sm:block"><BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} /></span>
                   </Link>
-                  {isCompleted && (
+                  {isCompleted && nextOpenTournament?.id && nextOpenTournament.name ? (
                     <div className="px-4 pb-4 sm:px-5">
-                      <Link href={`/pool/create?clone=${pool.id}`} className="flex w-full items-center justify-center border border-[#123c2f] bg-white px-3 py-2.5 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] transition-colors hover:bg-[#eef7ef]">
-                        Run it again
+                      <Link href={`/pool/create?clone=${pool.id}&tournament=${nextOpenTournament.id}`} className="flex w-full flex-col items-center justify-center border border-[#123c2f] bg-white px-3 py-2.5 text-center text-[#123c2f] transition-colors hover:bg-[#eef7ef]">
+                        <span className="text-[11px] font-black uppercase tracking-[0.12em]">Copy settings for</span>
+                        <span className="mt-0.5 text-sm font-bold leading-tight">{nextOpenTournament.name}</span>
                       </Link>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               )
             })}
