@@ -17,6 +17,7 @@ type FinalResultAnnouncement = {
   showSharePreview: boolean
   isOwner?: boolean
   runItBackHref?: string
+  runItBackTournamentName?: string
 }
 
 type Props = {
@@ -269,14 +270,13 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
             {!announcement.showSharePreview && announcement.isOwner && announcement.runItBackHref ? (
               <div className="mt-6 border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[4px_4px_0_#d8cab0]">
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Run it back</p>
-                <p className="mt-1 text-sm font-semibold leading-6 text-[#314339]">
-                  Start next week with the same settings. Players from this pool will be preselected to invite.
-                </p>
+                <p className="mt-1 text-sm font-semibold leading-6 text-[#314339]">Same settings, same player list.</p>
                 <Link
                   href={announcement.runItBackHref}
-                  className="mt-3 block w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]"
+                  className="mt-3 block w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-center text-white hover:bg-[#0f2f25]"
                 >
-                  Create next pool
+                  <span className="block text-xs font-black uppercase tracking-[0.12em]">Create pool for next week’s</span>
+                  <span className="mt-1 block font-display text-xl font-bold leading-tight">{announcement.runItBackTournamentName || 'Next tournament'}</span>
                 </Link>
               </div>
             ) : null}
@@ -301,14 +301,13 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
                   {announcement.isOwner && announcement.runItBackHref ? (
                     <div className="mt-5 border-2 border-[#d8b45d] bg-[#fbf7ed] p-4 text-[#123c2f] shadow-[4px_4px_0_#001f17]">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Run it back</p>
-                      <p className="mt-1 text-sm font-semibold leading-6 text-[#314339]">
-                        Start next week with the same settings. Players from this pool will be preselected to invite.
-                      </p>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-[#314339]">Same settings, same player list.</p>
                       <Link
                         href={announcement.runItBackHref}
-                        className="mt-3 block w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]"
+                        className="mt-3 block w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-center text-white hover:bg-[#0f2f25]"
                       >
-                        Create next pool
+                        <span className="block text-xs font-black uppercase tracking-[0.12em]">Create pool for next week’s</span>
+                        <span className="mt-1 block font-display text-xl font-bold leading-tight">{announcement.runItBackTournamentName || 'Next tournament'}</span>
                       </Link>
                     </div>
                   ) : null}

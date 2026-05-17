@@ -13,6 +13,7 @@ import { hasOnCourseScores } from '@/lib/golf-live'
 import { getLeaderboard, type GolfCutLine, type GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
+  id?: string | null
   name?: string | null
   external_id?: string | null
   start_date?: string | null
@@ -236,6 +237,12 @@ export default async function DashboardPage() {
     .select('pool_id')
     .eq('user_id', user.id)
 
+  const { data: upcomingTournaments } = await supabase
+    .from('gpp_tournaments')
+    .select('id, name, start_date, status')
+    .in('status', ['upcoming', 'live'])
+    .order('start_date', { ascending: true })
+
   const owned = (ownedPools ?? []) as PoolRecord[]
   const joined = (entries ?? []) as EntryRecord[]
   const invites = (pendingInvites ?? []) as PendingInviteRecord[]
@@ -313,6 +320,9 @@ export default async function DashboardPage() {
     return Boolean(pool && !isActivePool(pool, tournament))
   })
   const dismissedPoolIds = new Set((dismissedFinalResults ?? []).map(row => String(row.pool_id)).filter(Boolean))
+  const nextOpenTournament = ((upcomingTournaments ?? []) as Tournament[]).find(tournament => (
+    tournament.status === 'upcoming' && !hasDateOnlyStarted(tournament.start_date || null)
+  ))
   const finalResultCandidates: FinalResultAnnouncementCandidate[] = pastEntries.flatMap(entry => {
     const pool = getPool(entry)
     if (!pool) return []
@@ -327,7 +337,8 @@ export default async function DashboardPage() {
       poolName: pool.name,
       tournamentName: tournament?.name || 'Tournament',
       isOwner: ownedPoolIds.includes(pool.id),
-      runItBackHref: `/pool/create?clone=${pool.id}`,
+      runItBackHref: `/pool/create?clone=${pool.id}${nextOpenTournament?.id ? `&tournament=${nextOpenTournament.id}` : ''}`,
+      runItBackTournamentName: nextOpenTournament?.name || undefined,
       rank: current.rank,
       totalScore: current.totalScore,
       fieldSize: scoredEntries.length,

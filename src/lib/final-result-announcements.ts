@@ -7,6 +7,7 @@ export type FinalResultAnnouncementCandidate = {
   tournamentName: string
   isOwner?: boolean
   runItBackHref?: string
+  runItBackTournamentName?: string
   rank: number | null
   totalScore: number | null
   fieldSize: number
