@@ -67,4 +67,16 @@ assert.equal(fridayOnly[1].totalScore, 4)
 assert.equal(fridayOnlyBoard.find(player => player.name === 'Steady A')?.scoreToPar, 1)
 assert.equal(fridayOnlyBoard.find(player => player.name === 'Friday Cut')?.scoreToPar, 3)
 
+const currentWithOb = scoreEntriesForLeaderboard(
+  [
+    { id: 'entry-ob', display_name: 'Entry OB', golfer_picks: ['Steady A', 'Friday Cut'], is_removed: false },
+  ],
+  players,
+  { countScores: 2, obRuleEnabled: true, obPenaltyStrokes: 2 }
+)
+
+assert.equal(currentWithOb[0].obStandIns, 1)
+assert.equal(currentWithOb[0].totalScore, 3, 'OB stand-in total should use worst active total plus penalty')
+assert.equal(currentWithOb[0].todayScore, 4, 'OB stand-in today score should use worst active today plus penalty')
+
 console.log('round leaderboard checks passed')

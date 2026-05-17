@@ -300,6 +300,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
+  const [defaultOpenedEntryId, setDefaultOpenedEntryId] = useState<string | null>(null)
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
 
@@ -885,6 +886,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         { countScores: pool.count_scores, obRuleEnabled: pool.ob_rule_enabled, obPenaltyStrokes: pool.ob_penalty_strokes }
       )
     : visibleEntries.map(entry => buildPreScoringEntry(entry, pool.count_scores))
+  useEffect(() => {
+    const leaderId = scoredEntries[0]?.entryId
+    if (!leaderId || defaultOpenedEntryId) return
+    setDefaultOpenedEntryId(leaderId)
+    setOpenEntryIds(current => {
+      if (current.size > 0 || current.has(leaderId)) return current
+      const next = new Set(current)
+      next.add(leaderId)
+      return next
+    })
+  }, [defaultOpenedEntryId, scoredEntries])
   const leaderboardRows = selectedLeaderboard.length ? selectedLeaderboard : field
   const leaderboardByName = new Map(leaderboardRows.map(player => [normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()), player]))
   const golferNamePeers = leaderboardRows
@@ -1144,7 +1156,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <button
                   type="button"
                   onClick={shareFinalResultsImage}
-                  className="border-2 border-[#b21e23] bg-[#fff1ef] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#b21e23] transition-colors hover:bg-white"
+                  className="border border-[#d8cab0] bg-[#fbf7ed] px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#657168] transition-colors hover:border-[#123c2f] hover:bg-white hover:text-[#123c2f]"
                 >
                   {shareBoardImageLabel}
                 </button>
@@ -1220,7 +1232,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   </div>}
                 </div>
                 <div className="bg-[#f7f7f2] lg:hidden">
-                  {scoredEntries.map((entry, entryIndex) => {
+                  {scoredEntries.map((entry) => {
                     const isMe = entry.entryId === myEntry?.id
                     const picksHidden = entry.picks.includes('__hidden__')
                     const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, pool.count_scores)
@@ -1228,7 +1240,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     const allPickNames = golferNamePeers
                     const hareNames = isMe ? harePickMap.get(entry.entryId) : undefined
                     const tortoiseNames = !isMe ? tortoisePickMap.get(entry.entryId) : undefined
-                    const isEntryOpen = openEntryIds.has(entry.entryId) || entryIndex === 0 || forceOpenEntryId === entry.entryId
+                    const isEntryOpen = openEntryIds.has(entry.entryId) || forceOpenEntryId === entry.entryId
                     return (
                       <details
                         id={`entry-card-${entry.entryId}`}

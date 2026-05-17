@@ -16,6 +16,14 @@ function scoreStringToPar(score?: string | null) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function worstActiveRoundScore(players: GolfPlayer[], penalty: number) {
+  const roundScores = players
+    .map(player => scoreStringToPar(player.roundScore))
+    .filter((score): score is number => score !== null)
+  if (!roundScores.length) return ''
+  return formatScoreToPar(Math.max(...roundScores) + penalty)
+}
+
 export interface PickScore {
   name: string; scoreToPar: number | null; strokes: number | null
   thru: string; status: 'active' | 'cut' | 'wd' | 'dnq'
@@ -65,6 +73,7 @@ export function scoreEntry(
       const scoredPlayers = leaderboard.filter(p => p.status === 'active' && p.scoreToPar !== null)
       scoredPlayers.sort((a, b) => (b.scoreToPar ?? -999) - (a.scoreToPar ?? -999))
       const worstScore = scoredPlayers.length > 0 ? scoredPlayers[0].scoreToPar : 0
+      const obRoundScore = worstActiveRoundScore(scoredPlayers, obPenaltyStrokes)
       const standInPicks = obEligiblePicks.slice(0, standInsNeeded)
       for (const pick of standInPicks) {
         counting.push({
@@ -72,7 +81,7 @@ export function scoreEntry(
           scoreToPar: worstScore + obPenaltyStrokes,
           strokes: null,
           thru: '',
-          roundScore: '',
+          roundScore: obRoundScore,
           counted: true,
           isObStandIn: true,
         })
