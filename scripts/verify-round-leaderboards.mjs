@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import { availableCompletedRounds, leaderboardForCompletedRound, leaderboardForRoundOnly, scoreEntriesForLeaderboard } from '../src/lib/scoring.ts'
 
-function holes(backNineTotal) {
+function holes(backNineTotal, frontNineTotal = 0) {
   const front = Array.from({ length: 9 }, (_, index) => ({ hole: index + 1, score: 4, par: 4, scoreToPar: 0 }))
   const back = Array.from({ length: 9 }, (_, index) => ({ hole: index + 10, score: 4, par: 4, scoreToPar: 0 }))
+  front[0].scoreToPar = frontNineTotal
+  front[0].score = 4 + frontNineTotal
   back[0].scoreToPar = backNineTotal
   back[0].score = 4 + backNineTotal
   return [...front, ...back]
@@ -105,5 +107,31 @@ assert.equal(tieBreak[0].totalScore, 0)
 assert.equal(tieBreak[0].finalNineScore, -1)
 assert.equal(tieBreak[0].rank, 1)
 assert.equal(tieBreak[1].rank, 2)
+
+const extendedTieBreak = scoreEntriesForLeaderboard(
+  [
+    { id: 'entry-nine-a', display_name: 'Entry Nine A', golfer_picks: ['Nine Tie A'], is_removed: false },
+    { id: 'entry-nine-b', display_name: 'Entry Nine B', golfer_picks: ['Nine Tie B'], is_removed: false },
+  ],
+  [
+    {
+      id: 'nine-a', name: 'Nine Tie A', firstName: 'Nine', lastName: 'A', score: 'E', scoreToPar: 0, strokes: 0, thru: 'F', roundScore: 'E', position: '1', status: 'active', country: '',
+      roundScores: [
+        { round: 1, roundScoreToPar: 0, cumulativeScoreToPar: 0, complete: true, holes: holes(0, 2) },
+      ],
+    },
+    {
+      id: 'nine-b', name: 'Nine Tie B', firstName: 'Nine', lastName: 'B', score: 'E', scoreToPar: 0, strokes: 0, thru: 'F', roundScore: 'E', position: '1', status: 'active', country: '',
+      roundScores: [
+        { round: 1, roundScoreToPar: 0, cumulativeScoreToPar: 0, complete: true, holes: holes(0, -1) },
+      ],
+    },
+  ],
+  { countScores: 1, obRuleEnabled: false, obPenaltyStrokes: 2 }
+)
+
+assert.equal(extendedTieBreak[0].entryId, 'entry-nine-b', 'when final nine is tied, tiebreak should continue back to final 18 holes')
+assert.equal(extendedTieBreak[0].rank, 1)
+assert.equal(extendedTieBreak[1].rank, 2)
 
 console.log('round leaderboard checks passed')

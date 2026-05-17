@@ -66,9 +66,10 @@ export default function RulesPage() {
               <p className="mt-2">If two entries finish with the same counted total, Golf Pools Pro uses a scorecard-style tiebreaker.</p>
               <div className="mt-3 border-2 border-[#111] bg-[#f7f7f2] p-4 text-[#111]">
                 <p className="font-black uppercase tracking-[0.08em]">Final-nine tiebreak</p>
-                <p className="mt-2">We add up the final-nine score for each entry's counted golfers. Lower final-nine total wins the tie.</p>
+                <p className="mt-2">We add up the final nine holes for each entry's counted golfers. Lower total wins the tie.</p>
+                <p className="mt-2">If that does not break the tie, we keep going back 9 holes at a time: last 18, last 27, last 36, and so on until the tie breaks or there are no more completed holes to use.</p>
                 <p className="mt-2">Only counted golfers are used. If your pool counts the best 4 scores, the tiebreak uses those same 4 golfers.</p>
-                <p className="mt-2">If the entries are still tied after the final-nine tiebreak, they stay tied.</p>
+                <p className="mt-2">If the entries are still tied after all available 9-hole blocks, they stay tied.</p>
               </div>
             </section>
 

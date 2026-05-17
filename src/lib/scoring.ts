@@ -24,36 +24,46 @@ function worstActiveRoundScore(players: GolfPlayer[], penalty: number) {
   return formatScoreToPar(Math.max(...roundScores) + penalty)
 }
 
-function finalNineScore(player?: GolfPlayer | null): number | null {
-  const rounds = [...(player?.roundScores || [])].sort((a, b) => b.round - a.round)
-  const finalRound = rounds[0]
-  if (!finalRound?.complete || !finalRound.holes?.length) return null
-  const finalNine = finalRound.holes
-    .filter(hole => hole.hole >= 10 && hole.hole <= 18)
-    .sort((a, b) => a.hole - b.hole)
-  if (finalNine.length !== 9) return null
-  return finalNine.reduce((sum, hole) => sum + hole.scoreToPar, 0)
+function tiebreakScores(player?: GolfPlayer | null): number[] {
+  const completedHoles = [...(player?.roundScores || [])]
+    .filter(round => round.complete && Array.isArray(round.holes) && round.holes.length >= 18)
+    .sort((a, b) => a.round - b.round)
+    .flatMap(round => [...(round.holes || [])].sort((a, b) => a.hole - b.hole))
+
+  if (completedHoles.length < 9) return []
+
+  const scores: number[] = []
+  for (let holeCount = 9; holeCount <= completedHoles.length; holeCount += 9) {
+    scores.push(completedHoles.slice(-holeCount).reduce((sum, hole) => sum + hole.scoreToPar, 0))
+  }
+  return scores
 }
 
-function worstActiveFinalNineScore(players: GolfPlayer[], penalty: number) {
-  const scores = players
-    .map(player => finalNineScore(player))
-    .filter((score): score is number => score !== null)
-  if (!scores.length) return null
-  return Math.max(...scores) + penalty
+function worstActiveTiebreakScores(players: GolfPlayer[], penalty: number) {
+  const playerScores = players.map(player => tiebreakScores(player))
+  const maxLength = Math.max(0, ...playerScores.map(scores => scores.length))
+  const scores: number[] = []
+  for (let index = 0; index < maxLength; index += 1) {
+    const levelScores = playerScores
+      .map(playerScore => playerScore[index])
+      .filter((score): score is number => Number.isFinite(score))
+    if (!levelScores.length) break
+    scores.push(Math.max(...levelScores) + penalty)
+  }
+  return scores
 }
 
 export interface PickScore {
   name: string; scoreToPar: number | null; strokes: number | null
   thru: string; status: 'active' | 'cut' | 'wd' | 'dnq'
   counted: boolean; isObStandIn: boolean
-  teeTime?: string; startTee?: number | null; roundScore?: string; finalNineScore?: number | null
+  teeTime?: string; startTee?: number | null; roundScore?: string; finalNineScore?: number | null; tiebreakScores?: number[]
 }
 
 export interface ScoredEntry {
   entryId: string; displayName: string; picks: string[]
   pickScores: PickScore[]; totalScore: number | null; todayScore: number | null
-  finalNineScore: number | null; rank: number | null; obStandIns: number
+  finalNineScore: number | null; tiebreakScores: number[]; rank: number | null; obStandIns: number
 }
 
 export type LeveragePickMap = Map<string, Set<string>>
@@ -73,8 +83,9 @@ export function scoreEntry(
       p.name.toLowerCase() === name.toLowerCase() ||
       `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase()
     )
-    if (!player) return { name, scoreToPar: null, strokes: null, thru: '', status: 'dnq' as const, counted: false, isObStandIn: false, finalNineScore: null }
-    return { name: player.name, scoreToPar: player.scoreToPar, strokes: player.strokes, thru: player.thru, status: player.status, counted: false, isObStandIn: false, teeTime: player.teeTime, startTee: player.startTee, roundScore: player.roundScore, finalNineScore: finalNineScore(player) }
+    if (!player) return { name, scoreToPar: null, strokes: null, thru: '', status: 'dnq' as const, counted: false, isObStandIn: false, finalNineScore: null, tiebreakScores: [] }
+    const playerTiebreakScores = tiebreakScores(player)
+    return { name: player.name, scoreToPar: player.scoreToPar, strokes: player.strokes, thru: player.thru, status: player.status, counted: false, isObStandIn: false, teeTime: player.teeTime, startTee: player.startTee, roundScore: player.roundScore, finalNineScore: playerTiebreakScores[0] ?? null, tiebreakScores: playerTiebreakScores }
   })
 
   const active = pickScores.filter(p => p.status === 'active' && p.scoreToPar !== null)
@@ -93,7 +104,7 @@ export function scoreEntry(
       scoredPlayers.sort((a, b) => (b.scoreToPar ?? -999) - (a.scoreToPar ?? -999))
       const worstScore = scoredPlayers.length > 0 ? scoredPlayers[0].scoreToPar : 0
       const obRoundScore = worstActiveRoundScore(scoredPlayers, obPenaltyStrokes)
-      const obFinalNineScore = worstActiveFinalNineScore(scoredPlayers, obPenaltyStrokes)
+      const obTiebreakScores = worstActiveTiebreakScores(scoredPlayers, obPenaltyStrokes)
       const standInPicks = obEligiblePicks.slice(0, standInsNeeded)
       for (const pick of standInPicks) {
         counting.push({
@@ -102,7 +113,8 @@ export function scoreEntry(
           strokes: null,
           thru: '',
           roundScore: obRoundScore,
-          finalNineScore: obFinalNineScore,
+          finalNineScore: obTiebreakScores[0] ?? null,
+          tiebreakScores: obTiebreakScores,
           counted: true,
           isObStandIn: true,
         })
@@ -122,11 +134,16 @@ export function scoreEntry(
   const todayScore = counting.length >= countScores && todayScores.every(score => score !== null)
     ? todayScores.reduce((sum, score) => sum + (score ?? 0), 0)
     : null
-  const finalNineScores = counting.map(p => p.finalNineScore ?? null)
-  const teamFinalNineScore = counting.length >= countScores && finalNineScores.every(score => score !== null)
-    ? finalNineScores.reduce((sum, score) => sum + (score ?? 0), 0)
-    : null
-  return { entryId: '', displayName: '', picks, pickScores: allScored, totalScore, todayScore, finalNineScore: teamFinalNineScore, rank: null, obStandIns }
+  const maxTiebreakLevels = Math.max(0, ...counting.map(p => p.tiebreakScores?.length || 0))
+  const teamTiebreakScores: number[] = []
+  if (counting.length >= countScores) {
+    for (let index = 0; index < maxTiebreakLevels; index += 1) {
+      const scores = counting.map(p => p.tiebreakScores?.[index])
+      if (!scores.every(score => Number.isFinite(score))) break
+      teamTiebreakScores.push(scores.reduce((sum, score) => sum + (score ?? 0), 0))
+    }
+  }
+  return { entryId: '', displayName: '', picks, pickScores: allScored, totalScore, todayScore, finalNineScore: teamTiebreakScores[0] ?? null, tiebreakScores: teamTiebreakScores, rank: null, obStandIns }
 }
 
 export function availableCompletedRounds(leaderboard: GolfPlayer[]) {
@@ -214,22 +231,34 @@ export function rankEntries(entries: ScoredEntry[]): ScoredEntry[] {
     if (a.totalScore === null) return 1; if (b.totalScore === null) return -1
     const totalDiff = a.totalScore - b.totalScore
     if (totalDiff !== 0) return totalDiff
-    if (a.finalNineScore === null && b.finalNineScore === null) return 0
-    if (a.finalNineScore === null) return 1; if (b.finalNineScore === null) return -1
-    return a.finalNineScore - b.finalNineScore
+    return compareTiebreakScores(a, b)
   })
   ranked.forEach((e, i) => {
     if (e.totalScore === null) {
       e.rank = null
     } else if (i === 0 || ranked[i - 1].totalScore === null) {
       e.rank = 1
-    } else if (e.totalScore === ranked[i - 1].totalScore && e.finalNineScore === ranked[i - 1].finalNineScore) {
+    } else if (e.totalScore === ranked[i - 1].totalScore && compareTiebreakScores(e, ranked[i - 1]) === 0) {
       e.rank = ranked[i - 1].rank
     } else {
       e.rank = i + 1
     }
   })
   return ranked
+}
+
+function compareTiebreakScores(a: ScoredEntry, b: ScoredEntry) {
+  const maxLength = Math.max(a.tiebreakScores?.length || 0, b.tiebreakScores?.length || 0)
+  for (let index = 0; index < maxLength; index += 1) {
+    const aScore = a.tiebreakScores?.[index]
+    const bScore = b.tiebreakScores?.[index]
+    if (!Number.isFinite(aScore) && !Number.isFinite(bScore)) continue
+    if (!Number.isFinite(aScore)) return 1
+    if (!Number.isFinite(bScore)) return -1
+    const diff = (aScore as number) - (bScore as number)
+    if (diff !== 0) return diff
+  }
+  return 0
 }
 
 function realEntries(entries: ScoredEntry[]) {
