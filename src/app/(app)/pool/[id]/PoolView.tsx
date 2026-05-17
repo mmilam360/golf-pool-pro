@@ -1042,9 +1042,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const frame = 40
     const headH = 200
     const labelH = 54
-    const rowCount = Math.min(scoredEntries.length, 6)
-    const rowH = 138
-    const scoreFaceH = headH + labelH + rowH * rowCount
+    const rowCount = Math.min(scoredEntries.length, 5)
+    const rowAreaH = 690
+    const rowH = rowAreaH / Math.max(rowCount, 1)
+    const nameFontSize = rowCount <= 3 ? 56 : rowCount === 4 ? 52 : 48
+    const rankFontSize = rowCount <= 3 ? 48 : rowCount === 4 ? 46 : 44
+    const scoreFontSize = rowCount <= 3 ? 66 : rowCount === 4 ? 62 : 58
+    const rowTextOffset = rowH / 2 + nameFontSize * 0.34
+    const scoreTextOffset = rowH / 2 + scoreFontSize * 0.34
+    const scoreFaceH = headH + labelH + rowAreaH
     const boardH = scoreFaceH + frame * 2
     const depthX = 48
     const depthY = 32
@@ -1106,9 +1112,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ctx.moveTo(faceX + faceW - 190, y)
       ctx.lineTo(faceX + faceW - 190, y + rowH)
       ctx.stroke()
-      fitText(String(entry.rank || index + 1), faceX + 56, y + rowH / 2 + 21, 90, '800 44px Arial', '#b21e23', 'center')
-      fitText(String(entry.displayName || 'Entry'), faceX + 144, y + rowH / 2 + 21, faceW - 374, '600 48px Arial', '#111111')
-      fitText(formatScore(entry.totalScore), faceX + faceW - 95, y + rowH / 2 + 24, 150, '800 58px Arial', scoreClass(entry.totalScore).includes('b21e23') ? '#b21e23' : '#111111', 'center')
+      fitText(String(entry.rank || index + 1), faceX + 56, y + rowTextOffset, 90, `800 ${rankFontSize}px Arial`, '#b21e23', 'center')
+      fitText(String(entry.displayName || 'Entry'), faceX + 144, y + rowTextOffset, faceW - 374, `600 ${nameFontSize}px Arial`, '#111111')
+      fitText(formatScore(entry.totalScore), faceX + faceW - 95, y + scoreTextOffset, 150, `800 ${scoreFontSize}px Arial`, scoreClass(entry.totalScore).includes('b21e23') ? '#b21e23' : '#111111', 'center')
     })
 
     drawRect(134, footerBoxY, width - 268, footerBoxH, '#fbf7ed', '#123c2f', 6)
