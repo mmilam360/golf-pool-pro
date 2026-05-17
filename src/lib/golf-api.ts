@@ -146,7 +146,7 @@ function hasLineStarted(line: any) {
   return holes.some((hole: any) => hole?.value != null || hole?.displayValue)
 }
 
-type TeeInfo = { teeTime?: string; startTee?: number | null; roundScore?: string }
+type TeeInfo = { teeTime?: string; startTee?: number | null; roundScore?: string; started: boolean }
 
 function teeInfoForToday(linescores: any): TeeInfo | null {
   const items = Array.isArray(linescores?.items) ? linescores.items : Array.isArray(linescores) ? linescores : []
@@ -162,6 +162,7 @@ function teeInfoForToday(linescores: any): TeeInfo | null {
     teeTime: todaysLine.teeTime,
     startTee: Number.isFinite(startTee) && startTee > 0 ? startTee : null,
     roundScore: hasLineStarted(todaysLine) ? todaysLine.displayValue || '' : '',
+    started: hasLineStarted(todaysLine),
   }
 }
 
@@ -185,7 +186,12 @@ async function enrichPlayersWithTeeTimes(eventId: string, competitionId: string,
       ...player,
       teeTime: teeInfo.teeTime,
       startTee: teeInfo.startTee,
-      roundScore: teeInfo.roundScore || player.roundScore || '',
+      // If ESPN exposes today's tee time but today's line has not started yet,
+      // the scoreboard payload often still carries yesterday's `F` and round score.
+      // Clear those stale fields so both the full leaderboard and pool board show
+      // the tee time until real current-round holes/scores arrive.
+      thru: teeInfo.started ? player.thru : '',
+      roundScore: teeInfo.started ? teeInfo.roundScore || player.roundScore || '' : '',
     }
   })
 }

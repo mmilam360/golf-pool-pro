@@ -31,6 +31,12 @@ assert.equal(
 )
 
 assert.equal(
+  pickStatusLabel({ teeTime: '2026-05-16T23:40:00Z', thru: 'F', roundScore: '-2', scoreToPar: -4, status: 'active', isObStandIn: false }, timeZone, now),
+  '7:40 PM',
+  'future tee time should beat ESPN stale F marker even when stale prior-round score is present'
+)
+
+assert.equal(
   pickStatusLabel({ teeTime: '2026-05-16T23:40:00Z', startTee: 10, thru: '', status: 'active', isObStandIn: false }, timeZone, now),
   '7:40 PM*',
   'back-nine start should keep asterisk'

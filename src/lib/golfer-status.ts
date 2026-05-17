@@ -49,7 +49,9 @@ function isDnqStatus(player: GolferStatusFields) {
   return String(player.status ?? '').trim().toLowerCase() === 'dnq'
 }
 
-function hasStartedCurrentRound(player: GolferStatusFields) {
+function hasStartedCurrentRound(player: GolferStatusFields, now = new Date()) {
+  const teeTime = parsedTeeTime(player)
+  if (teeTime && teeTime.getTime() > now.getTime()) return false
   if (hasRoundScoreToday(player)) return true
   const thru = String(player.thru ?? '').trim().toUpperCase()
   return Boolean(thru && thru !== 'F')
@@ -69,10 +71,10 @@ export function shouldHoldFinishedStatus(player: GolferStatusFields, timeZone: s
   return sameLocalDate(teeTime, now, timeZone)
 }
 
-export function teeTimeLabel(player: GolferStatusFields, timeZone: string) {
+export function teeTimeLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
   if (isCutStatus(player) || isWdStatus(player) || isDnqStatus(player)) return ''
   const teeTime = parsedTeeTime(player)
-  if (!teeTime || hasStartedCurrentRound(player)) return ''
+  if (!teeTime || hasStartedCurrentRound(player, now)) return ''
   const time = teeTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone })
   return `${time}${player.startTee === 10 ? '*' : ''}`
 }
@@ -82,12 +84,12 @@ export function pickStatusLabel(player: GolferStatusFields, timeZone: string, no
   if (isCutStatus(player)) return 'CUT'
   if (isWdStatus(player)) return 'WD'
   if (isDnqStatus(player)) return 'DNQ'
-  return teeTimeLabel(player, timeZone) || (shouldHoldFinishedStatus(player, timeZone, now) ? 'F' : thruLabel(player.thru))
+  return teeTimeLabel(player, timeZone, now) || (shouldHoldFinishedStatus(player, timeZone, now) ? 'F' : thruLabel(player.thru))
 }
 
 export function leaderboardBackedPickStatusLabel(pick: GolferStatusFields, leaderboardPlayer: GolferStatusFields | undefined, timeZone: string, now = new Date()) {
   if (pick.isObStandIn) return 'OB'
-  return (leaderboardPlayer ? teeTimeLabel(leaderboardPlayer, timeZone) : '') || pickStatusLabel(leaderboardPlayer ?? pick, timeZone, now)
+  return (leaderboardPlayer ? teeTimeLabel(leaderboardPlayer, timeZone, now) : '') || pickStatusLabel(leaderboardPlayer ?? pick, timeZone, now)
 }
 
 export function pickProgressLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
@@ -103,7 +105,7 @@ export function leaderboardBackedPickProgressLabel(pick: GolferStatusFields, lea
     return pickStatusLabel({ ...source, roundScore: '', isObStandIn: false }, timeZone, now)
   }
   const player = leaderboardPlayer ?? pick
-  const teeLabel = leaderboardPlayer ? teeTimeLabel(leaderboardPlayer, timeZone) : ''
+  const teeLabel = leaderboardPlayer ? teeTimeLabel(leaderboardPlayer, timeZone, now) : ''
   if (teeLabel) return teeLabel
   return pickProgressLabel(player, timeZone, now)
 }
@@ -112,7 +114,7 @@ export function tournamentThruLabel(player: GolferStatusFields, timeZone: string
   if (isCutStatus(player)) return 'CUT'
   if (isWdStatus(player)) return 'WD'
   if (isDnqStatus(player)) return 'DNQ'
-  if (teeTimeLabel(player, timeZone)) return '—'
+  if (teeTimeLabel(player, timeZone, now)) return '—'
   if (shouldHoldFinishedStatus(player, timeZone, now)) return 'F'
   return thruLabel(player.thru, false)
 }
