@@ -1044,7 +1044,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const labelH = 54
     const rowCount = Math.min(scoredEntries.length, 5)
     const rowAreaH = 690
-    const rowH = rowAreaH / Math.max(rowCount, 1)
+    const trimW = 28
+    const rowH = (rowAreaH - trimW * 2) / Math.max(rowCount, 1)
     const nameFontSize = rowCount <= 3 ? 56 : rowCount === 4 ? 52 : 48
     const rankFontSize = rowCount <= 3 ? 48 : rowCount === 4 ? 46 : 44
     const scoreFontSize = rowCount <= 3 ? 66 : rowCount === 4 ? 62 : 58
@@ -1070,51 +1071,55 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const faceX = boardX + frame
     const faceY = boardY + frame
     const faceW = boardW - frame * 2
-    drawRect(faceX, faceY, faceW, scoreFaceH, '#f7f7f2', '#d8b45d', 6)
+    const tableX = faceX + trimW
+    const tableY = faceY + trimW
+    const tableW = faceW - trimW * 2
+    drawRect(faceX, faceY, faceW, scoreFaceH, '#d8b45d')
+    drawRect(tableX, tableY, tableW, scoreFaceH - trimW * 2, '#f7f7f2')
 
-    drawRect(faceX, faceY, faceW, headH, '#f7f7f2')
+    drawRect(tableX, tableY, tableW, headH, '#f7f7f2')
     ctx.strokeStyle = '#d8cab0'
     ctx.lineWidth = 4
     ctx.beginPath()
-    ctx.moveTo(faceX, faceY + headH)
-    ctx.lineTo(faceX + faceW, faceY + headH)
+    ctx.moveTo(tableX, tableY + headH)
+    ctx.lineTo(tableX + tableW, tableY + headH)
     ctx.stroke()
-    fitText(poolName || 'Golf Pool', width / 2, faceY + 82, faceW - 78, '600 60px Arial', '#111111', 'center')
-    fitText(tournament?.name || 'Tournament', width / 2, faceY + 132, faceW - 78, '700 31px Arial', '#005b3c', 'center')
-    fitText(boardModeLabel, width / 2, faceY + 168, faceW - 78, '700 24px Arial', '#657168', 'center')
+    fitText(poolName || 'Golf Pool', width / 2, tableY + 82, tableW - 78, '600 60px Arial', '#111111', 'center')
+    fitText(tournament?.name || 'Tournament', width / 2, tableY + 132, tableW - 78, '700 31px Arial', '#005b3c', 'center')
+    fitText(boardModeLabel, width / 2, tableY + 168, tableW - 78, '700 24px Arial', '#657168', 'center')
 
-    const labelY = faceY + headH
-    drawRect(faceX, labelY, faceW, labelH, '#efeee6')
+    const labelY = tableY + headH
+    drawRect(tableX, labelY, tableW, labelH, '#efeee6')
     ctx.strokeStyle = '#d8cab0'
     ctx.lineWidth = 3
     ctx.beginPath()
-    ctx.moveTo(faceX, labelY + labelH)
-    ctx.lineTo(faceX + faceW, labelY + labelH)
-    ctx.moveTo(faceX + 112, labelY)
-    ctx.lineTo(faceX + 112, labelY + labelH)
-    ctx.moveTo(faceX + faceW - 190, labelY)
-    ctx.lineTo(faceX + faceW - 190, labelY + labelH)
+    ctx.moveTo(tableX, labelY + labelH)
+    ctx.lineTo(tableX + tableW, labelY + labelH)
+    ctx.moveTo(tableX + 112, labelY)
+    ctx.lineTo(tableX + 112, labelY + labelH)
+    ctx.moveTo(tableX + tableW - 190, labelY)
+    ctx.lineTo(tableX + tableW - 190, labelY + labelH)
     ctx.stroke()
-    fitText('Rank', faceX + 56, labelY + 35, 88, '800 21px Arial', '#111111', 'center')
-    fitText('Entry', faceX + 144, labelY + 35, faceW - 360, '800 21px Arial', '#111111')
-    fitText(scoreHeader, faceX + faceW - 95, labelY + 35, 142, '800 21px Arial', '#111111', 'center')
+    fitText('Rank', tableX + 56, labelY + 35, 88, '800 21px Arial', '#111111', 'center')
+    fitText('Entry', tableX + 144, labelY + 35, tableW - 360, '800 21px Arial', '#111111')
+    fitText(scoreHeader, tableX + tableW - 95, labelY + 35, 142, '800 21px Arial', '#111111', 'center')
 
     scoredEntries.slice(0, rowCount).forEach((entry, index) => {
       const y = labelY + labelH + index * rowH
-      drawRect(faceX, y, faceW, rowH, index % 2 === 0 ? '#f7f7f2' : '#fbfbf5')
+      drawRect(tableX, y, tableW, rowH, index % 2 === 0 ? '#f7f7f2' : '#fbfbf5')
       ctx.strokeStyle = '#d8cab0'
       ctx.lineWidth = 2
       ctx.beginPath()
-      ctx.moveTo(faceX, y + rowH)
-      ctx.lineTo(faceX + faceW, y + rowH)
-      ctx.moveTo(faceX + 112, y)
-      ctx.lineTo(faceX + 112, y + rowH)
-      ctx.moveTo(faceX + faceW - 190, y)
-      ctx.lineTo(faceX + faceW - 190, y + rowH)
+      ctx.moveTo(tableX, y + rowH)
+      ctx.lineTo(tableX + tableW, y + rowH)
+      ctx.moveTo(tableX + 112, y)
+      ctx.lineTo(tableX + 112, y + rowH)
+      ctx.moveTo(tableX + tableW - 190, y)
+      ctx.lineTo(tableX + tableW - 190, y + rowH)
       ctx.stroke()
-      fitText(String(entry.rank || index + 1), faceX + 56, y + rowTextOffset, 90, `800 ${rankFontSize}px Arial`, '#b21e23', 'center')
-      fitText(String(entry.displayName || 'Entry'), faceX + 144, y + rowTextOffset, faceW - 374, `600 ${nameFontSize}px Arial`, '#111111')
-      fitText(formatScore(entry.totalScore), faceX + faceW - 95, y + scoreTextOffset, 150, `800 ${scoreFontSize}px Arial`, scoreClass(entry.totalScore).includes('b21e23') ? '#b21e23' : '#111111', 'center')
+      fitText(String(entry.rank || index + 1), tableX + 56, y + rowTextOffset, 90, `800 ${rankFontSize}px Arial`, '#b21e23', 'center')
+      fitText(String(entry.displayName || 'Entry'), tableX + 144, y + rowTextOffset, tableW - 374, `600 ${nameFontSize}px Arial`, '#111111')
+      fitText(formatScore(entry.totalScore), tableX + tableW - 95, y + scoreTextOffset, 150, `800 ${scoreFontSize}px Arial`, scoreClass(entry.totalScore).includes('b21e23') ? '#b21e23' : '#111111', 'center')
     })
 
     drawRect(134, footerBoxY, width - 268, footerBoxH, '#fbf7ed', '#123c2f', 6)
