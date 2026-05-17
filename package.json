@@ -12,6 +12,7 @@
     "test:espn-leaderboard": "node --experimental-strip-types scripts/verify-espn-leaderboard-source.mjs",
     "test:golfer-status": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-golfer-status-labels.mjs",
     "test:round-leaderboards": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-round-leaderboards.mjs",
+    "test:final-result-announcements": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-final-result-announcements.mjs",
     "test:early-field-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-early-field-import.mjs"
   },
   "dependencies": {

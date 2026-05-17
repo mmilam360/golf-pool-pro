@@ -3,9 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import DashboardActivePools from '@/components/DashboardActivePools'
+import FinalResultPopup from '@/components/FinalResultPopup'
 import { formatDateOnly, getDateOnly, todayDateOnly } from '@/lib/date-utils'
 import { acceptPoolInvite, declinePoolInvite } from '@/app/(app)/pool-invites/actions'
+import { dismissFinalResultAnnouncement } from '@/app/(app)/dashboard/final-result-actions'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
+import { selectFinalResultAnnouncement, type FinalResultAnnouncementCandidate } from '@/lib/final-result-announcements'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { getLeaderboard, type GolfCutLine, type GolfPlayer } from '@/lib/golf-api'
 
@@ -228,6 +231,11 @@ export default async function DashboardPage() {
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
 
+  const { data: dismissedFinalResults } = await supabase
+    .from('gpp_final_result_dismissals')
+    .select('pool_id')
+    .eq('user_id', user.id)
+
   const owned = (ownedPools ?? []) as PoolRecord[]
   const joined = (entries ?? []) as EntryRecord[]
   const invites = (pendingInvites ?? []) as PendingInviteRecord[]
@@ -304,9 +312,31 @@ export default async function DashboardPage() {
     const tournament = getTournament(pool)
     return Boolean(pool && !isActivePool(pool, tournament))
   })
+  const dismissedPoolIds = new Set((dismissedFinalResults ?? []).map(row => String(row.pool_id)).filter(Boolean))
+  const finalResultCandidates: FinalResultAnnouncementCandidate[] = pastEntries.flatMap(entry => {
+    const pool = getPool(entry)
+    if (!pool) return []
+    const tournament = getTournament(pool)
+    if (!pool.is_completed && tournament?.status !== 'completed') return []
+    const scoredEntries = buildScoredEntries(pool, entriesByPool[pool.id] || [entry])
+    const current = scoredEntries.find(scoredEntry => scoredEntry.entryId === entry.id)
+    if (!current?.rank) return []
+    return [{
+      entryId: entry.id,
+      poolId: pool.id,
+      poolName: pool.name,
+      tournamentName: tournament?.name || 'Tournament',
+      rank: current.rank,
+      totalScore: current.totalScore,
+      fieldSize: scoredEntries.length,
+      scoredEntries,
+    }]
+  })
+  const finalResultAnnouncement = selectFinalResultAnnouncement(finalResultCandidates, dismissedPoolIds)
 
   return (
     <div className="space-y-8">
+      <FinalResultPopup announcement={finalResultAnnouncement} dismissAction={dismissFinalResultAnnouncement} />
       <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
         <div className="flex flex-col gap-4 border-b border-[#d8cab0] bg-[#fbf7ed] p-5 md:flex-row md:items-center md:justify-between md:p-7">
           <h1 className="font-display text-4xl font-bold uppercase tracking-[-0.03em] text-[#0f2f25] md:text-5xl">Player Dashboard</h1>
