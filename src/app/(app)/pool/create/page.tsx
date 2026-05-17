@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import ShortUniqueId from 'short-unique-id'
 import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
-import { buildRunItBackDefaults } from '@/lib/run-it-back'
+import { buildRunItBackDefaults, selectNextRunItBackTournament } from '@/lib/run-it-back'
 
 interface Tournament {
   id: string; name: string; start_date: string; end_date: string; course: string; status: string
@@ -159,7 +159,8 @@ export default function CreatePoolPage() {
             setCountScores(cloneDefaults.countScores)
             setObEnabled(cloneDefaults.obEnabled)
             setObPenalty(cloneDefaults.obPenalty)
-            if (!requestedTournament && openTournaments[0]) setSelectedTournament(openTournaments[0].id)
+            const cloneTournament = selectNextRunItBackTournament(openTournaments, now)
+            if (!requestedTournament && cloneTournament?.id) setSelectedTournament(cloneTournament.id)
           }
         }
       }

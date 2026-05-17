@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import DashboardActivePools from '@/components/DashboardActivePools'
 import FinalResultPopup from '@/components/FinalResultPopup'
-import { formatDateOnly, getDateOnly, hasDateOnlyStarted, todayDateOnly } from '@/lib/date-utils'
+import { formatDateOnly, getDateOnly, todayDateOnly } from '@/lib/date-utils'
+import { selectNextRunItBackTournament } from '@/lib/run-it-back'
 import { acceptPoolInvite, declinePoolInvite } from '@/app/(app)/pool-invites/actions'
 import { dismissFinalResultAnnouncement } from '@/app/(app)/dashboard/final-result-actions'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
@@ -320,9 +321,7 @@ export default async function DashboardPage() {
     return Boolean(pool && !isActivePool(pool, tournament))
   })
   const dismissedPoolIds = new Set((dismissedFinalResults ?? []).map(row => String(row.pool_id)).filter(Boolean))
-  const nextOpenTournament = ((upcomingTournaments ?? []) as Tournament[]).find(tournament => (
-    tournament.status === 'upcoming' && !hasDateOnlyStarted(tournament.start_date || null)
-  ))
+  const nextOpenTournament = selectNextRunItBackTournament((upcomingTournaments ?? []) as Tournament[])
   const finalResultCandidates: FinalResultAnnouncementCandidate[] = pastEntries.flatMap(entry => {
     const pool = getPool(entry)
     if (!pool) return []
@@ -337,7 +336,7 @@ export default async function DashboardPage() {
       poolName: pool.name,
       tournamentName: tournament?.name || 'Tournament',
       isOwner: ownedPoolIds.includes(pool.id),
-      runItBackHref: `/pool/create?clone=${pool.id}${nextOpenTournament?.id ? `&tournament=${nextOpenTournament.id}` : ''}`,
+      runItBackHref: nextOpenTournament?.id ? `/pool/create?clone=${pool.id}&tournament=${nextOpenTournament.id}` : undefined,
       runItBackTournamentName: nextOpenTournament?.name || undefined,
       rank: current.rank,
       totalScore: current.totalScore,

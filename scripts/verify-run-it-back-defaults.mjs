@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { buildRunItBackDefaults } from '../src/lib/run-it-back.ts'
+import { buildRunItBackDefaults, selectNextRunItBackTournament } from '../src/lib/run-it-back.ts'
 
 const defaults = buildRunItBackDefaults({
   id: 'pool-1',
@@ -63,5 +63,25 @@ assert.deepEqual(
 )
 
 assert.equal(buildRunItBackDefaults({ name: 'Missing id' }), null, 'missing source id is not cloneable')
+
+const now = new Date('2026-05-17T16:00:00-04:00')
+assert.deepEqual(
+  selectNextRunItBackTournament([
+    { id: 'live', name: 'Current Event', start_date: '2026-05-17', status: 'live' },
+    { id: 'next', name: 'Next Week Event', start_date: '2026-05-21', status: 'upcoming' },
+    { id: 'later', name: 'Too Far Event', start_date: '2026-06-20', status: 'upcoming' },
+  ], now),
+  { id: 'next', name: 'Next Week Event', start_date: '2026-05-21', status: 'upcoming' },
+  'run it back should pick the next unstarted tournament within two weeks'
+)
+
+assert.equal(
+  selectNextRunItBackTournament([
+    { id: 'started', name: 'Started Today', start_date: '2026-05-17', status: 'upcoming' },
+    { id: 'later', name: 'Too Far Event', start_date: '2026-06-20', status: 'upcoming' },
+  ], now),
+  null,
+  'run it back should not prefill started events or far-future events'
+)
 
 console.log('run it back defaults checks passed')
