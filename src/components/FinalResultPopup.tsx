@@ -165,8 +165,18 @@ function drawShareImage(announcement: FinalResultAnnouncement) {
   return canvas.toDataURL('image/png')
 }
 
+function dataUrlToFile(dataUrl: string, fileName: string) {
+  const [header, data] = dataUrl.split(',')
+  const mime = header.match(/:(.*?);/)?.[1] || 'image/png'
+  const binary = window.atob(data)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i)
+  return new File([bytes], fileName, { type: mime })
+}
+
 export default function FinalResultPopup({ announcement, dismissAction }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const fileName = useMemo(() => {
     if (!announcement) return 'golf-pools-pro-final-board.png'
     return `${announcement.poolName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-final-board.png`
@@ -177,15 +187,49 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
     setPreviewUrl(drawShareImage(announcement))
   }, [announcement])
 
+  const saveShareImage = async () => {
+    if (!previewUrl || isSaving) return
+    setIsSaving(true)
+    try {
+      const file = dataUrlToFile(previewUrl, fileName)
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Golf Pools Pro final board' })
+        return
+      }
+
+      const blobUrl = URL.createObjectURL(file)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   if (!announcement) return null
 
   const finish = ordinal(announcement.rank)
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-[#001f17]/75 px-3 py-6">
-      <section className="max-h-[92vh] w-full max-w-5xl overflow-y-auto border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[9px_9px_0_#d8cab0]">
+      <section className="relative max-h-[92vh] w-full max-w-5xl overflow-y-auto border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[9px_9px_0_#d8cab0]">
+        <form action={dismissAction} className="absolute right-3 top-3 z-10">
+          <input type="hidden" name="poolId" value={announcement.poolId} />
+          <input type="hidden" name="entryId" value={announcement.entryId} />
+          <button
+            type="submit"
+            aria-label="Close final results"
+            className="flex h-10 w-10 items-center justify-center border-2 border-[#123c2f] bg-[#fbf7ed] text-2xl font-black leading-none text-[#123c2f] shadow-[3px_3px_0_#d8cab0] hover:bg-[#fff4cf]"
+          >
+            ×
+          </button>
+        </form>
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="p-5 sm:p-7">
+          <div className="p-5 pt-14 sm:p-7 sm:pt-10">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a6724]">Final results</p>
             <h2 className="mt-2 font-display text-4xl font-bold uppercase tracking-[-0.03em] text-[#0f2f25] sm:text-5xl">
               You finished {finish}
@@ -219,32 +263,27 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
               </p>
             )}
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              {previewUrl ? (
-                <a
-                  href={previewUrl}
-                  download={fileName}
-                  className="border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]"
-                >
-                  Download board image
-                </a>
-              ) : null}
-              <form action={dismissAction}>
-                <input type="hidden" name="poolId" value={announcement.poolId} />
-                <input type="hidden" name="entryId" value={announcement.entryId} />
-                <button className="border-2 border-[#123c2f] bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#123c2f] hover:bg-[#fff4cf]">
-                  Got it
-                </button>
-              </form>
-            </div>
           </div>
 
           {announcement.showSharePreview ? (
             <div className="border-t-2 border-[#123c2f] bg-[#123c2f] p-5 lg:border-l-2 lg:border-t-0">
               <p className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-[#d8b45d]">Share preview</p>
               {previewUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={previewUrl} alt={`${announcement.poolName} final leaderboard share preview`} className="mx-auto max-h-[70vh] w-auto border-2 border-[#d8b45d] bg-[#f3ead7]" />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={previewUrl} alt={`${announcement.poolName} final leaderboard share preview`} className="mx-auto max-h-[70vh] w-auto border-2 border-[#d8b45d] bg-[#f3ead7]" />
+                  <button
+                    type="button"
+                    onClick={saveShareImage}
+                    disabled={isSaving}
+                    className="mt-4 w-full border-2 border-[#d8b45d] bg-[#fbf7ed] px-5 py-4 text-sm font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[4px_4px_0_#001f17] hover:bg-white disabled:cursor-wait disabled:opacity-70"
+                  >
+                    {isSaving ? 'Opening image…' : 'Save image'}
+                  </button>
+                  <p className="mt-3 text-center text-xs font-semibold leading-5 text-[#f3ead7]/85">
+                    iPhone: choose Save Image from the share sheet.
+                  </p>
+                </>
               ) : (
                 <div className="flex min-h-[520px] items-center justify-center border-2 border-[#d8b45d] bg-[#f3ead7] text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">
                   Building image…
