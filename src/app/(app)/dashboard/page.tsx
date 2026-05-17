@@ -209,6 +209,14 @@ function WinnerBadge({ name }: { name?: string | null }) {
   return <ResultBadge label="Winner" value={name || '—'} tone="gold" />
 }
 
+function CompactResultBadge({ rank, score }: { rank: string; score: string }) {
+  return (
+    <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-white px-2 py-1 font-mono text-xs font-black uppercase tracking-[0.06em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0]">
+      {rank} / <span className="ml-1 text-[#b21e23]">{score}</span>
+    </span>
+  )
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -395,16 +403,8 @@ export default async function DashboardPage() {
             <Link href="/pool/join" className="mt-5 inline-flex border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black text-white hover:bg-[#0f2f25]">Join pool</Link>
           </div>
         ) : (
-          <div className="overflow-hidden">
-            <div className="hidden border-b border-stone-200 bg-[#fbf7ed] px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-[#657168] sm:grid sm:grid-cols-[minmax(220px,2fr)_minmax(150px,1fr)_64px_72px_116px_150px]">
-              <span>Pool</span>
-              <span>Tournament</span>
-              <span className="text-center">Rank</span>
-              <span className="text-center">Score</span>
-              <span>Date</span>
-              <span>Status</span>
-            </div>
-            {pastEntries.map((entry, index) => {
+          <div className="grid gap-3 bg-[#fbf7ed] p-4 sm:grid-cols-2 sm:gap-4 sm:p-5">
+            {pastEntries.map(entry => {
               const pool = getPool(entry)
               if (!pool) return null
               const tournament = getTournament(pool)
@@ -417,37 +417,24 @@ export default async function DashboardPage() {
               const dateRange = formatDateRange(tournament?.start_date, tournament?.end_date)
 
               return (
-                <Link key={entry.id} href={`/pool/${pool.id}`} className={`block border-b border-stone-200 px-4 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#f7efdf] sm:grid sm:grid-cols-[minmax(220px,2fr)_minmax(150px,1fr)_64px_72px_116px_150px] sm:items-center sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
-                  <span className="block min-w-0 sm:pr-3">
-                    <span className="block break-words font-semibold leading-5 text-[#1f2a24]">{pool.name}</span>
-                    <span className="mt-1 block text-xs leading-5 text-[#657168]">{entry.display_name || 'Your entry'} · {picks.length ? `${picks.length} picks` : 'Pick team'}</span>
+                <Link key={entry.id} href={`/pool/${pool.id}`} className="group block border-2 border-[#d8cab0] bg-white p-4 text-sm shadow-[4px_4px_0_#eadfca] transition-colors hover:border-[#123c2f] hover:bg-[#fffdf8]">
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block break-words font-display text-xl font-bold leading-tight text-[#0f2f25]">{pool.name}</span>
+                      <span className="mt-1 block text-xs leading-5 text-[#657168]">{entry.display_name || 'Your entry'} · {picks.length ? `${picks.length} picks` : 'Pick team'}</span>
+                    </span>
+                    {isUpcoming ? <UpcomingBadge compact /> : <CompactResultBadge rank={rankText} score={scoreText} />}
                   </span>
-                  <span className="mt-2 block text-xs leading-5 text-[#657168] sm:mt-0 sm:text-sm">
-                    <span>{tournament?.name || 'Tournament'}</span>
-                    <span className="mx-1.5 text-[#b58a3a] sm:hidden">/</span>
-                    <span className="font-mono sm:hidden">{dateRange}</span>
+                  <span className="mt-3 block border-t border-[#eadfca] pt-3 text-xs leading-5 text-[#657168]">
+                    <span className="font-semibold text-[#1f2a24]">{tournament?.name || 'Tournament'}</span>
+                    <span className="mx-1.5 text-[#b58a3a]">/</span>
+                    <span className="font-mono">{dateRange}</span>
                   </span>
-                  <span className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">
-                    {isUpcoming ? (
-                      <UpcomingBadge compact />
-                    ) : (
-                      <>
-                        <ResultBadge label="Rank" value={rankText} />
-                        <ResultBadge label="Score" value={scoreText} tone={rankPreview?.totalScore !== null && rankPreview?.totalScore !== undefined && rankPreview.totalScore < 0 ? 'red' : 'green'} />
-                        <WinnerBadge name={winner} />
-                      </>
-                    )}
-                  </span>
-                  {isUpcoming ? (
-                    <span className="hidden sm:col-span-2 sm:flex sm:justify-center"><UpcomingBadge /></span>
-                  ) : (
-                    <>
-                      <span className="hidden text-center font-black text-[#123c2f] sm:block">{rankText}</span>
-                      <span className="hidden text-center font-black text-[#b21e23] sm:block">{scoreText}</span>
-                    </>
-                  )}
-                  <span className="hidden font-mono text-[#657168] sm:block">{dateRange}</span>
-                  <span className="hidden min-w-0 sm:block"><WinnerBadge name={winner} /></span>
+                  {!isUpcoming ? (
+                    <span className="mt-3 flex flex-wrap items-center gap-2">
+                      <WinnerBadge name={winner} />
+                    </span>
+                  ) : null}
                 </Link>
               )
             })}

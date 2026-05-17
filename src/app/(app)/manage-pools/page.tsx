@@ -6,12 +6,16 @@ import { createClient } from '@/lib/supabase/server'
 import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
 import { getPoolPaymentQuote, getPoolPaymentStatus, formatMoney } from '@/lib/payments/pricing'
 import { selectNextRunItBackTournament } from '@/lib/run-it-back'
+import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
+import type { GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
   id?: string | null
   name?: string | null
   start_date?: string | null
+  end_date?: string | null
   status?: string | null
+  leaderboard_json?: GolfPlayer[] | null
 }
 
 type PoolRecord = {
@@ -45,9 +49,22 @@ function formatDate(value?: string | null) {
   return formatDateOnly(value)
 }
 
+function formatDateRange(start?: string | null, end?: string | null) {
+  const startText = formatDateOnly(start)
+  const endText = formatDateOnly(end)
+  if (!end || startText === endText) return startText
+  return `${startText}–${endText}`
+}
+
+function formatScore(score: number | null) {
+  if (score === null) return '—'
+  if (score === 0) return 'E'
+  return score > 0 ? `+${score}` : String(score)
+}
+
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
   if (tournament?.status === 'live') return 'Live'
-  if (pool.is_completed || tournament?.status === 'completed') return 'Passed'
+  if (pool.is_completed || tournament?.status === 'completed') return 'Final'
   if (pool.is_locked) return 'Locked'
   return 'Open'
 }
@@ -55,7 +72,7 @@ function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
 function statusClass(label: string) {
   if (label === 'Live') return 'border-[#1f6b4a] bg-[#123c2f] text-white'
   if (label === 'Locked') return 'border-[#b58a3a] bg-[#fbf0c9] text-[#7a5a19]'
-  if (label === 'Passed') return 'border-[#d8cab0] bg-[#f3ede0] text-[#657168]'
+  if (label === 'Final') return 'border-[#d8cab0] bg-[#f3ede0] text-[#657168]'
   return 'border-[#cfe0d3] bg-[#eef7ef] text-[#1f6b4a]'
 }
 
@@ -76,7 +93,7 @@ function LockGlyph({ locked }: { locked: boolean }) {
 function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
   return (
     <span className={`inline-flex items-center gap-1.5 border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>
-      {label === 'Passed' ? null : <LockGlyph locked={locked || label === 'Live'} />}
+      {label === 'Final' ? null : <LockGlyph locked={locked || label === 'Live'} />}
       {label}
     </span>
   )
@@ -109,6 +126,98 @@ function BalanceBadge({ pool, activeEntryCount, tournament }: { pool: PoolRecord
   )
 }
 
+function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): ScoredEntry[] {
+  const tournament = getTournament(pool)
+  const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
+  if (!leaderboard.length) return []
+
+  return rankEntries(
+    allEntries.map(poolEntry => ({
+      ...scoreEntry(
+        Array.isArray(poolEntry.golfer_picks) ? poolEntry.golfer_picks as string[] : [],
+        leaderboard,
+        {
+          countScores: pool.count_scores || 4,
+          obRuleEnabled: Boolean(pool.ob_rule_enabled),
+          obPenaltyStrokes: pool.ob_penalty_strokes || 2,
+        }
+      ),
+      entryId: `${poolEntry.pool_id}-${poolEntry.display_name || poolEntry.user_id || 'entry'}`,
+      displayName: poolEntry.display_name || 'Entry',
+    }))
+  )
+}
+
+function winnerLabel(pool: PoolRecord, allEntries: EntryRecord[]) {
+  const winners = buildScoredEntries(pool, allEntries).filter(entry => entry.rank === 1)
+  if (winners.length === 0) return null
+  if (winners.length === 1) return winners[0].displayName
+  return `${winners[0].displayName} + ${winners.length - 1}`
+}
+
+function ResultBadge({ label, value, tone = 'green' }: { label: string; value: string; tone?: 'green' | 'red' | 'gold' | 'paper' }) {
+  const toneClass = tone === 'red'
+    ? 'border-[#b21e23] bg-[#fff1ef] text-[#b21e23]'
+    : tone === 'gold'
+      ? 'border-[#b58a3a] bg-[#fff4cf] text-[#7a5a19]'
+      : tone === 'paper'
+        ? 'border-[#d8cab0] bg-[#fbf7ed] text-[#657168]'
+        : 'border-[#123c2f] bg-white text-[#123c2f]'
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 border px-2 py-1 text-xs font-black uppercase tracking-[0.08em] ${toneClass}`}>
+      <span className="text-[#657168]">{label}</span>
+      <span>{value}</span>
+    </span>
+  )
+}
+
+function PoolCard({ pool, entries, nextOpenTournament }: { pool: PoolRecord; entries: EntryRecord[]; nextOpenTournament: Tournament | null }) {
+  const tournament = getTournament(pool)
+  const label = statusLabel(pool, tournament)
+  const activeEntryCount = entries.length
+  const showInvitePrep = canShowInvitePrep(pool, tournament)
+  const isCompleted = Boolean(pool.is_completed || tournament?.status === 'completed')
+  const winner = isCompleted ? winnerLabel(pool, entries) : null
+  const scoredEntries = isCompleted ? buildScoredEntries(pool, entries) : []
+  const winningScore = scoredEntries.find(entry => entry.rank === 1)?.totalScore ?? null
+
+  return (
+    <div className="border-2 border-[#d8cab0] bg-white p-4 shadow-[4px_4px_0_#eadfca]">
+      <Link href={`/pool/${pool.id}`} className="block transition-colors hover:bg-[#fffdf8]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h3 className="break-words font-display text-xl font-bold leading-tight text-[#0f2f25]">{pool.name}</h3>
+              {showInvitePrep ? (
+                <span className="shrink-0 border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">Invite</span>
+              ) : null}
+            </div>
+            <p className="mt-1 text-xs leading-5 text-[#657168]">
+              <span className="font-semibold text-[#1f2a24]">{tournament?.name || 'Tournament'}</span>
+              <span className="mx-1.5 text-[#b58a3a]">/</span>
+              <span className="font-mono">{formatDateRange(tournament?.start_date, tournament?.end_date)}</span>
+            </p>
+          </div>
+          <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-[#eadfca] pt-3">
+          <ResultBadge label="Entries" value={String(activeEntryCount)} />
+          {isCompleted && winner ? <ResultBadge label="Winner" value={winner} tone="gold" /> : null}
+          {isCompleted && winningScore !== null ? <ResultBadge label="Winning score" value={formatScore(winningScore)} tone={winningScore < 0 ? 'red' : 'green'} /> : null}
+          <BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} />
+        </div>
+      </Link>
+      {isCompleted && nextOpenTournament?.id && nextOpenTournament.name ? (
+        <Link href={`/pool/create?clone=${pool.id}&tournament=${nextOpenTournament.id}`} className="mt-3 flex w-full flex-col items-center justify-center border border-[#123c2f] bg-[#fbf7ed] px-3 py-2.5 text-center text-[#123c2f] transition-colors hover:bg-[#eef7ef]">
+          <span className="text-[11px] font-black uppercase tracking-[0.12em]">Copy settings for</span>
+          <span className="mt-0.5 text-sm font-bold leading-tight">{nextOpenTournament.name}</span>
+        </Link>
+      ) : null}
+    </div>
+  )
+}
+
 export default async function ManagePoolsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -116,7 +225,7 @@ export default async function ManagePoolsPage() {
 
   const { data: ownedPools } = await supabase
     .from('gpp_pools')
-    .select('id, name, passcode, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, is_locked, is_completed, payment_status, amount_paid_cents, gpp_tournaments(name, start_date, status)')
+    .select('id, name, passcode, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, is_locked, is_completed, payment_status, amount_paid_cents, gpp_tournaments(name, start_date, end_date, status, leaderboard_json)')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -137,10 +246,19 @@ export default async function ManagePoolsPage() {
       .eq('is_removed', false)
     : { data: [] }
 
-  const ownedEntryCounts = ((ownedPoolEntries ?? []) as EntryRecord[]).reduce<Record<string, number>>((counts, entry) => {
-    counts[entry.pool_id] = (counts[entry.pool_id] || 0) + 1
-    return counts
+  const entriesByPool = ((ownedPoolEntries ?? []) as EntryRecord[]).reduce<Record<string, EntryRecord[]>>((groups, entry) => {
+    groups[entry.pool_id] = groups[entry.pool_id] || []
+    groups[entry.pool_id].push(entry)
+    return groups
   }, {})
+  const currentPools = owned.filter(pool => {
+    const tournament = getTournament(pool)
+    return !pool.is_completed && tournament?.status !== 'completed'
+  })
+  const finalPools = owned.filter(pool => {
+    const tournament = getTournament(pool)
+    return Boolean(pool.is_completed || tournament?.status === 'completed')
+  })
 
   return (
     <div className="space-y-8">
@@ -160,54 +278,33 @@ export default async function ManagePoolsPage() {
             <Link href="/pool/create" className="gpp-3d gpp-button-3d gpp-button-wrap mt-5 text-sm"><span className="gpp-button-face px-5 py-3">Create pool</span></Link>
           </div>
         ) : (
-          <div className="overflow-hidden">
-            <div className="grid grid-cols-[minmax(0,1fr)_76px_82px] border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#657168] sm:grid-cols-[1.3fr_1fr_82px_86px_100px_110px] sm:px-5 sm:text-xs sm:tracking-[0.16em]">
-              <span>Pool</span>
-              <span className="hidden sm:block">Tournament</span>
-              <span className="text-center">Entries</span>
-              <span className="text-right sm:text-left">Date</span>
-              <span className="hidden sm:block">Status</span>
-              <span className="hidden sm:block">Balance</span>
-            </div>
-            {owned.map((pool, index) => {
-              const tournament = getTournament(pool)
-              const label = statusLabel(pool, tournament)
-              const activeEntryCount = ownedEntryCounts[pool.id] || 0
-              const showInvitePrep = canShowInvitePrep(pool, tournament)
-              const isCompleted = Boolean(pool.is_completed || tournament?.status === 'completed')
-              return (
-                <div key={pool.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'} border-b border-[#eadfca]`}>
-                  <Link href={`/pool/${pool.id}`} className="grid grid-cols-[minmax(0,1fr)_76px_82px] items-center px-4 py-4 text-sm transition-colors hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_82px_86px_100px_110px] sm:px-5">
-                    <span className="min-w-0 pr-3">
-                      <span className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className="truncate font-semibold text-[#1f2a24]">{pool.name}</span>
-                        {showInvitePrep ? (
-                          <span className="shrink-0 border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">Invite</span>
-                        ) : null}
-                      </span>
-                      <span className="mt-1 block text-xs leading-5 text-[#657168] sm:hidden">{tournament?.name || 'Tournament'}</span>
-                      <span className="mt-2 flex flex-wrap gap-2 sm:hidden">
-                        <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
-                        <BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} />
-                      </span>
-                    </span>
-                    <span className="hidden text-[#657168] sm:block">{tournament?.name || 'Tournament'}</span>
-                    <span className="text-center font-black text-[#123c2f]">{activeEntryCount}</span>
-                    <span className="text-right font-mono text-[#657168] sm:text-left">{formatDate(tournament?.start_date)}</span>
-                    <span className="hidden sm:block"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
-                    <span className="hidden sm:block"><BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} /></span>
-                  </Link>
-                  {isCompleted && nextOpenTournament?.id && nextOpenTournament.name ? (
-                    <div className="px-4 pb-4 sm:px-5">
-                      <Link href={`/pool/create?clone=${pool.id}&tournament=${nextOpenTournament.id}`} className="flex w-full flex-col items-center justify-center border border-[#123c2f] bg-white px-3 py-2.5 text-center text-[#123c2f] transition-colors hover:bg-[#eef7ef]">
-                        <span className="text-[11px] font-black uppercase tracking-[0.12em]">Copy settings for</span>
-                        <span className="mt-0.5 text-sm font-bold leading-tight">{nextOpenTournament.name}</span>
-                      </Link>
-                    </div>
-                  ) : null}
+          <div className="space-y-6 bg-[#fbf7ed] p-4 sm:p-5">
+            {currentPools.length ? (
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 className="font-display text-xl font-bold uppercase text-[#0f2f25]">Current pools</h2>
+                  <span className="border border-[#d8cab0] bg-white px-2 py-1 text-xs font-black uppercase tracking-[0.1em] text-[#657168]">{currentPools.length}</span>
                 </div>
-              )
-            })}
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {currentPools.map(pool => (
+                    <PoolCard key={pool.id} pool={pool} entries={entriesByPool[pool.id] || []} nextOpenTournament={nextOpenTournament ?? null} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {finalPools.length ? (
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-3 border-t border-[#d8cab0] pt-5">
+                  <h2 className="font-display text-xl font-bold uppercase text-[#0f2f25]">Final pools</h2>
+                  <span className="border border-[#d8cab0] bg-white px-2 py-1 text-xs font-black uppercase tracking-[0.1em] text-[#657168]">{finalPools.length}</span>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {finalPools.map(pool => (
+                    <PoolCard key={pool.id} pool={pool} entries={entriesByPool[pool.id] || []} nextOpenTournament={nextOpenTournament ?? null} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </section>
