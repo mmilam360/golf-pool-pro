@@ -50,6 +50,11 @@ type ActivePoolCard = {
   entry: EntryRecord | null
 }
 
+type LiveTournamentPayload = {
+  leaderboard?: GolfPlayer[] | null
+  cutLine?: GolfCutLine | null
+}
+
 type RankPreview = {
   rank: number | null
   totalScore: number | null
@@ -544,8 +549,44 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
   const router = useRouter()
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set())
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
+  const [liveLeaderboardsByExternalId, setLiveLeaderboardsByExternalId] = useState<Record<string, LiveTournamentPayload>>({})
   const [secondsToRefresh, setSecondsToRefresh] = useState(60)
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
+
+  const activeExternalIds = useMemo(() => Array.from(new Set(cards.map(card => card.tournament?.external_id).filter(Boolean) as string[])), [cards])
+
+  useEffect(() => {
+    if (activeExternalIds.length === 0) return
+    let cancelled = false
+
+    async function fetchLiveLeaderboards() {
+      const nextEntries = await Promise.all(activeExternalIds.map(async externalId => {
+        try {
+          const res = await fetch(`/api/tournaments/leaderboard?id=${encodeURIComponent(externalId)}`, { cache: 'no-store' })
+          if (!res.ok) return [externalId, null] as const
+          const data = await res.json()
+          return [externalId, { leaderboard: data.leaderboard || null, cutLine: data.cutLine || null }] as const
+        } catch {
+          return [externalId, null] as const
+        }
+      }))
+      if (cancelled) return
+      setLiveLeaderboardsByExternalId(current => {
+        const next = { ...current }
+        for (const [externalId, payload] of nextEntries) {
+          if (payload?.leaderboard?.length) next[externalId] = payload
+        }
+        return next
+      })
+    }
+
+    fetchLiveLeaderboards()
+    const intervalId = window.setInterval(fetchLiveLeaderboards, 60000)
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [activeExternalIds])
 
   useEffect(() => {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -593,12 +634,17 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
       </div>
       <div className="divide-y divide-[#eadfca]">
         {cards.map(({ pool, tournament, role, entry }, index) => {
-          const label = statusLabel(pool, tournament)
+          const livePayload = tournament?.external_id ? liveLeaderboardsByExternalId[tournament.external_id] : null
+          const effectiveTournament = tournament && livePayload?.leaderboard?.length
+            ? { ...tournament, leaderboard_json: livePayload.leaderboard, cutLine: livePayload.cutLine ?? tournament.cutLine ?? null }
+            : tournament
+          const effectivePool = effectiveTournament ? { ...pool, gpp_tournaments: effectiveTournament } : pool
+          const label = statusLabel(effectivePool, effectiveTournament)
           const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
-          const rankPreview = entry ? buildRankPreview(entry, pool, poolEntries) : null
+          const rankPreview = entry ? buildRankPreview(entry, effectivePool, poolEntries) : null
           const isPoolOpen = expandedPoolIds.has(pool.id)
           const openEntryIds = expandedEntryIds[pool.id] ?? null
-          const eventBegun = hasEventBegun(tournament)
+          const eventBegun = hasEventBegun(effectiveTournament)
           return (
             <details
               key={`${role}-${pool.id}`}
@@ -618,20 +664,20 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                   <div className="min-w-0">
                     <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
-                    <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#1f2a24]">{tournament?.name || 'Tournament'}</p>
+                    <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#1f2a24]">{effectiveTournament?.name || 'Tournament'}</p>
                   </div>
-                  {hasRecentScores(tournament) ? <LivePulseBadge /> : <StatusBadge label={label} locked={Boolean(pool.is_locked)} />}
+                  {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : <StatusBadge label={label} locked={Boolean(pool.is_locked)} />}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
                       <span className={`mr-auto inline-flex items-center border border-[#123c2f] px-2 py-1 ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`} aria-label={isPoolOpen ? 'Collapse leaderboard' : 'Expand leaderboard'}>
                         <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                       </span>
                   {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
-                  {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : <StartDateBadge date={tournament?.start_date} />}
+                  {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : <StartDateBadge date={effectiveTournament?.start_date} />}
                 </div>
               </summary>
               <InlineLeaderboard
-                pool={pool}
+                pool={effectivePool}
                 entries={poolEntries}
                 currentEntryId={entry?.id}
                 openEntryIds={openEntryIds}
@@ -649,11 +695,11 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
               />
               <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
                 <TournamentLeaderboard
-                  leaderboard={tournament?.leaderboard_json}
-                  tournamentName={tournament?.name}
-                  lastUpdated={tournament?.last_scores_fetch}
+                  leaderboard={effectiveTournament?.leaderboard_json}
+                  tournamentName={effectiveTournament?.name}
+                  lastUpdated={effectiveTournament?.last_scores_fetch}
                   pickedGolfers={entryPicks(entry)}
-                  cutLine={tournament?.cutLine}
+                  cutLine={effectiveTournament?.cutLine}
                 />
               </div>
             </details>

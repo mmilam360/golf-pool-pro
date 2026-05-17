@@ -264,6 +264,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [poolName, setPoolName] = useState(pool.name)
   const [poolLocked, setPoolLocked] = useState(pool.is_locked)
   const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>(() => Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [])
+  const [leaderboardLastUpdated, setLeaderboardLastUpdated] = useState<string | null>(() => tournament?.last_scores_fetch || null)
   const [cutLine, setCutLine] = useState<GolfCutLine | null>(() => tournament?.cutLine || null)
   const [field, setField] = useState<GolfPlayer[]>(() => Array.isArray(tournament?.field_json) ? tournament.field_json as GolfPlayer[] : Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [])
   const [myPicks, setMyPicks] = useState<string[]>(initialMyEntry?.golfer_picks || [])
@@ -684,6 +685,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         if (liveLeaderboard.length > 0) {
           setLeaderboard(liveLeaderboard)
           setField(liveLeaderboard)
+          setLeaderboardLastUpdated(new Date().toISOString())
         }
         setCutLine(data.cutLine || null)
       }
@@ -698,8 +700,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (tournament?.field_json) {
       setField(tournament.field_json as GolfPlayer[])
     }
-    if (scoringIsLive && tournament?.leaderboard_json) {
+    if (scoringIsLive && tournament?.leaderboard_json && leaderboard.length === 0) {
       setLeaderboard(tournament.leaderboard_json as GolfPlayer[])
+      setLeaderboardLastUpdated(tournament?.last_scores_fetch || null)
     }
     fetchScores()
     const interval = setInterval(fetchScores, 60000) // refresh every minute
@@ -710,7 +713,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       clearInterval(interval)
       clearInterval(countdown)
     }
-  }, [fetchScores, tournament, scoringIsLive])
+  }, [fetchScores, tournament, scoringIsLive, leaderboard.length])
 
   // Save picks
   async function savePicks() {
@@ -1507,7 +1510,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <TournamentLeaderboard
                 leaderboard={leaderboard}
                 tournamentName={tournament?.name}
-                lastUpdated={tournament?.last_scores_fetch}
+                lastUpdated={leaderboardLastUpdated}
                 pickedGolfers={myPicks}
                 cutLine={cutLine}
               />
