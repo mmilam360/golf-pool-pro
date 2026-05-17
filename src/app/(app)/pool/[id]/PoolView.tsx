@@ -1039,7 +1039,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const boardX = 58
     const boardY = 318
     const boardW = 924
-    const frame = 36
+    const frame = 40
     const headH = 200
     const labelH = 54
     const rowCount = Math.min(scoredEntries.length, 6)
@@ -1048,15 +1048,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const boardH = scoreFaceH + frame * 2
     const depthX = 48
     const depthY = 32
-    const postW = 118
-    const postX = boardX + boardW / 2 - postW / 2
+    const postW = 132
+    const postSideW = 18
+    const postX = boardX + boardW / 2 - (postW + postSideW) / 2
     const postY = boardY + boardH - 6
     const footerBoxY = 1688
     const footerBoxH = 138
     const postH = height - postY
 
-    drawRect(postX, postY, postW, postH, '#123c2f', '#001f17', 8)
-    drawRect(postX + postW - 30, postY + 10, 30, postH - 10, '#001f17')
+    drawRect(postX + postW, postY, postSideW, postH, '#001f17')
+    drawRect(postX, postY, postW, postH, '#123c2f')
     drawBoardDepth(boardX, boardY, boardW, boardH, depthX, depthY)
     drawRect(boardX, boardY, boardW, boardH, '#123c2f')
 
@@ -1489,7 +1490,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               )}
             </div>
             </div>
-            <div className="gpp-board-post mx-auto -mt-[10px] h-36 w-16 border-x-4 border-[#003622] md:h-44 md:w-20" />
+            <div className="gpp-board-post mx-auto -mt-[10px] h-36 w-20 md:h-44 md:w-24" />
             <div>
               <TournamentLeaderboard
                 leaderboard={leaderboard}
