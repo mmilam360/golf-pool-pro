@@ -58,5 +58,9 @@ const tournamentSync = readFileSync(new URL('../src/lib/tournament-sync.ts', imp
 assert(!golfApi.includes('pgatour-api'), 'golf-api should not use PGA Tour leaderboard APIs')
 assert(!tournamentSync.includes('pgatour-api'), 'tournament-sync should not use PGA Tour field APIs')
 assert(!tournamentSync.includes('pgachampionship.com/players'), 'tournament-sync should not scrape PGA Championship player page')
+assert(
+  golfApi.includes('competitors/${playerId}/linescores?lang=en&region=us`, NEXT_NO_STORE'),
+  'per-player linescore fetch must be no-store so today/thru does not lag behind total score'
+)
 
 console.log('ESPN leaderboard source verification passed')

@@ -205,7 +205,7 @@ function teeInfoForToday(linescores: any): TeeInfo | null {
 
 async function getCompetitorTeeInfo(eventId: string, competitionId: string, playerId: string): Promise<TeeInfo | null> {
   try {
-    const res = await fetch(`${ESPN_CORE_EVENTS}/${eventId}/competitions/${competitionId}/competitors/${playerId}/linescores?lang=en&region=us`, NEXT_REVALIDATE_MEDIUM)
+    const res = await fetch(`${ESPN_CORE_EVENTS}/${eventId}/competitions/${competitionId}/competitors/${playerId}/linescores?lang=en&region=us`, NEXT_NO_STORE)
     if (!res.ok) return null
     return teeInfoForToday(await res.json())
   } catch {
