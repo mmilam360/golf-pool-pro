@@ -165,9 +165,10 @@ export default async function ManagePoolsPage() {
               const label = statusLabel(pool, tournament)
               const activeEntryCount = ownedEntryCounts[pool.id] || 0
               const showInvitePrep = canShowInvitePrep(pool, tournament)
+              const isCompleted = Boolean(pool.is_completed || tournament?.status === 'completed')
               return (
-                <div key={pool.id} className={index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>
-                  <Link href={`/pool/${pool.id}`} className="grid grid-cols-[minmax(0,1fr)_76px_82px] items-center border-b border-[#eadfca] px-4 py-4 text-sm transition-colors hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_82px_86px_100px_110px] sm:px-5">
+                <div key={pool.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'} border-b border-[#eadfca]`}>
+                  <Link href={`/pool/${pool.id}`} className="grid grid-cols-[minmax(0,1fr)_76px_82px] items-center px-4 py-4 text-sm transition-colors hover:bg-[#f7efdf] sm:grid-cols-[1.3fr_1fr_82px_86px_100px_110px] sm:px-5">
                     <span className="min-w-0 pr-3">
                       <span className="flex min-w-0 flex-wrap items-center gap-2">
                         <span className="truncate font-semibold text-[#1f2a24]">{pool.name}</span>
@@ -187,9 +188,9 @@ export default async function ManagePoolsPage() {
                     <span className="hidden sm:block"><StatusBadge label={label} locked={Boolean(pool.is_locked)} /></span>
                     <span className="hidden sm:block"><BalanceBadge pool={pool} activeEntryCount={activeEntryCount} tournament={tournament} /></span>
                   </Link>
-                  {(pool.is_completed || tournament?.status === 'completed') && (
-                    <div className="border-b border-[#eadfca] px-4 pb-3 sm:px-5">
-                      <Link href={`/pool/create?clone=${pool.id}`} className="inline-flex border border-[#123c2f] bg-white px-3 py-1.5 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f] hover:bg-[#eef7ef]">
+                  {isCompleted && (
+                    <div className="px-4 pb-4 sm:px-5">
+                      <Link href={`/pool/create?clone=${pool.id}`} className="flex w-full items-center justify-center border border-[#123c2f] bg-white px-3 py-2.5 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] transition-colors hover:bg-[#eef7ef]">
                         Run it again
                       </Link>
                     </div>
