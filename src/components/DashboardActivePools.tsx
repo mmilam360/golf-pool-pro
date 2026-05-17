@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { buildHarePickMap, buildTortoisePickMap, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
+import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
@@ -57,6 +57,24 @@ type RankPreview = {
 }
 
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
+const ROUND_MENU_LABELS: Record<number, string> = { 1: 'THURSDAY', 2: 'FRIDAY', 3: 'SATURDAY', 4: 'SUNDAY' }
+const ROUND_SCORE_LABELS: Record<number, string> = { 1: 'THU', 2: 'FRI', 3: 'SAT', 4: 'SUN' }
+
+type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
+
+function roundMenuLabel(round: number) {
+  return ROUND_MENU_LABELS[round] || `ROUND ${round}`
+}
+
+function roundScoreLabel(round: number) {
+  return ROUND_SCORE_LABELS[round] || `R${round}`
+}
+
+function selectedBoardLabel(mode: LeaderboardMode) {
+  if (mode.type === 'current') return 'Current'
+  if (mode.type === 'thru') return `Thru ${roundMenuLabel(mode.round)}`
+  return roundMenuLabel(mode.round)
+}
 
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
   if (pool.is_completed || tournament?.status === 'completed') return 'Passed'
@@ -217,10 +235,10 @@ function OpenPicksBar({ pool, tournament }: { pool: PoolRecord; tournament: Tour
   )
 }
 
-function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): ScoredEntry[] {
+function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[], selectedLeaderboard?: GolfPlayer[], forceScoring = false): ScoredEntry[] {
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
-  const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
-  const canShowRank = Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard))
+  const leaderboard = selectedLeaderboard || (Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : [])
+  const canShowRank = forceScoring || Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard))
 
   if (!canShowRank || leaderboard.length === 0) return []
 
@@ -257,18 +275,37 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   onEntryToggle: (entryId: string, open: boolean) => void
   teeTimeZone: string
 }) {
-  const scoredEntries = buildScoredEntries(pool, entries)
   const countScores = pool.count_scores || 4
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
-  const leaderboardRows = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
+  const baseLeaderboardRows = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
+  const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
+  const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
+  const availableHistoricalRounds = useMemo(() => availableCompletedRounds(baseLeaderboardRows), [baseLeaderboardRows])
+  useEffect(() => {
+    if (leaderboardMode.type !== 'current' && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
+  }, [availableHistoricalRounds, leaderboardMode])
+  const leaderboardRows = useMemo(() => {
+    if (leaderboardMode.type === 'thru') return leaderboardForCompletedRound(baseLeaderboardRows, leaderboardMode.round)
+    if (leaderboardMode.type === 'day') return leaderboardForRoundOnly(baseLeaderboardRows, leaderboardMode.round)
+    return baseLeaderboardRows
+  }, [baseLeaderboardRows, leaderboardMode])
+  const leaderboardModeIsCurrent = leaderboardMode.type === 'current'
+  const boardLabel = selectedBoardLabel(leaderboardMode)
+  const selectedBoardIsHistorical = !leaderboardModeIsCurrent
+  const totalScoreSubLabel = leaderboardMode.type === 'current'
+    ? 'TODAY'
+    : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
+      ? roundScoreLabel(leaderboardMode.round)
+      : null
+  const scoredEntries = buildScoredEntries(pool, entries, leaderboardRows, selectedBoardIsHistorical)
   const leaderboardByName = new Map(leaderboardRows.map(player => [normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()), player]))
   const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
   const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
-  const harePickMap = buildHarePickMap(scoredEntries, 2)
-  const tortoisePickMap = buildTortoisePickMap(scoredEntries, currentEntryId, 2)
-  const showLeverageLegend = harePickMap.size > 0 || tortoisePickMap.size > 0
+  const harePickMap = leaderboardModeIsCurrent ? buildHarePickMap(scoredEntries, 2) : new Map()
+  const tortoisePickMap = leaderboardModeIsCurrent ? buildTortoisePickMap(scoredEntries, currentEntryId, 2) : new Map()
+  const showLeverageLegend = leaderboardModeIsCurrent && (harePickMap.size > 0 || tortoisePickMap.size > 0)
   const showJumpToMyEntry = Boolean(currentScoredEntry && scoredEntries.length >= 10)
   const jumpToCurrentEntry = () => {
     if (!currentEntryId) return
@@ -309,9 +346,50 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
         <div className="gpp-board-depth-bottom" aria-hidden="true" />
         <div className="gpp-3d-face gpp-board-frame border-[8px] border-[#123c2f] md:border-[14px]">
           <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
-            <div className="border-b-2 border-[#111] px-3 py-2">
+            <div className="relative border-b-2 border-[#111] px-3 py-2">
               <p className="mx-auto max-w-[92%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:text-2xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
               <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{pool.name}</p>
+              {availableHistoricalRounds.length > 0 && (
+                <details
+                  className="relative z-50 mx-auto mt-2 w-fit text-left"
+                  open={leaderboardMenuOpen}
+                  onToggle={event => setLeaderboardMenuOpen(event.currentTarget.open)}
+                >
+                  <summary className="list-none border-2 border-[#123c2f] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] marker:hidden [&::-webkit-details-marker]:hidden">
+                    <span className="mr-2 text-[#657168]">View</span>{boardLabel}
+                    <span className="ml-2 inline-block text-[#123c2f]">▾</span>
+                  </summary>
+                  <div className="absolute left-1/2 top-[calc(100%+6px)] z-[220] w-44 -translate-x-1/2 border-2 border-[#123c2f] bg-[#fffdf8] p-2 text-[11px] font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[5px_5px_0_#d8cab0]">
+                    <button
+                      type="button"
+                      onClick={() => { setLeaderboardMode({ type: 'current' }); setLeaderboardMenuOpen(false) }}
+                      className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'current' ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : 'border-b border-[#d8cab0]'}`}
+                    >
+                      Current
+                    </button>
+                    {availableHistoricalRounds.map(round => (
+                      <div key={round} className="border-b border-[#d8cab0] py-1 last:border-b-0">
+                        <div className="px-3 pb-1 pt-2 text-[9px] text-[#657168]">{roundMenuLabel(round)}</div>
+                        <button
+                          type="button"
+                          onClick={() => { setLeaderboardMode({ type: 'thru', round }); setLeaderboardMenuOpen(false) }}
+                          className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'thru' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                        >
+                          Scores Through
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
+                          className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                        >
+                          Daily Winner
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+              {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{leaderboardMode.type === 'day' ? `${boardLabel} daily scores only` : `Standings through ${boardLabel.replace('Thru ', '')}`}</p> : null}
             </div>
             <div className="bg-[#f7f7f2] lg:hidden">
               {scoredEntries.map((entry, entryIndex) => {
@@ -333,7 +411,10 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         </span>
                         {entry.obStandIns > 0 && <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#b21e23]">{entry.obStandIns} OB</div>}
                       </div>
-                      <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
+                      <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>
+                        <div>{formatScore(entry.totalScore)}</div>
+                        {totalScoreSubLabel && entry.todayScore !== null ? <div className="text-[8px] font-black uppercase tracking-[0.08em] text-[#657168]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div> : null}
+                      </div>
                       <div className="flex items-center justify-center text-[#111]" aria-label={isOpen ? 'Collapse entry' : 'Expand entry'}>
                         <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                       </div>
@@ -410,7 +491,10 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                               </td>
                             )
                           })}
-                          <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</td>
+                          <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>
+                            <div>{formatScore(entry.totalScore)}</div>
+                            {totalScoreSubLabel && entry.todayScore !== null ? <div className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.08em] text-[#657168]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div> : null}
+                          </td>
                         </tr>
                         {outOfBoundsPicks.length > 0 && (
                           <tr className="bg-[#efeee6]">

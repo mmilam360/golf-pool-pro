@@ -204,6 +204,14 @@ function LivePulseBadge() {
   )
 }
 
+function hasRecentOnCourseScores(tournament: any, leaderboard: GolfPlayer[]) {
+  if (tournament?.status !== 'live' || !tournament?.last_scores_fetch) return false
+  if (!hasOnCourseScores(leaderboard)) return false
+  const lastFetchMs = new Date(tournament.last_scores_fetch).getTime()
+  if (!Number.isFinite(lastFetchMs)) return false
+  return Date.now() - lastFetchMs <= 5 * 60 * 1000
+}
+
 function golferListName(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length < 2) return name
@@ -326,6 +334,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const submittedPickCount = activeEntries.length - entriesNeedingPicks.length
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
+  const showLivePulse = hasRecentOnCourseScores(tournament, leaderboard)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(leaderboard), [leaderboard])
   const selectedLeaderboard = useMemo(() => {
     if (leaderboardMode.type === 'thru') return leaderboardForCompletedRound(leaderboard, leaderboardMode.round)
@@ -339,6 +348,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ? `Thru ${roundMenuLabel(leaderboardMode.round)}`
       : roundMenuLabel(leaderboardMode.round)
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
+  const canShareBoardImage = (pool.is_completed || tournament?.status === 'completed') || (isOwner && selectedBoardIsHistorical)
+  const shareBoardImageLabel = selectedBoardIsHistorical ? 'Share board image' : 'Share final results'
   const totalScoreSubLabel = leaderboardMode.type === 'current'
     ? 'TODAY'
     : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
@@ -952,9 +963,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     ctx.strokeRect(86, 86, width - 172, height - 172)
 
     ctx.textAlign = 'center'
+    const imageTitle = selectedBoardIsHistorical
+      ? leaderboardMode.type === 'day'
+        ? `${selectedBoardLabel} DAILY WINNER`
+        : `SCORES THROUGH ${selectedBoardLabel.replace('Thru ', '')}`
+      : 'FINAL RESULTS'
+
     ctx.fillStyle = '#b21e23'
     ctx.font = '900 42px Arial'
-    ctx.fillText('FINAL RESULTS', width / 2, 170)
+    ctx.fillText(imageTitle, width / 2, 170)
     ctx.fillStyle = '#111111'
     ctx.font = '900 58px Arial'
     ctx.fillText((poolName || 'Golf Pool').toUpperCase().slice(0, 28), width / 2, 245)
@@ -1001,11 +1018,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
     canvas.toBlob(async blob => {
       if (!blob) return
-      const file = new File([blob], `${poolName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-final-results.png`, { type: 'image/png' })
+      const fileSuffix = selectedBoardIsHistorical ? selectedBoardLabel.replace(/[^a-z0-9]+/gi, '-').toLowerCase() : 'final-results'
+      const file = new File([blob], `${poolName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${fileSuffix}.png`, { type: 'image/png' })
       const nav = navigator as any
       if (nav.canShare?.({ files: [file] })) {
         try {
-          await nav.share({ files: [file], title: `${poolName} final results` })
+          await nav.share({ files: [file], title: `${poolName} ${selectedBoardIsHistorical ? selectedBoardLabel : 'final results'}` })
           showToast('Results image ready to share.', 'success')
           return
         } catch (error: any) {
@@ -1033,7 +1051,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             <h1 className="break-words text-3xl font-bold">{poolName}</h1>
             <p className="mt-1 break-words text-stone-600">{tournament?.name || 'Tournament'} at {tournament?.course || 'TBD'}</p>
           </div>
-          {tournament?.status === 'live' && <LivePulseBadge />}
+          {showLivePulse && <LivePulseBadge />}
         </div>
         {!publicView && !scoringIsLive && <div className="flex items-center gap-4 mt-2 text-sm">
           <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
@@ -1122,13 +1140,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           ) : (
             <>
             <div className="mb-3 flex flex-wrap justify-end gap-2">
-              {(pool.is_completed || tournament?.status === 'completed') && (
+              {canShareBoardImage && (
                 <button
                   type="button"
                   onClick={shareFinalResultsImage}
                   className="border-2 border-[#b21e23] bg-[#fff1ef] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#b21e23] transition-colors hover:bg-white"
                 >
-                  Share final results
+                  {shareBoardImageLabel}
                 </button>
               )}
               {myEntry && scoredEntries.length >= 10 && scoredEntries.some(entry => entry.entryId === myEntry.id) && (
