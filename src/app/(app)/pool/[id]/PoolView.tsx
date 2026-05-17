@@ -1123,9 +1123,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     })
 
     drawRect(134, footerBoxY, width - 268, footerBoxH, '#fbf7ed', '#123c2f', 6)
-    drawRect(144, footerBoxY + 10, width - 288, footerBoxH - 20, 'rgba(255,255,255,0.72)')
-    fitText('golfpoolspro.com', width / 2, footerBoxY + 62, 620, '900 40px Arial', '#123c2f', 'center')
-    fitText('#RunThePool', width / 2, footerBoxY + 106, 420, '900 27px Arial', '#8a6724', 'center')
+    drawRect(144, footerBoxY + 10, width - 288, footerBoxH - 20, 'rgba(255,255,255,0.78)')
+    drawRect(178, footerBoxY + 30, width - 356, 8, '#d8b45d')
+    drawRect(178, footerBoxY + footerBoxH - 38, width - 356, 8, '#d8b45d')
+    fitText('GOLFPOOLSPRO.COM', width / 2, footerBoxY + 88, 650, '900 54px Arial', '#123c2f', 'center')
 
     canvas.toBlob(async blob => {
       if (!blob) return

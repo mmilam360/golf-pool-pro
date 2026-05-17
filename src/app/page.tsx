@@ -106,58 +106,57 @@ const finalScoreStoryHtml = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; width: 100vw; min-height: 100vh; background: #6f8172; color: #1f2a24; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
-    .story { position: relative; width: 100vw; height: 100vh; overflow: hidden; border-radius: 28px; background: radial-gradient(circle at 24% 8%, rgba(255,255,255,.10), transparent 32%), linear-gradient(145deg, #748674 0%, #506755 100%); }
-    .progress { position: absolute; left: 6vw; right: 6vw; top: 8vh; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
-    .progress span { height: 2px; border-radius: 99px; background: rgba(255,255,255,.46); }
-    .progress span:first-child { background: rgba(255,255,255,.92); }
-    .profile { position: absolute; left: 6vw; right: 6vw; top: 9.5vh; display: flex; align-items: center; gap: 2.4vw; color: white; font-size: clamp(9px, 2.6vw, 13px); font-weight: 800; }
-    .avatar { width: 9.2vw; height: 9.2vw; min-width: 36px; min-height: 36px; border: 2px solid rgba(255,255,255,.9); border-radius: 999px; background: #fbf7ed url('/avatars/lonnie72-golfer-avatar.png') center 44% / 138% no-repeat; overflow: hidden; }
-    .time { color: rgba(255,255,255,.72); font-weight: 700; }
-    .dots { margin-left: auto; letter-spacing: .18em; font-size: 18px; line-height: 1; }
-    .export { position: absolute; left: 9.2vw; right: 9.2vw; top: 22vh; background: #fbf7ed; border: 3px solid #123c2f; box-shadow: 6px 6px 0 rgba(15,47,37,.38); }
-    .top { padding: 2.2vh 5vw 1.5vh; text-align: center; }
-    .logo { width: 34vw; max-width: 150px; height: auto; display: block; margin: 0 auto 1.2vh; }
-    .eyebrow { margin: 0; color: #8a6724; font-size: clamp(8px, 2.7vw, 12px); font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
-    h1 { margin: .6vh 0 0; color: #0f2f25; font-family: Impact, 'Arial Black', Arial, sans-serif; font-size: clamp(21px, 6.5vw, 32px); line-height: .9; letter-spacing: -.04em; text-transform: uppercase; }
-    .board { margin: 0 4.2vw 2vh; border: 3px solid #123c2f; background: white; box-shadow: 4px 4px 0 #d8cab0; }
-    .boardHead { background: #123c2f; color: white; text-align: center; padding: 1.55vh 3vw 1.2vh; border-bottom: 3px solid #123c2f; }
-    .pool { margin: 0; color: #f3df9c; font-size: clamp(12px, 3.7vw, 17px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-    .event { margin: .6vh 0 0; color: #d8e3dc; font-size: clamp(8px, 2.5vw, 11px); font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
-    .winnerRow { background: #fbf7ed; min-height: 8.5vh; }
-    .winnerRow .name { color: #0f2f25; font-family: Impact, 'Arial Black', Arial, sans-serif; font-size: clamp(23px, 6.8vw, 34px); letter-spacing: -.03em; }
-    .winnerRow .score { font-size: clamp(20px, 5.8vw, 29px); }
-    .row { display: grid; grid-template-columns: 11vw 1fr 17vw; min-height: 5.55vh; align-items: center; border-bottom: 2px solid #d8cab0; background: #fff; font-size: clamp(10px, 3.1vw, 16px); font-weight: 900; }
-    .row:last-child { border-bottom: 0; }
-    .rank { height: 100%; display: flex; align-items: center; justify-content: center; border-right: 2px solid #d8cab0; color: #b21e23; }
-    .name { padding: 0 2.8vw; color: #111; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .04em; }
-    .score { height: 100%; display: flex; align-items: center; justify-content: center; border-left: 2px solid #d8cab0; color: #b21e23; font-variant-numeric: tabular-nums; }
-    .url { padding: 0 5vw 2vh; text-align: center; color: #123c2f; font-size: clamp(8px, 2.3vw, 12px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
-    .reply { position: absolute; left: 6vw; right: 6vw; bottom: 4.5vh; display: flex; align-items: center; gap: 3vw; color: white; }
-    .message { flex: 1; border: 1.5px solid rgba(255,255,255,.82); border-radius: 999px; padding: 1.4vh 4vw; color: rgba(255,255,255,.9); font-size: clamp(9px, 2.7vw, 12px); font-weight: 700; }
-    .icon { width: 6vw; height: 6vw; min-width: 22px; min-height: 22px; }
+    body { margin: 0; width: 100vw; min-height: 100vh; background: #f3ead7; color: #1f2a24; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
+    .story { position: relative; width: 100vw; height: 100vh; overflow: hidden; background-color: #f3ead7; background-image: linear-gradient(rgba(60,45,25,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(60,45,25,.08) 1px, transparent 1px); background-size: 5vw 5vw; }
+    .logo { position: absolute; top: 8.8vh; left: 50%; width: 43vw; max-width: 250px; transform: translateX(-50%); }
+    .boardWrap { position: absolute; left: 5.4vw; right: 9.1vw; top: 16.55vh; height: 55.55vh; }
+    .post { position: absolute; left: 50%; top: 53.9vh; width: 12.2vw; height: 46.2vh; transform: translateX(-50%); background: #123c2f; }
+    .post::after { content: ''; position: absolute; top: 0; right: -1.65vw; width: 1.65vw; height: 100%; background: #001f17; }
+    .depthRight { position: absolute; top: 0; right: -4.45vw; width: 4.45vw; height: 100%; background: #001f17; transform: skewY(34deg); transform-origin: top left; }
+    .depthBottom { position: absolute; left: 0; right: 0; bottom: -2.95vh; height: 2.95vh; background: #001f17; transform: skewX(56deg); transform-origin: top left; }
+    .frame { position: relative; height: 100%; background: #123c2f; padding: 3.7vw; }
+    .scoreFace { height: 100%; background: #d8b45d; padding: 2.6vw; }
+    .table { height: 100%; background: #f7f7f2; }
+    .head { height: 10.4vh; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: .38vh solid #d8cab0; text-align: center; }
+    .pool { margin: 0; max-width: 78vw; color: #111; font-size: clamp(21px, 5.55vw, 60px); font-weight: 600; line-height: .96; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .event { margin: 1.2vh 0 0; color: #005b3c; font-size: clamp(12px, 2.9vw, 31px); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .mode { margin: .9vh 0 0; color: #657168; font-size: clamp(10px, 2.3vw, 24px); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .labels, .row { display: grid; grid-template-columns: 14.2% 1fr 24%; align-items: center; }
+    .labels { height: 2.8vh; background: #efeee6; border-bottom: .28vh solid #d8cab0; color: #111; font-size: clamp(8px, 1.95vw, 21px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .row { height: 6.6vh; border-bottom: .18vh solid #d8cab0; background: #fbfbf5; font-size: clamp(18px, 5vw, 54px); }
+    .row:nth-child(even) { background: #f7f7f2; }
+    .rank, .score { height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+    .rank { color: #b21e23; border-right: .18vh solid #d8cab0; }
+    .name { min-width: 0; padding: 0 3.2vw; color: #111; font-weight: 600; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .score { color: #b21e23; border-left: .18vh solid #d8cab0; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .footer { position: absolute; left: 12.4vw; right: 12.4vw; bottom: 4.9vh; border: .55vh solid #123c2f; background: #fbf7ed; padding: 1.45vh 2.8vw; text-align: center; }
+    .footerInner { background: rgba(255,255,255,.78); padding: 2.1vh 2vw; }
+    .rule { height: .75vh; max-width: 72%; margin: 0 auto; background: #d8b45d; }
+    .url { margin: 1.7vh 0; color: #123c2f; font-size: clamp(17px, 5vw, 54px); font-weight: 900; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
   </style>
 </head>
 <body>
   <main class="story">
-    <div class="progress" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-    <div class="profile" aria-hidden="true"><div class="avatar"></div><strong>lonnie72</strong><span class="time">22h</span><span class="dots">⋮</span></div>
-    <section class="export" aria-label="Tiger's Tribe final standings story export">
-      <div class="top">
-        <img class="logo" src="https://www.golfpoolspro.com/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" />
-        <p class="eyebrow">Final board</p>
-        <h1>PGA Championship</h1>
-      </div>
-      <section class="board" aria-label="Tiger's Tribe final standings">
-        <div class="boardHead">
-          <p class="pool">Tiger's Tribe</p>
-          <p class="event">PGA Championship pool</p>
+    <img class="logo" src="https://www.golfpoolspro.com/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" />
+    <div class="post" aria-hidden="true"></div>
+    <section class="boardWrap" aria-label="Tiger's Tribe story-ready final board">
+      <div class="depthRight" aria-hidden="true"></div>
+      <div class="depthBottom" aria-hidden="true"></div>
+      <div class="frame">
+        <div class="scoreFace">
+          <div class="table">
+            <header class="head">
+              <p class="pool">Tiger's Tribe</p>
+              <p class="event">PGA Championship</p>
+              <p class="mode">Final board</p>
+            </header>
+            <div class="labels"><div>Rank</div><div>Entry</div><div>Score</div></div>
+            ${finalScoreRows.map(([rank, name, total]) => `<div class="row"><div class="rank">${rank}</div><div class="name">${name}</div><div class="score">${total}</div></div>`).join('')}
+          </div>
         </div>
-        ${finalScoreRows.map(([rank, name, total], index) => `<div class="row${index === 0 ? ' winnerRow' : ''}"><div class="rank">${rank}</div><div class="name">${name}</div><div class="score">${total}</div></div>`).join('')}
-      </section>
-      <div class="url">golfpoolspro.com</div>
+      </div>
     </section>
-    <div class="reply" aria-hidden="true"><div class="message">Send message</div><svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" stroke="currentColor" stroke-width="1.8"/></svg><svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 5l16 7-16 7 4-7-4-7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+    <footer class="footer"><div class="footerInner"><div class="rule"></div><div class="url">GOLFPOOLSPRO.COM</div><div class="rule"></div></div></footer>
   </main>
 </body>
 </html>`
