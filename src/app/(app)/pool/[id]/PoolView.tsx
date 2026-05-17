@@ -1070,11 +1070,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const faceX = boardX + frame
     const faceY = boardY + frame
     const faceW = boardW - frame * 2
-    drawRect(faceX, faceY, faceW, scoreFaceH, '#f7f7f2', '#111111', 5)
+    drawRect(faceX, faceY, faceW, scoreFaceH, '#f7f7f2', '#d8b45d', 6)
 
     drawRect(faceX, faceY, faceW, headH, '#f7f7f2')
-    ctx.strokeStyle = '#111111'
-    ctx.lineWidth = 5
+    ctx.strokeStyle = '#d8cab0'
+    ctx.lineWidth = 4
     ctx.beginPath()
     ctx.moveTo(faceX, faceY + headH)
     ctx.lineTo(faceX + faceW, faceY + headH)
@@ -1085,8 +1085,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
     const labelY = faceY + headH
     drawRect(faceX, labelY, faceW, labelH, '#efeee6')
-    ctx.strokeStyle = '#111111'
-    ctx.lineWidth = 3.5
+    ctx.strokeStyle = '#d8cab0'
+    ctx.lineWidth = 3
     ctx.beginPath()
     ctx.moveTo(faceX, labelY + labelH)
     ctx.lineTo(faceX + faceW, labelY + labelH)
@@ -1102,8 +1102,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     scoredEntries.slice(0, rowCount).forEach((entry, index) => {
       const y = labelY + labelH + index * rowH
       drawRect(faceX, y, faceW, rowH, index % 2 === 0 ? '#f7f7f2' : '#fbfbf5')
-      ctx.strokeStyle = '#111111'
-      ctx.lineWidth = 2.5
+      ctx.strokeStyle = '#d8cab0'
+      ctx.lineWidth = 2
       ctx.beginPath()
       ctx.moveTo(faceX, y + rowH)
       ctx.lineTo(faceX + faceW, y + rowH)
@@ -1272,8 +1272,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div className="gpp-board-depth-right" aria-hidden="true" />
               <div className="gpp-board-depth-bottom" aria-hidden="true" />
               <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[16px]">
-              <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
-                <div className="relative border-b-2 border-[#111] px-3 py-2">
+              <div className="gpp-score-face border-2 border-[#d8b45d] bg-[#f7f7f2] text-center">
+                <div className="relative border-b-2 border-[#d8cab0] px-3 py-2">
                   <p className="mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]" title={tournament?.name || 'Leaderboard'}>{tournament?.name || 'Leaderboard'}</p>
                   <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{poolName}</p>
                   {availableHistoricalRounds.length > 0 && (
@@ -1349,7 +1349,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             return next
                           })
                         }}
-                        className={`group border-b-2 border-[#111] transition-colors ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : ''}`}
+                        className={`group border-b-2 border-[#d8cab0] transition-colors ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : ''}`}
                       >
                         <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>
                           <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
@@ -1377,11 +1377,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             <span className="sr-only">Toggle entry</span>
                           </div>
                         </summary>
-                        <div className="grid grid-cols-4 border-t border-[#111] bg-[#fbfbf5]">
+                        <div className="grid grid-cols-4 border-t border-[#d8cab0] bg-[#fbfbf5]">
                           {Array.from({ length: pool.count_scores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <div key={i} className={`relative border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0 ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
+                              <div key={i} className={`relative border-r border-t border-[#d8cab0] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0 ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
                                 <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                 <div className={`mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
@@ -1393,11 +1393,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           })}
                         </div>
                         {outOfBoundsPicks.length > 0 && (
-                          <div className="border-t-2 border-[#111] bg-[#efeee6] px-2 py-1.5 text-left">
+                          <div className="border-t-2 border-[#d8cab0] bg-[#efeee6] px-2 py-1.5 text-left">
                             <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Outside Top {pool.count_scores}</div>
                             <div className="flex flex-wrap gap-1">
                               {outOfBoundsPicks.map(pick => (
-                                <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                   {pick.isObStandIn ? <ObMarker /> : null}
                                   {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                   {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
@@ -1415,10 +1415,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   <table className="w-full table-fixed border-collapse text-[12px] text-[#111]">
                     <thead>
                       <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
-                        <th className="w-[5%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
-                        <th className="w-[19%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
-                        <th className="border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center" colSpan={pool.count_scores}>Top {pool.count_scores} golfers</th>
-                        <th className="w-[9%] border-b-2 border-[#111] px-1 py-1.5 text-center">Total</th>
+                        <th className="w-[5%] border-b-2 border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
+                        <th className="w-[19%] border-b-2 border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
+                        <th className="border-b-2 border-r-2 border-[#d8cab0] px-1 py-1.5 text-center" colSpan={pool.count_scores}>Top {pool.count_scores} golfers</th>
+                        <th className="w-[9%] border-b-2 border-[#d8cab0] px-1 py-1.5 text-center">Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1433,10 +1433,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         return (
                           <Fragment key={entry.entryId}>
                             <tr id={`entry-row-${entry.entryId}`} key={`${entry.entryId}-top`} className={`bg-[#f7f7f2] transition-colors ${highlightedEntryId === entry.entryId ? 'outline outline-4 outline-[#f3df9c]' : ''}`}>
-                              <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">
+                              <td className="border-b border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">
                                 {entry.rank || '—'}
                               </td>
-                              <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
+                              <td className="border-b border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-2 py-1.5 text-left">
                                 <div className="flex min-w-0 items-center gap-1.5">
                                   {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
                                   <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
@@ -1450,7 +1450,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               {Array.from({ length: pool.count_scores }, (_, i) => {
                                 const pick = countingPicks[i]
                                 return (
-                                  <td key={i} title={picksHidden ? 'Picks hidden until the pool locks' : pick?.name || ''} className={`relative border-b border-r border-[#111] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] ${picksHidden ? 'bg-[#efeee6]' : 'bg-[#fbfbf5]'}`}>
+                                  <td key={i} title={picksHidden ? 'Picks hidden until the pool locks' : pick?.name || ''} className={`relative border-b border-r border-[#d8cab0] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] ${picksHidden ? 'bg-[#efeee6]' : 'bg-[#fbfbf5]'}`}>
                                     <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                                     <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                     <div className={`mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
@@ -1458,7 +1458,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   </td>
                                 )
                               })}
-                              <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle ${scoreClass(entry.totalScore)}`}>
+                              <td className={`border-b border-[#d8cab0] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle ${scoreClass(entry.totalScore)}`}>
                                 <div className="text-3xl font-black leading-none">{formatScore(entry.totalScore)}</div>
                                 {totalScoreSubLabel && entry.todayScore !== null ? (
                                   <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div>
@@ -1467,12 +1467,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             </tr>
                             {outOfBoundsPicks.length > 0 && (
                               <tr key={`${entry.entryId}-out`} className="bg-[#efeee6]">
-                                <td className="border-b border-r-2 border-[#111] bg-[#efeee6]" />
-                                <td className="border-b border-r-2 border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Outside Top {pool.count_scores}</td>
-                                <td className="border-b border-[#111] bg-[#efeee6] px-2 py-1 text-left" colSpan={pool.count_scores + 1}>
+                                <td className="border-b border-r-2 border-[#d8cab0] bg-[#efeee6]" />
+                                <td className="border-b border-r-2 border-[#d8cab0] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Outside Top {pool.count_scores}</td>
+                                <td className="border-b border-[#d8cab0] bg-[#efeee6] px-2 py-1 text-left" colSpan={pool.count_scores + 1}>
                                   <div className="flex flex-wrap gap-1">
                                     {outOfBoundsPicks.map(pick => (
-                                      <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                      <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                         {pick.isObStandIn ? <ObMarker /> : null}
                                         {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                         {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
@@ -1492,7 +1492,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
               {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="mt-1" /> : null}
               {!selectedScoringIsLive && (
-                <p className="mt-2 border-2 border-[#111] bg-[#f7f7f2] px-4 py-3 text-xs font-bold uppercase tracking-[0.08em] text-[#111]">Live scoring appears here when the tournament starts.</p>
+                <p className="mt-2 border-2 border-[#d8cab0] bg-[#f7f7f2] px-4 py-3 text-xs font-bold uppercase tracking-[0.08em] text-[#111]">Live scoring appears here when the tournament starts.</p>
               )}
             </div>
             </div>
