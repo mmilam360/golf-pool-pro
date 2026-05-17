@@ -222,6 +222,7 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
   if (!announcement || dismissed) return null
 
   const finish = ordinal(announcement.rank)
+  const canCopySettings = Boolean(announcement.isOwner && announcement.runItBackHref && announcement.runItBackTournamentName)
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-[#001f17]/75 px-3 py-6">
@@ -272,7 +273,7 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
               </p>
             )}
 
-            {!announcement.showSharePreview && announcement.isOwner && announcement.runItBackHref ? (
+            {!announcement.showSharePreview && canCopySettings ? (
               <div className="mt-6 border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[4px_4px_0_#d8cab0]">
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Run it back</p>
                 <p className="mt-1 text-sm font-semibold leading-6 text-[#314339]">Same settings, same player list.</p>
@@ -280,8 +281,8 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
                   href={announcement.runItBackHref}
                   className="mt-3 block w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-center text-white hover:bg-[#0f2f25]"
                 >
-                  <span className="block text-xs font-black uppercase tracking-[0.12em]">Create pool for next week’s</span>
-                  <span className="mt-1 block font-display text-xl font-bold leading-tight">{announcement.runItBackTournamentName || 'Next tournament'}</span>
+                  <span className="block text-xs font-black uppercase tracking-[0.12em]">Copy settings for</span>
+                  <span className="mt-1 block font-display text-xl font-bold leading-tight">{announcement.runItBackTournamentName}</span>
                 </Link>
               </div>
             ) : null}
@@ -303,7 +304,7 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
                   >
                     {isSaving ? 'Opening image…' : 'Save image'}
                   </button>
-                  {announcement.isOwner && announcement.runItBackHref ? (
+                  {canCopySettings ? (
                     <div className="mt-5 border-2 border-[#d8b45d] bg-[#fbf7ed] p-4 text-[#123c2f] shadow-[4px_4px_0_#001f17]">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Next tournament</p>
                       <p className="mt-1 text-sm font-semibold leading-6 text-[#314339]">Same settings, same player list.</p>
@@ -312,7 +313,7 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
                         className="mt-3 block w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-center text-white hover:bg-[#0f2f25]"
                       >
                         <span className="block text-xs font-black uppercase tracking-[0.12em]">Copy settings for</span>
-                        <span className="mt-1 block font-display text-xl font-bold leading-tight">{announcement.runItBackTournamentName || 'Next tournament'}</span>
+                        <span className="mt-1 block font-display text-xl font-bold leading-tight">{announcement.runItBackTournamentName}</span>
                       </Link>
                     </div>
                   ) : null}
