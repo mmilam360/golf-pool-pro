@@ -190,13 +190,23 @@ function winnerLabel(pool: PoolRecord, allEntries: EntryRecord[]) {
   return `${winners[0].displayName} + ${winners.length - 1}`
 }
 
-function WinnerBadge({ name }: { name?: string | null }) {
+function ResultBadge({ label, value, tone = 'green' }: { label: string; value: string; tone?: 'green' | 'red' | 'gold' }) {
+  const toneClass = tone === 'red'
+    ? 'border-[#b21e23] bg-[#fff1ef] text-[#b21e23]'
+    : tone === 'gold'
+      ? 'border-[#b58a3a] bg-[#fff4cf] text-[#7a5a19]'
+      : 'border-[#123c2f] bg-white text-[#123c2f]'
+
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5 border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-xs font-black uppercase tracking-[0.08em] text-[#7a5a19]">
-      <span className="shrink-0">Winner</span>
-      <span className="min-w-0 truncate text-[#123c2f]">{name || '—'}</span>
+    <span className={`inline-flex items-center gap-1.5 border px-2 py-1 text-xs font-black uppercase tracking-[0.08em] ${toneClass}`}>
+      <span className="text-[#657168]">{label}</span>
+      <span>{value}</span>
     </span>
   )
+}
+
+function WinnerBadge({ name }: { name?: string | null }) {
+  return <ResultBadge label="Winner" value={name || '—'} tone="gold" />
 }
 
 export default async function DashboardPage() {
@@ -386,14 +396,13 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="overflow-hidden">
-            <div className="grid grid-cols-[minmax(0,1fr)_112px_96px] border-b border-stone-200 bg-[#fbf7ed] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#657168] sm:grid-cols-[minmax(220px,2fr)_minmax(150px,1fr)_64px_72px_116px_150px] sm:px-5 sm:text-xs sm:tracking-[0.16em]">
+            <div className="hidden border-b border-stone-200 bg-[#fbf7ed] px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-[#657168] sm:grid sm:grid-cols-[minmax(220px,2fr)_minmax(150px,1fr)_64px_72px_116px_150px]">
               <span>Pool</span>
-              <span className="hidden sm:block">Tournament</span>
-              <span className="text-center sm:hidden">Standing</span>
-              <span className="hidden text-center sm:block">Rank</span>
-              <span className="hidden text-center sm:block">Score</span>
-              <span className="text-right sm:text-left">Date</span>
-              <span className="hidden sm:block">Status</span>
+              <span>Tournament</span>
+              <span className="text-center">Rank</span>
+              <span className="text-center">Score</span>
+              <span>Date</span>
+              <span>Status</span>
             </div>
             {pastEntries.map((entry, index) => {
               const pool = getPool(entry)
@@ -405,24 +414,28 @@ export default async function DashboardPage() {
               const winner = winnerLabel(pool, entriesByPool[pool.id] || [entry])
               const rankText = rankPreview?.rank ? `#${rankPreview.rank}` : '—'
               const scoreText = rankPreview ? formatScore(rankPreview.totalScore) : '—'
+              const dateRange = formatDateRange(tournament?.start_date, tournament?.end_date)
 
               return (
-                <Link key={entry.id} href={`/pool/${pool.id}`} className={`grid grid-cols-[minmax(0,1fr)_112px_96px] items-center border-b border-stone-200 px-4 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#f7efdf] sm:grid-cols-[minmax(220px,2fr)_minmax(150px,1fr)_64px_72px_116px_150px] sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
-                  <span className="min-w-0 pr-3">
+                <Link key={entry.id} href={`/pool/${pool.id}`} className={`block border-b border-stone-200 px-4 py-4 text-sm transition-colors last:border-b-0 hover:bg-[#f7efdf] sm:grid sm:grid-cols-[minmax(220px,2fr)_minmax(150px,1fr)_64px_72px_116px_150px] sm:items-center sm:px-5 ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}>
+                  <span className="block min-w-0 sm:pr-3">
                     <span className="block break-words font-semibold leading-5 text-[#1f2a24]">{pool.name}</span>
                     <span className="mt-1 block text-xs leading-5 text-[#657168]">{entry.display_name || 'Your entry'} · {picks.length ? `${picks.length} picks` : 'Pick team'}</span>
-                    <span className="mt-1 block text-xs leading-5 text-[#657168] sm:hidden">{tournament?.name || 'Tournament'}</span>
-                    <span className="mt-2 inline-flex max-w-full sm:hidden"><WinnerBadge name={winner} /></span>
                   </span>
-                  <span className="hidden text-[#657168] sm:block">{tournament?.name || 'Tournament'}</span>
-                  <span className="flex justify-center sm:hidden">
+                  <span className="mt-2 block text-xs leading-5 text-[#657168] sm:mt-0 sm:text-sm">
+                    <span>{tournament?.name || 'Tournament'}</span>
+                    <span className="mx-1.5 text-[#b58a3a] sm:hidden">/</span>
+                    <span className="font-mono sm:hidden">{dateRange}</span>
+                  </span>
+                  <span className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">
                     {isUpcoming ? (
                       <UpcomingBadge compact />
                     ) : (
-                      <span className="grid grid-cols-2 gap-2 text-center leading-none">
-                        <span className="font-black text-[#123c2f]">{rankText}</span>
-                        <span className="font-black text-[#b21e23]">{scoreText}</span>
-                      </span>
+                      <>
+                        <ResultBadge label="Rank" value={rankText} />
+                        <ResultBadge label="Score" value={scoreText} tone={rankPreview?.totalScore !== null && rankPreview?.totalScore !== undefined && rankPreview.totalScore < 0 ? 'red' : 'green'} />
+                        <WinnerBadge name={winner} />
+                      </>
                     )}
                   </span>
                   {isUpcoming ? (
@@ -433,7 +446,7 @@ export default async function DashboardPage() {
                       <span className="hidden text-center font-black text-[#b21e23] sm:block">{scoreText}</span>
                     </>
                   )}
-                  <span className="text-right font-mono text-[#657168] sm:text-left">{formatDateRange(tournament?.start_date, tournament?.end_date)}</span>
+                  <span className="hidden font-mono text-[#657168] sm:block">{dateRange}</span>
                   <span className="hidden min-w-0 sm:block"><WinnerBadge name={winner} /></span>
                 </Link>
               )
