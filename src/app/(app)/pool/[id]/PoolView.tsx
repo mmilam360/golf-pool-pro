@@ -1000,7 +1000,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ctx.fillStyle = '#001f17'
       ctx.beginPath()
       ctx.moveTo(x + w, y)
-      ctx.lineTo(x + w + depthX, y)
+      ctx.lineTo(x + w + depthX, y + depthY)
       ctx.lineTo(x + w + depthX, y + h + depthY)
       ctx.lineTo(x + w, y + h)
       ctx.closePath()
@@ -1058,7 +1058,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     drawRect(postX, postY, postW, postH, '#123c2f', '#001f17', 8)
     drawRect(postX + postW - 30, postY + 10, 30, postH - 10, '#001f17')
     drawBoardDepth(boardX, boardY, boardW, boardH, depthX, depthY)
-    drawRect(boardX, boardY, boardW, boardH, '#123c2f', '#001f17', 10)
+    drawRect(boardX, boardY, boardW, boardH, '#123c2f')
 
     const faceX = boardX + frame
     const faceY = boardY + frame
