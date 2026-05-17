@@ -997,15 +997,21 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
 
     const drawBoardDepth = (x: number, y: number, w: number, h: number, depthX: number, depthY: number) => {
-      ctx.fillStyle = '#0a342a'
+      ctx.fillStyle = '#001f17'
       ctx.beginPath()
       ctx.moveTo(x + w, y)
-      ctx.lineTo(x + w + depthX, y + depthY)
+      ctx.lineTo(x + w + depthX, y)
       ctx.lineTo(x + w + depthX, y + h + depthY)
       ctx.lineTo(x + w, y + h)
       ctx.closePath()
       ctx.fill()
-      ctx.fillRect(x, y + h, w, depthY)
+      ctx.beginPath()
+      ctx.moveTo(x, y + h)
+      ctx.lineTo(x + w, y + h)
+      ctx.lineTo(x + w + depthX, y + h + depthY)
+      ctx.lineTo(x + depthX, y + h + depthY)
+      ctx.closePath()
+      ctx.fill()
     }
 
     const boardModeLabel = selectedBoardIsHistorical
@@ -1040,7 +1046,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const rowH = 138
     const scoreFaceH = headH + labelH + rowH * rowCount
     const boardH = scoreFaceH + frame * 2
-    const depthX = 50
+    const depthX = 48
     const depthY = 32
     const postW = 118
     const postX = boardX + boardW / 2 - postW / 2
@@ -1049,10 +1055,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const footerBoxH = 138
     const postH = height - postY
 
-    drawRect(postX, postY, postW, postH, '#164637', '#0a342a', 8)
-    drawRect(postX + postW - 30, postY + 10, 30, postH - 10, '#0a342a')
+    drawRect(postX, postY, postW, postH, '#123c2f', '#001f17', 8)
+    drawRect(postX + postW - 30, postY + 10, 30, postH - 10, '#001f17')
     drawBoardDepth(boardX, boardY, boardW, boardH, depthX, depthY)
-    drawRect(boardX, boardY, boardW, boardH, '#164637', '#0a342a', 10)
+    drawRect(boardX, boardY, boardW, boardH, '#123c2f', '#001f17', 10)
 
     const faceX = boardX + frame
     const faceY = boardY + frame
