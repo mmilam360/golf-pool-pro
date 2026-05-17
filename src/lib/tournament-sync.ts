@@ -35,6 +35,24 @@ function extractPlayers(event: any) {
   return competitors.map(mapCompetitorToPlayer).filter((player: any) => player.name && player.name !== 'Unknown')
 }
 
+function finalRoundLooksComplete(players: any[], round?: number | null) {
+  if (Number(round || 0) < 4) return false
+  const activePlayers = players.filter(player => player?.status === 'active')
+  if (activePlayers.length === 0) return false
+  return activePlayers.every(player => {
+    if (String(player?.thru || '').toUpperCase() === 'F') return true
+    const finalRound = Array.isArray(player?.roundScores)
+      ? player.roundScores.find((score: any) => Number(score?.round) === Number(round))
+      : null
+    return Boolean(finalRound?.complete)
+  })
+}
+
+function completedStatusFromFinalRound(status: string, players: any[], round?: number | null) {
+  if (status !== 'live') return status
+  return finalRoundLooksComplete(players, round) ? 'completed' : status
+}
+
 async function fetchScoreboardEvents() {
   const res = await fetch(ESPN_SCOREBOARD_URL, { cache: 'no-store' })
   if (!res.ok) return []
@@ -98,13 +116,15 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     const { row, players, status } = normalized
     const liveLeaderboard = status === 'live' ? await getLeaderboard(row.external_id).catch(() => null) : null
     const playersForStorage = liveLeaderboard?.leaderboard?.length ? liveLeaderboard.leaderboard : players
+    const effectiveStatus = completedStatusFromFinalRound(status, playersForStorage, liveLeaderboard?.round || event.status?.period || event.competitions?.[0]?.status?.period)
+    row.status = effectiveStatus
 
     if (playersForStorage.length > 0) {
       row.field_json = playersForStorage
       result.fieldsUpdated++
     }
 
-    if (status === 'live' && playersForStorage.length > 0) {
+    if ((effectiveStatus === 'live' || effectiveStatus === 'completed') && playersForStorage.length > 0) {
       row.leaderboard_json = playersForStorage
       row.last_scores_fetch = new Date().toISOString()
       result.leaderboardsUpdated++
@@ -122,12 +142,12 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
       result.updated++
-      if (status === 'live' || status === 'completed') liveTournamentIds.push(existing.id)
+      if (effectiveStatus === 'live' || effectiveStatus === 'completed') liveTournamentIds.push(existing.id)
     } else {
       const { data: inserted, error } = await supabase.from('gpp_tournaments').insert(row).select('id').single()
       if (error) throw error
       result.inserted++
-      if ((status === 'live' || status === 'completed') && inserted?.id) liveTournamentIds.push(inserted.id)
+      if ((effectiveStatus === 'live' || effectiveStatus === 'completed') && inserted?.id) liveTournamentIds.push(inserted.id)
     }
   }
 
@@ -239,25 +259,36 @@ export async function syncTournaments({
       result.fieldsUpdated++
     }
 
+    let leaderboardPlayers: any[] | null = null
+    let leaderboardRound: number | null = null
     if (doLive && status === 'live') {
       const leaderboard = await getLeaderboard(externalId).catch(() => null)
       if (leaderboard?.leaderboard?.length) {
+        leaderboardPlayers = leaderboard.leaderboard
+        leaderboardRound = leaderboard.round
         row.leaderboard_json = leaderboard.leaderboard
         row.last_scores_fetch = new Date().toISOString()
         result.leaderboardsUpdated++
       }
     }
 
+    const effectiveStatus = completedStatusFromFinalRound(status, leaderboardPlayers || players, leaderboardRound || bestEvent.status?.period || bestEvent.competitions?.[0]?.status?.period)
+    row.status = effectiveStatus
+    if (effectiveStatus === 'completed' && leaderboardPlayers?.length) {
+      row.leaderboard_json = leaderboardPlayers
+      row.last_scores_fetch = new Date().toISOString()
+    }
+
     if (existing) {
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
       result.updated++
-      if (status === 'live' || status === 'completed') liveTournamentIds.push(existing.id)
+      if (effectiveStatus === 'live' || effectiveStatus === 'completed') liveTournamentIds.push(existing.id)
     } else {
       const { data: inserted, error } = await supabase.from('gpp_tournaments').insert(row).select('id').single()
       if (error) throw error
       result.inserted++
-      if ((status === 'live' || status === 'completed') && inserted?.id) liveTournamentIds.push(inserted.id)
+      if ((effectiveStatus === 'live' || effectiveStatus === 'completed') && inserted?.id) liveTournamentIds.push(inserted.id)
     }
   }
 
