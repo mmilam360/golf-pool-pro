@@ -108,35 +108,47 @@ const finalScoreStoryHtml = `<!doctype html>
     * { box-sizing: border-box; }
     body { margin: 0; width: 100vw; min-height: 100vh; background: #f3ead7; color: #1f2a24; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
     .story { position: relative; width: 100vw; height: 100vh; overflow: hidden; background-color: #f3ead7; background-image: linear-gradient(rgba(60,45,25,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(60,45,25,.08) 1px, transparent 1px); background-size: 5vw 5vw; }
-    .logo { position: absolute; top: 8.8vh; left: 50%; width: 43vw; max-width: 250px; transform: translateX(-50%); }
-    .boardWrap { position: absolute; left: 5.4vw; right: 9.1vw; top: 16.55vh; height: 55.55vh; }
-    .post { position: absolute; left: 50%; top: 53.9vh; width: 12.2vw; height: 46.2vh; transform: translateX(-50%); background: #123c2f; }
+    .logo { position: absolute; top: 14.2vh; left: 50%; width: 35vw; max-width: 210px; transform: translateX(-50%); }
+    .boardWrap { position: absolute; left: 6.2vw; right: 10.6vw; top: 23vh; height: 45.5vh; }
+    .post { position: absolute; left: 50%; top: 61.6vh; width: 12.2vw; height: 38.4vh; transform: translateX(-50%); background: #123c2f; }
     .post::after { content: ''; position: absolute; top: 0; right: -1.65vw; width: 1.65vw; height: 100%; background: #001f17; }
-    .depthRight { position: absolute; top: 0; right: -4.45vw; width: 4.45vw; height: 100%; background: #001f17; transform: skewY(34deg); transform-origin: top left; }
+    .depthRight { position: absolute; top: 0; right: -4.45vw; width: 4.45vw; height: 100%; background: #001f17; clip-path: polygon(0 0, 100% 2.95vh, 100% calc(100% - 2.95vh), 0 100%); }
     .depthBottom { position: absolute; left: 0; right: 0; bottom: -2.95vh; height: 2.95vh; background: #001f17; transform: skewX(56deg); transform-origin: top left; }
     .frame { position: relative; height: 100%; background: #123c2f; padding: 3.7vw; }
     .scoreFace { height: 100%; background: #d8b45d; padding: 2.6vw; }
     .table { height: 100%; background: #f7f7f2; }
-    .head { height: 10.4vh; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: .38vh solid #d8cab0; text-align: center; }
+    .head { height: 8.9vh; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: .38vh solid #d8cab0; text-align: center; }
     .pool { margin: 0; max-width: 78vw; color: #111; font-size: clamp(21px, 5.55vw, 60px); font-weight: 600; line-height: .96; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .event { margin: 1.2vh 0 0; color: #005b3c; font-size: clamp(12px, 2.9vw, 31px); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .mode { margin: .9vh 0 0; color: #657168; font-size: clamp(10px, 2.3vw, 24px); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .event { margin: .8vh 0 0; color: #005b3c; font-size: clamp(12px, 2.9vw, 31px); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .mode { margin: .55vh 0 0; color: #657168; font-size: clamp(10px, 2.3vw, 24px); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
     .labels, .row { display: grid; grid-template-columns: 14.2% 1fr 24%; align-items: center; }
     .labels { height: 2.8vh; background: #efeee6; border-bottom: .28vh solid #d8cab0; color: #111; font-size: clamp(8px, 1.95vw, 21px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-    .row { height: 6.6vh; border-bottom: .18vh solid #d8cab0; background: #fbfbf5; font-size: clamp(18px, 5vw, 54px); }
+    .row { height: 5.85vh; border-bottom: .18vh solid #d8cab0; background: #fbfbf5; font-size: clamp(18px, 5vw, 54px); }
     .row:nth-child(even) { background: #f7f7f2; }
     .rank, .score { height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; }
     .rank { color: #b21e23; border-right: .18vh solid #d8cab0; }
     .name { min-width: 0; padding: 0 3.2vw; color: #111; font-weight: 600; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .score { color: #b21e23; border-left: .18vh solid #d8cab0; font-weight: 900; font-variant-numeric: tabular-nums; }
-    .footer { position: absolute; left: 12.4vw; right: 12.4vw; bottom: 4.9vh; border: .55vh solid #123c2f; background: #fbf7ed; padding: 1.45vh 2.8vw; text-align: center; }
+    .footer { position: absolute; left: 12.4vw; right: 12.4vw; bottom: 10.4vh; border: .55vh solid #123c2f; background: #fbf7ed; padding: 1.25vh 2.8vw; text-align: center; }
     .footerInner { background: rgba(255,255,255,.78); padding: 2.1vh 2vw; }
     .rule { height: .75vh; max-width: 72%; margin: 0 auto; background: #d8b45d; }
     .url { margin: 1.7vh 0; color: #123c2f; font-size: clamp(17px, 5vw, 54px); font-weight: 900; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+    .igProgress { position: absolute; z-index: 20; left: 6vw; right: 6vw; top: 6.2vh; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+    .igProgress span { height: 2px; border-radius: 999px; background: rgba(18,60,47,.35); }
+    .igProgress span:first-child { background: #123c2f; }
+    .igProfile { position: absolute; z-index: 20; left: 6vw; right: 6vw; top: 7.7vh; display: flex; align-items: center; gap: 2.1vw; color: #123c2f; font-size: clamp(9px, 2.5vw, 14px); font-weight: 900; }
+    .avatar { width: 8.4vw; height: 8.4vw; min-width: 28px; min-height: 28px; border: 2px solid rgba(18,60,47,.8); border-radius: 999px; background: #fbf7ed url('/avatars/lonnie72-golfer-avatar.png') center 44% / 138% no-repeat; }
+    .time { color: rgba(18,60,47,.72); font-weight: 800; }
+    .dots { margin-left: auto; letter-spacing: .18em; font-size: 18px; line-height: 1; }
+    .igReply { position: absolute; z-index: 20; left: 6vw; right: 6vw; bottom: 3.6vh; display: flex; align-items: center; gap: 3vw; color: #123c2f; }
+    .message { flex: 1; border: 1.5px solid rgba(18,60,47,.72); border-radius: 999px; padding: 1.2vh 4vw; background: rgba(251,247,237,.45); color: rgba(18,60,47,.82); font-size: clamp(9px, 2.6vw, 14px); font-weight: 800; }
+    .icon { width: 6vw; height: 6vw; min-width: 22px; min-height: 22px; }
   </style>
 </head>
 <body>
   <main class="story">
+    <div class="igProgress" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div class="igProfile" aria-hidden="true"><div class="avatar"></div><strong>lonnie72</strong><span class="time">22h</span><span class="dots">⋮</span></div>
     <img class="logo" src="https://www.golfpoolspro.com/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" />
     <div class="post" aria-hidden="true"></div>
     <section class="boardWrap" aria-label="Tiger's Tribe story-ready final board">
@@ -157,6 +169,7 @@ const finalScoreStoryHtml = `<!doctype html>
       </div>
     </section>
     <footer class="footer"><div class="footerInner"><div class="rule"></div><div class="url">GOLFPOOLSPRO.COM</div><div class="rule"></div></div></footer>
+    <div class="igReply" aria-hidden="true"><div class="message">Send message</div><svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" stroke="currentColor" stroke-width="1.8"/></svg><svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 5l16 7-16 7 4-7-4-7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
   </main>
 </body>
 </html>`
