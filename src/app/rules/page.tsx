@@ -83,6 +83,7 @@ export default function RulesPage() {
             </div>
           </div>
         </section>
+        <p className="mt-6 text-center text-xs text-[#657168]">© {new Date().getFullYear()} Golf Pools Pro. All rights reserved.</p>
       </div>
     </main>
   )
