@@ -5,6 +5,8 @@ export type FinalResultAnnouncementCandidate = {
   poolId: string
   poolName: string
   tournamentName: string
+  isOwner?: boolean
+  runItBackHref?: string
   rank: number | null
   totalScore: number | null
   fieldSize: number

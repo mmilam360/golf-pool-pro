@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import type { ScoredEntry } from '@/lib/scoring'
 import { formatScore, ordinal } from '@/lib/final-result-announcements'
@@ -14,6 +15,8 @@ type FinalResultAnnouncement = {
   fieldSize: number
   scoredEntries: ScoredEntry[]
   showSharePreview: boolean
+  isOwner?: boolean
+  runItBackHref?: string
 }
 
 type Props = {
@@ -263,6 +266,21 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
               </p>
             )}
 
+            {!announcement.showSharePreview && announcement.isOwner && announcement.runItBackHref ? (
+              <div className="mt-6 border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[4px_4px_0_#d8cab0]">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Run it back</p>
+                <p className="mt-1 text-sm font-semibold leading-6 text-[#314339]">
+                  Start next week with the same settings. Players from this pool will be preselected to invite.
+                </p>
+                <Link
+                  href={announcement.runItBackHref}
+                  className="mt-3 block w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]"
+                >
+                  Create next pool
+                </Link>
+              </div>
+            ) : null}
+
           </div>
 
           {announcement.showSharePreview ? (
@@ -280,9 +298,20 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
                   >
                     {isSaving ? 'Opening image…' : 'Save image'}
                   </button>
-                  <p className="mt-3 text-center text-xs font-semibold leading-5 text-[#f3ead7]/85">
-                    iPhone: choose Save Image from the share sheet.
-                  </p>
+                  {announcement.isOwner && announcement.runItBackHref ? (
+                    <div className="mt-5 border-2 border-[#d8b45d] bg-[#fbf7ed] p-4 text-[#123c2f] shadow-[4px_4px_0_#001f17]">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Run it back</p>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-[#314339]">
+                        Start next week with the same settings. Players from this pool will be preselected to invite.
+                      </p>
+                      <Link
+                        href={announcement.runItBackHref}
+                        className="mt-3 block w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]"
+                      >
+                        Create next pool
+                      </Link>
+                    </div>
+                  ) : null}
                 </>
               ) : (
                 <div className="flex min-h-[520px] items-center justify-center border-2 border-[#d8b45d] bg-[#f3ead7] text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">

@@ -157,6 +157,7 @@ export default function CreatePoolPage() {
             setCountScores(sourcePool.count_scores || 8)
             setObEnabled(Boolean(sourcePool.ob_rule_enabled))
             setObPenalty(sourcePool.ob_penalty_strokes || 2)
+            if (!requestedTournament && openTournaments[0]) setSelectedTournament(openTournaments[0].id)
           }
         }
       }

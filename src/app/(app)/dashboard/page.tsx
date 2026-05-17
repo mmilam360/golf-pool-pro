@@ -326,6 +326,8 @@ export default async function DashboardPage() {
       poolId: pool.id,
       poolName: pool.name,
       tournamentName: tournament?.name || 'Tournament',
+      isOwner: ownedPoolIds.includes(pool.id),
+      runItBackHref: `/pool/create?clone=${pool.id}`,
       rank: current.rank,
       totalScore: current.totalScore,
       fieldSize: scoredEntries.length,
