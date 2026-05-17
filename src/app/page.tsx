@@ -113,7 +113,7 @@ const finalScoreStoryHtml = `<!doctype html>
     .post { position: absolute; left: 50%; top: 61.6vh; width: 12.2vw; height: 38.4vh; transform: translateX(-50%); background: #123c2f; }
     .post::after { content: ''; position: absolute; top: 0; right: -1.65vw; width: 1.65vw; height: 100%; background: #001f17; }
     .depthRight { position: absolute; top: 0; right: -4.45vw; width: 4.45vw; height: 100%; background: #001f17; clip-path: polygon(0 0, 100% 2.95vh, 100% calc(100% - 2.95vh), 0 100%); }
-    .depthBottom { position: absolute; left: 0; right: 0; bottom: -2.95vh; height: 2.95vh; background: #001f17; transform: skewX(56deg); transform-origin: top left; }
+    .depthBottom { position: absolute; left: 0; right: 0; bottom: -2.95vh; height: 2.95vh; background: #001f17; clip-path: polygon(0 0, 100% 0, 100% 100%, 4.45vw 100%); }
     .frame { position: relative; height: 100%; background: #123c2f; padding: 3.7vw; }
     .scoreFace { height: 100%; background: #d8b45d; padding: 2.6vw; }
     .table { height: 100%; background: #f7f7f2; }
