@@ -181,13 +181,18 @@ function dataUrlToFile(dataUrl: string, fileName: string) {
 export default function FinalResultPopup({ announcement, dismissAction }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
   const fileName = useMemo(() => {
     if (!announcement) return 'golf-pools-pro-final-board.png'
     return `${announcement.poolName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-final-board.png`
   }, [announcement])
 
   useEffect(() => {
-    if (!announcement?.showSharePreview) return
+    setDismissed(false)
+    if (!announcement?.showSharePreview) {
+      setPreviewUrl(null)
+      return
+    }
     setPreviewUrl(drawShareImage(announcement))
   }, [announcement])
 
@@ -214,14 +219,14 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
     }
   }
 
-  if (!announcement) return null
+  if (!announcement || dismissed) return null
 
   const finish = ordinal(announcement.rank)
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-[#001f17]/75 px-3 py-6">
       <section className="relative max-h-[92vh] w-full max-w-5xl overflow-y-auto border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[9px_9px_0_#d8cab0]">
-        <form action={dismissAction} className="absolute right-3 top-3 z-10">
+        <form action={dismissAction} onSubmit={() => setDismissed(true)} className="absolute right-3 top-3 z-10">
           <input type="hidden" name="poolId" value={announcement.poolId} />
           <input type="hidden" name="entryId" value={announcement.entryId} />
           <button

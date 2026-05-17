@@ -13,7 +13,10 @@
     "test:golfer-status": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-golfer-status-labels.mjs",
     "test:round-leaderboards": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-round-leaderboards.mjs",
     "test:final-result-announcements": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-final-result-announcements.mjs",
-    "test:early-field-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-early-field-import.mjs"
+    "test:early-field-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-early-field-import.mjs",
+    "predeploy:check": "node scripts/predeploy-check.mjs",
+    "test:run-it-back": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-run-it-back-defaults.mjs",
+    "smoke:deployment": "node scripts/smoke-deployment.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

@@ -17,7 +17,7 @@ const candidates = buildPreviousPlayerCandidates({
 })
 
 assert.deepEqual(candidates, [
-  { userId: 'alice', displayName: 'Alice' },
+  { userId: 'alice', displayName: 'Alice', sourcePoolIds: [] },
 ], 'filters owner/current entries/existing invites and dedupes prior players')
 
 assert.deepEqual(summarizeInviteStatuses([

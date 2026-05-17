@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import ShortUniqueId from 'short-unique-id'
 import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
+import { buildRunItBackDefaults } from '@/lib/run-it-back'
 
 interface Tournament {
   id: string; name: string; start_date: string; end_date: string; course: string; status: string
@@ -149,14 +150,15 @@ export default function CreatePoolPage() {
             .eq('id', cloneId)
             .eq('owner_id', user.id)
             .maybeSingle()
-          if (sourcePool) {
-            setCloneSourceId(sourcePool.id)
-            setCloneSourceName(sourcePool.name || '')
-            setPoolName(`${sourcePool.name || 'Golf Pool'} - new week`)
-            setPickCount(sourcePool.pick_count || 12)
-            setCountScores(sourcePool.count_scores || 8)
-            setObEnabled(Boolean(sourcePool.ob_rule_enabled))
-            setObPenalty(sourcePool.ob_penalty_strokes || 2)
+          const cloneDefaults = sourcePool ? buildRunItBackDefaults(sourcePool) : null
+          if (cloneDefaults) {
+            setCloneSourceId(cloneDefaults.sourceId)
+            setCloneSourceName(cloneDefaults.sourceName)
+            setPoolName(cloneDefaults.poolName)
+            setPickCount(cloneDefaults.pickCount)
+            setCountScores(cloneDefaults.countScores)
+            setObEnabled(cloneDefaults.obEnabled)
+            setObPenalty(cloneDefaults.obPenalty)
             if (!requestedTournament && openTournaments[0]) setSelectedTournament(openTournaments[0].id)
           }
         }
