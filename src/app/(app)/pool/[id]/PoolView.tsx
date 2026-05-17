@@ -1038,86 +1038,85 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
     fitText(boardModeLabel, width / 2, 318, 760, '900 34px Arial', '#8a6724', 'center')
 
-    const boardX = 104
-    const boardY = 395
-    const boardW = 840
-    const frame = 28
-    const headH = 164
-    const labelH = 46
-    const rowCount = Math.min(scoredEntries.length, 9)
-    const rowH = rowCount <= 5 ? 112 : 96
+    const boardX = 76
+    const boardY = 382
+    const boardW = 888
+    const frame = 34
+    const headH = 174
+    const labelH = 54
+    const rowCount = Math.min(scoredEntries.length, 6)
+    const rowH = 128
     const scoreFaceH = headH + labelH + rowH * rowCount
     const boardH = scoreFaceH + frame * 2
-    const depthX = 32
-    const depthY = 22
-    const postW = 96
+    const depthX = 52
+    const depthY = 38
+    const postW = 112
     const postX = boardX + boardW / 2 - postW / 2
-    const postY = boardY + boardH - 4
-    const postH = 270
+    const postY = boardY + boardH - 6
+    const postH = 252
 
     ctx.fillStyle = 'rgba(15,47,37,0.20)'
-    ctx.fillRect(boardX + 18, postY + postH + 16, boardW + depthX - 36, 18)
-    drawRect(postX, postY, postW, postH, '#123c2f', '#003622', 8)
-    drawRect(postX + postW - 22, postY + 8, 22, postH - 8, '#001f17')
+    ctx.fillRect(boardX + 20, postY + postH + 18, boardW + depthX - 10, 20)
+    drawRect(postX, postY, postW, postH, '#123c2f', '#001f17', 8)
+    drawRect(postX + postW - 28, postY + 10, 28, postH - 10, '#001f17')
     drawBoardDepth(boardX, boardY, boardW, boardH, depthX, depthY)
-    drawRect(boardX, boardY, boardW, boardH, '#123c2f', '#001f17', 6)
+    drawRect(boardX, boardY, boardW, boardH, '#123c2f', '#001f17', 8)
+    drawRect(boardX + 12, boardY + 12, boardW - 12, 12, '#1b4a3b')
+    drawRect(boardX + 12, boardY + boardH - 24, boardW - 12, 12, '#001f17')
+    drawRect(boardX + boardW - 24, boardY + 12, 12, boardH - 24, '#001f17')
 
     const faceX = boardX + frame
     const faceY = boardY + frame
     const faceW = boardW - frame * 2
-    drawRect(faceX, faceY, faceW, scoreFaceH, '#f7f7f2', '#111111', 4)
+    drawRect(faceX, faceY, faceW, scoreFaceH, '#f7f7f2', '#111111', 5)
 
     drawRect(faceX, faceY, faceW, headH, '#f7f7f2')
     ctx.strokeStyle = '#111111'
-    ctx.lineWidth = 4
+    ctx.lineWidth = 5
     ctx.beginPath()
     ctx.moveTo(faceX, faceY + headH)
     ctx.lineTo(faceX + faceW, faceY + headH)
     ctx.stroke()
-    fitText(tournament?.name || 'Tournament', width / 2, faceY + 62, faceW - 80, "900 56px Impact, 'Arial Black', Arial", '#111111', 'center')
-    fitText(poolName || 'Golf Pool', width / 2, faceY + 106, faceW - 80, '900 26px Arial', '#005b3c', 'center')
-    fitText(boardModeLabel, width / 2, faceY + 140, faceW - 80, '900 20px Arial', '#657168', 'center')
+    fitText(tournament?.name || 'Tournament', width / 2, faceY + 70, faceW - 78, "900 62px Impact, 'Arial Black', Arial", '#111111', 'center')
+    fitText(poolName || 'Golf Pool', width / 2, faceY + 118, faceW - 78, '900 29px Arial', '#005b3c', 'center')
+    fitText(boardModeLabel, width / 2, faceY + 152, faceW - 78, '900 22px Arial', '#657168', 'center')
 
     const labelY = faceY + headH
     drawRect(faceX, labelY, faceW, labelH, '#efeee6')
     ctx.strokeStyle = '#111111'
-    ctx.lineWidth = 3
+    ctx.lineWidth = 3.5
     ctx.beginPath()
     ctx.moveTo(faceX, labelY + labelH)
     ctx.lineTo(faceX + faceW, labelY + labelH)
-    ctx.moveTo(faceX + 104, labelY)
-    ctx.lineTo(faceX + 104, labelY + labelH)
-    ctx.moveTo(faceX + faceW - 178, labelY)
-    ctx.lineTo(faceX + faceW - 178, labelY + labelH)
+    ctx.moveTo(faceX + 112, labelY)
+    ctx.lineTo(faceX + 112, labelY + labelH)
+    ctx.moveTo(faceX + faceW - 190, labelY)
+    ctx.lineTo(faceX + faceW - 190, labelY + labelH)
     ctx.stroke()
-    fitText('Rank', faceX + 52, labelY + 30, 82, '900 17px Arial', '#111111', 'center')
-    fitText('Entry', faceX + 132, labelY + 30, faceW - 330, '900 17px Arial', '#111111')
-    fitText(scoreHeader, faceX + faceW - 89, labelY + 30, 130, '900 17px Arial', '#111111', 'center')
+    fitText('Rank', faceX + 56, labelY + 35, 88, '900 20px Arial', '#111111', 'center')
+    fitText('Entry', faceX + 144, labelY + 35, faceW - 360, '900 20px Arial', '#111111')
+    fitText(scoreHeader, faceX + faceW - 95, labelY + 35, 142, '900 20px Arial', '#111111', 'center')
 
     scoredEntries.slice(0, rowCount).forEach((entry, index) => {
       const y = labelY + labelH + index * rowH
       drawRect(faceX, y, faceW, rowH, index % 2 === 0 ? '#f7f7f2' : '#fbfbf5')
       ctx.strokeStyle = '#111111'
-      ctx.lineWidth = 2
+      ctx.lineWidth = 2.5
       ctx.beginPath()
       ctx.moveTo(faceX, y + rowH)
       ctx.lineTo(faceX + faceW, y + rowH)
-      ctx.moveTo(faceX + 104, y)
-      ctx.lineTo(faceX + 104, y + rowH)
-      ctx.moveTo(faceX + faceW - 178, y)
-      ctx.lineTo(faceX + faceW - 178, y + rowH)
+      ctx.moveTo(faceX + 112, y)
+      ctx.lineTo(faceX + 112, y + rowH)
+      ctx.moveTo(faceX + faceW - 190, y)
+      ctx.lineTo(faceX + faceW - 190, y + rowH)
       ctx.stroke()
-      fitText(String(entry.rank || index + 1), faceX + 52, y + rowH / 2 + 16, 82, '900 36px Arial', '#b21e23', 'center')
-      fitText(String(entry.displayName || 'Entry'), faceX + 132, y + rowH / 2 + 16, faceW - 340, "900 38px Impact, 'Arial Black', Arial", '#111111')
-      fitText(formatScore(entry.totalScore), faceX + faceW - 89, y + rowH / 2 + 18, 140, '900 44px Arial', scoreClass(entry.totalScore).includes('b21e23') ? '#b21e23' : '#111111', 'center')
+      fitText(String(entry.rank || index + 1), faceX + 56, y + rowH / 2 + 20, 90, '900 42px Arial', '#b21e23', 'center')
+      fitText(String(entry.displayName || 'Entry'), faceX + 144, y + rowH / 2 + 20, faceW - 374, "900 45px Impact, 'Arial Black', Arial", '#111111')
+      fitText(formatScore(entry.totalScore), faceX + faceW - 95, y + rowH / 2 + 22, 150, '900 54px Arial', scoreClass(entry.totalScore).includes('b21e23') ? '#b21e23' : '#111111', 'center')
     })
 
-    if (scoredEntries.length > rowCount) {
-      fitText(`Top ${rowCount} shown`, width / 2, boardY + boardH + depthY + 44, 300, '900 18px Arial', '#657168', 'center')
-    }
-
-    fitText('golfpoolspro.com', width / 2, 1740, 560, '900 32px Arial', '#123c2f', 'center')
-    fitText('#RunThePool', width / 2, 1786, 360, '900 24px Arial', '#8a6724', 'center')
+    fitText('golfpoolspro.com', width / 2, 1782, 620, '900 38px Arial', '#123c2f', 'center')
+    fitText('#RunThePool', width / 2, 1832, 420, '900 27px Arial', '#8a6724', 'center')
 
     canvas.toBlob(async blob => {
       if (!blob) return
