@@ -125,9 +125,30 @@ body {
 }
 
 .gpp-board-post {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.gpp-board-post-depth {
+  position: absolute;
+  top: calc(var(--gpp-depth-y, 8px) / -2);
+  right: calc(var(--gpp-depth-x, 12px) * -1);
+  bottom: calc(var(--gpp-depth-y, 8px) * -1);
+  z-index: 0;
+  width: var(--gpp-depth-x, 12px);
+  background: #001f17;
+  transform: skewY(34deg);
+  transform-origin: top left;
+}
+
+.gpp-board-post-face {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  width: 100%;
   background: #123c2f;
   box-shadow:
-    12px 0 0 #001f17,
     inset 0 8px 0 rgba(0, 0, 0, 0.18),
     inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }

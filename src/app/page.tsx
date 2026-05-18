@@ -385,7 +385,10 @@ export default function Home() {
               </div>
             </div>
             </div>
-            <div className="gpp-board-post mx-auto -mt-[10px] h-24 w-14 border-x-4 border-[#003622] md:h-28 md:w-16" />
+            <div className="gpp-board-post mx-auto -mt-[4.5px] h-24 w-14 [--gpp-depth-x:14px] [--gpp-depth-y:9px] md:-mt-[7px] md:h-28 md:w-16 md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
+              <div className="gpp-board-post-depth" aria-hidden="true" />
+              <div className="gpp-board-post-face" aria-hidden="true" />
+            </div>
           </div>
 
         </section>

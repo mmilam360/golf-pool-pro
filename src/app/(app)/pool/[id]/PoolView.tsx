@@ -1017,8 +1017,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const drawPostDepth = (x: number, y: number, w: number, h: number, depthX: number, depthY: number) => {
       ctx.fillStyle = '#001f17'
       ctx.beginPath()
-      ctx.moveTo(x + w, y)
-      ctx.lineTo(x + w + depthX, y + depthY)
+      ctx.moveTo(x + w, y - depthY / 2)
+      ctx.lineTo(x + w + depthX, y + depthY / 2)
       ctx.lineTo(x + w + depthX, y + h + depthY)
       ctx.lineTo(x + w, y + h)
       ctx.closePath()
@@ -1524,7 +1524,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               )}
             </div>
             </div>
-            <div className="gpp-board-post mx-auto -mt-[10px] h-36 w-20 md:h-44 md:w-24" />
+            <div className="gpp-board-post mx-auto -mt-[4px] h-36 w-20 [--gpp-depth-x:12px] [--gpp-depth-y:8px] md:-mt-[7px] md:h-44 md:w-24 md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
+              <div className="gpp-board-post-depth" aria-hidden="true" />
+              <div className="gpp-board-post-face" aria-hidden="true" />
+            </div>
             <div>
               <TournamentLeaderboard
                 leaderboard={leaderboard}
