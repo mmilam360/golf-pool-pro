@@ -7,16 +7,26 @@ import { useEffect, useState } from 'react'
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', match: ['/dashboard'] },
-  { href: '/blog?from=dashboard', label: 'Pick Guides', match: ['/blog'] },
   { href: '/manage-pools', label: 'Manage Pools', match: ['/manage-pools'] },
   { href: '/account', label: 'Account', match: ['/account'] },
+  { href: '/blog?from=dashboard', label: 'Pick Guides', eyebrow: 'Optional', match: ['/blog'], secondary: true },
 ]
+
+type NavLink = typeof navLinks[number]
 
 function isActive(pathname: string, matches: string[]) {
   return matches.some(match => pathname === match || pathname.startsWith(`${match}/`))
 }
 
-function activeClasses(active: boolean) {
+function activeClasses(active: boolean, link?: NavLink) {
+  if (link?.secondary) {
+    if (active) {
+      return 'border-[#d8cab0] bg-[#fffdf8] text-[#4f6258]'
+    }
+
+    return 'border-transparent text-[#657168] opacity-75 hover:border-[#d8cab0] hover:text-[#123c2f] hover:opacity-100'
+  }
+
   if (active) {
     return 'border-[#b58a3a] text-[#123c2f]'
   }
@@ -58,8 +68,9 @@ export default function AppHeader() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? 'page' : undefined}
-                className={`whitespace-nowrap border-b-2 px-2 py-2 transition-colors ${activeClasses(active)}`}
+                className={`whitespace-nowrap border-b-2 px-2 py-2 transition-colors ${link.secondary ? 'text-xs font-bold normal-case tracking-[0.02em]' : ''} ${activeClasses(active, link)}`}
               >
+                {link.secondary ? <span className="mr-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#8a6724]">{link.eyebrow}</span> : null}
                 {link.label}
               </Link>
             )
@@ -82,8 +93,9 @@ export default function AppHeader() {
                     href={link.href}
                     aria-current={active ? 'page' : undefined}
                     onClick={closeMenu}
-                    className={`px-6 py-4 ${active ? 'bg-[#fbf7ed] text-[#123c2f] shadow-[inset_4px_0_0_#b58a3a]' : 'border-b border-[#d8cab0]'}`}
+                    className={`${link.secondary ? 'mt-2 border-t border-[#d8cab0] px-6 py-3 text-xs font-bold text-[#657168]' : 'px-6 py-4'} ${active ? link.secondary ? 'bg-[#fffdf8] text-[#4f6258] shadow-[inset_4px_0_0_#d8cab0]' : 'bg-[#fbf7ed] text-[#123c2f] shadow-[inset_4px_0_0_#b58a3a]' : 'border-b border-[#d8cab0]'}`}
                   >
+                    {link.secondary ? <span className="mb-0.5 block text-[9px] font-black uppercase tracking-[0.16em] text-[#8a6724]">{link.eyebrow}</span> : null}
                     {link.label}
                   </Link>
                 )
