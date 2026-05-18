@@ -19,8 +19,10 @@ export function GoogleAnalytics() {
   useEffect(() => {
     if (!window.gtag) return
 
-    window.gtag('config', GA_MEASUREMENT_ID, {
+    window.gtag('event', 'page_view', {
       page_path: `${pathname}${window.location.search}`,
+      page_location: window.location.href,
+      page_title: document.title,
     })
   }, [pathname])
 
