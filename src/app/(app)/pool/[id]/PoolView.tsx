@@ -1014,7 +1014,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ctx.fill()
     }
 
-    const drawPost = (x: number, y: number, w: number, h: number, depthX: number, depthY: number) => {
+    const drawPostDepth = (x: number, y: number, w: number, h: number, depthX: number, depthY: number) => {
       ctx.fillStyle = '#001f17'
       ctx.beginPath()
       ctx.moveTo(x + w, y)
@@ -1023,6 +1023,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ctx.lineTo(x + w, y + h)
       ctx.closePath()
       ctx.fill()
+    }
+
+    const drawPostFace = (x: number, y: number, w: number, h: number) => {
       drawRect(x, y, w, h, '#123c2f')
     }
 
@@ -1058,6 +1061,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const rowAreaH = 690
     const trimW = 28
     const rowH = (rowAreaH - trimW * 2) / Math.max(rowCount, 1)
+    const shareRows = scoredEntries.slice(0, rowCount)
+    const topLabel = scoredEntries.length > rowCount
+      ? `Top ${rowCount} of ${scoredEntries.length}`
+      : rowCount === scoredEntries.length && rowCount > 1
+        ? `Full field: ${rowCount}`
+        : ''
+    const boardModeLine = topLabel ? `${boardModeLabel} · ${topLabel}` : boardModeLabel
     const nameFontSize = rowCount <= 3 ? 56 : rowCount === 4 ? 52 : 48
     const rankFontSize = rowCount <= 3 ? 48 : rowCount === 4 ? 46 : 44
     const scoreFontSize = rowCount <= 3 ? 66 : rowCount === 4 ? 62 : 58
@@ -1070,14 +1080,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const postW = 132
     const postDepthX = depthX
     const postDepthY = depthY
-    const postX = boardX + boardW / 2 + depthX / 2 - postW / 2
-    const postY = boardY + boardH + depthY / 2 - 6
+    const postX = boardX + boardW / 2 - postW / 2
+    const postY = boardY + boardH
     const footerBoxY = 1688
     const footerBoxH = 138
     const postH = height - postY - postDepthY
 
-    drawPost(postX, postY, postW, postH, postDepthX, postDepthY)
+    drawPostDepth(postX, postY, postW, postH, postDepthX, postDepthY)
     drawBoardDepth(boardX, boardY, boardW, boardH, depthX, depthY)
+    drawPostFace(postX, postY, postW, postH)
     drawRect(boardX, boardY, boardW, boardH, '#123c2f')
 
     const faceX = boardX + frame
@@ -1098,7 +1109,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     ctx.stroke()
     fitText(poolName || 'Golf Pool', width / 2, tableY + 82, tableW - 78, '600 60px Arial', '#111111', 'center')
     fitText(tournament?.name || 'Tournament', width / 2, tableY + 132, tableW - 78, '700 31px Arial', '#005b3c', 'center')
-    fitText(boardModeLabel, width / 2, tableY + 168, tableW - 78, '700 24px Arial', '#657168', 'center')
+    fitText(boardModeLine, width / 2, tableY + 168, tableW - 78, '700 24px Arial', '#657168', 'center')
 
     const labelY = tableY + headH
     drawRect(tableX, labelY, tableW, labelH, '#efeee6')
@@ -1116,7 +1127,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     fitText('Entry', tableX + 144, labelY + 35, tableW - 360, '800 21px Arial', '#111111')
     fitText(scoreHeader, tableX + tableW - 95, labelY + 35, 142, '800 21px Arial', '#111111', 'center')
 
-    scoredEntries.slice(0, rowCount).forEach((entry, index) => {
+    shareRows.forEach((entry, index) => {
       const y = labelY + labelH + index * rowH
       drawRect(tableX, y, tableW, rowH, index % 2 === 0 ? '#f7f7f2' : '#fbfbf5')
       ctx.strokeStyle = '#d8cab0'
