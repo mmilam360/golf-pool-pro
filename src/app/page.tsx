@@ -353,14 +353,47 @@ export default function Home() {
           </div>
 
           <div className="mx-auto mt-9 w-full max-w-[300px] sm:max-w-[340px]">
-            <div className="relative aspect-[9/16] w-full border-2 border-[#123c2f] bg-[#f3ead7] shadow-[10px_12px_0_#001f17]">
+            <div className="relative aspect-[1350/2760] w-full drop-shadow-[12px_14px_0_#001f17]">
+              <div
+                className="absolute overflow-hidden bg-[#f3ead7]"
+                style={{ left: '5.35%', top: '2.35%', width: '89.35%', height: '95.15%', borderRadius: '12.4% / 5.9%' }}
+              >
+                <div className="absolute inset-0 bg-[#f3ead7] bg-[linear-gradient(rgba(60,45,25,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(60,45,25,.08)_1px,transparent_1px)] bg-[length:18px_18px]" aria-hidden="true" />
+                <div className="absolute left-[7%] right-[7%] top-[14%] bottom-[10.5%] overflow-hidden border border-[#123c2f]/25 bg-[#f3ead7] shadow-[5px_6px_0_rgba(0,31,23,0.22)]">
+                  <Image
+                    unoptimized
+                    src="/share/final-result-preview.png"
+                    alt="Golf Pools Pro final result share image shown inside a story-style phone preview"
+                    width={1080}
+                    height={1920}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="absolute left-[6%] right-[6%] top-[7%] z-10 grid grid-cols-4 gap-[3px]" aria-hidden="true">
+                  <span className="h-[2px] rounded-full bg-[#123c2f]" />
+                  <span className="h-[2px] rounded-full bg-[#123c2f]/35" />
+                  <span className="h-[2px] rounded-full bg-[#123c2f]/35" />
+                  <span className="h-[2px] rounded-full bg-[#123c2f]/35" />
+                </div>
+                <div className="absolute left-[6%] right-[6%] top-[8.8%] z-10 flex items-center gap-2 text-[10px] font-black text-[#123c2f] sm:text-xs" aria-hidden="true">
+                  <div className="h-7 w-7 rounded-full border-2 border-[#123c2f] bg-[#fbf7ed] bg-[url('/avatars/lonnie72-golfer-avatar.png')] bg-[length:138%] bg-center" />
+                  <strong>lonnie72</strong>
+                  <span className="font-extrabold text-[#123c2f]/70">22h</span>
+                  <span className="ml-auto text-lg leading-none tracking-[0.18em]">⋮</span>
+                </div>
+                <div className="absolute bottom-[3.2%] left-[6%] right-[6%] z-10 flex items-center gap-3 text-[#123c2f]" aria-hidden="true">
+                  <div className="flex-1 rounded-full border border-[#123c2f]/70 bg-[#fbf7ed]/55 px-4 py-2 text-[11px] font-extrabold text-[#123c2f]/85">Send message</div>
+                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" stroke="currentColor" strokeWidth="1.8" /></svg>
+                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M4 5l16 7-16 7 4-7-4-7Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
+                </div>
+              </div>
               <Image
                 unoptimized
-                src="/share/final-result-preview.png"
-                alt="Golf Pools Pro final result share image preview"
-                width={1080}
-                height={1920}
-                className="h-full w-full object-cover"
+                src="/device-frames/iphone-17-pro-deep-blue-portrait.png"
+                alt="iPhone 17 Pro frame showing a Golf Pools Pro final board story preview"
+                width={1350}
+                height={2760}
+                className="pointer-events-none absolute inset-0 z-20 h-full w-full select-none"
               />
             </div>
           </div>
