@@ -98,7 +98,7 @@ export default function AppHeader() {
                   </Link>
                 )
               })}
-              <SignOutButton className="w-full border-t-4 border-[#123c2f] px-6 py-3 text-left text-sm font-semibold text-[#7b857d]" />
+              <SignOutButton className="w-full px-6 py-3 text-left text-sm font-semibold text-[#7b857d]" />
             </div>
           </div>
         </details>
