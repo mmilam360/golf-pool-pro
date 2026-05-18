@@ -49,11 +49,19 @@ function formatDate(value?: string | null) {
   return formatDateOnly(value)
 }
 
+function formatShortDate(value?: string | null, includeYear = false) {
+  const dateOnly = value ? value.slice(0, 10) : ''
+  if (!dateOnly) return 'TBD'
+  const [year, month, day] = dateOnly.split('-').map(Number)
+  if (!year || !month || !day) return formatDateOnly(value)
+  return includeYear ? `${month}/${day}/${String(year).slice(-2)}` : `${month}/${day}`
+}
+
 function formatDateRange(start?: string | null, end?: string | null) {
-  const startText = formatDateOnly(start)
-  const endText = formatDateOnly(end)
-  if (!end || startText === endText) return startText
-  return `${startText}–${endText}`
+  const startOnly = start ? start.slice(0, 10) : ''
+  const endOnly = end ? end.slice(0, 10) : ''
+  if (!endOnly || startOnly === endOnly) return formatShortDate(start, true)
+  return `${formatShortDate(start)}–${formatShortDate(end, true)}`
 }
 
 function formatScore(score: number | null) {

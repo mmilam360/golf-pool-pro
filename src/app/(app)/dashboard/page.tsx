@@ -73,11 +73,19 @@ function formatDate(value?: string | null) {
   return formatDateOnly(value)
 }
 
+function formatShortDate(value?: string | null, includeYear = false) {
+  const dateOnly = getDateOnly(value || '')
+  if (!dateOnly) return 'TBD'
+  const [year, month, day] = dateOnly.split('-').map(Number)
+  if (!year || !month || !day) return formatDateOnly(value)
+  return includeYear ? `${month}/${day}/${String(year).slice(-2)}` : `${month}/${day}`
+}
+
 function formatDateRange(start?: string | null, end?: string | null) {
-  const startText = formatDateOnly(start)
-  const endText = formatDateOnly(end)
-  if (!end || startText === endText) return startText
-  return `${startText}–${endText}`
+  const startOnly = getDateOnly(start || '')
+  const endOnly = getDateOnly(end || '')
+  if (!endOnly || startOnly === endOnly) return formatShortDate(start, true)
+  return `${formatShortDate(start)}–${formatShortDate(end, true)}`
 }
 
 function isActivePool(pool: PoolRecord, tournament: Tournament | null) {
@@ -213,6 +221,21 @@ function CompactResultBadge({ rank, score }: { rank: string; score: string }) {
   return (
     <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-white px-2 py-1 font-mono text-xs font-black uppercase tracking-[0.06em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0]">
       {rank} / <span className="ml-1 text-[#b21e23]">{score}</span>
+    </span>
+  )
+}
+
+function WinnerTrophyIcon() {
+  return (
+    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center border-2 border-[#b58a3a] bg-[#fff4cf] text-[#123c2f] shadow-[2px_2px_0_#d8cab0]" aria-label="Pool winner">
+      <svg aria-hidden="true" viewBox="0 0 32 32" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="square" strokeLinejoin="miter">
+        <path d="M10 5h12v5c0 5-2.7 8-6 8s-6-3-6-8V5Z" fill="#d8b45d" />
+        <path d="M10 8H6v3c0 3 2 5 5 5" />
+        <path d="M22 8h4v3c0 3-2 5-5 5" />
+        <path d="M16 18v5" />
+        <path d="M11 27h10" />
+        <path d="M13 23h6l1 4h-8l1-4Z" fill="#d8b45d" />
+      </svg>
     </span>
   )
 }
@@ -415,13 +438,19 @@ export default async function DashboardPage() {
               const rankText = rankPreview?.rank ? `#${rankPreview.rank}` : '—'
               const scoreText = rankPreview ? formatScore(rankPreview.totalScore) : '—'
               const dateRange = formatDateRange(tournament?.start_date, tournament?.end_date)
+              const isWinner = !isUpcoming && rankPreview?.rank === 1
 
               return (
                 <Link key={entry.id} href={`/pool/${pool.id}`} className="group block border-2 border-[#d8cab0] bg-white p-4 text-sm shadow-[4px_4px_0_#eadfca] transition-colors hover:border-[#123c2f] hover:bg-[#fffdf8]">
                   <span className="flex items-start justify-between gap-3">
                     <span className="min-w-0">
-                      <span className="block break-words font-display text-xl font-bold leading-tight text-[#0f2f25]">{pool.name}</span>
-                      <span className="mt-1 block text-xs leading-5 text-[#657168]">{entry.display_name || 'Your entry'} · {picks.length ? `${picks.length} picks` : 'Pick team'}</span>
+                      <span className="flex min-w-0 items-start gap-2">
+                        {isWinner ? <WinnerTrophyIcon /> : null}
+                        <span className="min-w-0">
+                          <span className="block break-words font-display text-xl font-bold leading-tight text-[#0f2f25]">{pool.name}</span>
+                          <span className="mt-1 block text-xs leading-5 text-[#657168]">{entry.display_name || 'Your entry'} · {picks.length ? `${picks.length} picks` : 'Pick team'}</span>
+                        </span>
+                      </span>
                     </span>
                     {isUpcoming ? <UpcomingBadge compact /> : <CompactResultBadge rank={rankText} score={scoreText} />}
                   </span>
