@@ -1081,10 +1081,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const postDepthX = depthX
     const postDepthY = depthY
     const postX = boardX + boardW / 2 - postW / 2
-    const postY = boardY + boardH
+    const postY = boardY + boardH + depthY / 2
     const footerBoxY = 1688
     const footerBoxH = 138
-    const postH = height - postY - postDepthY
+    const postH = height - postY + postDepthY
 
     drawPostDepth(postX, postY, postW, postH, postDepthX, postDepthY)
     drawBoardDepth(boardX, boardY, boardW, boardH, depthX, depthY)
