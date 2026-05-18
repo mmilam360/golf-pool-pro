@@ -92,13 +92,13 @@ export default function AppHeader() {
                     href={link.href}
                     aria-current={active ? 'page' : undefined}
                     onClick={closeMenu}
-                    className={`${link.secondary ? 'mt-2 border-t border-[#d8cab0] px-6 py-3 text-sm font-semibold text-[#7b857d]' : 'border-b border-[#d8cab0] px-6 py-4'} ${active ? link.secondary ? 'text-[#4f6258] shadow-[inset_4px_0_0_#d8cab0]' : 'bg-[#fbf7ed] text-[#123c2f] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                    className={`${link.secondary ? 'border-t-4 border-[#123c2f] px-6 py-3 text-sm font-semibold text-[#7b857d]' : 'border-b border-[#d8cab0] px-6 py-4'} ${active ? link.secondary ? 'text-[#4f6258] shadow-[inset_4px_0_0_#d8cab0]' : 'bg-[#fbf7ed] text-[#123c2f] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                   >
                     {link.label}
                   </Link>
                 )
               })}
-              <SignOutButton className="w-full border-t border-[#d8cab0] px-6 py-3 text-left text-sm font-semibold text-[#7b857d]" />
+              <SignOutButton className="w-full border-t-4 border-[#123c2f] px-6 py-3 text-left text-sm font-semibold text-[#7b857d]" />
             </div>
           </div>
         </details>
