@@ -110,29 +110,29 @@ const finalScoreStoryHtml = `<!doctype html>
     .story { position: relative; width: 100vw; height: 100vh; overflow: hidden; background-color: #f3ead7; background-image: linear-gradient(rgba(60,45,25,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(60,45,25,.08) 1px, transparent 1px); background-size: 5vw 5vw; }
     .logo { position: absolute; top: 14.2vh; left: 50%; width: 35vw; max-width: 210px; transform: translateX(-50%); }
     .boardWrap { position: absolute; left: 6.2vw; right: 10.6vw; top: 23vh; height: 45.5vh; }
-    .post { position: absolute; left: 50%; top: 61.6vh; width: 12.2vw; height: 38.4vh; transform: translateX(-50%); background: #123c2f; }
-    .post::after { content: ''; position: absolute; top: 0; right: -1.65vw; width: 1.65vw; height: 100%; background: #001f17; }
+    .post { position: absolute; left: 50%; top: 70vh; width: 12.2vw; height: 30vh; transform: translateX(-50%); background: #123c2f; }
+    .post::after { content: ''; position: absolute; top: -1.48vh; right: -4.45vw; width: 4.45vw; height: calc(100% + 2.95vh); background: #001f17; clip-path: polygon(0 0, 100% 2.95vh, 100% 100%, 0 calc(100% - 2.95vh)); }
     .depthRight { position: absolute; top: 0; right: -4.45vw; width: 4.45vw; height: 100%; background: #001f17; clip-path: polygon(0 0, 100% 2.95vh, 100% calc(100% - 2.95vh), 0 100%); }
     .depthBottom { position: absolute; left: 0; right: 0; bottom: -2.95vh; height: 2.95vh; background: #001f17; clip-path: polygon(0 0, 100% 0, 100% 100%, 4.45vw 100%); }
     .frame { position: relative; height: 100%; background: #123c2f; padding: 3.7vw; }
     .scoreFace { height: 100%; background: #d8b45d; padding: 2.6vw; }
-    .table { height: 100%; background: #f7f7f2; }
-    .head { height: 8.9vh; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: .38vh solid #d8cab0; text-align: center; }
-    .pool { margin: 0; max-width: 78vw; color: #111; font-size: clamp(21px, 5.55vw, 60px); font-weight: 600; line-height: .96; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .event { margin: .8vh 0 0; color: #005b3c; font-size: clamp(12px, 2.9vw, 31px); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .mode { margin: .55vh 0 0; color: #657168; font-size: clamp(10px, 2.3vw, 24px); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-    .labels, .row { display: grid; grid-template-columns: 14.2% 1fr 24%; align-items: center; }
-    .labels { height: 2.8vh; background: #efeee6; border-bottom: .28vh solid #d8cab0; color: #111; font-size: clamp(8px, 1.95vw, 21px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-    .row { height: 5.85vh; border-bottom: .18vh solid #d8cab0; background: #fbfbf5; font-size: clamp(18px, 5vw, 54px); }
+    .table { height: 100%; overflow: hidden; background: #f7f7f2; }
+    .head { height: 8.25vh; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: .3vh solid #d8cab0; text-align: center; }
+    .pool { margin: 0; max-width: 70vw; color: #111; font-size: clamp(18px, 4.75vw, 50px); font-weight: 600; line-height: .96; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .event { margin: .65vh 0 0; color: #005b3c; font-size: clamp(11px, 2.45vw, 26px); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+    .mode { margin: .45vh 0 0; color: #657168; font-size: clamp(9px, 1.95vw, 20px); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+    .labels, .row { display: grid; grid-template-columns: 14% 1fr 23%; align-items: center; }
+    .labels { height: 2.55vh; background: #efeee6; border-bottom: .22vh solid #d8cab0; color: #111; font-size: clamp(7px, 1.55vw, 17px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .row { height: 5.35vh; border-bottom: .15vh solid #d8cab0; background: #fbfbf5; font-size: clamp(16px, 4.25vw, 46px); }
     .row:nth-child(even) { background: #f7f7f2; }
     .rank, .score { height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; }
-    .rank { color: #b21e23; border-right: .18vh solid #d8cab0; }
-    .name { min-width: 0; padding: 0 3.2vw; color: #111; font-weight: 600; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .score { color: #b21e23; border-left: .18vh solid #d8cab0; font-weight: 900; font-variant-numeric: tabular-nums; }
-    .footer { position: absolute; left: 12.4vw; right: 12.4vw; bottom: 10.4vh; border: .55vh solid #123c2f; background: #fbf7ed; padding: 1.25vh 2.8vw; text-align: center; }
-    .footerInner { background: rgba(255,255,255,.78); padding: 2.1vh 2vw; }
-    .rule { height: .75vh; max-width: 72%; margin: 0 auto; background: #d8b45d; }
-    .url { margin: 1.7vh 0; color: #123c2f; font-size: clamp(17px, 5vw, 54px); font-weight: 900; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+    .rank { color: #b21e23; border-right: .15vh solid #d8cab0; }
+    .name { min-width: 0; padding: 0 2.8vw; color: #111; font-weight: 600; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .score { color: #b21e23; border-left: .15vh solid #d8cab0; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .footer { position: absolute; left: 10vw; right: 10vw; bottom: 10.4vh; border: .5vh solid #123c2f; background: #fbf7ed; padding: 1.15vh 2.2vw; text-align: center; }
+    .footerInner { display: grid; place-items: center; overflow: hidden; background: rgba(255,255,255,.78); padding: 1.85vh 1.4vw; }
+    .rule { height: .62vh; width: 66%; margin: 0 auto; background: #d8b45d; }
+    .url { width: max-content; max-width: 100%; margin: 1.45vh auto; color: #123c2f; font-size: clamp(14px, 4.25vw, 45px); font-weight: 900; letter-spacing: .035em; line-height: 1; text-align: center; text-transform: uppercase; white-space: nowrap; }
     .igProgress { position: absolute; z-index: 20; left: 6vw; right: 6vw; top: 6.2vh; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
     .igProgress span { height: 2px; border-radius: 999px; background: rgba(18,60,47,.35); }
     .igProgress span:first-child { background: #123c2f; }

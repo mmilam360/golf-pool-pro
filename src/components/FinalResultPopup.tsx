@@ -77,6 +77,17 @@ function drawShareImage(announcement: FinalResultAnnouncement) {
     ctx.fill()
   }
 
+  const drawPostDepth = (x: number, y: number, w: number, h: number, depthX: number, depthY: number) => {
+    ctx.fillStyle = '#001f17'
+    ctx.beginPath()
+    ctx.moveTo(x + w, y - depthY / 2)
+    ctx.lineTo(x + w + depthX, y + depthY / 2)
+    ctx.lineTo(x + w + depthX, y + h + depthY)
+    ctx.lineTo(x + w, y + h)
+    ctx.closePath()
+    ctx.fill()
+  }
+
   drawRect(0, 0, width, height, '#f3ead7')
   for (let x = 0; x <= width; x += 54) drawRect(x, 0, 1, height, 'rgba(60,45,25,0.07)')
   for (let y = 0; y <= height; y += 54) drawRect(0, y, width, 1, 'rgba(60,45,25,0.07)')
@@ -95,15 +106,18 @@ function drawShareImage(announcement: FinalResultAnnouncement) {
   const rowH = (rowAreaH - trimW * 2) / Math.max(rowCount, 1)
   const scoreFaceH = headH + labelH + rowAreaH
   const boardH = scoreFaceH + frame * 2
+  const depthX = 48
+  const depthY = 32
   const postW = 132
-  const postSideW = 18
-  const postX = boardX + boardW / 2 - (postW + postSideW) / 2
-  const postY = boardY + boardH - 6
+  const postX = boardX + boardW / 2 - postW / 2
+  const postY = boardY + boardH + depthY / 2
   const footerBoxY = 1688
+  const footerBoxH = 138
+  const postH = height - postY + depthY
 
-  drawRect(postX + postW, postY, postSideW, height - postY, '#001f17')
-  drawRect(postX, postY, postW, height - postY, '#123c2f')
-  drawBoardDepth(boardX, boardY, boardW, boardH, 48, 32)
+  drawPostDepth(postX, postY, postW, postH, depthX, depthY)
+  drawBoardDepth(boardX, boardY, boardW, boardH, depthX, depthY)
+  drawRect(postX, postY, postW, postH, '#123c2f')
   drawRect(boardX, boardY, boardW, boardH, '#123c2f')
 
   const faceX = boardX + frame
@@ -160,10 +174,10 @@ function drawShareImage(announcement: FinalResultAnnouncement) {
     fitText(formatScore(entry.totalScore), tableX + tableW - 95, y + rowH / 2 + 23, 150, '800 58px Arial', entry.totalScore !== null && entry.totalScore < 0 ? '#b21e23' : '#111111', 'center')
   })
 
-  drawRect(134, footerBoxY, width - 268, 138, '#fbf7ed', '#123c2f', 6)
-  drawRect(144, footerBoxY + 10, width - 288, 118, 'rgba(255,255,255,0.78)')
+  drawRect(134, footerBoxY, width - 268, footerBoxH, '#fbf7ed', '#123c2f', 6)
+  drawRect(144, footerBoxY + 10, width - 288, footerBoxH - 20, 'rgba(255,255,255,0.78)')
   drawRect(178, footerBoxY + 30, width - 356, 8, '#d8b45d')
-  drawRect(178, footerBoxY + 100, width - 356, 8, '#d8b45d')
+  drawRect(178, footerBoxY + footerBoxH - 38, width - 356, 8, '#d8b45d')
   fitText('GOLFPOOLSPRO.COM', width / 2, footerBoxY + 88, 650, '900 54px Arial', '#123c2f', 'center')
 
   return canvas.toDataURL('image/png')
