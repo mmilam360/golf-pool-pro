@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
+import { trackGppEvent } from '@/lib/posthog-events'
 import { useRouter } from 'next/navigation'
 
 export default function JoinPoolPage() {
@@ -25,6 +26,10 @@ export default function JoinPoolPage() {
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(''); setLoading(true)
+    trackGppEvent('entry_started', {
+      has_passcode: passcode.length === 6,
+      passcode_prefilled: Boolean(new URLSearchParams(window.location.search).get('code')),
+    })
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -84,6 +89,10 @@ export default function JoinPoolPage() {
       setError(insertError.message)
       setLoading(false)
     } else {
+      trackGppEvent('entry_submitted', {
+        pool_id: pool.id,
+        entry_source: 'passcode',
+      })
       router.push(`/pool/${pool.id}`)
     }
   }

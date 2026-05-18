@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { trackGppEvent } from '@/lib/posthog-events'
 
 type InvitePrepPanelProps = {
   poolName: string
@@ -49,6 +50,12 @@ export function PoolInvitePrepPanel({
     try {
       await navigator.clipboard.writeText(value)
       setCopied(type)
+      trackGppEvent('invite_link_copied', {
+        copy_type: type,
+        tournament: tournamentName,
+        entry_count: entryCount,
+        submitted_pick_count: submittedPickCount,
+      })
       window.setTimeout(() => setCopied(null), 1600)
     } catch {
       setCopied(null)

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { PostHogAnalytics } from "@/components/PostHogAnalytics";
 import { MobileInstallPrompt } from "@/components/MobileInstallPrompt";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "./globals.css";
@@ -63,6 +64,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
         <GoogleAnalytics />
+        <PostHogAnalytics />
         <ServiceWorkerRegister />
         <MobileInstallPrompt />
       </body>

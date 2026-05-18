@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import type { ScoredEntry } from '@/lib/scoring'
+import { trackGppEvent } from '@/lib/posthog-events'
 import { formatScore, ordinal } from '@/lib/final-result-announcements'
 
 type FinalResultAnnouncement = {
@@ -217,6 +218,13 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
       const file = dataUrlToFile(previewUrl, fileName)
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: 'Golf Pools Pro final board' })
+        trackGppEvent('final_share_downloaded', {
+          pool_id: announcement.poolId,
+          tournament: announcement.tournamentName,
+          entry_count: announcement.fieldSize,
+          share_method: 'native_share',
+          board_type: 'final_result_popup',
+        })
         return
       }
 
@@ -227,6 +235,13 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
       document.body.appendChild(link)
       link.click()
       link.remove()
+      trackGppEvent('final_share_downloaded', {
+        pool_id: announcement.poolId,
+        tournament: announcement.tournamentName,
+        entry_count: announcement.fieldSize,
+        share_method: 'download',
+        board_type: 'final_result_popup',
+      })
       window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
     } finally {
       setIsSaving(false)

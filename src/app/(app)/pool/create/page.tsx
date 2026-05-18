@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
+import { trackGppEvent } from '@/lib/posthog-events'
 import { useRouter } from 'next/navigation'
 import ShortUniqueId from 'short-unique-id'
 import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
@@ -191,13 +192,21 @@ export default function CreatePoolPage() {
     e.preventDefault()
     setError(''); setLoading(true)
 
+    const selected = tournaments.find(t => t.id === selectedTournament)
+    trackGppEvent('create_pool_clicked', {
+      tournament: selected?.name || null,
+      tournament_id: selectedTournament || null,
+      pick_count: toNumber(pickCount, 12),
+      count_scores: toNumber(countScores, 8),
+      cloned_pool: Boolean(cloneSourceId),
+    })
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('Not authenticated'); setLoading(false); return }
 
     const finalPickCount = toNumber(pickCount, 12)
     const finalCountScores = toNumber(countScores, 8)
     const finalObPenalty = toNumber(obPenalty, 2)
-    const selected = tournaments.find(t => t.id === selectedTournament)
 
     if (!selected) {
       setError('Choose an open tournament before creating a pool.')
@@ -267,6 +276,16 @@ export default function CreatePoolPage() {
         setLoading(false)
         return
       }
+
+      trackGppEvent('pool_created', {
+        pool_id: data.id,
+        tournament: selected.name,
+        tournament_id: selectedTournament,
+        pick_count: finalPickCount,
+        count_scores: finalCountScores,
+        is_paid: false,
+        cloned_pool: Boolean(cloneSourceId),
+      })
 
       router.push(`/pool/${data.id}${cloneSourceId ? `?inviteFrom=${cloneSourceId}` : ''}`)
     }

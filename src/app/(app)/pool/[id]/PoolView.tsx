@@ -6,6 +6,7 @@ import { PoolInvitePrepPanel } from '@/components/PoolInvitePrepPanel'
 import { PreviousPlayersInvitePanel } from '@/components/PreviousPlayersInvitePanel'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { createClient } from '@/lib/supabase/client'
+import { trackGppEvent } from '@/lib/posthog-events'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
@@ -624,6 +625,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     setPaymentLoading(true)
     setStatusMessage('')
     setPaymentFeedback('Processing payment...')
+    trackGppEvent('payment_started', {
+      pool_id: pool.id,
+      tournament: tournament?.name || null,
+      entry_count: activeEntries.length,
+      amount_due_cents: finalAmountDueCents,
+      has_promo_code: Boolean(appliedPromo),
+      uses_saved_card: useSavedCard,
+    })
     try {
       const amountDue = finalAmountDueCents
       let sourceId = appliedPromo && amountDue === 0 ? 'promo-code' : 'free-entry-credit'
@@ -659,6 +668,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       setPaymentStatus('active')
       const successMessage = data.discountCents > 0 ? 'Promo applied. Pool is active.' : data.amountDueCents === 0 ? 'Pool is active.' : 'Payment received. Pool is active.'
+      trackGppEvent('payment_completed', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        entry_count: activeEntries.length,
+        amount_due_cents: finalAmountDueCents,
+        amount_paid_cents: data.amountDueCents ?? finalAmountDueCents,
+        discount_cents: data.discountCents ?? 0,
+        is_paid: true,
+      })
       setPaymentFeedback(successMessage)
       setStatusMessage(successMessage)
       showToast(successMessage, 'success')
@@ -1159,6 +1177,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       if (nav.canShare?.({ files: [file] })) {
         try {
           await nav.share({ files: [file], title: `${poolName} ${selectedBoardIsHistorical ? selectedBoardLabel : 'final results'}` })
+          trackGppEvent('final_share_downloaded', {
+            pool_id: pool.id,
+            tournament: tournament?.name || null,
+            entry_count: activeEntries.length,
+            share_method: 'native_share',
+            board_type: selectedBoardIsHistorical ? selectedBoardLabel : 'final_results',
+          })
           showToast('Board image ready to share.', 'success')
           return
         } catch (error: any) {
@@ -1171,6 +1196,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       link.download = file.name
       link.click()
       URL.revokeObjectURL(url)
+      trackGppEvent('final_share_downloaded', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        entry_count: activeEntries.length,
+        share_method: 'download',
+        board_type: selectedBoardIsHistorical ? selectedBoardLabel : 'final_results',
+      })
       showToast('Board image downloaded.', 'success')
     }, 'image/png')
   }
