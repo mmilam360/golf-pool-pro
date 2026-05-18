@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { getLeaderboard, getSchedule, mapCompetitorToPlayer } from './golf-api'
+import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompetitorToPlayer } from './golf-api'
 import { findPgaTourTournament, getPgaTourField, getPgaTourSchedule } from './pga-tour-field'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
@@ -32,7 +32,8 @@ function getStatus(event: any) {
 
 function extractPlayers(event: any) {
   const competitors = event.competitions?.[0]?.competitors || []
-  return competitors.map(mapCompetitorToPlayer).filter((player: any) => player.name && player.name !== 'Unknown')
+  const round = event.status?.period || event.competitions?.[0]?.status?.period
+  return inferInactiveStatusesFromRounds(competitors.map(mapCompetitorToPlayer), round).filter((player: any) => player.name && player.name !== 'Unknown')
 }
 
 function finalRoundLooksComplete(players: any[], round?: number | null) {
@@ -51,6 +52,38 @@ function finalRoundLooksComplete(players: any[], round?: number | null) {
 function completedStatusFromFinalRound(status: string, players: any[], round?: number | null) {
   if (status !== 'live') return status
   return finalRoundLooksComplete(players, round) ? 'completed' : status
+}
+
+function normalizePlayerKey(player: any) {
+  return String(player?.id || player?.name || `${player?.firstName || ''} ${player?.lastName || ''}`.trim()).trim().toLowerCase()
+}
+
+function inactiveStatusLabel(status: string) {
+  return status === 'wd' ? 'WD' : status === 'dnq' ? 'DNQ' : 'CUT'
+}
+
+function preserveStoredInactiveStatuses(newPlayers: any[], oldPlayers: any[] | null | undefined) {
+  if (!Array.isArray(newPlayers) || !Array.isArray(oldPlayers) || oldPlayers.length === 0) return newPlayers
+  const oldByKey = new Map<string, any>()
+  for (const oldPlayer of oldPlayers) {
+    const key = normalizePlayerKey(oldPlayer)
+    if (key) oldByKey.set(key, oldPlayer)
+  }
+  return newPlayers.map(player => {
+    const oldPlayer = oldByKey.get(normalizePlayerKey(player))
+    const oldStatus = String(oldPlayer?.status || '').toLowerCase()
+    const newStatus = String(player?.status || '').toLowerCase()
+    if (!['cut', 'wd', 'dnq'].includes(oldStatus) || newStatus !== 'active') return player
+    const label = inactiveStatusLabel(oldStatus)
+    return {
+      ...player,
+      status: oldStatus,
+      thru: '',
+      roundScore: '',
+      position: label,
+      score: oldStatus === 'cut' ? player.score : label,
+    }
+  })
 }
 
 async function fetchScoreboardEvents() {
@@ -132,13 +165,19 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
     const { data: existing, error: existingError } = await supabase
       .from('gpp_tournaments')
-      .select('id')
+      .select('id, leaderboard_json, field_json')
       .eq('external_id', row.external_id)
       .maybeSingle()
 
     if (existingError) throw existingError
 
     if (existing) {
+      if (Array.isArray(row.field_json)) {
+        row.field_json = preserveStoredInactiveStatuses(row.field_json, existing.field_json)
+      }
+      if (Array.isArray(row.leaderboard_json)) {
+        row.leaderboard_json = preserveStoredInactiveStatuses(row.leaderboard_json, existing.leaderboard_json)
+      }
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
       result.updated++
@@ -233,7 +272,7 @@ export async function syncTournaments({
 
     const { data: existing, error: existingError } = await supabase
       .from('gpp_tournaments')
-      .select('id')
+      .select('id, leaderboard_json, field_json')
       .eq('external_id', externalId)
       .maybeSingle()
 
@@ -280,6 +319,12 @@ export async function syncTournaments({
     }
 
     if (existing) {
+      if (Array.isArray(row.field_json)) {
+        row.field_json = preserveStoredInactiveStatuses(row.field_json, existing.field_json)
+      }
+      if (Array.isArray(row.leaderboard_json)) {
+        row.leaderboard_json = preserveStoredInactiveStatuses(row.leaderboard_json, existing.leaderboard_json)
+      }
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
       result.updated++

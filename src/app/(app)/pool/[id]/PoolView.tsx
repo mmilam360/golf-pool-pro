@@ -271,7 +271,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [entryNameValue, setEntryNameValue] = useState(initialMyEntry?.display_name || '')
   const [entryNameSaving, setEntryNameSaving] = useState(false)
   const [refreshCountdown, setRefreshCountdown] = useState(REFRESH_SECONDS)
-  const [loadingScores, setLoadingScores] = useState(false)
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [inviteUrl, setInviteUrl] = useState('')
@@ -676,7 +675,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   // Fetch live leaderboard
   const fetchScores = useCallback(async () => {
     if (!tournament?.external_id) return
-    setLoadingScores(true)
     try {
       const res = await fetch(`/api/tournaments/leaderboard?id=${tournament.external_id}`, { cache: 'no-store' })
       if (res.ok) {
@@ -692,7 +690,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       await refreshPoolEntries()
     } catch {}
     setRefreshCountdown(REFRESH_SECONDS)
-    setLoadingScores(false)
   }, [refreshPoolEntries, tournament?.external_id])
 
   useEffect(() => {
@@ -1017,6 +1014,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ctx.fill()
     }
 
+    const drawPost = (x: number, y: number, w: number, h: number, depthX: number, depthY: number) => {
+      ctx.fillStyle = '#001f17'
+      ctx.beginPath()
+      ctx.moveTo(x + w, y)
+      ctx.lineTo(x + w + depthX, y + depthY)
+      ctx.lineTo(x + w + depthX, y + h + depthY)
+      ctx.lineTo(x + w, y + h)
+      ctx.closePath()
+      ctx.fill()
+      drawRect(x, y, w, h, '#123c2f')
+    }
+
     const boardModeLabel = selectedBoardIsHistorical
       ? leaderboardMode.type === 'day'
         ? `${selectedBoardLabel} scores`
@@ -1059,15 +1068,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const depthX = 48
     const depthY = 32
     const postW = 132
-    const postSideW = 18
-    const postX = boardX + boardW / 2 - (postW + postSideW) / 2
-    const postY = boardY + boardH - 6
+    const postDepthX = depthX
+    const postDepthY = depthY
+    const postX = boardX + boardW / 2 + depthX / 2 - postW / 2
+    const postY = boardY + boardH + depthY / 2 - 6
     const footerBoxY = 1688
     const footerBoxH = 138
-    const postH = height - postY
+    const postH = height - postY - postDepthY
 
-    drawRect(postX + postW, postY, postSideW, postH, '#001f17')
-    drawRect(postX, postY, postW, postH, '#123c2f')
+    drawPost(postX, postY, postW, postH, postDepthX, postDepthY)
     drawBoardDepth(boardX, boardY, boardW, boardH, depthX, depthY)
     drawRect(boardX, boardY, boardW, boardH, '#123c2f')
 
@@ -1235,7 +1244,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {/* Leaderboard Tab */}
       {tab === 'leaderboard' && (
         <div>
-          {loadingScores && <p className="text-stone-500 text-sm mb-4">Loading scores...</p>}
           {leaderboardIsHidden ? (
             <div className="rounded-none border-2 border-amber-300 bg-[#fbf7ed] p-8 text-center shadow-[5px_5px_0_#d8cab0]">
               <p className="font-display text-2xl font-bold text-emerald-950">Leaderboard hidden until the pool fee is paid</p>

@@ -247,6 +247,23 @@ export function applyOfficialCutStatus(players: GolfPlayer[], cutLine?: GolfCutL
   })
 }
 
+export function inferInactiveStatusesFromRounds(players: GolfPlayer[], round?: number | null) {
+  const currentRound = Number(round || 0)
+  if (currentRound < 3) return players
+  return players.map(player => {
+    if (player.status !== 'active') return player
+    const completedRounds = (player.roundScores || [])
+      .filter(item => item.complete)
+      .map(item => Number(item.round))
+      .filter(Number.isFinite)
+    if (completedRounds.length === 0) return player
+    const latestCompletedRound = Math.max(...completedRounds)
+    if (latestCompletedRound >= Math.min(currentRound, 4)) return player
+    if (player.teeTime) return player
+    return { ...player, status: 'cut' as const, thru: '', roundScore: '', position: 'CUT' }
+  })
+}
+
 export function mapCompetitorToPlayer(competitor: any): GolfPlayer {
   const athlete = competitor.athlete || {}
   const name = athlete.displayName || athlete.fullName || competitor.displayName || competitor.name || 'Unknown'
@@ -333,7 +350,7 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
       const competition = event.competitions?.[0]
       const rawPlayers = await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
       const cutLine = await cutLinePromise
-      const players = applyOfficialCutStatus(rawPlayers, cutLine)
+      const players = inferInactiveStatusesFromRounds(applyOfficialCutStatus(rawPlayers, cutLine), event.status?.period || competition?.status?.period)
       const course = event.courses?.find?.((candidate: any) => candidate.host)?.name
         || event.courses?.[0]?.name
         || event.venue?.fullName
@@ -362,7 +379,7 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
   const competition = event.competitions?.[0]
   const rawPlayers = await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
   const cutLine = await cutLinePromise
-  const players = applyOfficialCutStatus(rawPlayers, cutLine)
+  const players = inferInactiveStatusesFromRounds(applyOfficialCutStatus(rawPlayers, cutLine), event.status?.period || competition?.status?.period)
 
   return {
     id: event.id,
