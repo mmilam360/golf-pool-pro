@@ -5,6 +5,7 @@ const checks = [
   ['npm', ['run', 'test:final-result-announcements']],
   ['npm', ['run', 'test:run-it-back']],
   ['npm', ['run', 'test:pool-invites']],
+  ['npm', ['run', 'test:pool-pricing']],
   ['npm', ['run', 'test:golfer-status']],
   ['npm', ['run', 'test:round-leaderboards']],
   ['npm', ['run', 'build']],

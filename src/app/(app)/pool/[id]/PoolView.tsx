@@ -1737,7 +1737,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-emerald-800">Amount paid: {formatCents(amountPaidCents)}</p>
                 )}
                 <p className="mt-1 text-sm text-stone-600">
-                  {(paymentQuote?.activeEntryCount ?? activeEntries.length)} active {(paymentQuote?.activeEntryCount ?? activeEntries.length) === 1 ? 'entry' : 'entries'} · first 5 free · $1 after · $25 max
+                  {(paymentQuote?.activeEntryCount ?? activeEntries.length)} active {(paymentQuote?.activeEntryCount ?? activeEntries.length) === 1 ? 'entry' : 'entries'} · first 5 free · $25 max through 100 · +$15 per started 100 after
                 </p>
                 {feeTimingText && <p className="mt-2 text-sm font-semibold text-stone-700">{feeTimingText}</p>}
                 {appliedPromo && (

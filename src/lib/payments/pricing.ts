@@ -2,26 +2,36 @@ export type PoolPaymentStatus = 'draft' | 'active' | 'payment_due' | 'archived_u
 
 export const FREE_ENTRY_LIMIT = 5
 export const PRICE_PER_EXTRA_ENTRY_CENTS = 100
-export const POOL_PRICE_CAP_CENTS = 2500
+export const STANDARD_POOL_ENTRY_LIMIT = 100
+export const STANDARD_POOL_PRICE_CAP_CENTS = 2500
+export const OVERSIZE_ENTRY_BLOCK = 100
+export const OVERSIZE_BLOCK_PRICE_CENTS = 1500
+export const MAX_POOL_PRICE_CENTS = 9900
 export const LIFETIME_ACCESS_CENTS = 20000
 
 type PromoLike = {
   free_pool?: boolean | null
   discount_cents?: number | null
+  target_amount_cents?: number | null
 }
 
 export function getPoolPriceTier(activeEntryCount: number) {
   const count = Math.max(0, activeEntryCount)
   const paidEntries = Math.max(0, count - FREE_ENTRY_LIMIT)
-  const uncappedAmountCents = paidEntries * PRICE_PER_EXTRA_ENTRY_CENTS
-  const amountCents = Math.min(uncappedAmountCents, POOL_PRICE_CAP_CENTS)
+  const standardAmountCents = Math.min(paidEntries * PRICE_PER_EXTRA_ENTRY_CENTS, STANDARD_POOL_PRICE_CAP_CENTS)
+  const oversizeBlocks = count > STANDARD_POOL_ENTRY_LIMIT
+    ? Math.ceil((count - STANDARD_POOL_ENTRY_LIMIT) / OVERSIZE_ENTRY_BLOCK)
+    : 0
+  const amountCents = Math.min(MAX_POOL_PRICE_CENTS, standardAmountCents + oversizeBlocks * OVERSIZE_BLOCK_PRICE_CENTS)
 
   return {
     entryLimit: count,
     amountCents,
     label: count <= FREE_ENTRY_LIMIT
       ? `${FREE_ENTRY_LIMIT} entries free`
-      : `$1 per extra entry, capped at $25`,
+      : count <= STANDARD_POOL_ENTRY_LIMIT
+        ? `$1 per extra entry, capped at $25 through 100 entries`
+        : `$25 through 100 entries, then $15 per started 100 entries, capped at $99`,
   }
 }
 
@@ -50,6 +60,9 @@ export function getPoolPaymentQuote(activeEntryCount: number, amountPaidCents = 
 export function getPromoDiscountCents(amountDueCents: number, promo: PromoLike | null | undefined) {
   if (!promo || amountDueCents <= 0) return 0
   if (promo.free_pool) return amountDueCents
+  if (promo.target_amount_cents !== null && promo.target_amount_cents !== undefined) {
+    return Math.max(0, amountDueCents - Math.max(0, Number(promo.target_amount_cents)))
+  }
   return Math.min(amountDueCents, Math.max(0, Number(promo.discount_cents || 0)))
 }
 

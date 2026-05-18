@@ -9,6 +9,7 @@
     "lint": "eslint",
     "blog:validate": "node scripts/validate-blog-posts.mjs",
     "test:pool-invites": "node --experimental-strip-types scripts/verify-pool-invite-logic.mjs",
+    "test:pool-pricing": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pool-pricing.mjs",
     "test:espn-leaderboard": "node --experimental-strip-types scripts/verify-espn-leaderboard-source.mjs",
     "test:golfer-status": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-golfer-status-labels.mjs",
     "test:round-leaderboards": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-round-leaderboards.mjs",

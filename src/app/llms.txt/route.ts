@@ -16,9 +16,9 @@ What it does:
 
 Pricing:
 - First 5 active entries are free.
-- Extra active entries are $1 each.
-- Example: a 12-entry pool costs $7 instead of a typical $20 flat fee.
-- Pool fee is capped at $25.
+- Entries 6 through 100 are $1 each, capped at $25.
+- Pools over 100 entries add $15 for each started 100-entry block after 100.
+- Maximum pool fee is $99.
 - There is no entry limit.
 - Host pays after entries lock; players do not hit a payment screen to join.
 

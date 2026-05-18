@@ -84,8 +84,9 @@ const setupSteps = [
 
 const pricingRows = [
   ['First 5 entries', 'Free'],
-  ['Extra active entries', '$1 each'],
-  ['Maximum pool fee', '$25 cap'],
+  ['6 to 100 entries', '$1 each, $25 max'],
+  ['Over 100 entries', '+$15 / 100'],
+  ['Maximum pool fee', '$99 cap'],
 ]
 
 const featureRows = [
@@ -108,7 +109,7 @@ const faqItems = [
   },
   {
     question: 'Is there a limit on entries?',
-    answer: 'No. Add as many entries as you need. Pricing stays simple: a 12-entry pool costs $7 instead of the $20 flat fee most golf pool sites charge.',
+    answer: 'No. Add as many entries as you need. The first 5 are free, entries 6 through 100 are $1 each with a $25 cap, and very large pools add $15 for each started 100 entries after that.',
   },
   {
     question: 'Do players need to pay to join?',
@@ -416,7 +417,7 @@ export default function Home() {
               </div>
             ))}
             <div className="border-t-2 border-[#123c2f] bg-[#fbf7ed] px-5 py-4 text-sm font-semibold leading-6 text-[#4f5b52]">
-              Example: a 13-entry pool costs $8. A big pool never goes over $25.
+              Example: a 13-entry pool costs $8. Pools are capped at $25 through 100 entries; very large pools add $15 per started 100 entries after that, with a $99 max.
             </div>
           </div>
         </section>

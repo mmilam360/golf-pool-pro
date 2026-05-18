@@ -80,7 +80,7 @@ export async function POST(request: Request) {
 
     const { data: promo, error: promoError } = await serviceSupabase
       .from('gpp_promo_codes')
-      .select('id, code, description, free_pool, discount_cents, max_redemptions, times_redeemed, starts_at, expires_at, is_active')
+      .select('id, code, description, free_pool, discount_cents, target_amount_cents, max_redemptions, times_redeemed, starts_at, expires_at, is_active')
       .eq('code', promoCode)
       .maybeSingle()
 
