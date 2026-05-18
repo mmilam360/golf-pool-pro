@@ -74,7 +74,7 @@ export function LeverageMarkerCorner({ kind }: { kind?: MarkerKind }) {
 
 export function LeverageMarkerLegend({ showTortoise = true, className = '' }: { showTortoise?: boolean; className?: string }) {
   return (
-    <div className={`mx-auto flex w-fit max-w-[calc(100%-1rem)] flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-[#fffdf8] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#111] shadow-[0_0_0_1px_#d8cab0,3px_3px_0_rgba(18,60,47,0.12)] ${className}`}>
+    <div className={`flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-1 bg-[#fffdf8] px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#111] ${className}`}>
       <span className="inline-flex items-center gap-1"><LeverageMarker kind="hare" /> Root for</span>
       {showTortoise ? <span className="inline-flex items-center gap-1"><LeverageMarker kind="tortoise" /> Root against</span> : null}
     </div>
