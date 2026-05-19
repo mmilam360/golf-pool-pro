@@ -180,6 +180,12 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
             </section>
           )}
 
+          <section className="mt-10 border-2 border-[#123c2f] bg-[#fbf7ed] p-5 shadow-[4px_4px_0_#d8cab0]">
+            <h2 className="font-display text-2xl font-black text-[#0f2f25]">Ready to run this pool?</h2>
+            <p className="mt-2 leading-7 text-[#4f5b52]">Set up the tournament, scoring, and invite link before the first round starts.</p>
+            <Link href={heroCtaHref} className="mt-4 inline-block border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-center font-extrabold text-white">{heroCtaLabel}</Link>
+          </section>
+
           {post.internalLinks && (
             <section className="mt-10 border-t-2 border-[#123c2f] pt-6">
               <h2 className="text-sm font-black uppercase tracking-[0.16em] text-[#8a6724]">Related</h2>
