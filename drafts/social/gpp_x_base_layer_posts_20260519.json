@@ -1,0 +1,75 @@
+[
+  {
+    "kind": "post",
+    "target": null,
+    "text": "A three-putt from 12 feet should count as a minor medical event. You're technically fine, but something has changed inside you.",
+    "returncode": 0,
+    "stdout": "{\n  \"data\":{\n    \"text\":\"A three-putt from 12 feet should count as a minor medical event. You're technically fine, but something has changed inside you.\",\n    \"id\":\"2056794718248247648\",\n    \"edit_history_tweet_ids\":[\n      \"2056794718248247648\"\n    ]\n  }\n}\n",
+    "stderr": "",
+    "created_at": "2026-05-19T17:50:48.975283+00:00",
+    "id": "2056794718248247648",
+    "posted_text": "A three-putt from 12 feet should count as a minor medical event. You're technically fine, but something has changed inside you.",
+    "url": "https://x.com/golfpoolspro/status/2056794718248247648"
+  },
+  {
+    "kind": "post",
+    "target": null,
+    "text": "Every golfer has two scorecards: the one they turn in, and the one their buddy remembers when they start lying in the parking lot.",
+    "returncode": 0,
+    "stdout": "{\n  \"data\":{\n    \"text\":\"Every golfer has two scorecards: the one they turn in, and the one their buddy remembers when they start lying in the parking lot.\",\n    \"edit_history_tweet_ids\":[\n      \"2056794719527518266\"\n    ],\n    \"id\":\"2056794719527518266\"\n  }\n}\n",
+    "stderr": "",
+    "created_at": "2026-05-19T17:50:49.302608+00:00",
+    "id": "2056794719527518266",
+    "posted_text": "Every golfer has two scorecards: the one they turn in, and the one their buddy remembers when they start lying in the parking lot.",
+    "url": "https://x.com/golfpoolspro/status/2056794719527518266"
+  },
+  {
+    "kind": "post",
+    "target": null,
+    "text": "Slow play turns every tee box into a courtroom. By the 11th hole everyone suddenly has a law degree and a ruling.",
+    "returncode": 0,
+    "stdout": "{\n  \"data\":{\n    \"id\":\"2056794720777470417\",\n    \"text\":\"Slow play turns every tee box into a courtroom. By the 11th hole everyone suddenly has a law degree and a ruling.\",\n    \"edit_history_tweet_ids\":[\n      \"2056794720777470417\"\n    ]\n  }\n}\n",
+    "stderr": "",
+    "created_at": "2026-05-19T17:50:49.649762+00:00",
+    "id": "2056794720777470417",
+    "posted_text": "Slow play turns every tee box into a courtroom. By the 11th hole everyone suddenly has a law degree and a ruling.",
+    "url": "https://x.com/golfpoolspro/status/2056794720777470417"
+  },
+  {
+    "kind": "post",
+    "target": null,
+    "text": "The Thursday morning PGA leader is one of sports' funniest characters. For six hours he is treated like a solved problem, then he quietly becomes T37.",
+    "returncode": 0,
+    "stdout": "{\n  \"data\":{\n    \"id\":\"2056794722228658642\",\n    \"text\":\"The Thursday morning PGA leader is one of sports' funniest characters. For six hours he is treated like a solved problem, then he quietly becomes T37.\",\n    \"edit_history_tweet_ids\":[\n      \"2056794722228658642\"\n    ]\n  }\n}\n",
+    "stderr": "",
+    "created_at": "2026-05-19T17:50:49.943847+00:00",
+    "id": "2056794722228658642",
+    "posted_text": "The Thursday morning PGA leader is one of sports' funniest characters. For six hours he is treated like a solved problem, then he quietly becomes T37.",
+    "url": "https://x.com/golfpoolspro/status/2056794722228658642",
+    "deleted": true,
+    "delete_reason": "User flagged as slop / bot-sounding"
+  },
+  {
+    "kind": "quote",
+    "target": "2056755157694865840",
+    "text": "Golf course takes get boring fast when every solution is 'make it look like the course I already like.'",
+    "returncode": 1,
+    "stdout": "{\n  \"detail\":\"Quoting this post is not allowed because you have not been mentioned or are not part of the conversation thread of the post you are quoting.\",\n  \"type\":\"about:blank\",\n  \"title\":\"Forbidden\",\n  \"status\":403\n}\n",
+    "stderr": "",
+    "created_at": "2026-05-19T17:50:50.172697+00:00",
+    "id": null,
+    "posted_text": null,
+    "url": null
+  },
+  {
+    "kind": "quote_own",
+    "target": "2056794722228658642",
+    "text": "This is basically the entire first page of the leaderboard every week.",
+    "returncode": 0,
+    "id": "2056794797063520734",
+    "posted_text": "This is basically the entire first page of the leaderboard every week. https://t.co/irWTpTxh3H",
+    "url": "https://x.com/golfpoolspro/status/2056794797063520734",
+    "deleted": true,
+    "delete_reason": "User flagged as slop / bot-sounding"
+  }
+]

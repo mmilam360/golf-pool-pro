@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -48,17 +48,27 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [signupPromoCode, setSignupPromoCode] = useState('FIRSTPOOL9')
   const router = useRouter()
   const supabase = createClient()
 
+  useEffect(() => {
+    setSignupPromoCode(new URLSearchParams(window.location.search).get('promo') || 'FIRSTPOOL9')
+  }, [])
+
   function getLoginHref() {
     if (typeof window === 'undefined') return '/login'
-    const redirectParam = new URLSearchParams(window.location.search).get('redirect')
-    return redirectParam ? `/login?redirect=${encodeURIComponent(redirectParam)}` : '/login'
+    const params = new URLSearchParams(window.location.search)
+    const redirectParam = params.get('redirect')
+    const promoParam = params.get('promo') || signupPromoCode
+    const redirectWithPromo = redirectParam || (promoParam ? `/dashboard?promo=${encodeURIComponent(promoParam)}` : '')
+    return redirectWithPromo ? `/login?redirect=${encodeURIComponent(redirectWithPromo)}` : '/login'
   }
 
   function getSafeRedirect() {
-    const redirectParam = new URLSearchParams(window.location.search).get('redirect')
+    const params = new URLSearchParams(window.location.search)
+    const redirectParam = params.get('redirect')
+    const promoParam = params.get('promo') || signupPromoCode
     if (redirectParam && !redirectParam.includes('\\')) {
       try {
         const url = new URL(redirectParam, window.location.origin)
@@ -67,6 +77,7 @@ export default function SignupPage() {
         }
       } catch {}
     }
+    if (promoParam) return `/dashboard?promo=${encodeURIComponent(promoParam)}`
     return '/dashboard'
   }
 
@@ -111,8 +122,35 @@ export default function SignupPage() {
 
   return (
     <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 shadow-[6px_6px_0_#d8cab0]">
-      <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">New account</p>
-      <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Create account</h1>
+      {signupPromoCode ? (
+        <div className="relative mb-6 overflow-hidden border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[4px_4px_0_#d8cab0]">
+          <div className="absolute left-[108px] top-[-10px] hidden h-5 w-5 rounded-full border-2 border-[#123c2f] bg-white sm:block" aria-hidden="true" />
+          <div className="absolute bottom-[-10px] left-[108px] hidden h-5 w-5 rounded-full border-2 border-[#123c2f] bg-white sm:block" aria-hidden="true" />
+          <div className="grid sm:grid-cols-[118px_1fr]">
+            <div className="flex items-center justify-center border-b-2 border-[#123c2f] bg-white px-4 py-4 text-center sm:border-b-0 sm:border-r-2 sm:border-dashed">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">First pool</p>
+                <p className="mt-1 text-4xl font-black leading-none text-[#123c2f]">$9</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">cap</p>
+              </div>
+            </div>
+            <div className="px-4 py-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Early pool runner ticket</p>
+              <h1 className="mt-1 text-xl font-black uppercase leading-tight tracking-[-0.03em] text-[#0f2f25]">
+                Run your first pool for $9.
+              </h1>
+              <p className="mt-2 text-sm font-semibold leading-5 text-stone-700">
+                Saved to your account. Applies at checkout.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">New account</p>
+          <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Create account</h1>
+        </>
+      )}
       {error && (
         <div className="bg-red-50 text-red-700 p-3 rounded-none mb-4 text-sm border border-red-200">{error}</div>
       )}

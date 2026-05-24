@@ -3,6 +3,9 @@ export type PoolCloneSettings = {
   name?: string | null
   pick_count?: number | null
   count_scores?: number | null
+  game_format?: string | null
+  group_count?: number | null
+  picks_per_group?: number | null
   ob_rule_enabled?: boolean | null
   ob_penalty_strokes?: number | null
 }
@@ -13,6 +16,9 @@ export type PoolCloneDefaults = {
   poolName: string
   pickCount: number
   countScores: number
+  gameFormat: 'standard' | 'ranked_groups' | 'random_groups'
+  groupCount: number
+  picksPerGroup: number
   obEnabled: boolean
   obPenalty: number
 }
@@ -59,12 +65,16 @@ export function buildRunItBackDefaults(sourcePool: PoolCloneSettings): PoolClone
   const poolName = sourcePool.name?.trim() || 'Golf Pool'
   const pickCount = safeNumber(sourcePool.pick_count, 12)
   const countScores = Math.min(safeNumber(sourcePool.count_scores, 8), pickCount)
+  const gameFormat = sourcePool.game_format === 'ranked_groups' || sourcePool.game_format === 'random_groups' ? sourcePool.game_format : 'standard'
   return {
     sourceId: sourcePool.id,
     sourceName: poolName,
     poolName,
     pickCount,
     countScores,
+    gameFormat,
+    groupCount: gameFormat === 'standard' ? 6 : safeNumber(sourcePool.group_count, 6),
+    picksPerGroup: gameFormat === 'standard' ? 2 : safeNumber(sourcePool.picks_per_group, 2),
     obEnabled: Boolean(sourcePool.ob_rule_enabled),
     obPenalty: safeNumber(sourcePool.ob_penalty_strokes, 2),
   }

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompetitorToPlayer } from './golf-api'
+import { autoFinalizeGroupedPools } from './grouped-pool-auto-lock'
 import { findPgaTourTournament, getPgaTourField, getPgaTourSchedule } from './pga-tour-field'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
@@ -12,6 +13,7 @@ export interface TournamentSyncResult {
   fieldsUpdated: number
   leaderboardsUpdated: number
   poolsAutoLocked: number
+  groupedPoolsAutoFinalized: number
 }
 
 function toDateOnly(value: string | null | undefined) {
@@ -138,6 +140,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     fieldsUpdated: 0,
     leaderboardsUpdated: 0,
     poolsAutoLocked: 0,
+    groupedPoolsAutoFinalized: 0,
   }
 
   const liveTournamentIds: string[] = []
@@ -165,17 +168,28 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
     const { data: existing, error: existingError } = await supabase
       .from('gpp_tournaments')
-      .select('id, leaderboard_json, field_json')
+      .select('id, status, leaderboard_json, field_json')
       .eq('external_id', row.external_id)
       .maybeSingle()
 
     if (existingError) throw existingError
 
     if (existing) {
-      if (Array.isArray(row.field_json)) {
+      const hasStoredFinalBoard = String(existing.status || '').toLowerCase() === 'completed'
+        && effectiveStatus === 'completed'
+        && Array.isArray(existing.leaderboard_json)
+        && existing.leaderboard_json.length > 0
+
+      if (hasStoredFinalBoard) {
+        delete row.leaderboard_json
+        delete row.field_json
+        delete row.last_scores_fetch
+      }
+
+      if (!hasStoredFinalBoard && Array.isArray(row.field_json)) {
         row.field_json = preserveStoredInactiveStatuses(row.field_json, existing.field_json)
       }
-      if (Array.isArray(row.leaderboard_json)) {
+      if (!hasStoredFinalBoard && Array.isArray(row.leaderboard_json)) {
         row.leaderboard_json = preserveStoredInactiveStatuses(row.leaderboard_json, existing.leaderboard_json)
       }
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
@@ -202,6 +216,9 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     if (error) throw error
     result.poolsAutoLocked = lockedPools?.length || 0
   }
+
+  const groupFinalization = await autoFinalizeGroupedPools(supabase)
+  result.groupedPoolsAutoFinalized = groupFinalization.finalized
 
   return result
 }
@@ -236,6 +253,7 @@ export async function syncTournaments({
     fieldsUpdated: 0,
     leaderboardsUpdated: 0,
     poolsAutoLocked: 0,
+    groupedPoolsAutoFinalized: 0,
   }
 
   const liveTournamentIds: string[] = []
@@ -272,7 +290,7 @@ export async function syncTournaments({
 
     const { data: existing, error: existingError } = await supabase
       .from('gpp_tournaments')
-      .select('id, leaderboard_json, field_json')
+      .select('id, status, leaderboard_json, field_json')
       .eq('external_id', externalId)
       .maybeSingle()
 
@@ -319,10 +337,21 @@ export async function syncTournaments({
     }
 
     if (existing) {
-      if (Array.isArray(row.field_json)) {
+      const hasStoredFinalBoard = String(existing.status || '').toLowerCase() === 'completed'
+        && effectiveStatus === 'completed'
+        && Array.isArray(existing.leaderboard_json)
+        && existing.leaderboard_json.length > 0
+
+      if (hasStoredFinalBoard) {
+        delete row.leaderboard_json
+        delete row.field_json
+        delete row.last_scores_fetch
+      }
+
+      if (!hasStoredFinalBoard && Array.isArray(row.field_json)) {
         row.field_json = preserveStoredInactiveStatuses(row.field_json, existing.field_json)
       }
-      if (Array.isArray(row.leaderboard_json)) {
+      if (!hasStoredFinalBoard && Array.isArray(row.leaderboard_json)) {
         row.leaderboard_json = preserveStoredInactiveStatuses(row.leaderboard_json, existing.leaderboard_json)
       }
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
@@ -349,6 +378,9 @@ export async function syncTournaments({
     if (error) throw error
     result.poolsAutoLocked = lockedPools?.length || 0
   }
+
+  const groupFinalization = await autoFinalizeGroupedPools(supabase)
+  result.groupedPoolsAutoFinalized = groupFinalization.finalized
 
   return result
 }

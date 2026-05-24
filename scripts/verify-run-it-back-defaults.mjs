@@ -16,6 +16,9 @@ assert.deepEqual(defaults, {
   poolName: 'Four Fagarillos',
   pickCount: 10,
   countScores: 6,
+  gameFormat: 'standard',
+  groupCount: 6,
+  picksPerGroup: 2,
   obEnabled: true,
   obPenalty: 3,
 }, 'run it back should preserve pool name, pick/count settings, and OB rule settings')
@@ -35,6 +38,9 @@ assert.deepEqual(
     poolName: 'No OB League',
     pickCount: 8,
     countScores: 8,
+    gameFormat: 'standard',
+    groupCount: 6,
+    picksPerGroup: 2,
     obEnabled: false,
     obPenalty: 4,
   },
@@ -56,10 +62,40 @@ assert.deepEqual(
     poolName: 'Legacy League',
     pickCount: 12,
     countScores: 8,
+    gameFormat: 'standard',
+    groupCount: 6,
+    picksPerGroup: 2,
     obEnabled: false,
     obPenalty: 2,
   },
   'run it back should preserve nullable legacy OB settings as disabled'
+)
+
+assert.deepEqual(
+  buildRunItBackDefaults({
+    id: 'pool-4',
+    name: 'Chaos League',
+    pick_count: 12,
+    count_scores: 8,
+    game_format: 'random_groups',
+    group_count: 6,
+    picks_per_group: 2,
+    ob_rule_enabled: true,
+    ob_penalty_strokes: 2,
+  }),
+  {
+    sourceId: 'pool-4',
+    sourceName: 'Chaos League',
+    poolName: 'Chaos League',
+    pickCount: 12,
+    countScores: 8,
+    gameFormat: 'random_groups',
+    groupCount: 6,
+    picksPerGroup: 2,
+    obEnabled: true,
+    obPenalty: 2,
+  },
+  'run it back should preserve grouped pool settings'
 )
 
 assert.equal(buildRunItBackDefaults({ name: 'Missing id' }), null, 'missing source id is not cloneable')

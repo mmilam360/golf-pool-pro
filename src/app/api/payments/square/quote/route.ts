@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getPoolPaymentQuote, getPoolPaymentStatus } from '@/lib/payments/pricing'
 import { getSquareBrowserConfig } from '@/lib/payments/square'
 
@@ -49,6 +50,44 @@ async function getOwnedPoolQuote(poolId: string) {
 
   const storedPaymentStatus = (pool as any).payment_status || 'draft'
   const paymentStatus = getPoolPaymentStatus(storedPaymentStatus, count || 0, amountPaidCents)
+  let claimedPromo: any = null
+
+  try {
+    const serviceSupabase = createServiceClient() as any
+    const { data: redemption } = await serviceSupabase
+      .from('gpp_promo_redemptions')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!redemption && quote.amountDueCents > 0) {
+      const { data: claim } = await serviceSupabase
+        .from('gpp_user_promo_claims')
+        .select('gpp_promo_codes(code, description, free_pool, discount_cents, target_amount_cents, max_redemptions, times_redeemed, starts_at, expires_at, is_active)')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      const promo = Array.isArray(claim?.gpp_promo_codes) ? claim.gpp_promo_codes[0] : claim?.gpp_promo_codes
+      const nowMs = Date.now()
+      const startsAt = promo?.starts_at ? Date.parse(promo.starts_at) : null
+      const expiresAt = promo?.expires_at ? Date.parse(promo.expires_at) : null
+      const maxed = promo?.max_redemptions !== null && promo?.max_redemptions !== undefined && Number(promo.times_redeemed || 0) >= promo.max_redemptions
+
+      if (promo?.is_active && !maxed && (!startsAt || nowMs >= startsAt) && (!expiresAt || nowMs <= expiresAt)) {
+        claimedPromo = {
+          code: promo.code,
+          label: promo.target_amount_cents !== null && promo.target_amount_cents !== undefined
+            ? `First pool capped at $${Math.round(Number(promo.target_amount_cents) / 100)}`
+            : promo.free_pool
+              ? 'First pool free'
+              : 'First pool promo',
+          discountCents: promo.discount_cents,
+          targetAmountCents: promo.target_amount_cents,
+          freePool: Boolean(promo.free_pool),
+        }
+      }
+    }
+  } catch {}
 
   if (paymentStatus !== storedPaymentStatus) {
     const updatePayload: Record<string, any> = { payment_status: paymentStatus }
@@ -71,6 +110,7 @@ async function getOwnedPoolQuote(poolId: string) {
       paidEntryLimit: Number((pool as any).paid_entry_limit || 5),
       square: getSquareBrowserConfig(),
       savedCards: savedCards || [],
+      claimedPromo,
     },
   }
 }

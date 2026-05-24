@@ -3,10 +3,9 @@ export type PoolPaymentStatus = 'draft' | 'active' | 'payment_due' | 'archived_u
 export const FREE_ENTRY_LIMIT = 5
 export const PRICE_PER_EXTRA_ENTRY_CENTS = 100
 export const STANDARD_POOL_ENTRY_LIMIT = 100
-export const STANDARD_POOL_PRICE_CAP_CENTS = 2500
+export const STANDARD_POOL_PRICE_CAP_CENTS = 2000
 export const OVERSIZE_ENTRY_BLOCK = 100
-export const OVERSIZE_BLOCK_PRICE_CENTS = 1500
-export const MAX_POOL_PRICE_CENTS = 9900
+export const OVERSIZE_BLOCK_PRICE_CENTS = 1000
 export const LIFETIME_ACCESS_CENTS = 20000
 
 type PromoLike = {
@@ -22,7 +21,7 @@ export function getPoolPriceTier(activeEntryCount: number) {
   const oversizeBlocks = count > STANDARD_POOL_ENTRY_LIMIT
     ? Math.ceil((count - STANDARD_POOL_ENTRY_LIMIT) / OVERSIZE_ENTRY_BLOCK)
     : 0
-  const amountCents = Math.min(MAX_POOL_PRICE_CENTS, standardAmountCents + oversizeBlocks * OVERSIZE_BLOCK_PRICE_CENTS)
+  const amountCents = standardAmountCents + oversizeBlocks * OVERSIZE_BLOCK_PRICE_CENTS
 
   return {
     entryLimit: count,
@@ -30,8 +29,8 @@ export function getPoolPriceTier(activeEntryCount: number) {
     label: count <= FREE_ENTRY_LIMIT
       ? `${FREE_ENTRY_LIMIT} entries free`
       : count <= STANDARD_POOL_ENTRY_LIMIT
-        ? `$1 per extra entry, capped at $25 through 100 entries`
-        : `$25 through 100 entries, then $15 per started 100 entries, capped at $99`,
+        ? `$1 per extra entry, capped at $20 through 100 entries`
+        : `$20 through 100 entries, then $10 per started 100 entries`,
   }
 }
 

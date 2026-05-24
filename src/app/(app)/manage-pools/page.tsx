@@ -7,6 +7,7 @@ import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
 import { getPoolPaymentQuote, getPoolPaymentStatus, formatMoney } from '@/lib/payments/pricing'
 import { selectNextRunItBackTournament } from '@/lib/run-it-back'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
+import ClaimedPromoBanner from '@/components/ClaimedPromoBanner'
 import type { GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -270,6 +271,7 @@ export default async function ManagePoolsPage() {
 
   return (
     <div className="space-y-8">
+      <ClaimedPromoBanner />
       <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
         <div className="flex items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-4 text-white sm:px-5">
           <div className="min-w-0">

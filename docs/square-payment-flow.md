@@ -22,9 +22,9 @@ Entrants should never be blocked by capacity while joining. The host can remove 
 ### Price tiers
 
 - First 5 active entries: free and automatically active.
-- Entries 6 through 100: $1 per extra active entry, capped at $25.
-- Over 100 active entries: add $15 for each started 100-entry block after 100.
-- Maximum pool charge: $99.
+- Entries 6 through 100: $1 per extra active entry, capped at $20.
+- Over 100 active entries: add $10 for each started 100-entry block after 100.
+- Example: 160 active entries costs $30.
 
 ### Price calculation
 
@@ -143,7 +143,7 @@ Delayed capture note: Square supports delayed capture with `autocomplete=false`,
 No blocking.
 
 If active entries exceed `paid_entry_limit`, host sees an estimate banner:
-- `This pool has 140 active entries. Estimated pool fee: $40.`
+- `This pool has 140 active entries. Estimated pool fee: $30.`
 
 Pool state can become `payment_due`, but entrants still join and pick.
 

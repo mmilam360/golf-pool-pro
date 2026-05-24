@@ -1,0 +1,171 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0 Arial;}}
+\fs28\b Golf Pools Pro Google Ads API design documentation\b0\par
+\par
+\fs24\b 1. Company overview\b0\par
+Golf Pools Pro is a web app for running recreational golf pools for PGA tournaments. Pool hosts can create a pool, invite entrants, track standings, and share leaderboards and final results.\par
+\par
+The product is used by pool hosts who want a simple way to run golf pools for friends, offices, clubs, and recurring weekly groups.\par
+\par
+\b 2. Business model\b0\par
+Golf Pools Pro uses a software pricing model based on pool size.\par
+\par
+- Small pools can start free.\par
+- Larger pools pay based on the number of active entries.\par
+- Pricing is capped so pool hosts know the maximum cost before launching a pool.\par
+\par
+Golf Pools Pro does not operate wagering, betting, sportsbook, casino, or real-money gambling services.\par
+\par
+\b 3. How we use Google Ads\b0\par
+We use Google Ads to promote Golf Pools Pro to people searching for golf pool software and tournament-specific pool tools.\par
+\par
+Example campaigns include Google Search campaigns for PGA tournaments such as the CJ Cup Byron Nelson or the Memorial Tournament. Ads send users to tournament-specific landing pages where they can learn about the product, create an account, and start a pool.\par
+\par
+Example landing page:\par
+https://www.golfpoolspro.com/cj-cup-byron-nelson-pool\par
+\par
+\b 4. Purpose of Google Ads API access\b0\par
+We need Google Ads API access to manage our own Google Ads account more reliably than using the web interface manually.\par
+\par
+The API will be used for internal campaign management and reporting only. We are not building a public ads management platform, and we are not managing third-party advertiser accounts.\par
+\par
+\b 5. Google Ads API features used\b0\par
+The internal tool will use the Google Ads API to:\par
+\par
+- Create Google Search campaigns.\par
+- Create campaign budgets.\par
+- Create ad groups.\par
+- Add exact and phrase match keywords.\par
+- Add negative keywords.\par
+- Create responsive search ads.\par
+- Set final landing page URLs with UTM tracking.\par
+- Pause and enable campaigns.\par
+- Read campaign, ad group, keyword, and ad performance reports.\par
+- Review spend, clicks, impressions, click-through rate, conversions, and search terms.\par
+\par
+\b 6. Campaign creation flow\b0\par
+The tool follows this process:\par
+\par
+1. Choose a PGA tournament or product landing page.\par
+2. Generate a small, focused Search campaign plan.\par
+3. Set a daily budget based on the approved weekly spend.\par
+4. Create a paused campaign in Google Ads.\par
+5. Add ad groups, keywords, negative keywords, and responsive search ads.\par
+6. Verify the campaign settings before activation.\par
+7. Enable the campaign only after settings are reviewed.\par
+8. Monitor search terms and performance.\par
+9. Pause poor matches and add negatives when needed.\par
+\par
+Campaigns are created as paused first to avoid accidental spend before review.\par
+\par
+\b 7. Example campaign settings\b0\par
+For the first campaign, Golf Pools Pro plans to run a small Google Search campaign for the CJ Cup Byron Nelson.\par
+\par
+- Campaign type: Search\par
+- Budget: about $20 per week\par
+- Daily budget: about $2.86 per day\par
+- Landing URL: https://www.golfpoolspro.com/cj-cup-byron-nelson-pool?utm_source=google&utm_medium=cpc&utm_campaign=cj_cup_search\par
+- Match types: Exact and phrase match only\par
+- Networks: Google Search only\par
+- Display Network: off\par
+- Search Partners: off for the initial test\par
+\par
+\b 8. Keyword strategy\b0\par
+The tool uses high-intent keywords related to golf pools and PGA tournament pools.\par
+\par
+Example keywords:\par
+\par
+- cj cup golf pool\par
+- cj cup byron nelson pool\par
+- byron nelson golf pool\par
+- pga golf pool app\par
+- golf office pool\par
+- golf tournament pool app\par
+- create a golf pool\par
+- run a golf pool\par
+\par
+The first campaigns avoid broad match so spend stays controlled.\par
+\par
+\b 9. Negative keyword strategy\b0\par
+The tool applies negative keywords to avoid irrelevant or sensitive traffic.\par
+\par
+Examples include:\par
+\par
+- betting\par
+- sportsbook\par
+- casino\par
+- gambling\par
+- odds\par
+- wager\par
+- parlay\par
+- draftkings\par
+- fanduel\par
+- swimming pool\par
+- pool service\par
+- pool cleaning\par
+- pool builder\par
+- tickets\par
+- schedule\par
+- tee times\par
+- leaderboard\par
+- spreadsheet\par
+- template\par
+- free\par
+\par
+\b 10. Ad copy rules\b0\par
+Ad copy focuses on recreational golf pool software, easy setup, group invites, and shareable standings.\par
+\par
+The tool avoids language about betting, odds, wagers, gambling, payouts, sportsbooks, casinos, or real-money contests.\par
+\par
+Example headlines:\par
+\par
+- CJ Cup Golf Pool\par
+- Byron Nelson Golf Pool\par
+- Run A CJ Cup Pool\par
+- Create A PGA Pool\par
+- Fun PGA Golf Pools\par
+- Shareable Leaderboards\par
+- Set Up In Minutes\par
+\par
+Example descriptions:\par
+\par
+- Create a fun CJ Cup pool with shareable leaderboards. CJ Cup promo available.\par
+- Set up your PGA golf pool in minutes. Invite friends and track standings all weekend.\par
+- Simple golf pools for the CJ Cup Byron Nelson. Built for groups and offices.\par
+\par
+\b 11. Reporting and optimization\b0\par
+The tool will pull reporting data from Google Ads to review:\par
+\par
+- Impressions\par
+- Clicks\par
+- Cost\par
+- Click-through rate\par
+- Average CPC\par
+- Conversions or landing page actions where available\par
+- Search terms\par
+- Campaign and keyword performance\par
+\par
+This data is used to pause poor-performing keywords, add negative keywords, and improve future tournament campaigns.\par
+\par
+\b 12. Data handling and security\b0\par
+Google Ads API credentials are stored locally and are not exposed in the website frontend.\par
+\par
+The tool does not collect or store Google user passwords. OAuth is used for access. API credentials and refresh tokens are stored outside the public application repository.\par
+\par
+Only authorized internal operators can run the tool.\par
+\par
+\b 13. Access level requested\b0\par
+We are requesting Basic Access because we need to create and manage campaigns for our own Google Ads account.\par
+\par
+We do not need Standard Access at this time.\par
+\par
+\b 14. Supported campaign types\b0\par
+The tool currently supports Google Search campaigns only.\par
+\par
+We are starting with Search because our first use case is high-intent keyword advertising for people looking for PGA golf pool software or tournament-specific golf pool pages.\par
+\par
+The tool does not currently support Performance Max, Display, Video, Demand Gen, Shopping, App, Hotel, or Local campaigns. Those campaign types are outside the initial scope.\par
+\par
+\b 15. Summary\b0\par
+Golf Pools Pro needs Google Ads API access for internal campaign automation and reporting. The tool will create small, controlled Google Search campaigns for our own business, starting with tournament-specific landing pages. Campaigns are created paused first, reviewed, then enabled only after verification.\par
+}

@@ -7,9 +7,10 @@ import { useRouter } from 'next/navigation'
 import ShortUniqueId from 'short-unique-id'
 import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
 import { buildRunItBackDefaults, selectNextRunItBackTournament } from '@/lib/run-it-back'
+import type { PoolGameFormat } from '@/lib/pool-formats'
 
 interface Tournament {
-  id: string; name: string; start_date: string; end_date: string; course: string; status: string
+  id: string; name: string; start_date: string; end_date: string; course: string; status: string; field_json?: any[] | null; leaderboard_json?: any[] | null
 }
 
 type PoolNumber = number | ''
@@ -102,12 +103,25 @@ function NumberStepper({
   )
 }
 
+function InfoIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" />
+      <path d="M10 9v5" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
+      <path d="M10 6h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="square" />
+    </svg>
+  )
+}
+
 export default function CreatePoolPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [selectedTournament, setSelectedTournament] = useState('')
   const [poolName, setPoolName] = useState('')
   const [pickCount, setPickCount] = useState<PoolNumber>(12)
   const [countScores, setCountScores] = useState<PoolNumber>(8)
+  const [gameFormat, setGameFormat] = useState<PoolGameFormat>('standard')
+  const [groupCount, setGroupCount] = useState<PoolNumber>(6)
+  const [picksPerGroup, setPicksPerGroup] = useState<PoolNumber>(2)
   const [obEnabled, setObEnabled] = useState(true)
   const [obPenalty, setObPenalty] = useState<PoolNumber>(2)
   const [loading, setLoading] = useState(false)
@@ -127,10 +141,17 @@ export default function CreatePoolPage() {
     if (countScores > pickCount) setCountScores(pickCount)
   }, [countScores, pickCount])
 
+  useEffect(() => {
+    if (gameFormat === 'standard') return
+    const totalPicks = toNumber(groupCount, 6) * toNumber(picksPerGroup, 2)
+    setPickCount(totalPicks)
+    if (countScores === '' || countScores > totalPicks) setCountScores(Math.min(8, totalPicks))
+  }, [countScores, gameFormat, groupCount, picksPerGroup])
+
   async function loadTournaments() {
     const { data } = await supabase
       .from('gpp_tournaments')
-      .select('id, name, start_date, end_date, course, status')
+      .select('id, name, start_date, end_date, course, status, field_json, leaderboard_json')
       .in('status', ['upcoming', 'live'])
       .order('start_date', { ascending: true })
     if (data) {
@@ -147,7 +168,7 @@ export default function CreatePoolPage() {
         if (user) {
           const { data: sourcePool } = await supabase
             .from('gpp_pools')
-            .select('id, name, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes')
+            .select('id, name, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group')
             .eq('id', cloneId)
             .eq('owner_id', user.id)
             .maybeSingle()
@@ -158,6 +179,9 @@ export default function CreatePoolPage() {
             setPoolName(cloneDefaults.poolName)
             setPickCount(cloneDefaults.pickCount)
             setCountScores(cloneDefaults.countScores)
+            setGameFormat(cloneDefaults.gameFormat)
+            setGroupCount(cloneDefaults.groupCount)
+            setPicksPerGroup(cloneDefaults.picksPerGroup)
             setObEnabled(cloneDefaults.obEnabled)
             setObPenalty(cloneDefaults.obPenalty)
             const cloneTournament = selectNextRunItBackTournament(openTournaments, now)
@@ -207,6 +231,9 @@ export default function CreatePoolPage() {
     const finalPickCount = toNumber(pickCount, 12)
     const finalCountScores = toNumber(countScores, 8)
     const finalObPenalty = toNumber(obPenalty, 2)
+    const finalGroupCount = gameFormat === 'standard' ? 0 : toNumber(groupCount, 6)
+    const finalPicksPerGroup = gameFormat === 'standard' ? 0 : toNumber(picksPerGroup, 2)
+    const finalGroupedPickCount = finalGroupCount * finalPicksPerGroup
 
     if (!selected) {
       setError('Choose an open tournament before creating a pool.')
@@ -220,6 +247,12 @@ export default function CreatePoolPage() {
       return
     }
 
+    if (gameFormat !== 'standard' && finalGroupedPickCount !== finalPickCount) {
+      setError('Grouped pools must pick the same total as groups × picks per group.')
+      setLoading(false)
+      return
+    }
+
     if (finalCountScores > finalPickCount) {
       setError('Scores to Count cannot be greater than Golfers to Pick')
       setLoading(false)
@@ -228,7 +261,6 @@ export default function CreatePoolPage() {
 
     const uid = new ShortUniqueId({ length: 6 })
     const passcode = uid.randomUUID().toUpperCase()
-
     const { data, error: insertError } = await supabase
       .from('gpp_pools')
       .insert({
@@ -238,6 +270,12 @@ export default function CreatePoolPage() {
         passcode,
         pick_count: finalPickCount,
         count_scores: finalCountScores,
+        game_format: gameFormat,
+        group_count: finalGroupCount,
+        picks_per_group: finalPicksPerGroup,
+        pick_groups_json: [],
+        field_snapshot_json: null,
+        groups_finalized_at: null,
         ob_rule_enabled: obEnabled,
         ob_penalty_strokes: finalObPenalty,
         payment_status: 'active',
@@ -334,10 +372,98 @@ export default function CreatePoolPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <NumberStepper label="Golfers to Pick" value={pickCount} onChange={setPickCount} min={1} max={30} fallback={12} />
-            <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, 12)} fallback={8} />
+          <div className="rounded-none border border-[#d8cab0] bg-[#fbf7ed] p-4">
+            <label className="mb-2 block text-sm font-medium text-stone-800">Game format</label>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {[
+                {
+                  value: 'standard',
+                  label: 'Standard',
+                  helper: 'Players pick any golfers from the full field. Simple and familiar.',
+                  image: '/game-modes/standard-wordmark.svg',
+                },
+                {
+                  value: 'ranked_groups',
+                  label: 'Ranked Groups',
+                  helper: 'Field is sorted into groups based on WGR. Players pick from each group.',
+                  image: '/game-modes/ranked-wordmark.svg',
+                },
+                {
+                  value: 'random_groups',
+                  label: 'Clubhouse Chaos',
+                  helper: 'Field is randomly shuffled, then divided into groups. Everyone gets the same groups.',
+                  image: '/game-modes/clubhouse-chaos-wordmark.svg',
+                },
+              ].map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setGameFormat(option.value as PoolGameFormat)}
+                  className={`border-2 px-3 py-3 text-left transition-colors ${gameFormat === option.value ? 'border-[#123c2f] bg-white text-[#123c2f]' : 'border-[#d8cab0] bg-[#fffaf0] text-stone-700 hover:border-[#123c2f]'}`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- these are static mode-card tags, not LCP content */}
+                  <img
+                    src={option.image}
+                    alt=""
+                    aria-hidden="true"
+                    className="mb-3 aspect-[16/11] w-full border border-[#d8cab0] bg-[#fbf7ed] object-cover"
+                    loading="eager"
+                  />
+                  <span className="block text-center text-sm font-black uppercase tracking-[0.08em]">{option.label}</span>
+                  <span className="mt-1 block text-center text-xs font-semibold leading-4">{option.helper}</span>
+                </button>
+              ))}
+            </div>
+            {gameFormat !== 'standard' && (
+              <div className="mt-3 border border-[#d8cab0] bg-white text-xs leading-5 text-stone-700">
+                <details className="group">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 font-black uppercase tracking-[0.08em] text-[#123c2f] [&::-webkit-details-marker]:hidden">
+                    <span className="flex items-center gap-2"><InfoIcon /> How this format works</span>
+                    <span className="text-lg leading-none text-[#b21e23] group-open:hidden">+</span>
+                    <span className="hidden text-lg leading-none text-[#b21e23] group-open:block">−</span>
+                  </summary>
+                  <div className="space-y-3 border-t border-[#d8cab0] px-3 pb-3 pt-3">
+                    {gameFormat === 'ranked_groups' ? (
+                      <>
+                        <p>The field is sorted by WGR, then split into the number of groups you choose. Every entry picks the same number of golfers from each group.</p>
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Group 1</strong>Scheffler, McIlroy, Schauffele, Rahm</div>
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Group 2</strong>Morikawa, Hovland, Fleetwood, Cantlay</div>
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Group 3</strong>Lowry, Burns, Finau, Fowler</div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p>The field is shuffled once when groups lock, then divided into groups. Everyone picks from the same shuffled groups.</p>
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Group 1</strong>McIlroy, Fowler, Burns, Finau</div>
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Group 2</strong>Scheffler, Lowry, Hovland, Cantlay</div>
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Group 3</strong>Schauffele, Fleetwood, Rahm, Morikawa</div>
+                        </div>
+                      </>
+                    )}
+                    <p>Groups are not locked yet when you create the pool. They auto-lock Tuesday morning of tournament week when the field is available. You can also lock groups sooner once the official field is posted.</p>
+                  </div>
+                </details>
+              </div>
+            )}
           </div>
+
+          {gameFormat === 'standard' ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <NumberStepper label="Golfers to Pick" value={pickCount} onChange={setPickCount} min={1} max={30} fallback={12} />
+              <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, 12)} fallback={8} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <NumberStepper label="Groups" value={groupCount} onChange={setGroupCount} min={2} max={12} fallback={6} />
+              <NumberStepper label="Picks per Group" value={picksPerGroup} onChange={setPicksPerGroup} min={1} max={6} fallback={2} />
+              <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, 12)} fallback={8} />
+              <div className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-sm font-bold text-[#123c2f] sm:col-span-3">
+                Total picks: {toNumber(groupCount, 6) * toNumber(picksPerGroup, 2)} · default is 6 groups, 2 per group, best 8 count.
+              </div>
+            </div>
+          )}
 
           <div className="rounded-none border border-amber-100 bg-amber-50 p-4">
             <div className="flex items-center justify-between">

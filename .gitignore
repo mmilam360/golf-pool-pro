@@ -12,6 +12,13 @@
 
 # testing
 /coverage
+/test-results/
+
+# agent/runtime scratch
+/.codex
+/.codex/
+/drafts/alerts/*.log
+/drafts/alerts/*state*.json
 
 # next.js
 /.next/

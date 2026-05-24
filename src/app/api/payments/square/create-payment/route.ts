@@ -112,7 +112,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Promo code is not valid.' }, { status: 404 })
       }
 
-      if (promoRow.times_redeemed >= 1 || (promoRow.max_redemptions !== null && promoRow.times_redeemed >= promoRow.max_redemptions)) {
+      if (promoRow.max_redemptions !== null && promoRow.times_redeemed >= promoRow.max_redemptions) {
         return NextResponse.json({ error: 'Promo code has already been used.' }, { status: 409 })
       }
 
@@ -271,6 +271,25 @@ export async function POST(request: Request) {
 
     if (updateError) {
       return NextResponse.json({ error: 'Payment recorded by Square, but pool update failed' }, { status: 500 })
+    }
+
+    if (promo && discountCents > 0) {
+      const { error: redemptionError } = await serviceSupabase.from('gpp_promo_redemptions').insert({
+        promo_code_id: promo.id,
+        pool_id: poolId,
+        user_id: user.id,
+        discount_cents: discountCents,
+        entry_count_at_redemption: activeEntryCount,
+      } as any)
+
+      if (redemptionError) {
+        return NextResponse.json({ error: 'Payment recorded by Square, but promo tracking failed' }, { status: 500 })
+      }
+
+      await serviceSupabase
+        .from('gpp_promo_codes')
+        .update({ times_redeemed: Number(promo.times_redeemed || 0) + 1 } as any)
+        .eq('id', promo.id)
     }
 
     return NextResponse.json({

@@ -50,6 +50,31 @@ export default function RulesPage() {
             </section>
 
             <section>
+              <h2 className="text-lg font-black text-[#0f2f25]">Pool types</h2>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <div className="border border-[#d8cab0] bg-[#fbf7ed] p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8a6724]">Standard</p>
+                  <p className="mt-2">Entrants pick from the full tournament field. This is the familiar office-pool setup.</p>
+                </div>
+                <div className="border border-[#d8cab0] bg-[#fbf7ed] p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8a6724]">Ranked groups</p>
+                  <p className="mt-2">The field is sorted into groups based on WGR. Entrants pick the same number of golfers from each group.</p>
+                </div>
+                <div className="border border-[#d8cab0] bg-[#fbf7ed] p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8a6724]">Clubhouse Chaos</p>
+                  <p className="mt-2">The field is randomly shuffled, then divided into groups. Everyone plays from the same shuffled board.</p>
+                </div>
+              </div>
+              <div className="mt-3 border-2 border-[#111] bg-[#f7f7f2] p-4 text-[#111]">
+                <p className="font-black uppercase tracking-[0.08em]">Grouped pool example</p>
+                <p className="mt-2 font-semibold">Setup: 6 groups, 2 picks per group, best 8 scores count.</p>
+                <p className="mt-2">In a ranked pool, Group 1 might include Scheffler, McIlroy, Schauffele, and Rahm. Group 2 might include Morikawa, Hovland, Fleetwood, and Cantlay.</p>
+                <p className="mt-2">In a random pool, those names can be mixed across groups after the shuffle. The groups stay the same for everyone after they lock.</p>
+                <p className="mt-2">Groups auto-lock Tuesday morning of tournament week when the field is available. The pool runner can also lock groups once the official field is posted.</p>
+              </div>
+            </section>
+
+            <section>
               <h2 className="text-lg font-black text-[#0f2f25]">Out of bounds golfers</h2>
               <p className="mt-2">A golfer is out of bounds if he misses the cut, withdraws, does not start, or never posts a usable score. OB only matters when your entry needs that golfer to fill one of your counted spots.</p>
               <div className="mt-3 border-2 border-[#111] bg-[#f7f7f2] p-4 text-[#111]">

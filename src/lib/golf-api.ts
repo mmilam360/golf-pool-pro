@@ -10,6 +10,8 @@ export interface GolfPlayer {
   id: string; name: string; firstName: string; lastName: string
   score: string; scoreToPar: number; thru: string; roundScore: string
   teeTime?: string; startTee?: number | null
+  owgr?: number | null
+  rankingPoints?: number | null
   roundScores?: GolfRoundScore[]
   position: string; strokes: number
   status: 'active' | 'cut' | 'wd' | 'dnq'; country: string; image?: string

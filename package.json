@@ -17,12 +17,16 @@
     "test:early-field-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-early-field-import.mjs",
     "predeploy:check": "node scripts/predeploy-check.mjs",
     "test:run-it-back": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-run-it-back-defaults.mjs",
+    "test:grouped-auto-lock": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-grouped-auto-lock.mjs",
     "smoke:deployment": "node scripts/smoke-deployment.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
+    "@types/qrcode": "^1.5.6",
+    "html-to-image": "^1.11.13",
     "next": "^16.2.6",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "short-unique-id": "^5.3.2",

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import DashboardActivePools from '@/components/DashboardActivePools'
 import FinalResultPopup from '@/components/FinalResultPopup'
+import ClaimedPromoBanner from '@/components/ClaimedPromoBanner'
 import { formatDateOnly, getDateOnly, todayDateOnly } from '@/lib/date-utils'
 import { selectNextRunItBackTournament } from '@/lib/run-it-back'
 import { acceptPoolInvite, declinePoolInvite } from '@/app/(app)/pool-invites/actions'
@@ -387,6 +388,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      <ClaimedPromoBanner />
       <PendingInvites invites={invites} />
       <DashboardActivePools cards={activePoolCardsWithLiveBoards} entriesByPool={entriesByPool} />
 

@@ -68,13 +68,13 @@ export default function AppHeader() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? 'page' : undefined}
-                className={`whitespace-nowrap border-b-2 px-2 py-2 transition-colors ${link.secondary ? 'ml-2 border-l border-[#d8cab0] pl-4 text-sm font-semibold' : ''} ${activeClasses(active, link)}`}
+                className={`whitespace-nowrap border-b-2 px-2 py-2 transition-colors ${link.secondary ? 'text-sm font-normal' : ''} ${activeClasses(active, link)}`}
               >
                 {link.label}
               </Link>
             )
           })}
-          <SignOutButton className="whitespace-nowrap border-b-2 border-transparent px-2 py-2 text-sm font-black text-[#657168] transition-colors hover:border-[#b58a3a] hover:text-[#123c2f]" />
+          <SignOutButton className="whitespace-nowrap border-b-2 border-transparent px-2 py-2 text-sm font-normal text-[#7b857d] transition-colors hover:border-[#d8cab0] hover:text-[#4f6258]" />
         </div>
 
         <details className="group md:hidden" open={menuOpen} onToggle={event => setMenuOpen(event.currentTarget.open)}>
@@ -92,13 +92,13 @@ export default function AppHeader() {
                     href={link.href}
                     aria-current={active ? 'page' : undefined}
                     onClick={closeMenu}
-                    className={`${link.secondary ? 'border-t-4 border-[#123c2f] px-6 py-3 text-sm font-semibold text-[#7b857d]' : 'border-b border-[#d8cab0] px-6 py-4'} ${active ? link.secondary ? 'text-[#4f6258] shadow-[inset_4px_0_0_#d8cab0]' : 'bg-[#fbf7ed] text-[#123c2f] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                    className={`${link.secondary ? 'px-6 py-3 text-sm font-normal text-[#7b857d]' : 'border-b border-[#d8cab0] px-6 py-4'} ${active ? link.secondary ? 'text-[#4f6258] shadow-[inset_4px_0_0_#d8cab0]' : 'bg-[#fbf7ed] text-[#123c2f] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                   >
                     {link.label}
                   </Link>
                 )
               })}
-              <SignOutButton className="w-full px-6 py-3 text-left text-sm font-semibold text-[#7b857d]" />
+              <SignOutButton className="w-full px-6 py-3 text-left text-sm font-normal text-[#7b857d]" />
             </div>
           </div>
         </details>

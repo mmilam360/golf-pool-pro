@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 440" role="img" aria-labelledby="title desc">
+  <title id="title">Clubhouse Chaos</title>
+  <desc id="desc">Stylized golf swirl wordmark for the Clubhouse Chaos game type.</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffaf0"/>
+      <stop offset="1" stop-color="#eadcbe"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="9" dy="10" stdDeviation="0" flood-color="#0f2f25" flood-opacity="0.22"/>
+    </filter>
+    <style>
+      .club{font-family:Impact,Arial Black,Arial,sans-serif;font-size:62px;font-weight:900;letter-spacing:3px;paint-order:stroke;stroke:#fbf7ed;stroke-width:8;stroke-linejoin:round;fill:#123c2f}
+      .chaos{font-family:Impact,Arial Black,Arial,sans-serif;font-size:91px;font-weight:900;letter-spacing:5px;paint-order:stroke;stroke:#fbf7ed;stroke-width:9;stroke-linejoin:round;fill:#b58a3a}
+      .sub{font-family:Arial Black,Arial,sans-serif;font-size:20px;font-weight:900;letter-spacing:6px;fill:#123c2f}
+      .spin{transform-origin:320px 176px}.wiggle{transform-origin:320px 244px}
+    </style>
+  </defs>
+  <rect width="640" height="440" fill="#123c2f"/>
+  <path d="M44 48h520l32 32v288H76L44 336z" fill="url(#paper)" stroke="#d8cab0" stroke-width="8" filter="url(#shadow)"/>
+  <g opacity="0.16" stroke="#d8cab0" stroke-width="3">
+    <path d="M91 124h455M91 181h455M91 238h455M91 295h455"/>
+    <path d="M166 84v253M274 84v253M382 84v253M490 84v253"/>
+  </g>
+  <g class="spin" opacity="0.95">
+    <path d="M320 72c78 0 125 46 125 104S398 280 320 280 195 234 195 176 242 72 320 72z" fill="none" stroke="#1f6b4a" stroke-width="11" stroke-dasharray="58 26"/>
+    <circle cx="444" cy="176" r="20" fill="#fbf7ed" stroke="#123c2f" stroke-width="6"/>
+    <circle cx="218" cy="119" r="16" fill="#fbf7ed" stroke="#123c2f" stroke-width="6"/>
+    <path d="M210 239l32 8-24 22z" fill="#b58a3a" stroke="#123c2f" stroke-width="5"/>
+    <path d="M422 104l40 11-31 27z" fill="#b58a3a" stroke="#123c2f" stroke-width="5"/>
+  </g>
+  <g class="wiggle">
+    <text x="320" y="216" text-anchor="middle" class="club">CLUBHOUSE</text>
+    <text x="320" y="301" text-anchor="middle" class="chaos">CHAOS</text>
+    <text x="320" y="348" text-anchor="middle" class="sub">SHUFFLED GROUPS</text>
+  </g>
+</svg>

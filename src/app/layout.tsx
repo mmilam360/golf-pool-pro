@@ -3,6 +3,7 @@ import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { PostHogAnalytics } from "@/components/PostHogAnalytics";
 import { MobileInstallPrompt } from "@/components/MobileInstallPrompt";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { NavigationHistoryTracker } from "@/components/NavigationHistoryTracker";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -62,6 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
+        <NavigationHistoryTracker />
         {children}
         <GoogleAnalytics />
         <PostHogAnalytics />

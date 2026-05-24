@@ -5,6 +5,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/sync-tournaments",
+      "schedule": "0 8 * * *"
+    },
+    {
       "path": "/api/cron/archive-unpaid-pools",
       "schedule": "*/30 * * * *"
     },

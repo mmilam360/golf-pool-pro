@@ -94,8 +94,22 @@ const featureRows = [
   ['Smart alerts', 'Players can get notified when scoring starts, picks are due, or they jump into first.'],
   ['Cut and OB scoring', 'Missed cuts and OB stand-ins are handled by the pool rules instead of spreadsheet math.'],
   ['Fast invites', 'Invite by link, passcode, or previous-player list when you run the next pool.'],
+  ['Pool posters', 'Generate a QR poster for the clubhouse, group chat, or tournament email.'],
   ['Run it back', 'Reuse the same group for the next tournament instead of starting from scratch.'],
   ['Capped host fee', 'Players join free. The host pays one capped pool fee after picks lock.'],
+]
+
+const formatRows = [
+  ['Standard', 'Pick from the full field. Simple, familiar, and easy for first-time players.'],
+  ['Ranked groups', 'Field is sorted into groups based on WGR. Players pick from each group.'],
+  ['Clubhouse Chaos', 'Field is randomly shuffled, then divided into groups. Same groups for everyone.'],
+]
+
+const runnerTools = [
+  ['Invite link and passcode', 'Send one link or code. Players enter their own picks.'],
+  ['Previous-player invites', "Bring last week's group back without rebuilding the list."],
+  ['Poster generator', 'Make a printable QR poster so people can join from the bar, clubhouse, or office.'],
+  ['Run it back', 'Copy the pool setup for the next tournament and move faster.'],
 ]
 
 const faqItems = [
@@ -109,7 +123,7 @@ const faqItems = [
   },
   {
     question: 'Is there a limit on entries?',
-    answer: 'No. Add as many entries as you need. The first 5 are free, entries 6 through 100 are $1 each with a $25 cap, and very large pools add $15 for each started 100 entries after that.',
+    answer: 'No. Add as many entries as you need. The first 5 are free, entries 6 through 100 are $1 each with a $25 cap, pools over 100 add $15 for each started 100 entries after that, and the maximum pool fee is $99.',
   },
   {
     question: 'Do players need to pay to join?',
@@ -159,7 +173,7 @@ const softwareSchema = {
     '@type': 'Offer',
     price: '0',
     priceCurrency: 'USD',
-    description: 'First 5 active entries free. Extra active entries are $1 each, capped at $25 per pool.',
+    description: 'First 5 active entries free. Extra active entries are $1 each, capped at $25 through 100 entries. Pools over 100 add $15 per started 100 entries, with a $99 maximum pool fee.',
   },
 }
 
@@ -331,6 +345,44 @@ export default function Home() {
 
         <section className="mx-auto max-w-7xl px-5 py-14 md:px-8 md:py-20">
           <div className="mb-8 max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Game formats</p>
+            <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Play the normal pool or mix it up.</h2>
+            <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
+              Run a straight pick-anyone pool, split the field by ranking, or shuffle the field into groups for a different kind of draft.
+            </p>
+          </div>
+          <div className="grid border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0] md:grid-cols-3">
+            {formatRows.map(([title, body]) => (
+              <div key={title} className="border-b-2 border-[#123c2f] p-5 md:border-b-0 md:border-r-2 md:last:border-r-0">
+                <h3 className="font-black uppercase tracking-[0.06em] text-[#123c2f]">{title}</h3>
+                <p className="mt-3 leading-7 text-[#4f5b52]">{body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="border-y border-[#d8cab0] bg-[#fbf7ed] px-5 py-14 md:px-8 md:py-20">
+          <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-[0.85fr_1.15fr] md:items-start">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Pool runner tools</p>
+              <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Invites, posters, and run-it-back built in.</h2>
+              <p className="mt-4 max-w-xl leading-7 text-[#657168]">
+                Create the pool once, then make it easy for people to join. Use the link, passcode, previous-player list, or QR poster instead of chasing entries in a group text.
+              </p>
+            </div>
+            <div className="grid border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0] sm:grid-cols-2">
+              {runnerTools.map(([title, body]) => (
+                <div key={title} className="border-b-2 border-[#123c2f] p-5 sm:border-r-2 sm:[&:nth-child(even)]:border-r-0 sm:[&:nth-last-child(-n+2)]:border-b-0">
+                  <h3 className="font-black uppercase tracking-[0.06em] text-[#123c2f]">{title}</h3>
+                  <p className="mt-3 leading-7 text-[#4f5b52]">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-5 py-14 md:px-8 md:py-20">
+          <div className="mb-8 max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">What runs the pool</p>
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Everything your golf pool needs after picks lock.</h2>
             <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
@@ -417,7 +469,7 @@ export default function Home() {
               </div>
             ))}
             <div className="border-t-2 border-[#123c2f] bg-[#fbf7ed] px-5 py-4 text-sm font-semibold leading-6 text-[#4f5b52]">
-              Example: a 13-entry pool costs $8. Pools are capped at $25 through 100 entries; very large pools add $15 per started 100 entries after that, with a $99 max.
+              Example: a 13-entry pool costs $8. A 100-entry pool is capped at $25. A 160-entry pool costs $40.
             </div>
           </div>
         </section>

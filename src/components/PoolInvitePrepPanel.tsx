@@ -14,6 +14,7 @@ type InvitePrepPanelProps = {
   joinLink: string
   pickCount: number
   countScores: number
+  posterHref?: string
   previousPlayerInviteNode?: ReactNode
 }
 
@@ -31,6 +32,7 @@ export function PoolInvitePrepPanel({
   joinLink,
   pickCount,
   countScores,
+  posterHref,
   previousPlayerInviteNode,
 }: InvitePrepPanelProps) {
   const [format, setFormat] = useState<'text' | 'email'>('text')
@@ -96,6 +98,15 @@ export function PoolInvitePrepPanel({
                 {copied === 'link' ? 'Copied' : 'Copy'}
               </button>
             </div>
+            {posterHref ? (
+              <a href={posterHref} className="flex min-w-0 items-center justify-between gap-3 border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-3 text-[#123c2f] hover:bg-[#eef7ef]">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Signup poster</p>
+                  <p className="text-sm font-black text-[#123c2f]">Print a QR poster</p>
+                </div>
+                <span className="shrink-0 border border-[#123c2f] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.08em]">Open</span>
+              </a>
+            ) : null}
           </div>
 
           {previousPlayerInviteNode}

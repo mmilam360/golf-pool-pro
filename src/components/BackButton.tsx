@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { getStoredBackRoute, isSafeBackRoute } from './NavigationHistoryTracker'
 
 type BackButtonProps = {
   fallbackHref?: string
@@ -8,15 +9,40 @@ type BackButtonProps = {
   className?: string
 }
 
+const blockedBackTargets = [
+  '/api/auth/logout',
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+]
+
+function safeBackTarget(fallbackHref: string) {
+  const storedRoute = getStoredBackRoute()
+  if (storedRoute) return storedRoute
+
+  if (typeof document === 'undefined') return fallbackHref
+
+  try {
+    const referrer = document.referrer ? new URL(document.referrer) : null
+    if (!referrer || referrer.origin !== window.location.origin) return fallbackHref
+
+    const target = `${referrer.pathname}${referrer.search}`
+    if (blockedBackTargets.some(path => referrer.pathname === path || referrer.pathname.startsWith(`${path}/`))) {
+      return fallbackHref
+    }
+
+    return isSafeBackRoute(target) ? target : fallbackHref
+  } catch {
+    return fallbackHref
+  }
+}
+
 export function BackButton({ fallbackHref = '/dashboard', label = 'Back', className = '' }: BackButtonProps) {
   const router = useRouter()
 
   function goBack() {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back()
-      return
-    }
-    router.push(fallbackHref)
+    router.push(safeBackTarget(fallbackHref))
   }
 
   return (

@@ -5,7 +5,7 @@ const features = [
   'Players enter their own picks before lock',
   'Live leaderboard once tournament scoring starts',
   'OB scoring handles missed cuts and weaker picks automatically',
-  'First 5 entries free, then $1 per extra active entry, capped at $25 through 100 entries',
+  'First 5 entries free, then $1 per extra active entry, capped at $20 through 100 entries',
 ]
 
 export function TournamentSeoPage({
@@ -55,8 +55,8 @@ export function TournamentSeoPage({
 
           <div className="border-2 border-[#123c2f] bg-[#fbf7ed] p-6 shadow-[7px_7px_0_#d8cab0]">
             <h2 className="font-display text-3xl font-black text-[#0f2f25]">How pricing works</h2>
-            <p className="mt-4 leading-7 text-[#4f5b52]">Small pools can run free. Bigger pools stay predictable: the host pays $1 for each active entry after the first 5, capped at $25 through 100 entries. Very large pools add $15 for each started 100 entries after that, with a $99 max.</p>
-            <p className="mt-4 border-t border-[#d8cab0] pt-4 text-sm font-bold uppercase tracking-[0.08em] text-[#005b3c]">Example: 18 active entries costs $13.</p>
+            <p className="mt-4 leading-7 text-[#4f5b52]">Small pools can run free. Bigger pools stay predictable: the host pays $1 for each active entry after the first 5, capped at $20 through 100 entries. Pools over 100 entries add $10 for each started 100 entries after that.</p>
+            <p className="mt-4 border-t border-[#d8cab0] pt-4 text-sm font-bold uppercase tracking-[0.08em] text-[#005b3c]">Example: 18 active entries costs $13. A 160-entry pool costs $30.</p>
           </div>
         </section>
       </main>

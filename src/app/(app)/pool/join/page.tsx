@@ -10,6 +10,7 @@ export default function JoinPoolPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const autoJoinAttempted = useRef(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -20,16 +21,30 @@ export default function JoinPoolPage() {
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code')
-    if (code) setPasscode(code.toUpperCase())
+    const cleanedCode = code?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+    if (!cleanedCode) return
+
+    setPasscode(cleanedCode)
+    if (cleanedCode.length === 6 && !autoJoinAttempted.current) {
+      autoJoinAttempted.current = true
+      void joinPool(cleanedCode, 'qr')
+    }
   }, [])
 
-  const handleJoin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(''); setLoading(true)
+  async function joinPool(nextPasscode: string, source: 'manual' | 'qr') {
+    const normalizedPasscode = nextPasscode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+    setError('')
+    setLoading(true)
     trackGppEvent('entry_started', {
-      has_passcode: passcode.length === 6,
-      passcode_prefilled: Boolean(new URLSearchParams(window.location.search).get('code')),
+      has_passcode: normalizedPasscode.length === 6,
+      passcode_prefilled: source === 'qr',
     })
+
+    if (normalizedPasscode.length < 6) {
+      setError('Enter the full pool code from your host.')
+      setLoading(false)
+      return
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -40,7 +55,7 @@ export default function JoinPoolPage() {
     const { data: pool, error: poolError } = await supabase
       .from('gpp_pools')
       .select('id, is_locked, gpp_tournaments(status, start_date)')
-      .eq('passcode', passcode.toUpperCase())
+      .eq('passcode', normalizedPasscode)
       .single()
 
     if (poolError || !pool) {
@@ -91,10 +106,15 @@ export default function JoinPoolPage() {
     } else {
       trackGppEvent('entry_submitted', {
         pool_id: pool.id,
-        entry_source: 'passcode',
+        entry_source: source === 'qr' ? 'qr_code' : 'passcode',
       })
       router.push(`/pool/${pool.id}`)
     }
+  }
+
+  const handleJoin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await joinPool(passcode, 'manual')
   }
 
   return (
@@ -103,7 +123,7 @@ export default function JoinPoolPage() {
         <BackButton />
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Player entry</p>
         <h1 className="mb-4 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Join a Pool</h1>
-        <p className="mb-6 max-w-md leading-7 text-stone-600">Enter the code from your pool host. You’ll land on the board and make your picks next.</p>
+        <p className="mb-6 max-w-md leading-7 text-stone-600">Scan a pool poster and we’ll open the pool for you. If your host gave you a code, enter it here.</p>
         {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
         <form onSubmit={handleJoin} className="space-y-5 rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">

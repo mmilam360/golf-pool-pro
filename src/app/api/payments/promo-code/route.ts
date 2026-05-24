@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Promo code is not valid.' }, { status: 404 })
     }
 
-    if (promo.times_redeemed >= 1 || (promo.max_redemptions !== null && promo.times_redeemed >= promo.max_redemptions)) {
+    if (promo.max_redemptions !== null && promo.times_redeemed >= promo.max_redemptions) {
       return NextResponse.json({ error: 'Promo code has already been used.' }, { status: 409 })
     }
 

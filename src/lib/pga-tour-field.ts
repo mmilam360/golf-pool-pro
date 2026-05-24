@@ -83,7 +83,10 @@ function overlapScore(a: string, b: string) {
 
 function easternMonthDay(value: string | null | undefined) {
   if (!value) return ''
-  const parsed = new Date(value)
+  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  const parsed = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value)
   if (!Number.isFinite(parsed.getTime())) return ''
   return new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
@@ -184,6 +187,12 @@ function displayNameForPlayer(player: PgaFieldPlayer) {
   return display
 }
 
+function toNullableNumber(value: string | number | null | undefined) {
+  if (value == null || value === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function mapPgaFieldPlayer(player: PgaFieldPlayer): GolfPlayer | null {
   const name = displayNameForPlayer(player)
   if (!player.id || !name) return null
@@ -202,6 +211,8 @@ function mapPgaFieldPlayer(player: PgaFieldPlayer): GolfPlayer | null {
     status: player.withdrawn || status.includes('withdraw') || status === 'wd' ? 'wd' : 'active',
     country: player.country || player.countryFlag || '',
     image: player.headshot,
+    owgr: toNullableNumber(player.owgr),
+    rankingPoints: toNullableNumber(player.rankingPoints),
   }
 }
 

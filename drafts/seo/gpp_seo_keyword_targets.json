@@ -1,0 +1,67 @@
+{
+  "strategy": "Prioritize high-intent pool-runner and tournament-week long tails over generic low-volume category terms like 'pro golf pool'.",
+  "primary_targets": [
+    {
+      "cluster": "software intent",
+      "queries": [
+        "golf pool app",
+        "golf pool software",
+        "pga golf pool app",
+        "pga pool app",
+        "golf pool website",
+        "run a golf pool online"
+      ],
+      "page": "/",
+      "intent": "Someone wants a tool, not just a definition."
+    },
+    {
+      "cluster": "how-to intent",
+      "queries": [
+        "how to run a golf pool",
+        "how to run a pga golf pool",
+        "golf pool rules",
+        "pga golf pool rules",
+        "golf pool scoring rules",
+        "masters pool rules"
+      ],
+      "page": "/rules",
+      "intent": "Pool host needs setup/scoring help; good CTA to create a pool."
+    },
+    {
+      "cluster": "tournament-week intent",
+      "queries": [
+        "pga championship pool picks",
+        "us open golf pool picks",
+        "masters pool picks",
+        "open championship pool picks",
+        "charles schwab challenge pool picks",
+        "memorial tournament pool picks"
+      ],
+      "page": "/blog/<tournament-guide>",
+      "intent": "Entrant/host is actively making picks that week."
+    },
+    {
+      "cluster": "format intent",
+      "queries": [
+        "pga one and done pool",
+        "golf one and done pool",
+        "pga pickem pool",
+        "golf pickem pool",
+        "fantasy golf pool rules"
+      ],
+      "page": "/blog or future format guide",
+      "intent": "Adjacent pool formats; use carefully so copy does not promise unsupported formats."
+    }
+  ],
+  "avoid_as_primary": [
+    "pro golf pool",
+    "golf pool",
+    "pga pool",
+    "fantasy golf"
+  ],
+  "notes": [
+    "Generic head terms can be monitored, but content should be built around host problems and tournament-week pick guides.",
+    "Every guide should include tournament name + pool picks + golf pool strategy language naturally, not keyword stuffing.",
+    "The first meaningful win is impressions for tournament-week queries after guide publication, then clicks, then signup/pool creation."
+  ]
+}
