@@ -70,7 +70,6 @@ export type GroupedPickGridProps = {
   picksAreClosed: boolean
   golferListName: (name: string) => string
   onTogglePick: (name: string) => void
-  onToggleAll: () => void
   allSelectedCount: number
 }
 
@@ -81,7 +80,6 @@ export function GroupedPickGrid({
   picksAreClosed,
   golferListName,
   onTogglePick,
-  onToggleAll,
   allSelectedCount,
 }: GroupedPickGridProps) {
   const [isMobile, setIsMobile] = useState(() =>
@@ -113,15 +111,6 @@ export function GroupedPickGrid({
             </span>
           )}
         </div>
-        {!picksAreClosed && (
-          <button
-            type="button"
-            onClick={onToggleAll}
-            className="border border-stone-400 bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-stone-700 hover:bg-stone-50"
-          >
-            View All
-          </button>
-        )}
       </div>
 
       {/* Cards: horizontal scroll on mobile, flex-wrap on desktop */}

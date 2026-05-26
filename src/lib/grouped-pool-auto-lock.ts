@@ -3,6 +3,7 @@ import type { GolfPlayer } from './golf-api'
 import { easternNowParts, shouldAutoFinalizeGroups } from './grouped-pool-auto-lock-timing'
 import { findPgaTourTournament, getPgaTourField, getPgaTourSchedule } from './pga-tour-field'
 import { buildPickGroups, type PoolGameFormat } from './pool-formats'
+import { hydrateFieldWithOwgr } from './owgr'
 
 type AutoLockTournament = {
   id: string
@@ -94,6 +95,8 @@ export async function autoFinalizeGroupedPools(supabase: SupabaseClient<any>, op
       result.skippedNoField++
       continue
     }
+
+    fieldSnapshot = await hydrateFieldWithOwgr(fieldSnapshot)
 
     const groups = buildPickGroups({
       field: fieldSnapshot,

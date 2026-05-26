@@ -1,4 +1,5 @@
 import type { GolfPlayer } from './golf-api'
+import { hydrateFieldWithOwgr } from './owgr'
 
 const PGA_TOUR_BASE = 'https://www.pgatour.com'
 const PGA_TOUR_GRAPHQL = 'https://orchestrator.pgatour.com/graphql'
@@ -239,5 +240,6 @@ export async function getPgaTourField(tournamentId: string) {
   const data = await res.json().catch(() => null)
   const players = data?.data?.field?.players
   if (!Array.isArray(players)) return []
-  return players.map(mapPgaFieldPlayer).filter(Boolean) as GolfPlayer[]
+  const mapped = players.map(mapPgaFieldPlayer).filter(Boolean) as GolfPlayer[]
+  return hydrateFieldWithOwgr(mapped)
 }

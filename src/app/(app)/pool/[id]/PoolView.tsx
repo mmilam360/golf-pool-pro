@@ -15,6 +15,7 @@ import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup, type PoolGameFormat } from '@/lib/pool-formats'
+import { GroupedPoolLeaderboard } from '@/components/GroupedPoolLeaderboard'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 
 type PaymentQuote = {
@@ -1709,13 +1710,28 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div className="gpp-board-post-face" aria-hidden="true" />
             </div>
             <div>
-              <TournamentLeaderboard
-                leaderboard={leaderboard}
-                tournamentName={tournament?.name}
-                lastUpdated={leaderboardLastUpdated}
-                pickedGolfers={myPicks}
-                cutLine={cutLine}
-              />
+                {groupedFormat ? (
+                  <GroupedPoolLeaderboard
+                    entries={scoredEntries}
+                    pickGroups={pickGroups}
+                    picksPerGroup={picksPerGroup}
+                    myEntryId={myEntry?.id ?? null}
+                    highlightedEntryId={highlightedEntryId}
+                    forceOpenEntryId={forceOpenEntryId}
+                    openEntryIds={openEntryIds}
+                    setOpenEntryIds={setOpenEntryIds}
+                    onJumpToMine={jumpToMyEntry}
+                    showJumpToMine={!!myEntry}
+                  />
+                ) : (
+                  <TournamentLeaderboard
+                    leaderboard={leaderboard}
+                    tournamentName={tournament?.name}
+                    lastUpdated={leaderboardLastUpdated}
+                    pickedGolfers={myPicks}
+                    cutLine={cutLine}
+                  />
+                )}
             </div>
             </>
           )}
@@ -1837,7 +1853,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           picksAreClosed={picksAreClosed}
                           golferListName={golferListName}
                           onTogglePick={togglePick}
-                          onToggleAll={() => setShowAllPlayers(prev => !prev)}
                           allSelectedCount={myPicks.length}
                         />
                       </div>
