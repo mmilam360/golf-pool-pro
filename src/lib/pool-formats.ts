@@ -28,6 +28,7 @@ const RANK_KEYS = [
   'world_golf_rank',
   'rank',
   'ranking',
+  'owgr',
 ]
 
 function normalizePositiveInt(value: unknown) {

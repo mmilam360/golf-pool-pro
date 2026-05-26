@@ -15,6 +15,7 @@ import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup, type PoolGameFormat } from '@/lib/pool-formats'
+import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -1827,35 +1828,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? `Pick ${picksPerGroup} from each group. Groups are locked for this pool.` : 'Sorted by last name for quick scanning.'}</p>
                   </div>
                   <div className="max-h-[28rem] overflow-y-auto">
-                    {groupedFormat ? pickGroups.map(group => {
-                      const groupPicks = groupPickCounts([group], myPicks)[0]?.picks || []
-                      return (
-                        <div key={group.id} className="border-b-2 border-[#d8cab0] last:border-b-0">
-                          <div className="sticky top-0 z-10 flex items-center justify-between bg-[#123c2f] px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-white">
-                            <span>{group.label}</span>
-                            <span>{groupPicks.length}/{picksPerGroup}</span>
-                          </div>
-                          {group.players.map(player => {
-                            const selected = myPicks.includes(player.name)
-                            const disabled = !selected && groupPicks.length >= picksPerGroup
-                            return (
-                              <button key={`${group.id}-${player.id}`}
-                                type="button"
-                                onClick={() => togglePick(player.name)}
-                                disabled={disabled}
-                                className={`flex w-full items-center justify-between border-b border-[#eadfca] px-4 py-2.5 text-left transition-colors last:border-b-0 ${
-                                  selected ? 'bg-[#eef7ef] text-[#123c2f]' :
-                                  disabled ? 'cursor-not-allowed text-stone-400' :
-                                  'text-stone-800 hover:bg-[#fbf7ed]'
-                                }`}>
-                                <span className="text-sm font-semibold">{golferListName(player.name)}</span>
-                                {selected && <span className="border border-[#123c2f] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f]">Selected</span>}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      )
-                    }) : [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => {
+                    {groupedFormat ? (
+                      <div className="p-2 sm:p-3">
+                        <GroupedPickGrid
+                          pickGroups={pickGroups}
+                          myPicks={myPicks}
+                          picksPerGroup={picksPerGroup}
+                          picksAreClosed={picksAreClosed}
+                          golferListName={golferListName}
+                          onTogglePick={togglePick}
+                          onToggleAll={() => setShowAllPlayers(prev => !prev)}
+                          allSelectedCount={myPicks.length}
+                        />
+                      </div>
+                    ) : [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => {
                       const selected = myPicks.includes(player.name)
                       return (
                         <button key={player.id}

@@ -4,6 +4,7 @@ import { autoFinalizeGroupedPools } from './grouped-pool-auto-lock'
 import { findPgaTourTournament, getPgaTourField, getPgaTourSchedule } from './pga-tour-field'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
+const ESPN_EVENT_URL = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${eventId}`
 
 export interface TournamentSyncResult {
   season: number
@@ -95,6 +96,19 @@ async function fetchScoreboardEvents() {
   return data.events || []
 }
 
+async function fetchEventSpecificField(eventId: string) {
+  try {
+    const res = await fetch(ESPN_EVENT_URL(eventId), { cache: 'no-store' })
+    if (!res.ok) return []
+    const data = await res.json()
+    const event = (data.events || [])[0]
+    if (!event) return []
+    return extractPlayers(event)
+  } catch {
+    return []
+  }
+}
+
 function rowFromEvent(event: any, season: number) {
   const startDate = toDateOnly(event.date)
   const endDate = toDateOnly(event.endDate || event.date)
@@ -151,7 +165,17 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
     const { row, players, status } = normalized
     const liveLeaderboard = status === 'live' ? await getLeaderboard(row.external_id).catch(() => null) : null
-    const playersForStorage = liveLeaderboard?.leaderboard?.length ? liveLeaderboard.leaderboard : players
+    let playersForStorage = liveLeaderboard?.leaderboard?.length ? liveLeaderboard.leaderboard : players
+
+    // ESPN general scoreboard often returns zero competitors for pre events.
+    // Try the event-specific endpoint before falling back to PGA Tour.
+    if (playersForStorage.length === 0 && status === 'upcoming') {
+      const eventSpecificPlayers = await fetchEventSpecificField(row.external_id)
+      if (eventSpecificPlayers.length > 0) {
+        playersForStorage = eventSpecificPlayers
+      }
+    }
+
     const effectiveStatus = completedStatusFromFinalRound(status, playersForStorage, liveLeaderboard?.round || event.status?.period || event.competitions?.[0]?.status?.period)
     row.status = effectiveStatus
 
@@ -173,6 +197,12 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       .maybeSingle()
 
     if (existingError) throw existingError
+
+    // If ESPN returns zero competitors but we already have a stored field, preserve it.
+    // Only replace when we found real data.
+    if (existing && playersForStorage.length === 0 && Array.isArray(existing.field_json) && existing.field_json.length > 0) {
+      delete row.field_json
+    }
 
     if (existing) {
       const hasStoredFinalBoard = String(existing.status || '').toLowerCase() === 'completed'
@@ -206,11 +236,16 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
   if (liveTournamentIds.length > 0) {
     const uniqueLiveTournamentIds = Array.from(new Set(liveTournamentIds))
+    // Auto-lock STANDARD pools immediately when a tournament goes live.
+    // For grouped pools, only lock if groups have already been finalized.
+    // Unfinalized grouped pools should stay open so the Tuesday auto-finalize
+    // can set groups first, then Thursday's live status will lock them.
     const { data: lockedPools, error } = await supabase
       .from('gpp_pools')
       .update({ is_locked: true })
       .in('tournament_id', uniqueLiveTournamentIds)
       .eq('is_locked', false)
+      .or('game_format.eq.standard,and(game_format.neq.standard,groups_finalized_at.not.is.null)')
       .select('id')
 
     if (error) throw error
@@ -274,15 +309,37 @@ export async function syncTournaments({
       || null
     const status = getStatus(bestEvent)
     let players = extractPlayers(bestEvent)
-    if (players.length === 0 && status === 'upcoming') {
+
+    // Prefer PGA Tour field data for upcoming tournaments — it includes OWGR
+    // and is available earlier/more completely than ESPN's pre-event field.
+    if (status === 'upcoming') {
       const pgaTourTournament = findPgaTourTournament({
         pgaSchedule: pgaTourSchedule,
         eventName: bestEvent.name || event.name,
         startDate,
       })
       if (pgaTourTournament?.tournamentId) {
-        const earlyField = await getPgaTourField(pgaTourTournament.tournamentId).catch(() => [])
-        if (earlyField.length > 0) players = earlyField
+        const pgaField = await getPgaTourField(pgaTourTournament.tournamentId).catch(() => [])
+        if (pgaField.length > 0) players = pgaField
+      }
+    }
+
+    // If general scoreboard has no competitors, try event-specific endpoint first.
+    if (players.length === 0 && status === 'upcoming') {
+      const eventSpecificPlayers = await fetchEventSpecificField(externalId)
+      if (eventSpecificPlayers.length > 0) {
+        players = eventSpecificPlayers
+      } else {
+        // Fallback to PGA Tour GraphQL
+        const pgaTourTournament = findPgaTourTournament({
+          pgaSchedule: pgaTourSchedule,
+          eventName: bestEvent.name || event.name,
+          startDate,
+        })
+        if (pgaTourTournament?.tournamentId) {
+          const earlyField = await getPgaTourField(pgaTourTournament.tournamentId).catch(() => [])
+          if (earlyField.length > 0) players = earlyField
+        }
       }
     }
 
@@ -314,6 +371,8 @@ export async function syncTournaments({
     if (players.length > 0) {
       row.field_json = players
       result.fieldsUpdated++
+    } else if (existing && Array.isArray(existing.field_json) && existing.field_json.length > 0) {
+      // Keep existing field — don't overwrite with empty
     }
 
     let leaderboardPlayers: any[] | null = null
@@ -373,6 +432,7 @@ export async function syncTournaments({
       .update({ is_locked: true })
       .in('tournament_id', uniqueLiveTournamentIds)
       .eq('is_locked', false)
+      .or('game_format.eq.standard,and(game_format.neq.standard,groups_finalized_at.not.is.null)')
       .select('id')
 
     if (error) throw error
