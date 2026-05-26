@@ -34,6 +34,7 @@ type PoolRecord = {
   ob_penalty_strokes?: number | null
   game_format?: string | null
   group_count?: number | null
+  picks_per_group?: number | null
   pick_groups_json?: unknown | null
   gpp_tournaments?: Tournament | Tournament[] | null
 }
@@ -556,7 +557,10 @@ function totalPicksNeeded(pool: PoolRecord): number {
     const groups = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : (pool.pick_groups_json as Record<string, unknown>)?.groups
     if (Array.isArray(groups)) return groups.reduce((sum: number, g: unknown) => sum + (typeof g === 'object' && g !== null ? ((g as Record<string, unknown>).picks_per_group as number || 1) : 1), 0)
   }
-  return pool.group_count ? pool.group_count * 2 : pool.count_scores || 4
+  if (pool.game_format === 'random_groups' || pool.game_format === 'ranked_groups') {
+    return pool.picks_per_group ? pool.picks_per_group * (pool.group_count || 6) : pool.count_scores || 12
+  }
+  return pool.count_scores || 4
 }
 
 function PickProgressBadge({ entry, pool }: { entry?: EntryRecord | null; pool: PoolRecord }) {
@@ -572,6 +576,7 @@ function PickProgressBadge({ entry, pool }: { entry?: EntryRecord | null; pool: 
       </span>
     )
   }
+  if (count === 0) return null
   return (
     <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">
       <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M6 2v5M6 8v1" /></svg>
@@ -700,15 +705,12 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                     <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
                     <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#1f2a24]">{effectiveTournament?.name || 'Tournament'}</p>
                   </div>
-                  {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : <StatusBadge label={label} locked={Boolean(pool.is_locked)} />}
+                  {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
-                      <span className={`mr-auto inline-flex items-center border border-[#123c2f] px-2 py-1 ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`} aria-label={isPoolOpen ? 'Collapse leaderboard' : 'Expand leaderboard'}>
-                        <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
-                      </span>
+                <div className="mt-2 flex flex-wrap items-center justify-end gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
                   {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
                   {entry ? <PickProgressBadge entry={entry} pool={pool} /> : null}
-                  {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : <StartDateBadge date={effectiveTournament?.start_date} />}
+                  {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : null}
                 </div>
               </summary>
               <InlineLeaderboard
@@ -728,7 +730,6 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                 }}
                 teeTimeZone={teeTimeZone}
               />
-              {eventBegun && (
               <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
                 <TournamentLeaderboard
                   leaderboard={effectiveTournament?.leaderboard_json}
@@ -738,7 +739,6 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   cutLine={effectiveTournament?.cutLine}
                 />
               </div>
-              )}
             </details>
           )
         })}

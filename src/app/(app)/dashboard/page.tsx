@@ -39,6 +39,7 @@ type PoolRecord = {
   ob_penalty_strokes?: number | null
   game_format?: string | null
   group_count?: number | null
+  picks_per_group?: number | null
   pick_groups_json?: unknown | null
   gpp_tournaments?: Tournament | Tournament[] | null
 }
@@ -251,20 +252,20 @@ export default async function DashboardPage() {
 
   const { data: ownedPools } = await supabase
     .from('gpp_pools')
-    .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, pick_groups_json, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch)')
+    .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch)')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
   const { data: entries } = await supabase
     .from('gpp_entries')
-    .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, pick_groups_json, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
+    .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
     .eq('user_id', user.id)
     .eq('is_removed', false)
     .order('created_at', { ascending: false })
 
   const { data: pendingInvites } = await supabase
     .from('gpp_pool_invites')
-    .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, pick_groups_json, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
+    .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
     .eq('invited_user_id', user.id)
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
