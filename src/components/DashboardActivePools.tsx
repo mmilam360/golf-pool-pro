@@ -32,6 +32,9 @@ type PoolRecord = {
   count_scores?: number | null
   ob_rule_enabled?: boolean | null
   ob_penalty_strokes?: number | null
+  game_format?: string | null
+  group_count?: number | null
+  pick_groups_json?: unknown | null
   gpp_tournaments?: Tournament | Tournament[] | null
 }
 
@@ -548,6 +551,35 @@ function entryPicks(entry?: EntryRecord | null) {
   return Array.isArray(entry?.golfer_picks) ? entry.golfer_picks as string[] : []
 }
 
+function totalPicksNeeded(pool: PoolRecord): number {
+  if (pool.game_format === 'grouped' && pool.pick_groups_json && typeof pool.pick_groups_json === 'object') {
+    const groups = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : (pool.pick_groups_json as Record<string, unknown>)?.groups
+    if (Array.isArray(groups)) return groups.reduce((sum: number, g: unknown) => sum + (typeof g === 'object' && g !== null ? ((g as Record<string, unknown>).picks_per_group as number || 1) : 1), 0)
+  }
+  return pool.group_count ? pool.group_count * 2 : pool.count_scores || 4
+}
+
+function PickProgressBadge({ entry, pool }: { entry?: EntryRecord | null; pool: PoolRecord }) {
+  const picks = entryPicks(entry)
+  const needed = totalPicksNeeded(pool)
+  const count = picks.length
+  const done = count >= needed
+  if (done) {
+    return (
+      <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#1f6b4a] bg-[#eef7ef] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#1f6b4a]">
+        <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M2 6l3 3 5-5" /></svg>
+        {count}/{needed} picks
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">
+      <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M6 2v5M6 8v1" /></svg>
+      {count}/{needed} picks
+    </span>
+  )
+}
+
 export default function DashboardActivePools({ cards, entriesByPool }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]> }) {
   const router = useRouter()
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set())
@@ -615,7 +647,6 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
   useEffect(() => {
     setExpandedPoolIds(current => {
       const filtered = new Set([...current].filter(poolId => activePoolIds.has(poolId)))
-      if (filtered.size === 0 && cards[0]?.pool.id) filtered.add(cards[0].pool.id)
       return filtered
     })
     setExpandedEntryIds(current => {
@@ -676,6 +707,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                         <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                       </span>
                   {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
+                  {entry ? <PickProgressBadge entry={entry} pool={pool} /> : null}
                   {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : <StartDateBadge date={effectiveTournament?.start_date} />}
                 </div>
               </summary>
@@ -696,6 +728,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                 }}
                 teeTimeZone={teeTimeZone}
               />
+              {eventBegun && (
               <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
                 <TournamentLeaderboard
                   leaderboard={effectiveTournament?.leaderboard_json}
@@ -705,6 +738,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   cutLine={effectiveTournament?.cutLine}
                 />
               </div>
+              )}
             </details>
           )
         })}
