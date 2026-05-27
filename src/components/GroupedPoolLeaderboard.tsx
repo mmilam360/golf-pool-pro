@@ -3,6 +3,9 @@
 import { Fragment } from 'react'
 import type { PickGroup } from '@/lib/pool-formats'
 import type { PickScore, ScoredEntry } from '@/lib/scoring'
+import type { GolfPlayer } from '@/lib/golf-api'
+import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
+import { normalizePickName } from '@/lib/scoring'
 
 export type GroupedPoolLeaderboardProps = {
   entries: ScoredEntry[]
@@ -15,6 +18,8 @@ export type GroupedPoolLeaderboardProps = {
   forceOpenEntryId?: string | null
   onJumpToMine?: () => void
   showJumpToMine?: boolean
+  leaderboard?: GolfPlayer[]
+  timeZone?: string
 }
 
 function fmt(score: number | null) {
@@ -26,6 +31,11 @@ function fmt(score: number | null) {
 function cls(score: number | null) {
   if (score === null) return 'text-stone-400'
   return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
+}
+
+function pickStatus(pick: PickScore, leaderboardByName: Map<string, GolfPlayer>, timeZone: string) {
+  const player = leaderboardByName.get(normalizePickName(pick.name))
+  return leaderboardBackedPickProgressLabel(pick, player, timeZone)
 }
 
 function shortName(name: string) {
@@ -45,7 +55,10 @@ export function GroupedPoolLeaderboard({
   forceOpenEntryId,
   onJumpToMine,
   showJumpToMine,
+  leaderboard = [],
+  timeZone = 'America/New_York',
 }: GroupedPoolLeaderboardProps) {
+  const leaderboardByName = new Map(leaderboard.map(p => [normalizePickName(p.name || `${p.firstName || ''} ${p.lastName || ''}`.trim()), p]))
   /* Mobile: details rows with group expansion */
   const mobileView = (
     <div className="bg-[#f7f7f2]">
@@ -114,6 +127,7 @@ export function GroupedPoolLeaderboard({
                             )}
                             <span className={`text-lg font-black leading-none ${cls(pick.scoreToPar)}`}>{fmt(pick.scoreToPar)}</span>
                             <span className="text-[11px] font-black uppercase tracking-[-0.01em] text-[#111]">{shortName(pick.name)}</span>
+                            <span className="text-[9px] font-black uppercase tracking-[0.06em] text-[#555]">{pickStatus(pick, leaderboardByName, timeZone)}</span>
                           </div>
                         )
                       })}
@@ -186,6 +200,7 @@ export function GroupedPoolLeaderboard({
                         )}
                         <div className={`text-lg font-black leading-none ${cls(pick.scoreToPar)}`}>{fmt(pick.scoreToPar)}</div>
                         <div className="mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{shortName(pick.name)}</div>
+                        <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pickStatus(pick, leaderboardByName, timeZone)}</div>
                       </>
                     ) : (
                       <span className="text-stone-400">—</span>

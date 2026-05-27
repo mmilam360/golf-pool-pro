@@ -589,7 +589,7 @@ function PickProgressBadge({ entry, pool, tournament }: { entry?: EntryRecord | 
   }
   return (
     <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">
-      <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M6 2v5M6 8v1" /></svg>
+      <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="square"><circle cx="6" cy="6" r="4.5" /><path d="M6 3.5v3M6 7.5v1" /></svg>
       {count}/{needed} picks
     </span>
   )
@@ -600,9 +600,8 @@ function LockTimeBadge({ pool }: { pool: PoolRecord }) {
   const formatted = formatLockTime(lockTime)
   if (!formatted) return null
   return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#b21e23]">
-      <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><rect x="2" y="5" width="8" height="6" /><path d="M3 5V3a3 3 0 0 1 6 0v2" /></svg>
-      Locks {formatted} ET
+    <span className="whitespace-nowrap text-[10px] font-black uppercase tracking-[0.08em] text-[#b21e23] text-right">
+      Picks Lock:<br />{formatted} ET
     </span>
   )
 }
@@ -621,12 +620,11 @@ function formatLockTime(value?: string | null) {
   if (!Number.isFinite(parsed.getTime())) return null
   return parsed.toLocaleString('en-US', {
     timeZone: 'America/New_York',
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: 'numeric',
     minute: '2-digit',
-  })
+  }).toLowerCase().replace(',', '')
 }
 
 export default function DashboardActivePools({ cards, entriesByPool }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]> }) {
@@ -747,9 +745,20 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                   <div className="min-w-0">
                     <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
-                    <p className="mt-1 break-words text-sm font-semibold leading-5 text-[#1f2a24]">{effectiveTournament?.name || 'Tournament'}</p>
+                     <p className="mt-1 flex items-center gap-1.5 break-words text-sm font-semibold leading-5 text-[#1f2a24]">
+                       <img
+                         src="/flag-icon.png"
+                         alt=""
+                         className="h-4 w-4 shrink-0 opacity-80"
+                         loading="lazy"
+                       />
+                       {effectiveTournament?.name || 'Tournament'}
+                     </p>
                   </div>
-                  {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
+                  <div className="flex flex-col items-end gap-1.5">
+                    {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
+                    {!pool.is_locked && !pool.is_completed && !eventBegun ? <LockTimeBadge pool={pool} /> : null}
+                  </div>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
                   <span className={`mr-auto inline-flex items-center border border-[#123c2f] px-2 py-1 ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
@@ -757,7 +766,6 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   </span>
                   {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
                   {entry ? <PickProgressBadge entry={entry} pool={pool} tournament={effectiveTournament} /> : null}
-                  {!pool.is_locked && !pool.is_completed && !eventBegun ? <LockTimeBadge pool={pool} /> : null}
                   {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : null}
                 </div>
               </summary>

@@ -4,6 +4,8 @@ import { Fragment, useEffect, useState } from 'react'
 import { teeTimeLabel, tournamentThruLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
+import { groupForPick, type PickGroup } from '@/lib/pool-formats'
+
 type Props = {
   leaderboard?: GolfPlayer[] | null
   tournamentName?: string | null
@@ -12,6 +14,7 @@ type Props = {
   compact?: boolean
   pickedGolfers?: string[]
   cutLine?: GolfCutLine | null
+  pickGroups?: PickGroup[]
 }
 
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
@@ -66,7 +69,7 @@ function shouldShowCutLineAfter(rows: GolfPlayer[], index: number, cutLine?: Gol
   return Boolean(cutLine.count && index + 1 === cutLine.count)
 }
 
-export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false, pickedGolfers = [], cutLine }: Props) {
+export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false, pickedGolfers = [], cutLine, pickGroups = [] }: Props) {
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const rows = Array.isArray(leaderboard) ? leaderboard : []
@@ -77,6 +80,12 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
     return (a.scoreToPar ?? 999) - (b.scoreToPar ?? 999)
   })
   const hasOfficialCuts = displayRows.some(player => player.status === 'cut') && cutLine && !cutLine.projected
+  const hasGroupBadges = pickGroups.length > 0
+
+  function groupLabelFor(name: string) {
+    const group = groupForPick(pickGroups, name)
+    return group ? group.label.replace('Group ', 'G') : null
+  }
 
   useEffect(() => {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -124,12 +133,20 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
               {displayRows.map((player, index) => {
                 const isPicked = pickedNames.has(normalizedName(player.name))
                 const showCutLine = !hasOfficialCuts && shouldShowCutLineAfter(displayRows, index, cutLine)
+                const groupLabel = hasGroupBadges ? groupLabelFor(player.name) : null
                 return (
                   <Fragment key={`${player.id}-${index}`}>
                     <tr className={isPicked ? 'bg-[#eef7ef]' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>
                       <td className={`border-b border-r border-[#eadfca] px-1 py-1 text-center text-[10px] font-black sm:px-2 sm:py-1.5 sm:text-xs ${isPicked ? 'text-[#123c2f]' : 'text-[#657168]'}`}>{positionLabel(player, index)}</td>
                       <td className={`border-b border-[#eadfca] px-1.5 py-1 sm:px-2 sm:py-1.5 ${isPicked ? 'shadow-[inset_3px_0_0_#123c2f]' : ''}`}>
-                        <div className={`min-w-0 truncate font-black leading-4 sm:leading-5 ${isPicked ? 'text-[#123c2f]' : 'text-[#1f2a24]'}`} title={player.name}>{player.name}</div>
+                        <div className="flex min-w-0 items-center gap-1">
+                          {groupLabel ? (
+                            <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white sm:text-[9px]">
+                              {groupLabel}
+                            </span>
+                          ) : null}
+                          <div className={`min-w-0 truncate font-black leading-4 sm:leading-5 ${isPicked ? 'text-[#123c2f]' : 'text-[#1f2a24]'}`} title={player.name}>{player.name}</div>
+                        </div>
                         {player.country ? <div className="text-[8px] font-bold uppercase tracking-[0.06em] text-[#657168] sm:text-[10px] sm:tracking-[0.08em]">{player.country}</div> : null}
                       </td>
                       <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${isPicked ? 'bg-[#dff0e2] text-[#123c2f]' : scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>

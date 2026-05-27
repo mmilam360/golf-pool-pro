@@ -387,7 +387,10 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     const event = (scoreboard.events || []).find((candidate: any) => String(candidate.id) === String(eventId))
     if (event) {
       const competition = event.competitions?.[0]
-      const rawPlayers = await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
+      const isUpcoming = eventStatus(event) === 'upcoming'
+      const rawPlayers = isUpcoming
+        ? await enrichPlayersWithFirstRoundTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
+        : await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
       const cutLine = await cutLinePromise
       const players = inferInactiveStatusesFromRounds(applyOfficialCutStatus(rawPlayers, cutLine), event.status?.period || competition?.status?.period)
       const course = event.courses?.find?.((candidate: any) => candidate.host)?.name
@@ -416,7 +419,10 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
   if (!coreMetadata) throw new Error(`ESPN event metadata unavailable: ${eventId}`)
   const event = coreMetadata.event
   const competition = event.competitions?.[0]
-  const rawPlayers = await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
+  const isUpcoming = eventStatus(event) === 'upcoming'
+  const rawPlayers = isUpcoming
+    ? await enrichPlayersWithFirstRoundTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
+    : await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
   const cutLine = await cutLinePromise
   const players = inferInactiveStatusesFromRounds(applyOfficialCutStatus(rawPlayers, cutLine), event.status?.period || competition?.status?.period)
 

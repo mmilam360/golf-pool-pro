@@ -15,7 +15,6 @@ import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup, type PoolGameFormat } from '@/lib/pool-formats'
-import { GroupedPoolLeaderboard } from '@/components/GroupedPoolLeaderboard'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 
 type PaymentQuote = {
@@ -1700,9 +1699,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </div>
               </div>
               {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="mt-1" /> : null}
-              {!selectedScoringIsLive && (
+              {!selectedScoringIsLive ? (
                 <p className="mt-2 border-2 border-[#d8cab0] bg-[#f7f7f2] px-4 py-3 text-xs font-bold uppercase tracking-[0.08em] text-[#111]">Live scoring appears here when the tournament starts.</p>
-              )}
+              ) : null}
             </div>
             </div>
             <div className="gpp-board-post mx-auto -mt-[4px] h-36 w-20 [--gpp-depth-x:12px] [--gpp-depth-y:8px] md:-mt-[7px] md:h-44 md:w-24 md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
@@ -1710,28 +1709,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div className="gpp-board-post-face" aria-hidden="true" />
             </div>
             <div>
-                {groupedFormat ? (
-                  <GroupedPoolLeaderboard
-                    entries={scoredEntries}
-                    pickGroups={pickGroups}
-                    picksPerGroup={picksPerGroup}
-                    myEntryId={myEntry?.id ?? null}
-                    highlightedEntryId={highlightedEntryId}
-                    forceOpenEntryId={forceOpenEntryId}
-                    openEntryIds={openEntryIds}
-                    setOpenEntryIds={setOpenEntryIds}
-                    onJumpToMine={jumpToMyEntry}
-                    showJumpToMine={!!myEntry}
-                  />
-                ) : (
-                  <TournamentLeaderboard
-                    leaderboard={leaderboard}
-                    tournamentName={tournament?.name}
-                    lastUpdated={leaderboardLastUpdated}
-                    pickedGolfers={myPicks}
-                    cutLine={cutLine}
-                  />
-                )}
+              <TournamentLeaderboard
+                leaderboard={leaderboard}
+                tournamentName={tournament?.name}
+                lastUpdated={leaderboardLastUpdated}
+                pickedGolfers={myPicks}
+                cutLine={cutLine}
+                pickGroups={groupedFormat ? pickGroups : undefined}
+              />
             </div>
             </>
           )}
