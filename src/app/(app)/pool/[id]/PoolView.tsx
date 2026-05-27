@@ -74,7 +74,7 @@ interface Props {
   publicView?: boolean
 }
 
-type Tab = 'leaderboard' | 'my-team' | 'admin'
+type Tab = 'leaderboard' | 'my-entry' | 'pool-settings'
 type ToastTone = 'success' | 'error' | 'info'
 type ToastMessage = { id: number; message: string; tone: ToastTone }
 
@@ -275,7 +275,7 @@ function roundScoreLabel(round: number) {
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false }: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>(publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-team')
+  const [tab, setTab] = useState<Tab>(publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry')
   const [entries, setEntries] = useState(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [poolName, setPoolName] = useState(pool.name)
@@ -329,7 +329,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   useEffect(() => {
     if (window.location.hash === '#make-picks') {
-      setTab('my-team')
+      setTab('my-entry')
       window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
     }
   }, [])
@@ -534,7 +534,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
 
   function reviewActivation() {
-    setTab('admin')
+    setTab('pool-settings')
     window.setTimeout(() => {
       adminSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 80)
@@ -596,7 +596,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     let cancelled = false
 
     async function mountSquareCard() {
-      if (!isOwner || tab !== 'admin' || !paymentQuote || paymentQuote.paymentStatus === 'active') return
+      if (!isOwner || tab !== 'pool-settings' || !paymentQuote || paymentQuote.paymentStatus === 'active') return
       if (!paymentCollectionOpen) return
       if (paymentQuote.requiresCustomQuote || finalAmountDueCents <= 0 || useSavedCard) return
       if (!paymentQuote.square.applicationId || !paymentQuote.square.locationId) return
@@ -630,13 +630,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [finalAmountDueCents, isOwner, paymentQuote, paymentCollectionOpen, showToast, tab, useSavedCard])
 
   useEffect(() => {
-    const shouldKeepCard = isOwner && tab === 'admin' && paymentQuote?.paymentStatus !== 'active' && paymentCollectionOpen && finalAmountDueCents > 0 && !useSavedCard
+    const shouldKeepCard = isOwner && tab === 'pool-settings' && paymentQuote?.paymentStatus !== 'active' && paymentCollectionOpen && finalAmountDueCents > 0 && !useSavedCard
     if (shouldKeepCard) return
     if (paymentCardRef.current) {
       paymentCardRef.current.destroy?.()
       paymentCardRef.current = null
-      setPaymentCardReady(false)
     }
+    setPaymentCardReady(false)
   }, [finalAmountDueCents, isOwner, paymentCollectionOpen, tab, paymentQuote?.paymentStatus, useSavedCard])
 
   async function activatePool() {
@@ -1421,12 +1421,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       )}
       {!publicView && (
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-none p-1 inline-flex border border-stone-200">
-        {(['leaderboard', 'my-team', ...(isOwner ? ['admin'] as Tab[] : [])] as Tab[]).map(t => (
+        {(['leaderboard', 'my-entry', ...(isOwner ? ['pool-settings'] as Tab[] : [])] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-none text-sm font-medium transition-colors ${
               tab === t ? 'bg-white text-emerald-900' : 'text-stone-600 hover:text-emerald-800'
             }`}>
-            {t === 'leaderboard' ? 'Leaderboard' : t === 'my-team' ? 'My Team' : 'Admin'}
+            {t === 'leaderboard' ? 'Leaderboard' : t === 'my-entry' ? 'My Entry' : 'Pool Settings'}
           </button>
         ))}
       </div>
@@ -1724,8 +1724,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       )}
 
       {/* My Team Tab */}
-      {tab === 'my-team' && (
-        <div id="make-picks" className="scroll-mt-24">
+      {tab === 'my-entry' && (
+        <div id="make-picks" className="scroll-mt-24 space-y-6">
           {!myEntry ? (
             <div className="bg-white rounded-none p-8 border border-stone-200 text-center">
               <p className="text-stone-600">You haven't joined this pool yet.</p>
@@ -1890,13 +1890,33 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   </div>
                 </div>
               </details>
+
+              {/* Leave pool — available to non-owners before picks close */}
+              {myEntry && !isOwner && !picksAreClosed && (
+                <details className="group rounded-none border border-stone-200 bg-white shadow-[4px_4px_0_#d8cab0]">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-[0.12em] text-[#b21e23] [&::-webkit-details-marker]:hidden">
+                    <span>Leave pool</span>
+                    <span className="border border-stone-300 px-1.5 py-0.5 text-[10px] group-open:hidden">Open</span>
+                  </summary>
+                  <div className="border-t border-stone-200 p-4">
+                    <p className="text-sm font-semibold text-stone-700">Remove your entry from <span className="font-black text-stone-900">{poolName}</span>? Your picks will be lost.</p>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveTarget(myEntry.id)}
+                      className="mt-3 border-2 border-[#b21e23] bg-[#b21e23] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#8a1719]"
+                    >
+                      Leave this pool
+                    </button>
+                  </div>
+                </details>
+              )}
             </>
           )}
         </div>
       )}
 
-      {/* Admin Tab */}
-      {tab === 'admin' && isOwner && (
+      {/* Pool Settings Tab */}
+      {tab === 'pool-settings' && isOwner && (
         <div ref={adminSectionRef} className="scroll-mt-6 space-y-6">
           <section className="border-2 border-[#123c2f] bg-[#fbf7ed] p-5 shadow-[5px_5px_0_#d8cab0]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
