@@ -562,6 +562,51 @@ function totalPicksNeeded(pool: PoolRecord): number {
   return pool.count_scores || 4
 }
 
+function canShowPickBadge(pool: PoolRecord, tournament: Tournament | null) {
+  // Once tournament starts, hide pick badge entirely
+  if (tournament?.status === 'live' || tournament?.status === 'completed') return false
+  if (pool.is_locked || pool.is_completed) return false
+  // For grouped pools, only show after groups are locked
+  const isGrouped = pool.game_format === 'random_groups' || pool.game_format === 'ranked_groups'
+  if (isGrouped) return Boolean(pool.groups_finalized_at)
+  // Standard pool: show as soon as field is imported (picks can be made)
+  return true
+}
+
+function PickProgressBadge({ entry, pool, tournament }: { entry?: EntryRecord | null; pool: PoolRecord; tournament?: Tournament | null }) {
+  const picks = entryPicks(entry)
+  const needed = totalPicksNeeded(pool)
+  const count = picks.length
+  const done = count >= needed
+  if (!canShowPickBadge(pool, tournament)) return null
+  if (done) {
+    return (
+      <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#1f6b4a] bg-[#eef7ef] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#1f6b4a]">
+        <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M2 6l3 3 5-5" /></svg>
+        {count}/{needed} picks
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">
+      <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M6 2v5M6 8v1" /></svg>
+      {count}/{needed} picks
+    </span>
+  )
+}
+
+function LockTimeBadge({ pool }: { pool: PoolRecord }) {
+  const lockTime = pool.lock_at || pool.groups_finalized_at
+  const formatted = formatLockTime(lockTime)
+  if (!formatted) return null
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#b21e23]">
+      <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><rect x="2" y="5" width="8" height="6" /><path d="M3 5V3a3 3 0 0 1 6 0v2" /></svg>
+      Locks {formatted} ET
+    </span>
+  )
+}
+
 function isWithinTwoDaysOfStart(startDate?: string | null) {
   if (!startDate) return false
   const start = new Date(startDate + 'T00:00:00')
@@ -582,41 +627,6 @@ function formatLockTime(value?: string | null) {
     hour: 'numeric',
     minute: '2-digit',
   })
-}
-
-function PickProgressBadge({ entry, pool, tournament }: { entry?: EntryRecord | null; pool: PoolRecord; tournament?: Tournament | null }) {
-  const picks = entryPicks(entry)
-  const needed = totalPicksNeeded(pool)
-  const count = picks.length
-  const done = count >= needed
-  const closeToStart = isWithinTwoDaysOfStart(tournament?.start_date)
-  if (done) {
-    return (
-      <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#1f6b4a] bg-[#eef7ef] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#1f6b4a]">
-        <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M2 6l3 3 5-5" /></svg>
-        {count}/{needed} picks
-      </span>
-    )
-  }
-  if (count === 0 && !closeToStart) return null
-  return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">
-      <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M6 2v5M6 8v1" /></svg>
-      {count}/{needed} picks
-    </span>
-  )
-}
-
-function LockTimeBadge({ pool }: { pool: PoolRecord }) {
-  const lockTime = pool.lock_at || pool.groups_finalized_at
-  const formatted = formatLockTime(lockTime)
-  if (!formatted) return null
-  return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#b21e23]">
-      <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><rect x="2" y="5" width="8" height="6" /><path d="M3 5V3a3 3 0 0 1 6 0v2" /></svg>
-      Locks {formatted} ET
-    </span>
-  )
 }
 
 export default function DashboardActivePools({ cards, entriesByPool }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]> }) {

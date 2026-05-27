@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompetitorToPlayer } from './golf-api'
+import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompetitorToPlayer, enrichPlayersWithTeeTimes, enrichPlayersWithFirstRoundTeeTimes } from './golf-api'
 import { autoFinalizeGroupedPools } from './grouped-pool-auto-lock'
 import { findPgaTourTournament, getPgaTourField, getPgaTourSchedule } from './pga-tour-field'
 
@@ -103,7 +103,10 @@ async function fetchEventSpecificField(eventId: string) {
     const data = await res.json()
     const event = (data.events || [])[0]
     if (!event) return []
-    return extractPlayers(event)
+    const competition = event.competitions?.[0]
+    const rawPlayers = (competition?.competitors || []).map(mapCompetitorToPlayer)
+    const players = await enrichPlayersWithTeeTimes(eventId, String(competition?.id || eventId), rawPlayers)
+    return players
   } catch {
     return []
   }
@@ -173,6 +176,17 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       const eventSpecificPlayers = await fetchEventSpecificField(row.external_id)
       if (eventSpecificPlayers.length > 0) {
         playersForStorage = eventSpecificPlayers
+      }
+    }
+
+    // ESPN scoreboard strips tee times from competitors. Enrich separately.
+    // For upcoming tournaments, fetch first-round (Thursday) tee times.
+    // For live tournaments, the regular enrichPlayersWithTeeTimes path handles today's tee times.
+    if (playersForStorage.length > 0 && status === 'upcoming' && !playersForStorage.some((p: any) => p.teeTime)) {
+      const competition = event.competitions?.[0]
+      const enriched = await enrichPlayersWithFirstRoundTeeTimes(row.external_id, String(competition?.id || row.external_id), playersForStorage)
+      if (enriched.some((p: any) => p.teeTime)) {
+        playersForStorage = enriched
       }
     }
 

@@ -205,6 +205,23 @@ function teeInfoForToday(linescores: any): TeeInfo | null {
   }
 }
 
+function teeInfoForFirstRound(linescores: any): TeeInfo | null {
+  const items = Array.isArray(linescores?.items) ? linescores.items : Array.isArray(linescores) ? linescores : []
+  const round1Line = items
+    .filter((line: any) => line?.teeTime && Number(line.period) === 1)
+    .sort((a: any, b: any) => new Date(a.teeTime).getTime() - new Date(b.teeTime).getTime())
+    .at(0)
+
+  if (!round1Line?.teeTime) return null
+  const startTee = Number(round1Line.startTee || round1Line.startPosition || 0)
+  return {
+    teeTime: round1Line.teeTime,
+    startTee: Number.isFinite(startTee) && startTee > 0 ? startTee : null,
+    roundScore: hasLineStarted(round1Line) ? round1Line.displayValue || '' : '',
+    started: hasLineStarted(round1Line),
+  }
+}
+
 async function getCompetitorTeeInfo(eventId: string, competitionId: string, playerId: string): Promise<TeeInfo | null> {
   try {
     const res = await fetch(`${ESPN_CORE_EVENTS}/${eventId}/competitions/${competitionId}/competitors/${playerId}/linescores?lang=en&region=us`, NEXT_NO_STORE)
@@ -215,7 +232,17 @@ async function getCompetitorTeeInfo(eventId: string, competitionId: string, play
   }
 }
 
-async function enrichPlayersWithTeeTimes(eventId: string, competitionId: string, players: GolfPlayer[]) {
+async function getCompetitorFirstRoundTeeInfo(eventId: string, competitionId: string, playerId: string): Promise<TeeInfo | null> {
+  try {
+    const res = await fetch(`${ESPN_CORE_EVENTS}/${eventId}/competitions/${competitionId}/competitors/${playerId}/linescores?lang=en&region=us`, NEXT_NO_STORE)
+    if (!res.ok) return null
+    return teeInfoForFirstRound(await res.json())
+  } catch {
+    return null
+  }
+}
+
+export async function enrichPlayersWithTeeTimes(eventId: string, competitionId: string, players: GolfPlayer[]) {
   const entries = await Promise.all(players.map(async player => [player.id, await getCompetitorTeeInfo(eventId, competitionId, player.id)] as const))
   const teeByPlayerId = new Map(entries.filter(([, info]) => Boolean(info)))
   return players.map(player => {
@@ -225,12 +252,22 @@ async function enrichPlayersWithTeeTimes(eventId: string, competitionId: string,
       ...player,
       teeTime: teeInfo.teeTime,
       startTee: teeInfo.startTee,
-      // If ESPN exposes today's tee time but today's line has not started yet,
-      // the scoreboard payload often still carries yesterday's `F` and round score.
-      // Clear those stale fields so both the full leaderboard and pool board show
-      // the tee time until real current-round holes/scores arrive.
       thru: teeInfo.started ? player.thru : '',
       roundScore: teeInfo.started ? teeInfo.roundScore || player.roundScore || '' : '',
+    }
+  })
+}
+
+export async function enrichPlayersWithFirstRoundTeeTimes(eventId: string, competitionId: string, players: GolfPlayer[]) {
+  const entries = await Promise.all(players.map(async player => [player.id, await getCompetitorFirstRoundTeeInfo(eventId, competitionId, player.id)] as const))
+  const teeByPlayerId = new Map(entries.filter(([, info]) => Boolean(info)))
+  return players.map(player => {
+    const teeInfo = teeByPlayerId.get(player.id)
+    if (!teeInfo?.teeTime) return player
+    return {
+      ...player,
+      teeTime: teeInfo.teeTime,
+      startTee: teeInfo.startTee,
     }
   })
 }
