@@ -102,7 +102,9 @@ async function fetchEventSpecificField(eventId: string) {
     if (!res.ok) return []
     const data = await res.json()
     const event = (data.events || [])[0]
-    if (!event) return []
+    // ESPN often returns the nearest live tournament on event-specific endpoints,
+    // especially for upcoming events that have no field posted yet.
+    if (!event || String(event.id) !== String(eventId)) return []
     const competition = event.competitions?.[0]
     const rawPlayers = (competition?.competitors || []).map(mapCompetitorToPlayer)
     const players = await enrichPlayersWithTeeTimes(eventId, String(competition?.id || eventId), rawPlayers)

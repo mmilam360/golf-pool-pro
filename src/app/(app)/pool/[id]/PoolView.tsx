@@ -350,9 +350,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const groupedFormat = pool.game_format === 'ranked_groups' || pool.game_format === 'random_groups'
   const groupsFinalized = !groupedFormat || (pickGroups.length > 0 && Boolean(pool.groups_finalized_at))
   const picksPerGroup = groupedFormat ? Number(pool.picks_per_group || 1) : 0
+  const groupedTotalPicks = groupedFormat ? pickGroups.length * picksPerGroup : 0
+  const groupedGroupsRemaining = groupedFormat ? pickGroups.filter(g => {
+    const sc = g.players.filter(p => myPicks.includes(p.name)).length
+    return sc < picksPerGroup
+  }).length : 0
   const entriesNeedingPicks = activeEntries.filter(entry => {
+    if (groupedFormat) {
+      const pickCount = entry.submitted_pick_count ?? ((entry.golfer_picks as string[]) || []).length
+      const totalNeeded = pickGroups.length * picksPerGroup
+      return pickCount < totalNeeded
+    }
     const picks = ((entry.golfer_picks as string[]) || [])
-    if (groupedFormat) return !validateGroupedPicks(pickGroups, picks, picksPerGroup).valid
     const pickCount = entry.submitted_pick_count ?? picks.length
     return pickCount < pool.pick_count
   })
@@ -1591,6 +1600,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             return (
                               <div key={i} className={`relative border-r border-t border-[#d8cab0] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0 ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
                                 <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
+                                {pick && !picksHidden && pickGroupShortLabel(pick.name) ? (
+                                  <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">
+                                    {pickGroupShortLabel(pick.name)}
+                                  </span>
+                                ) : null}
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                 <div className={`mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
                                   {pick ? shortName(pick.name, allPickNames) : '—'}
@@ -1605,10 +1619,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Outside Top {pool.count_scores}</div>
                             <div className="flex flex-wrap gap-1">
                               {outOfBoundsPicks.map(pick => (
-                                <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                <span key={`${entry.entryId}-${pick.name}`} className="relative inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                   {pick.isObStandIn ? <ObMarker /> : null}
                                   {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                   {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
+                                  {pickGroupShortLabel(pick.name) ? (
+                                    <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[7px] font-black leading-none text-white">
+                                      {pickGroupShortLabel(pick.name)}
+                                    </span>
+                                  ) : null}
                                   <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                                 </span>
                               ))}
@@ -1660,6 +1679,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 return (
                                   <td key={i} title={picksHidden ? 'Picks hidden until the pool locks' : pick?.name || ''} className={`relative border-b border-r border-[#d8cab0] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] ${picksHidden ? 'bg-[#efeee6]' : 'bg-[#fbfbf5]'}`}>
                                     <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
+                                    {pick && !picksHidden && pickGroupShortLabel(pick.name) ? (
+                                      <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">
+                                        {pickGroupShortLabel(pick.name)}
+                                      </span>
+                                    ) : null}
                                     <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                     <div className={`mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                                     <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : '—'}</div>
@@ -1680,10 +1704,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 <td className="border-b border-[#d8cab0] bg-[#efeee6] px-2 py-1 text-left" colSpan={pool.count_scores + 1}>
                                   <div className="flex flex-wrap gap-1">
                                     {outOfBoundsPicks.map(pick => (
-                                      <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                      <span key={`${entry.entryId}-${pick.name}`} className="relative inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                         {pick.isObStandIn ? <ObMarker /> : null}
                                         {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                         {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
+                                        {pickGroupShortLabel(pick.name) ? (
+                                          <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[7px] font-black leading-none text-white">
+                                            {pickGroupShortLabel(pick.name)}
+                                          </span>
+                                        ) : null}
                                         <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                                       </span>
                                     ))}
@@ -1826,7 +1855,24 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="mb-4 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
                   <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? `${pool.game_format === 'random_groups' ? 'Random' : 'Ranked'} groups` : 'Tournament field'}</p>
-                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? `Pick ${picksPerGroup} from each group. Groups are locked for this pool.` : 'Sorted by last name for quick scanning.'}</p>
+                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? `Pick ${picksPerGroup} from each group.` : 'Sorted by last name for quick scanning.'}</p>
+                    {groupedFormat && (
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
+                          {myPicks.length}/{groupedTotalPicks} picks
+                        </span>
+                        {groupedGroupsRemaining > 0 && (
+                          <span className="text-[11px] font-bold text-[#b21e23]">
+                            {groupedGroupsRemaining} group{groupedGroupsRemaining !== 1 ? 's' : ''} left
+                          </span>
+                        )}
+                        {groupedGroupsRemaining === 0 && myPicks.length > 0 && (
+                          <span className="border border-[#123c2f] bg-[#eef7ef] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f]">
+                            Complete
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="max-h-[28rem] overflow-y-auto">
                     {groupedFormat ? (
@@ -1838,7 +1884,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           picksAreClosed={picksAreClosed}
                           golferListName={golferListName}
                           onTogglePick={togglePick}
-                          allSelectedCount={myPicks.length}
                         />
                       </div>
                     ) : [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => {

@@ -459,6 +459,18 @@
     "Max Homa": {
       "examples": [
         {
+          "comments": 27,
+          "score": 115,
+          "title": "Tony Finau, Max Homa and others still trying to qualify for U.S. Open",
+          "url": "https://reddit.com/r/golf/comments/1tph7fd/tony_finau_max_homa_and_others_still_trying_to/"
+        },
+        {
+          "comments": 41,
+          "score": 127,
+          "title": "Max Homa makes caddie change ahead of Charles Schwab Challenge",
+          "url": "https://reddit.com/r/golf/comments/1tphtgz/max_homa_makes_caddie_change_ahead_of_charles/"
+        },
+        {
           "published_at": "2026-05-27T21:15:45+00:00",
           "source": "Yahoo Golf",
           "title": "Max Homa turns to 'friend' for third caddie this year",
@@ -477,8 +489,8 @@
           "url": "https://sports.yahoo.com/articles/max-homa-makes-caddie-change-194044365.html"
         }
       ],
-      "last_seen": "2026-05-27T23:36:18.988202+00:00",
-      "mentions": 3
+      "last_seen": "2026-05-28T13:30:14.718934+00:00",
+      "mentions": 5
     },
     "Phil Mickelson": {
       "examples": [
@@ -723,14 +735,20 @@
     "Tony Finau": {
       "examples": [
         {
+          "comments": 27,
+          "score": 115,
+          "title": "Tony Finau, Max Homa and others still trying to qualify for U.S. Open",
+          "url": "https://reddit.com/r/golf/comments/1tph7fd/tony_finau_max_homa_and_others_still_trying_to/"
+        },
+        {
           "published_at": "2026-05-27T16:43:37+00:00",
           "source": "Yahoo Golf",
           "title": "Tony Finau, Max Homa and others still trying to qualify for U.S. Open",
           "url": "https://sports.yahoo.com/articles/max-homa-tony-finau-other-164337752.html"
         }
       ],
-      "last_seen": "2026-05-27T19:55:06.762244+00:00",
-      "mentions": 1
+      "last_seen": "2026-05-28T13:30:14.718934+00:00",
+      "mentions": 2
     },
     "Viktor Hovland": {
       "examples": [
@@ -1415,84 +1433,6 @@
   ],
   "sources": [
     {
-      "blog_feeds": [
-        {
-          "feed_url": "https://golf.com/feed/",
-          "lane": "news",
-          "source": "Golf.com",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://www.espn.com/espn/rss/golf/news",
-          "lane": "news",
-          "source": "ESPN Golf",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://www.cbssports.com/rss/headlines/golf/",
-          "lane": "news",
-          "source": "CBS Golf",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://www.nbcsports.com/golf.rss",
-          "lane": "news",
-          "source": "NBC Golf",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://sports.yahoo.com/golf/rss/",
-          "lane": "news",
-          "source": "Yahoo Golf",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://www.skysports.com/rss/12040",
-          "lane": "news",
-          "source": "Sky Sports Golf",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://www.golfmonthly.com/feeds/all",
-          "lane": "news",
-          "source": "Golf Monthly",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://www.golfwrx.com/feed/",
-          "lane": "casual",
-          "source": "GolfWRX",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://mygolfspy.com/feed/",
-          "lane": "casual",
-          "source": "MyGolfSpy",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://www.geoffshackelford.com/homepage?format=rss",
-          "lane": "casual",
-          "source": "Geoff Shackelford",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://www.golfersjournal.com/feed/",
-          "lane": "casual",
-          "source": "The Golfers Journal",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        },
-        {
-          "feed_url": "https://www.nationalclubgolfer.com/feed/",
-          "lane": "casual",
-          "source": "National Club Golfer",
-          "updated_at": "2026-05-27T23:37:18.905485+00:00"
-        }
-      ],
-      "errors": [],
-      "updated_at": "2026-05-27T23:37:18.905485+00:00"
-    },
-    {
       "listings": [
         "hot",
         "new",
@@ -1503,63 +1443,63 @@
         "pgatour",
         "golfmemes"
       ],
-      "updated_at": "2026-05-25T13:31:01.884480+00:00"
+      "updated_at": "2026-05-28T13:30:14.718934+00:00"
     }
   ],
   "topics": {
     "course layout/setup debate": {
-      "count": 45,
+      "count": 54,
       "examples": [
         {
-          "comments": 10,
-          "score": 1,
-          "title": "What should my next club purchase be?",
-          "url": "https://reddit.com/r/golf/comments/1tmytl9/what_should_my_next_club_purchase_be/"
+          "comments": 17,
+          "score": 18,
+          "title": "Hit With A Drive For the first time",
+          "url": "https://reddit.com/r/golf/comments/1tq2z9c/hit_with_a_drive_for_the_first_time/"
         },
         {
-          "comments": 12,
-          "score": 106,
-          "title": "I broke 100 for the first time! 42 on the front 55 on the back for a 97 total",
-          "url": "https://reddit.com/r/golf/comments/1tmuebe/i_broke_100_for_the_first_time_42_on_the_front_55/"
-        },
-        {
-          "comments": 36,
-          "score": 6,
-          "title": "Have you ever almost quit golf\u2026 then somehow fell back in love with it again?",
-          "url": "https://reddit.com/r/golf/comments/1tn3ssw/have_you_ever_almost_quit_golf_then_somehow_fell/"
-        },
-        {
-          "comments": 39,
+          "comments": 19,
           "score": 0,
-          "title": "Driving for show and putting for dough - What about approach?",
-          "url": "https://reddit.com/r/golf/comments/1tn6cld/driving_for_show_and_putting_for_dough_what_about/"
+          "title": "Need Help choosing woods and hybrid for high handicapper",
+          "url": "https://reddit.com/r/golf/comments/1tq2icm/need_help_choosing_woods_and_hybrid_for_high/"
+        },
+        {
+          "comments": 26,
+          "score": 0,
+          "title": "Course Record Advice",
+          "url": "https://reddit.com/r/golf/comments/1tpvuzj/course_record_advice/"
+        },
+        {
+          "comments": 33,
+          "score": 2,
+          "title": "How much to tip the Pro?",
+          "url": "https://reddit.com/r/golf/comments/1tptp99/how_much_to_tip_the_pro/"
+        },
+        {
+          "comments": 21,
+          "score": 190,
+          "title": "At least I\u2019ll get a sleeve of pro v\u2019s for closest to the pin \ud83e\udd37\u200d\u2642\ufe0f",
+          "url": "https://reddit.com/r/golf/comments/1tpi2hh/at_least_ill_get_a_sleeve_of_pro_vs_for_closest/"
         },
         {
           "comments": 43,
-          "score": 193,
-          "title": "Just shot a 76 personal best. 16.7 handicap",
-          "url": "https://reddit.com/r/golf/comments/1tmvtrn/just_shot_a_76_personal_best_167_handicap/"
+          "score": 243,
+          "title": "Bethpage Black is a Beast",
+          "url": "https://reddit.com/r/golf/comments/1tpie8n/bethpage_black_is_a_beast/"
         },
         {
-          "comments": 124,
-          "score": 607,
-          "title": "Sorry Lanny, $25 million renovation and course couldn\u2019t protect -30",
-          "url": "https://reddit.com/r/golf/comments/1tmp73c/sorry_lanny_25_million_renovation_and_course/"
+          "comments": 192,
+          "score": 64,
+          "title": "Settle the debate",
+          "url": "https://reddit.com/r/golf/comments/1tpp3g0/settle_the_debate/"
         },
         {
-          "comments": 253,
-          "score": 462,
-          "title": "My buddy shit his pants after 5 holes this morning and left the course. What's the quickest/weirdest early round exit you've ever witnessed?",
-          "url": "https://reddit.com/r/golf/comments/1tmt0pu/my_buddy_shit_his_pants_after_5_holes_this/"
-        },
-        {
-          "comments": 34,
-          "score": 9,
-          "title": "Has mygolfspy lost its independence?",
-          "url": "https://reddit.com/r/golf/comments/1tjbhmz/has_mygolfspy_lost_its_independence/"
+          "comments": 140,
+          "score": 392,
+          "title": "AMA I can\u2019t break 80",
+          "url": "https://reddit.com/r/golf/comments/1tplbus/ama_i_cant_break_80/"
         }
       ],
-      "last_seen": "2026-05-25T13:31:01.884480+00:00"
+      "last_seen": "2026-05-28T13:30:14.718934+00:00"
     },
     "equipment/gear": {
       "count": 109,
@@ -1628,8 +1568,38 @@
       "last_seen": "2026-05-27T23:37:18.905485+00:00"
     },
     "equipment/gear debate": {
-      "count": 43,
+      "count": 48,
       "examples": [
+        {
+          "comments": 17,
+          "score": 36,
+          "title": "AMA: colemangolfs, creator of the open source launch monitor OpenFlight",
+          "url": "https://reddit.com/r/golf/comments/1tp9xvk/ama_colemangolfs_creator_of_the_open_source/"
+        },
+        {
+          "comments": 21,
+          "score": 6,
+          "title": "How to turn brain off",
+          "url": "https://reddit.com/r/golf/comments/1tq3b4k/how_to_turn_brain_off/"
+        },
+        {
+          "comments": 32,
+          "score": 94,
+          "title": "Don\u2019t give up on your round",
+          "url": "https://reddit.com/r/golf/comments/1tpg24h/dont_give_up_on_your_round/"
+        },
+        {
+          "comments": 33,
+          "score": 100,
+          "title": "Just broke 100 for the first time!",
+          "url": "https://reddit.com/r/golf/comments/1tpmbpv/just_broke_100_for_the_first_time/"
+        },
+        {
+          "comments": 333,
+          "score": 2589,
+          "title": "Matt Travis pro golfer stole my trackman from me.",
+          "url": "https://reddit.com/r/golf/comments/1tpo75q/matt_travis_pro_golfer_stole_my_trackman_from_me/"
+        },
         {
           "comments": 15,
           "score": 3,
@@ -1647,39 +1617,9 @@
           "score": 495,
           "title": "Ball flight",
           "url": "https://reddit.com/r/golf/comments/1tmctzo/ball_flight/"
-        },
-        {
-          "comments": 16,
-          "score": 38,
-          "title": "What a weird, stupid, silly game that we love",
-          "url": "https://reddit.com/r/golf/comments/1tjg7yp/what_a_weird_stupid_silly_game_that_we_love/"
-        },
-        {
-          "comments": 23,
-          "score": 0,
-          "title": "22 hc blade vs malletp",
-          "url": "https://reddit.com/r/golf/comments/1tj7kdw/22_hc_blade_vs_malletp/"
-        },
-        {
-          "comments": 278,
-          "score": 424,
-          "title": "I shouldn't",
-          "url": "https://reddit.com/r/golf/comments/1tj51nw/i_shouldnt/"
-        },
-        {
-          "comments": 13,
-          "score": 1,
-          "title": "17 M just started golfing recently. Any tips or advice for me?",
-          "url": "https://reddit.com/r/golf/comments/1thzkit/17_m_just_started_golfing_recently_any_tips_or/"
-        },
-        {
-          "comments": 21,
-          "score": 33,
-          "title": "New Clubs Day",
-          "url": "https://reddit.com/r/golf/comments/1thxp9u/new_clubs_day/"
         }
       ],
-      "last_seen": "2026-05-25T13:31:01.884480+00:00"
+      "last_seen": "2026-05-28T13:30:14.718934+00:00"
     },
     "instruction/training": {
       "count": 23,
@@ -1772,8 +1712,32 @@
       "last_seen": "2026-05-25T13:31:01.884480+00:00"
     },
     "players/tour storylines": {
-      "count": 409,
+      "count": 413,
       "examples": [
+        {
+          "comments": 13,
+          "score": 43,
+          "title": "Worst ball is the best game to play",
+          "url": "https://reddit.com/r/golf/comments/1tpqcyd/worst_ball_is_the_best_game_to_play/"
+        },
+        {
+          "comments": 36,
+          "score": 40,
+          "title": "Full swing Season 4",
+          "url": "https://reddit.com/r/golf/comments/1tpz3e8/full_swing_season_4/"
+        },
+        {
+          "comments": 27,
+          "score": 115,
+          "title": "Tony Finau, Max Homa and others still trying to qualify for U.S. Open",
+          "url": "https://reddit.com/r/golf/comments/1tph7fd/tony_finau_max_homa_and_others_still_trying_to/"
+        },
+        {
+          "comments": 41,
+          "score": 127,
+          "title": "Max Homa makes caddie change ahead of Charles Schwab Challenge",
+          "url": "https://reddit.com/r/golf/comments/1tphtgz/max_homa_makes_caddie_change_ahead_of_charles/"
+        },
         {
           "published_at": "2026-05-27T13:37:16+00:00",
           "source": "Yahoo Golf",
@@ -1797,45 +1761,9 @@
           "source": "National Club Golfer",
           "title": "How far have the LIV golfers fallen in the world rankings?",
           "url": "https://www.nationalclubgolfer.com/tour/liv-golf/liv-golf-official-world-rankings-drop/"
-        },
-        {
-          "published_at": "2026-05-19T20:53:55+00:00",
-          "source": "CBS Golf",
-          "title": "2026 CJ Cup Byron Nelson preview and predictions: Scottie Scheffler, Jordan Spieth star in hometown event",
-          "url": "https://www.cbssports.com/golf/news/cj-cup-byron-nelson-2026-predictions-odds-picks-field-rankings-pga-tour-preview/"
-        },
-        {
-          "published_at": "2026-05-26T18:22:03+00:00",
-          "source": "CBS Golf",
-          "title": "2026 Charles Schwab Challenge preview and predictions: Can Ludvig \u00c5berg or Rickie Fowler notch a victory?",
-          "url": "https://www.cbssports.com/golf/news/charles-schwab-challenge-2026-predictions-odds-picks-field-rankings-pga-tour-preview/"
-        },
-        {
-          "published_at": "2026-05-27T21:57:00+00:00",
-          "source": "Sky Sports Golf",
-          "title": "Palace beat Rayo to win Conference League and give Glasner perfect farewell",
-          "url": "https://www.skysports.com/football/crystal-palace-vs-rayo-vallecano/report/554966"
-        },
-        {
-          "published_at": "2026-05-27T18:09:16+00:00",
-          "source": "Yahoo Golf",
-          "title": "President Trump Course Gets 'Huge Boost' From 2027 PGA Tour Schedule",
-          "url": "https://sports.yahoo.com/articles/president-trump-course-gets-huge-180916116.html"
-        },
-        {
-          "published_at": "2026-05-27T21:00:34+00:00",
-          "source": "Yahoo Golf",
-          "title": "NCAA Women's Golf Championship live updates: Stanford, USC scores, tee times, how to watch",
-          "url": "https://sports.yahoo.com/articles/ncaa-womens-golf-championship-live-210034742.html"
-        },
-        {
-          "published_at": "2026-05-27T20:32:40+00:00",
-          "source": "CBS Golf",
-          "title": "2026 Charles Schwab Challenge TV schedule, coverage: Where to watch PGA Tour's annual stop at Colonial",
-          "url": "https://www.cbssports.com/golf/news/charles-schwab-challenge-2026-where-to-watch-tv-schedule-live-stream-tee-times-coverage/"
         }
       ],
-      "last_seen": "2026-05-27T23:37:18.905485+00:00"
+      "last_seen": "2026-05-28T13:30:14.718934+00:00"
     },
     "pool-adjacent picks context": {
       "count": 11,
@@ -2036,8 +1964,20 @@
       "last_seen": "2026-05-27T19:55:06.762244+00:00"
     },
     "rules/penalty controversy": {
-      "count": 7,
+      "count": 9,
       "examples": [
+        {
+          "comments": 38,
+          "score": 0,
+          "title": "Quitting outdoor golf and going 95% simulator",
+          "url": "https://reddit.com/r/golf/comments/1tpvorz/quitting_outdoor_golf_and_going_95_simulator/"
+        },
+        {
+          "comments": 471,
+          "score": 760,
+          "title": "Rules sticklers",
+          "url": "https://reddit.com/r/golf/comments/1tp1sda/rules_sticklers/"
+        },
         {
           "comments": 13,
           "score": 4,
@@ -2063,11 +2003,17 @@
           "url": "https://reddit.com/r/golf/comments/1thmxgu/penalty_vs_playing_out_of_hazard/"
         }
       ],
-      "last_seen": "2026-05-25T13:31:01.884480+00:00"
+      "last_seen": "2026-05-28T13:30:14.718934+00:00"
     },
     "scoring/handicap arguments": {
-      "count": 8,
+      "count": 9,
       "examples": [
+        {
+          "comments": 60,
+          "score": 20,
+          "title": "Being a 11 handicap is infuriating.",
+          "url": "https://reddit.com/r/golf/comments/1tpvk2p/being_a_11_handicap_is_infuriating/"
+        },
         {
           "comments": 53,
           "score": 201,
@@ -2087,61 +2033,61 @@
           "url": "https://reddit.com/r/golf/comments/1tht0p1/from_28_to_12_how_i_improved_my_handicap/"
         }
       ],
-      "last_seen": "2026-05-21T13:30:17.436314+00:00"
+      "last_seen": "2026-05-28T13:30:14.718934+00:00"
     },
     "specific golf chatter": {
-      "count": 54,
+      "count": 61,
       "examples": [
+        {
+          "comments": 122,
+          "score": 71,
+          "title": "Why are college golfers pulling not pushing their carts?",
+          "url": "https://reddit.com/r/golf/comments/1tprl24/why_are_college_golfers_pulling_not_pushing_their/"
+        },
+        {
+          "comments": 101,
+          "score": 170,
+          "title": "Be appreciative of ready golf",
+          "url": "https://reddit.com/r/golf/comments/1tpglps/be_appreciative_of_ready_golf/"
+        },
+        {
+          "comments": 108,
+          "score": 685,
+          "title": "Can\u2019t believe this place exists.",
+          "url": "https://reddit.com/r/golf/comments/1tpavd4/cant_believe_this_place_exists/"
+        },
+        {
+          "comments": 53,
+          "score": 971,
+          "title": "Big Golf is behind it",
+          "url": "https://reddit.com/r/golf/comments/1tp8ysi/big_golf_is_behind_it/"
+        },
+        {
+          "comments": 257,
+          "score": 195,
+          "title": "Golf Clothing Prices Are Ridiculous",
+          "url": "https://reddit.com/r/golf/comments/1tppfpe/golf_clothing_prices_are_ridiculous/"
+        },
+        {
+          "comments": 134,
+          "score": 1243,
+          "title": "We did it gang\u2026kinda! He took his page down, now he can steal in peace. Justice for u/francheggo next",
+          "url": "https://reddit.com/r/golf/comments/1tptlw0/we_did_it_gangkinda_he_took_his_page_down_now_he/"
+        },
+        {
+          "comments": 225,
+          "score": 1855,
+          "title": "Clanker taking jobs at my local muni",
+          "url": "https://reddit.com/r/golf/comments/1tp8ymv/clanker_taking_jobs_at_my_local_muni/"
+        },
         {
           "comments": 68,
           "score": 142,
           "title": "First ever brand new set of clubs: Maltby STi2 (20.5 hdcp)",
           "url": "https://reddit.com/r/golf/comments/1tmj4t7/first_ever_brand_new_set_of_clubs_maltby_sti2_205/"
-        },
-        {
-          "comments": 55,
-          "score": 325,
-          "title": "Accidentally broke my R15 on the range. Found these other 2 in the woods next to it",
-          "url": "https://reddit.com/r/golf/comments/1tmx2i3/accidentally_broke_my_r15_on_the_range_found/"
-        },
-        {
-          "comments": 71,
-          "score": 366,
-          "title": "On his back nine today in winning the Byron Nelson, Wyndham Clark had 5 birdies and an eagle on 28 shots",
-          "url": "https://reddit.com/r/golf/comments/1tmrktn/on_his_back_nine_today_in_winning_the_byron/"
-        },
-        {
-          "comments": 41,
-          "score": 858,
-          "title": "Bucket list accomplishment",
-          "url": "https://reddit.com/r/golf/comments/1tmhm9s/bucket_list_accomplishment/"
-        },
-        {
-          "comments": 58,
-          "score": 792,
-          "title": "I, too, have played multiple rounds before without making a 5.",
-          "url": "https://reddit.com/r/golf/comments/1tmm87u/i_too_have_played_multiple_rounds_before_without/"
-        },
-        {
-          "comments": 72,
-          "score": 796,
-          "title": "Golf Daddy Review.",
-          "url": "https://reddit.com/r/golf/comments/1tm2cna/golf_daddy_review/"
-        },
-        {
-          "comments": 80,
-          "score": 1235,
-          "title": "Started the final round in the lead, shot a 65 and lost.",
-          "url": "https://reddit.com/r/golf/comments/1tmpqa9/started_the_final_round_in_the_lead_shot_a_65_and/"
-        },
-        {
-          "comments": 267,
-          "score": 535,
-          "title": "Wyndham Clark wins the 2026 CJ Cup Byron Nelson at -30 including a final round of 60",
-          "url": "https://reddit.com/r/golf/comments/1tmp8ra/wyndham_clark_wins_the_2026_cj_cup_byron_nelson/"
         }
       ],
-      "last_seen": "2026-05-25T13:31:01.884480+00:00"
+      "last_seen": "2026-05-28T13:30:14.718934+00:00"
     },
     "specific golf news": {
       "count": 113,
@@ -2276,8 +2222,20 @@
       "last_seen": "2026-05-27T23:37:18.905485+00:00"
     },
     "training/swing-method debate": {
-      "count": 8,
+      "count": 10,
       "examples": [
+        {
+          "comments": 29,
+          "score": 2,
+          "title": "Golf coaches. Swing faults high vs low handicap?",
+          "url": "https://reddit.com/r/golf/comments/1tq1i0b/golf_coaches_swing_faults_high_vs_low_handicap/"
+        },
+        {
+          "comments": 350,
+          "score": 537,
+          "title": "Is now the time to change my grip?",
+          "url": "https://reddit.com/r/golf/comments/1tp06gq/is_now_the_time_to_change_my_grip/"
+        },
         {
           "comments": 23,
           "score": 3,
@@ -2297,7 +2255,7 @@
           "url": "https://reddit.com/r/golf/comments/1thq7xh/stop_pushing_your_butt_back_to_fox_early_extension/"
         }
       ],
-      "last_seen": "2026-05-21T13:30:17.436314+00:00"
+      "last_seen": "2026-05-28T13:30:14.718934+00:00"
     },
     "weather/conditions": {
       "count": 4,
