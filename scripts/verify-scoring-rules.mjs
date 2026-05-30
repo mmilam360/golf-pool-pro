@@ -8,7 +8,8 @@ const landingSource = readFileSync(new URL('../src/app/page.tsx', import.meta.ur
 const layoutSource = readFileSync(new URL('../src/app/layout.tsx', import.meta.url), 'utf8')
 
 assert.match(scoringSource, /status !== 'active'/, 'OB stand-ins should include cut, WD, DNQ, and missing/non-active picks')
-assert.doesNotMatch(scoringSource, /status === 'cut'/, 'OB stand-ins should not be limited to missed-cut players')
+assert.doesNotMatch(scoringSource, /obEligiblePicks = pickScores\.filter\(p => p\.status === 'cut'\)/, 'OB stand-ins should not be limited to missed-cut players')
+assert.match(scoringSource, /const standInPenalty = obRuleEnabled \? obPenaltyStrokes : 0/, 'OB disabled should still use worst active field score with no extra penalty')
 assert.match(poolViewSource, /const visibleEntries = activeEntries/, 'PoolView should show every active entry on the leaderboard before lock/start')
 assert.match(poolViewSource, /picks_hidden/, 'PoolView should mask other entrants picks before lock/start')
 assert.match(poolPageSource, /const picksAreVisible = pool\.is_locked \|\| scoringIsLive/, 'Server pool page should only reveal picks after lock/start')

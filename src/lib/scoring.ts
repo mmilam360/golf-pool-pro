@@ -99,17 +99,18 @@ export function scoreEntry(
     const needed = countScores - active.length
     const obEligiblePicks = pickScores.filter(p => p.status !== 'active')
     const standInsNeeded = Math.min(needed, obEligiblePicks.length)
-    if (obRuleEnabled && standInsNeeded > 0 && leaderboard.length > 0) {
+    if (standInsNeeded > 0 && leaderboard.length > 0) {
       const scoredPlayers = leaderboard.filter(p => p.status === 'active' && p.scoreToPar !== null)
       scoredPlayers.sort((a, b) => (b.scoreToPar ?? -999) - (a.scoreToPar ?? -999))
-      const worstScore = scoredPlayers.length > 0 ? scoredPlayers[0].scoreToPar : 0
-      const obRoundScore = worstActiveRoundScore(scoredPlayers, obPenaltyStrokes)
-      const obTiebreakScores = worstActiveTiebreakScores(scoredPlayers, obPenaltyStrokes)
+      const worstScore = scoredPlayers.length > 0 ? (scoredPlayers[0].scoreToPar ?? 0) : 0
+      const standInPenalty = obRuleEnabled ? obPenaltyStrokes : 0
+      const obRoundScore = worstActiveRoundScore(scoredPlayers, standInPenalty)
+      const obTiebreakScores = worstActiveTiebreakScores(scoredPlayers, standInPenalty)
       const standInPicks = obEligiblePicks.slice(0, standInsNeeded)
       for (const pick of standInPicks) {
         counting.push({
           ...pick,
-          scoreToPar: worstScore + obPenaltyStrokes,
+          scoreToPar: worstScore + standInPenalty,
           strokes: null,
           thru: '',
           roundScore: obRoundScore,
