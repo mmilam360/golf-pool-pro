@@ -55,7 +55,8 @@ function tournamentDateRange(tournament: PosterTournament | null) {
 }
 
 function obRuleExplainer(pool: PosterPool) {
-  return `OB: cut, DQ, or DNF scores worst finisher +${pool.ob_penalty_strokes || 0}.`
+  const penalty = pool.ob_penalty_strokes || 0
+  return `OB: CUT, DNQ, DNF, or DQ gets the worst finisher's score +${penalty} ${penalty === 1 ? 'stroke' : 'strokes'}.`
 }
 
 function formatSummary(pool: PosterPool) {
@@ -398,7 +399,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
               </div>
 
               {hostLogoSrc ? (
-                <div className="absolute bottom-[92px] left-[42px] grid h-[288px] w-[288px] place-items-center">
+                <div className="absolute bottom-[106px] left-[42px] grid h-[178px] w-[178px] place-items-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={hostLogoSrc} alt="Pool host logo" className="max-h-full max-w-full object-contain" />
                 </div>
