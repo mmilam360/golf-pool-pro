@@ -77,10 +77,10 @@ function formatSummary(pool: PosterPool) {
 
   if (pool.game_format === 'ranked_groups') {
     return {
-      mode: 'Ranked Groups',
-      picks: `Pick ${perGroup} per group`,
+      mode: 'Tiered Picks',
+      picks: `Pick ${perGroup} per tier`,
       scoring: `Best ${pool.count_scores || 8} count`,
-      explainer: `${groups} WGR groups`,
+      explainer: `${groups} tiers by World Golf Ranking`,
     }
   }
 
@@ -94,10 +94,10 @@ function formatSummary(pool: PosterPool) {
   }
 
   return {
-    mode: 'Standard',
+    mode: 'Open Field',
     picks: `Pick ${pool.pick_count || 6} golfers`,
     scoring: `Top ${pool.count_scores || pool.pick_count || 4} count`,
-    explainer: 'Full field',
+    explainer: 'Open field, no groups',
   }
 }
 

@@ -569,7 +569,7 @@ function canShowPickBadge(pool: PoolRecord, tournament: Tournament | null) {
   // For grouped pools, only show after groups are locked
   const isGrouped = pool.game_format === 'random_groups' || pool.game_format === 'ranked_groups'
   if (isGrouped) return Boolean(pool.groups_finalized_at)
-  // Standard pool: show as soon as field is imported (picks can be made)
+  // Open Field pool: show as soon as field is imported (picks can be made)
   return true
 }
 

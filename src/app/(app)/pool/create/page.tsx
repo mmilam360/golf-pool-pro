@@ -403,14 +403,14 @@ export default function CreatePoolPage() {
               {[
                 {
                   value: 'standard',
-                  label: 'Standard',
-                  helper: 'Players pick any golfers from the full field. Simple and familiar.',
+                  label: 'Open Field',
+                  helper: 'Open field, no groups.',
                   image: '/game-modes/standard-wordmark.svg',
                 },
                 {
                   value: 'ranked_groups',
-                  label: 'Ranked Groups',
-                  helper: 'Field is sorted into groups based on WGR. Players pick from each group.',
+                  label: 'Tiered Picks',
+                  helper: 'Ranked by World Golf Ranking. Players pick from each tier.',
                   image: '/game-modes/ranked-wordmark.svg',
                 },
                 {
@@ -450,11 +450,11 @@ export default function CreatePoolPage() {
                   <div className="space-y-3 border-t border-[#d8cab0] px-3 pb-3 pt-3">
                     {gameFormat === 'ranked_groups' ? (
                       <>
-                        <p>The field is sorted by WGR, then split into the number of groups you choose. Every entry picks the same number of golfers from each group.</p>
+                        <p>The field is ranked by World Golf Ranking, then split into the number of tiers you choose. Every entry picks the same number of golfers from each tier.</p>
                         <div className="grid gap-2 sm:grid-cols-3">
-                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Group 1</strong>Scheffler, McIlroy, Schauffele, Rahm</div>
-                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Group 2</strong>Morikawa, Hovland, Fleetwood, Cantlay</div>
-                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Group 3</strong>Lowry, Burns, Finau, Fowler</div>
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Tier 1</strong>Scheffler, McIlroy, Schauffele, Rahm</div>
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Tier 2</strong>Morikawa, Hovland, Fleetwood, Cantlay</div>
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Tier 3</strong>Lowry, Burns, Finau, Fowler</div>
                         </div>
                       </>
                     ) : (
@@ -481,11 +481,11 @@ export default function CreatePoolPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <NumberStepper label="Groups" value={groupCount} onChange={setGroupCount} min={2} max={12} fallback={6} />
-              <NumberStepper label="Picks per Group" value={picksPerGroup} onChange={setPicksPerGroup} min={1} max={6} fallback={2} />
+              <NumberStepper label={gameFormat === 'ranked_groups' ? 'Tiers' : 'Groups'} value={groupCount} onChange={setGroupCount} min={2} max={12} fallback={6} />
+              <NumberStepper label={gameFormat === 'ranked_groups' ? 'Picks per Tier' : 'Picks per Group'} value={picksPerGroup} onChange={setPicksPerGroup} min={1} max={6} fallback={2} />
               <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, 12)} fallback={8} />
               <div className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-sm font-bold text-[#123c2f] sm:col-span-3">
-                Total picks: {toNumber(groupCount, 6) * toNumber(picksPerGroup, 2)} · default is 6 groups, 2 per group, best 8 count.
+                Total picks: {toNumber(groupCount, 6) * toNumber(picksPerGroup, 2)} · default is 6 {gameFormat === 'ranked_groups' ? 'tiers' : 'groups'}, 2 per {gameFormat === 'ranked_groups' ? 'tier' : 'group'}, best 8 count.
               </div>
             </div>
           )}

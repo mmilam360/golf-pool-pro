@@ -11,13 +11,13 @@ export type PickState = {
 }
 
 function GroupPickCard({
-  group,
+  groupLabel,
   picksRequired,
   pickStates,
   onToggle,
   isMobile,
 }: {
-  group: PickGroup
+  groupLabel: string
   picksRequired: number
   pickStates: PickState[]
   onToggle: (rawName: string) => void
@@ -30,7 +30,7 @@ function GroupPickCard({
     <div className={`rounded-none border-2 border-[#2a2a2a] bg-white shadow-[3px_3px_0_#888] ${isMobile ? 'w-[11rem]' : 'w-[13.5rem]'}`}>
       {/* Title bar */}
       <div className={`flex items-center justify-between ${headerColor} px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-white`}>
-        <span className="truncate">{group.label}</span>
+        <span className="truncate">{groupLabel}</span>
         <span className="ml-1 flex-shrink-0">{pickStates.filter(p => p.selected).length}/{picksRequired}</span>
       </div>
 
@@ -70,6 +70,7 @@ export type GroupedPickGridProps = {
   readOnly: boolean
   golferListName: (name: string) => string
   onTogglePick: (name: string) => void
+  groupLabelForDisplay?: (label: string) => string
 }
 
 export function GroupedPickGrid({
@@ -79,6 +80,7 @@ export function GroupedPickGrid({
   readOnly,
   golferListName,
   onTogglePick,
+  groupLabelForDisplay = label => label,
 }: GroupedPickGridProps) {
   const [isMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 640 : false
@@ -107,7 +109,7 @@ export function GroupedPickGrid({
           return (
             <div key={group.id} data-group-id={group.id}>
               <GroupPickCard
-                group={group}
+                groupLabel={groupLabelForDisplay(group.label)}
                 picksRequired={picksPerGroup}
                 pickStates={pickStates}
                 onToggle={onTogglePick}

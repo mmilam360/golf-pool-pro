@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 440" role="img" aria-labelledby="title desc">
-  <title id="title">Ranked</title>
-  <desc id="desc">Stylized golf tier wordmark for the Ranked Groups game type.</desc>
+  <title id="title">Tiered Picks</title>
+  <desc id="desc">Stylized golf tier wordmark for the Tiered Picks game type.</desc>
   <defs>
     <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#fffaf0"/>
@@ -36,8 +36,8 @@
       <rect class="tier" x="0" y="100" width="360" height="38" fill="#b58a3a"/>
       <path d="M180-14l10 20 22 3-16 16 4 22-20-10-20 10 4-22-16-16 22-3z" fill="url(#gold)" stroke="#123c2f" stroke-width="5"/>
     </g>
-    <text x="320" y="276" text-anchor="middle" class="word">RANKED</text>
-    <text x="320" y="326" text-anchor="middle" class="sub">TIERED GROUPS</text>
+    <text x="320" y="276" text-anchor="middle" class="word">TIERED</text>
+    <text x="320" y="326" text-anchor="middle" class="sub">PICKS</text>
     <path d="M116 346h408" stroke="#b58a3a" stroke-width="7" stroke-linecap="square"/>
   </g>
 </svg>

@@ -1,6 +1,6 @@
 'use client'
 
-import type { PickGroup, PickGroupPlayer } from '@/lib/pool-formats'
+import type { PickGroup } from '@/lib/pool-formats'
 import type { GolfPlayer } from '@/lib/golf-api'
 import { normalizePickName } from '@/lib/scoring'
 import { teeTimeLabel, tournamentThruLabel } from '@/lib/golfer-status'
@@ -78,7 +78,7 @@ export function TierFieldView({ pickGroups, leaderboard, field, timeZone = 'Amer
           Field by tier{hasAnyScores ? ' · sorted low to high' : ' · tee times'}
         </p>
         <p className="mt-0.5 text-[10px] font-semibold leading-tight text-[#555]">
-          G1 = highest-ranked OWGR players. Pick one from each tier.
+          T1 = highest-ranked World Golf Ranking players. Pick one from each tier.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export function TierFieldView({ pickGroups, leaderboard, field, timeZone = 'Amer
         <div key={group.id} className="border-b border-[#d8cab0] last:border-b-0">
           {/* Tier header row */}
           <div className="flex items-center gap-2 bg-[#123c2f] px-3 py-1.5">
-            <span className="text-sm font-black uppercase tracking-[0.08em] text-[#d8b45d]">{group.label}</span>
+            <span className="text-sm font-black uppercase tracking-[0.08em] text-[#d8b45d]">{group.label.replace(/^Group\b/, 'Tier')}</span>
             <span className="text-[9px] font-black uppercase tracking-[0.08em] text-[#8aa89a]">
               {golfers.length} golfers
             </span>
