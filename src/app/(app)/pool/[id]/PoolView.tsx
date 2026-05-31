@@ -444,8 +444,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const fieldReady = field.length > 0
-  const showPickList = canEditPicks && (fieldReady || (groupedFormat && pickGroups.length > 0))
-  const showSelectedPicks = fieldReady || myPicks.length > 0 || (groupedFormat && pickGroups.length > 0)
+  const showReadOnlyGroupedField = groupedFormat && pickGroups.length > 0
+  const showPickList = (canEditPicks || showReadOnlyGroupedField) && (fieldReady || showReadOnlyGroupedField)
+  const showSelectedPicks = fieldReady || myPicks.length > 0 || showReadOnlyGroupedField
   const visibleEntries = activeEntries
 
   const maskHiddenPicks = useCallback((poolEntries: any[]) => {
@@ -1847,7 +1848,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">
                       Your picks ({myPicks.length}/{pool.pick_count})
                     </h3>
-                    {fieldReady && <span className="text-xs font-bold text-stone-500">Tap a golfer below to add or remove</span>}
+                    {fieldReady && (
+                      <span className="text-xs font-bold text-stone-500">
+                        {canEditPicks ? 'Tap a golfer below to add or remove' : 'Review the field below'}
+                      </span>
+                    )}
                   </div>
                   <div className="p-4">
                     {groupedFormat ? (
@@ -1867,7 +1872,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   )}
                                 </span>
                               ))}
-                              {picks.length === 0 && <span className="text-sm font-semibold text-stone-500">No pick yet.</span>}
+                              {picks.length === 0 && (
+                                <div className="grid w-full gap-1">
+                                  {group.players.map(player => (
+                                    <span key={player.id || player.name} className="text-sm font-semibold text-stone-600">
+                                      {golferListName(player.name)}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}
