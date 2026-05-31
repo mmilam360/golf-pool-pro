@@ -70,12 +70,26 @@ function normalizeName(value: string | null | undefined) {
   return String(value || '')
     .toLowerCase()
     .replace(/&/g, 'and')
-    .replace(/\b(the|presented by|pres\.? by|championship|challenge|classic|open|invitational|tournament)\b/g, '')
+    .replace(/\bu\.?\s*s\.?\b/g, 'us')
+    .replace(/\b(the|presented by|pres\.? by|challenge|classic|invitational|tournament)\b/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
 }
 
+function majorKey(value: string | null | undefined) {
+  const normalized = normalizeName(value)
+  if (/\bmasters\b/.test(normalized)) return 'masters'
+  if (/\bpga\b/.test(normalized) && /\bchampionship\b/.test(normalized)) return 'pga-championship'
+  if (/\bus\b/.test(normalized) && /\bopen\b/.test(normalized)) return 'us-open'
+  if (/\bopen\b/.test(normalized) && !/\bus\b/.test(normalized)) return 'open-championship'
+  return null
+}
+
 function overlapScore(a: string, b: string) {
+  const leftMajor = majorKey(a)
+  const rightMajor = majorKey(b)
+  if (leftMajor || rightMajor) return leftMajor && leftMajor === rightMajor ? 1 : 0
+
   const left = new Set(normalizeName(a).split(' ').filter(Boolean))
   const right = new Set(normalizeName(b).split(' ').filter(Boolean))
   if (!left.size || !right.size) return 0
