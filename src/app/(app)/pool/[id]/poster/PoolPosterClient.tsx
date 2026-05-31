@@ -54,6 +54,18 @@ function tournamentDateRange(tournament: PosterTournament | null) {
   return `${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(start)}-${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(end)}`
 }
 
+function cleanTournamentName(name?: string | null) {
+  const cleaned = String(name || '')
+    .replace(/\s+(presented|pres\.)\s+by\s+.+$/i, '')
+    .replace(/\s+(sponsored|hosted)\s+by\s+.+$/i, '')
+    .replace(/\s+benefiting\s+.+$/i, '')
+    .replace(/\s+-\s+.+$/i, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+
+  return cleaned || 'PGA tournament'
+}
+
 function obRuleExplainer(pool: PosterPool) {
   return `OB: cut, DQ, or DNF scores worst finisher +${pool.ob_penalty_strokes || 0}.`
 }
@@ -139,7 +151,7 @@ function RulesScoreboard({ pool, tournament, entryDeadline, hostNote, hostName }
             <div className="border-b-2 border-[#111] px-5 py-4 text-center">
               <p className="text-[14px] font-black uppercase tracking-[0.24em] text-[#b21e23]">Join Our Golf Pool</p>
               <p className="mt-1 text-[52px] font-black uppercase leading-none tracking-[-0.075em] text-[#123c2f]">{pool.name}</p>
-              <p className="mt-2 text-[18px] font-black uppercase leading-none tracking-[-0.02em] text-[#111]">{tournament?.name || 'PGA tournament'} <span className="text-[#b58a3a]">/</span> {tournamentDateRange(tournament)}</p>
+              <p className="mt-2 text-[18px] font-black uppercase leading-none tracking-[-0.02em] text-[#111]">{cleanTournamentName(tournament?.name)} <span className="text-[#b58a3a]">/</span> {tournamentDateRange(tournament)}</p>
               {tournament?.course ? <p className="mt-1 text-[11px] font-black uppercase tracking-[0.18em] text-[#657168]">{tournament.course}</p> : null}
             </div>
             {boardSections.map((section, index) => {
@@ -197,8 +209,8 @@ function RulesScoreboard({ pool, tournament, entryDeadline, hostNote, hostName }
               return (
                 <div key={section.type} className="border-b-2 border-[#111] last:border-b-0">
                   <div className="h-[30px] border-b-2 border-[#111] bg-[#123c2f]" aria-label={`Note from ${section.hostName}`} />
-                  <div className={`min-h-[76px] px-4 py-4 ${rowBg}`}>
-                    <p className="overflow-hidden text-ellipsis whitespace-nowrap text-[28px] font-black leading-none tracking-[-0.04em] text-[#111]">{section.note}</p>
+                  <div className={`min-h-[82px] px-4 py-4 ${rowBg}`}>
+                    <p className="overflow-hidden text-ellipsis whitespace-nowrap pb-1 text-[28px] font-black leading-[1.12] tracking-[-0.04em] text-[#111]">{section.note}</p>
                   </div>
                 </div>
               )
@@ -398,7 +410,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
               </div>
 
               {hostLogoSrc ? (
-                <div className="absolute bottom-[92px] left-[42px] grid h-[288px] w-[288px] place-items-center">
+                <div className="absolute bottom-[106px] left-[48px] grid h-[210px] w-[300px] place-items-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={hostLogoSrc} alt="Pool host logo" className="max-h-full max-w-full object-contain" />
                 </div>
