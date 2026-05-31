@@ -333,7 +333,7 @@ export default function CreatePoolPage() {
             .update({
               pick_groups_json: groups,
               field_snapshot_json: fieldSnapshot,
-              groups_finalized_at: new Date().toISOString(),
+              groups_finalized_at: null,
             })
             .eq('id', data.id)
             .eq('owner_id', user.id)

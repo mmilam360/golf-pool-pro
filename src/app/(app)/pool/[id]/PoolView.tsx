@@ -384,9 +384,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   useEffect(() => {
     if (!leaderboardModeIsCurrent && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
   }, [availableHistoricalRounds, leaderboardMode, leaderboardModeIsCurrent])
-  const groupsPending = groupedFormat && !groupsFinalized
+  const groupsNeedDraft = groupedFormat && pickGroups.length === 0
   const picksAreClosed = isLocked || scoringIsLive
-  const canEditPicks = !picksAreClosed && !groupsPending
+  const canEditPicks = !picksAreClosed && !groupsNeedDraft
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
   const paymentCollectionOpen = isLocked || scoringIsLive
@@ -777,10 +777,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   // Save picks
   async function savePicks() {
     if (!myEntry) return
-    if (picksAreClosed || groupsPending) {
-      const message = groupsPending ? 'Groups need to lock before picks can be saved.' : 'Picks are closed for this pool.'
+    if (picksAreClosed || groupsNeedDraft) {
+      const message = groupsNeedDraft ? 'Groups need to load before picks can be saved.' : 'Picks are closed for this pool.'
       setStatusMessage(message)
-      showToast(message, groupsPending ? 'info' : 'error')
+      showToast(message, groupsNeedDraft ? 'info' : 'error')
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
@@ -1356,7 +1356,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
           <span className="text-stone-600">Field: {field.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.length || 0)} golfers</span>
           {picksAreClosed && <span className="text-amber-700">Picks closed</span>}
-          {!picksAreClosed && groupsPending && <span className="text-amber-700">Groups pending</span>}
+          {!picksAreClosed && groupsNeedDraft && <span className="text-amber-700">Groups pending</span>}
+          {!picksAreClosed && groupedFormat && pickGroups.length > 0 && !groupsFinalized && <span className="text-emerald-700">Groups open</span>}
           {pool.is_completed && <span className="text-emerald-700">Final results</span>}
         </div>}
       </div>
@@ -1755,7 +1756,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       className="border-2 border-[#f3df9c] bg-[#f3df9c] px-5 py-2 text-sm font-black uppercase text-[#123c2f] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">
                       {saving ? 'Saving...' : 'Save picks'}
                     </button>
-                  ) : groupsPending ? (
+                  ) : groupsNeedDraft ? (
                     <span className="w-fit border border-[#f3df9c] bg-[#f3df9c] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Groups pending</span>
                   ) : picksAreClosed ? (
                     <span className="w-fit border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-800">Picks closed</span>
