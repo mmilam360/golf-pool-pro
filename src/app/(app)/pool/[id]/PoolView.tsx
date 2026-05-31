@@ -1803,7 +1803,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="flex flex-col gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f3df9c]">Make picks</p>
-                    <h2 className="text-xl font-black text-white">{groupsNeedLock ? 'Group preview. Picking turns on after groups lock.' : `Pick ${pool.pick_count}. Best ${pool.count_scores} count.`}</h2>
+                    <h2 className="text-xl font-black text-white">{groupsNeedLock ? 'Picks open soon. Review the groups now.' : `Pick ${pool.pick_count}. Best ${pool.count_scores} count.`}</h2>
                   </div>
                   {pickSelectionOpen && fieldReady ? (
                     <button onClick={savePicks} disabled={saving}
@@ -1811,7 +1811,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       {saving ? 'Saving...' : 'Save picks'}
                     </button>
                   ) : groupsNeedLock ? (
-                    <span className="w-fit border border-[#f3df9c] bg-[#f3df9c] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Groups pending</span>
+                    <span className="w-fit border border-[#f3df9c] bg-[#f3df9c] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Picks open soon</span>
                   ) : picksAreLocked ? (
                     <span className="w-fit border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-800">Picks closed</span>
                   ) : (
@@ -1821,9 +1821,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="p-4">
                   {groupsNeedLock && (
                     <div className="mb-4 border-2 border-[#b58a3a] bg-[#fff4cf] p-3 shadow-[4px_4px_0_#d8cab0]">
-                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#7a5a19]">Waiting on group lock</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#7a5a19]">Picks open soon</p>
                       <p className="mt-1 text-sm font-semibold leading-6 text-[#1f2a24]">
-                        {isOwner ? 'Lock groups when the field looks right. Players can review this preview, but picking stays off until groups are locked.' : 'The pool runner still needs to lock groups. You can review the field now, but picking stays off until groups are locked.'}
+                        {isOwner ? 'Review the groups now. Players can see this preview, but picking stays off until you lock groups. Groups also auto-lock Tuesday morning ET once the field is set.' : 'The pool runner is reviewing the groups. You can check the field now, but picks stay off until groups are locked. Groups auto-lock Tuesday morning ET once the field is set.'}
                       </p>
                     </div>
                   )}
@@ -1907,7 +1907,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="mb-4 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
                   <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? (groupsNeedLock ? 'Group preview' : `${pool.game_format === 'random_groups' ? 'Random' : 'Ranked'} groups`) : 'Tournament field'}</p>
-                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? (groupsNeedLock ? 'Review the groups now. Picks open after the pool runner locks them.' : `Pick ${picksPerGroup} from each group. Groups are locked for this pool.`) : 'Sorted by last name for quick scanning.'}</p>
+                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? (groupsNeedLock ? 'Picks open after groups lock. Groups auto-lock Tuesday morning ET once the field is set.' : `Pick ${picksPerGroup} from each group. Groups are locked for this pool.`) : 'Sorted by last name for quick scanning.'}</p>
                     {groupedFormat && (
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#d8cab0] pt-2">
                         <div className="flex flex-wrap items-center gap-2">
