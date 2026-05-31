@@ -34,7 +34,7 @@ type Props = {
 const POSTER_WIDTH = 816
 const POSTER_HEIGHT = 1056
 const POSTER_SETTINGS_VERSION = 1
-const CUSTOM_NOTE_MAX_CHARS = 46
+const CUSTOM_NOTE_MAX_CHARS = 42
 
 function formatDateOnly(value?: string | null) {
   if (!value) return 'Tournament week'
@@ -67,7 +67,8 @@ function cleanTournamentName(name?: string | null) {
 }
 
 function obRuleExplainer(pool: PosterPool) {
-  return `OB: cut, DQ, or DNF scores worst finisher +${pool.ob_penalty_strokes || 0}.`
+  const penalty = pool.ob_penalty_strokes || 0
+  return `OB: CUT, DNQ, DNF, or DQ gets the worst finisher's score +${penalty} ${penalty === 1 ? 'stroke' : 'strokes'}.`
 }
 
 function formatSummary(pool: PosterPool) {
@@ -410,7 +411,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
               </div>
 
               {hostLogoSrc ? (
-                <div className="absolute bottom-[106px] left-[48px] grid h-[210px] w-[300px] place-items-center">
+                <div className="absolute bottom-[106px] left-[42px] grid h-[178px] w-[178px] place-items-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={hostLogoSrc} alt="Pool host logo" className="max-h-full max-w-full object-contain" />
                 </div>
