@@ -67,7 +67,7 @@ export type GroupedPickGridProps = {
   pickGroups: PickGroup[]
   myPicks: string[]
   picksPerGroup: number
-  picksAreClosed: boolean
+  readOnly: boolean
   golferListName: (name: string) => string
   onTogglePick: (name: string) => void
   allSelectedCount: number
@@ -77,7 +77,7 @@ export function GroupedPickGrid({
   pickGroups,
   myPicks,
   picksPerGroup,
-  picksAreClosed,
+  readOnly,
   golferListName,
   onTogglePick,
   allSelectedCount,
@@ -122,7 +122,7 @@ export function GroupedPickGrid({
 
           const pickStates: PickState[] = group.players.map(player => {
             const selected = myPicks.includes(player.name)
-            const disabled = picksAreClosed || (!selected && selectedCount >= picksPerGroup)
+            const disabled = readOnly || (!selected && selectedCount >= picksPerGroup)
             return {
               rawName: player.name,
               displayName: golferListName(player.name),

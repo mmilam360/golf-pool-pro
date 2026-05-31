@@ -444,9 +444,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const fieldReady = field.length > 0
-  const showReadOnlyGroupedField = groupedFormat && pickGroups.length > 0
-  const showPickList = (canEditPicks || showReadOnlyGroupedField) && (fieldReady || showReadOnlyGroupedField)
-  const showSelectedPicks = fieldReady || myPicks.length > 0 || showReadOnlyGroupedField
+  const showGroupedFieldPreview = groupedFormat && pickGroups.length > 0 && !canEditPicks
+  const showPickList = (canEditPicks || showGroupedFieldPreview) && (fieldReady || showGroupedFieldPreview)
+  const showSelectedPicks = fieldReady || myPicks.length > 0 || showGroupedFieldPreview
   const visibleEntries = activeEntries
 
   const maskHiddenPicks = useCallback((poolEntries: any[]) => {
@@ -1416,7 +1416,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   pickGroups={pickGroups}
                   myPicks={[]}
                   picksPerGroup={picksPerGroup}
-                  picksAreClosed={true}
+                  readOnly={true}
                   golferListName={golferListName}
                   onTogglePick={() => {}}
                   allSelectedCount={0}
@@ -1934,7 +1934,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             pickGroups={pickGroups}
                             myPicks={myPicks}
                             picksPerGroup={picksPerGroup}
-                            picksAreClosed={picksAreClosed || groupsPending}
+                            readOnly={picksAreClosed || groupsPending}
                             golferListName={golferListName}
                             onTogglePick={togglePick}
                             allSelectedCount={myPicks.length}
