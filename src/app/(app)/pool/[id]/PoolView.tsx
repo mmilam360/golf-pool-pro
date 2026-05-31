@@ -1947,7 +1947,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             readOnly={picksAreLocked || groupsNeedLock}
                             golferListName={golferListName}
                             onTogglePick={togglePick}
-                            allSelectedCount={myPicks.length}
                           />
                         </div>
                       ) : (

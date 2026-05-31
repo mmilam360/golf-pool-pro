@@ -70,7 +70,6 @@ export type GroupedPickGridProps = {
   readOnly: boolean
   golferListName: (name: string) => string
   onTogglePick: (name: string) => void
-  allSelectedCount: number
 }
 
 export function GroupedPickGrid({
@@ -80,39 +79,13 @@ export function GroupedPickGrid({
   readOnly,
   golferListName,
   onTogglePick,
-  allSelectedCount,
 }: GroupedPickGridProps) {
   const [isMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 640 : false
   )
 
-  const totalPicks = pickGroups.length * picksPerGroup
-  const groupsRemaining = pickGroups.filter(g => {
-    const sc = g.players.filter(p => myPicks.includes(p.name)).length
-    return sc < picksPerGroup
-  }).length
-
   return (
     <div className="flex flex-col gap-3">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2 px-1">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
-            {allSelectedCount}/{totalPicks} picks
-          </span>
-          {groupsRemaining > 0 && (
-            <span className="text-[11px] font-bold text-[#b21e23]">
-              {groupsRemaining} group{groupsRemaining !== 1 ? 's' : ''} left
-            </span>
-          )}
-          {groupsRemaining === 0 && (
-            <span className="border border-[#123c2f] bg-[#eef7ef] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f]">
-              Complete
-            </span>
-          )}
-        </div>
-      </div>
-
       {/* Cards: horizontal scroll on mobile, flex-wrap on desktop */}
       <div className="flex flex-nowrap gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
         {pickGroups.map(group => {
