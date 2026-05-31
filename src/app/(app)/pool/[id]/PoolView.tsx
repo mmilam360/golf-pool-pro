@@ -361,6 +361,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [field, groupedFormat, pool.game_format, pool.group_count, pool.id, storedPickGroups, tournament?.external_id, tournament?.id, tournament?.name])
   const groupsFinalized = !groupedFormat || (storedPickGroups.length > 0 && Boolean(pool.groups_finalized_at))
   const picksPerGroup = groupedFormat ? Number(pool.picks_per_group || 1) : 0
+  const groupedTotalPicks = groupedFormat ? pickGroups.length * picksPerGroup : 0
+  const groupedGroupsRemaining = groupedFormat ? pickGroups.filter(group => {
+    const selectedCount = group.players.filter(player => myPicks.includes(player.name)).length
+    return selectedCount < picksPerGroup
+  }).length : 0
   const entriesNeedingPicks = activeEntries.filter(entry => {
     const picks = ((entry.golfer_picks as string[]) || [])
     if (groupedFormat) return !validateGroupedPicks(pickGroups, picks, picksPerGroup).valid
@@ -439,8 +444,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const fieldReady = field.length > 0
-  const showGroupPreview = groupedFormat && groupsPending && (fieldReady || pickGroups.length > 0)
-  const showPickList = (canEditPicks && (fieldReady || (groupedFormat && pickGroups.length > 0))) || showGroupPreview
+  const showPickList = canEditPicks && (fieldReady || (groupedFormat && pickGroups.length > 0))
   const showSelectedPicks = fieldReady || myPicks.length > 0 || (groupedFormat && pickGroups.length > 0)
   const visibleEntries = activeEntries
 
@@ -1392,6 +1396,44 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </button>
           </div>
         </div>
+      )}
+
+      {!publicView && groupedFormat && groupsPending && (
+        <section className="mb-6 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
+          <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">Group preview</p>
+            <p className="mt-1 text-sm font-semibold text-stone-700">
+              {pickGroups.length > 0 || fieldReady
+                ? 'Current field view. Picks unlock after the pool runner locks groups.'
+                : 'The field is not posted yet. This preview appears as soon as golfers load.'}
+            </p>
+          </div>
+          {(pickGroups.length > 0 || fieldReady) ? (
+            <div className="max-h-[28rem] overflow-y-auto p-2 sm:p-3">
+              {pickGroups.length > 0 ? (
+                <GroupedPickGrid
+                  pickGroups={pickGroups}
+                  myPicks={[]}
+                  picksPerGroup={picksPerGroup}
+                  picksAreClosed={true}
+                  golferListName={golferListName}
+                  onTogglePick={() => {}}
+                  allSelectedCount={0}
+                />
+              ) : (
+                [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => (
+                  <div key={player.id || player.name}
+                    className="flex w-full items-center justify-between border-b border-[#eadfca] px-4 py-2.5 text-left text-stone-500">
+                    <span className="text-sm font-semibold">{golferListName(player.name)}</span>
+                    <span className="border border-stone-300 bg-stone-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-stone-500">Field</span>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="px-4 py-5 text-sm font-semibold text-stone-600">Check back closer to the tournament. The field will show here before picks open.</div>
+          )}
+        </section>
       )}
 
       {isOwner && paymentStatus !== 'active' && (
