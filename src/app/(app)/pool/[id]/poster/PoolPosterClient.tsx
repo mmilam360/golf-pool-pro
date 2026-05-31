@@ -410,30 +410,36 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
                 <RulesScoreboard pool={pool} tournament={tournament} entryDeadline={entryDeadline} hostNote={hostNote} hostName={hostName} />
               </div>
 
-              {hostLogoSrc ? (
-                <div className="absolute bottom-[106px] left-[42px] grid h-[178px] w-[178px] place-items-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={hostLogoSrc} alt="Pool host logo" className="max-h-full max-w-full object-contain" />
+              <div className="absolute bottom-[98px] left-[42px] right-[42px] grid h-[204px] grid-cols-2 items-center gap-[120px]">
+                <div className="grid h-full place-items-center">
+                  {hostLogoSrc ? (
+                    <div className="grid h-[178px] w-[178px] place-items-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={hostLogoSrc} alt="Pool host logo" className="max-h-full max-w-full object-contain" />
+                    </div>
+                  ) : (
+                    <div className="w-[300px] text-[#123c2f]">
+                      <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Scan.</p>
+                      <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Pick.</p>
+                      <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Follow.</p>
+                      <div className="mt-4 h-[6px] w-[170px] bg-[#b58a3a]" aria-hidden="true" />
+                      <p className="mt-3 text-[13px] font-black uppercase tracking-[0.18em] text-[#657168]">Live leaderboard all week</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="absolute bottom-[128px] left-[48px] w-[300px] text-[#123c2f]">
-                  <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Scan.</p>
-                  <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Pick.</p>
-                  <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Follow.</p>
-                  <div className="mt-4 h-[6px] w-[170px] bg-[#b58a3a]" aria-hidden="true" />
-                  <p className="mt-3 text-[13px] font-black uppercase tracking-[0.18em] text-[#657168]">Live leaderboard all week</p>
-                </div>
-              )}
 
-              <div className="absolute bottom-[106px] right-[40px] w-[178px] border-[6px] border-[#123c2f] bg-white p-[11px] text-center shadow-[6px_6px_0_#d8cab0]">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#123c2f]">Scan to join</p>
-                <div className="mx-auto mt-2 grid h-[138px] w-[138px] place-items-center bg-[#fffdf8] p-1">
-                  {qrSrc ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={qrSrc} alt="QR code to join this golf pool" className="h-full w-full" />
-                  ) : <div className="h-full w-full bg-[#fbf7ed]" />}
+                <div className="grid h-full place-items-center">
+                  <div className="flex h-[178px] w-[178px] flex-col items-center justify-center border-[6px] border-[#123c2f] bg-white p-[9px] text-center shadow-[6px_6px_0_#d8cab0]">
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#123c2f]">Scan to join</p>
+                    <div className="mx-auto mt-2 grid h-[116px] w-[116px] place-items-center bg-[#fffdf8] p-1">
+                      {qrSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={qrSrc} alt="QR code to join this golf pool" className="h-full w-full" />
+                      ) : <div className="h-full w-full bg-[#fbf7ed]" />}
+                    </div>
+                    <p className="mt-2 text-[8px] font-black uppercase tracking-[0.14em] text-[#657168]">No app needed</p>
+                  </div>
                 </div>
-                <p className="mt-2 text-[8px] font-black uppercase tracking-[0.14em] text-[#657168]">No app needed</p>
               </div>
 
             </div>
