@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import ShortUniqueId from 'short-unique-id'
 import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
 import { buildRunItBackDefaults, selectNextRunItBackTournament } from '@/lib/run-it-back'
-import type { PoolGameFormat } from '@/lib/pool-formats'
+import { buildPickGroups, type PoolGameFormat } from '@/lib/pool-formats'
 
 interface Tournament {
   id: string; name: string; start_date: string; end_date: string; course: string; status: string; field_json?: any[] | null; leaderboard_json?: any[] | null
@@ -313,6 +313,31 @@ export default function CreatePoolPage() {
         setError(entryError.message)
         setLoading(false)
         return
+      }
+
+      if (gameFormat !== 'standard') {
+        const fieldSnapshot = Array.isArray(selected.field_json) && selected.field_json.length > 0
+          ? selected.field_json
+          : Array.isArray(selected.leaderboard_json)
+            ? selected.leaderboard_json
+            : []
+        const groups = buildPickGroups({
+          field: fieldSnapshot,
+          format: gameFormat,
+          groupCount: finalGroupCount,
+          seed: `${selectedTournament}:${passcode}:${gameFormat}`,
+        })
+        if (groups.length > 0) {
+          await supabase
+            .from('gpp_pools')
+            .update({
+              pick_groups_json: groups,
+              field_snapshot_json: fieldSnapshot,
+              groups_finalized_at: new Date().toISOString(),
+            })
+            .eq('id', data.id)
+            .eq('owner_id', user.id)
+        }
       }
 
       trackGppEvent('pool_created', {

@@ -384,7 +384,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   useEffect(() => {
     if (!leaderboardModeIsCurrent && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
   }, [availableHistoricalRounds, leaderboardMode, leaderboardModeIsCurrent])
-  const picksAreClosed = isLocked || scoringIsLive || (groupedFormat && !groupsFinalized)
+  const groupsPending = groupedFormat && !groupsFinalized
+  const picksAreClosed = isLocked || scoringIsLive
+  const canEditPicks = !picksAreClosed && !groupsPending
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
   const paymentCollectionOpen = isLocked || scoringIsLive
@@ -426,7 +428,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const fieldReady = field.length > 0
-  const showPickList = !picksAreClosed && (fieldReady || (groupedFormat && pickGroups.length > 0))
+  const showPickList = canEditPicks && (fieldReady || (groupedFormat && pickGroups.length > 0))
   const showSelectedPicks = fieldReady || myPicks.length > 0 || (groupedFormat && pickGroups.length > 0)
   const visibleEntries = activeEntries
 
@@ -775,9 +777,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   // Save picks
   async function savePicks() {
     if (!myEntry) return
-    if (picksAreClosed) {
-      setStatusMessage('Picks are closed for this pool.')
-      showToast('Picks are closed for this pool.', 'error')
+    if (picksAreClosed || groupsPending) {
+      const message = groupsPending ? 'Groups need to lock before picks can be saved.' : 'Picks are closed for this pool.'
+      setStatusMessage(message)
+      showToast(message, groupsPending ? 'info' : 'error')
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
@@ -868,7 +871,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   // Toggle golfer in picks
   function togglePick(name: string) {
-    if (picksAreClosed) return
+    if (!canEditPicks) return
     setMyPicks(prev => {
       if (prev.includes(name)) return prev.filter(n => n !== name)
       if (groupedFormat) {
@@ -1353,6 +1356,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
           <span className="text-stone-600">Field: {field.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.length || 0)} golfers</span>
           {picksAreClosed && <span className="text-amber-700">Picks closed</span>}
+          {!picksAreClosed && groupsPending && <span className="text-amber-700">Groups pending</span>}
           {pool.is_completed && <span className="text-emerald-700">Final results</span>}
         </div>}
       </div>
@@ -1746,11 +1750,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f3df9c]">Make picks</p>
                     <h2 className="text-xl font-black text-white">Pick {pool.pick_count}. Best {pool.count_scores} count.</h2>
                   </div>
-                  {!picksAreClosed && fieldReady ? (
+                  {canEditPicks && fieldReady ? (
                     <button onClick={savePicks} disabled={saving}
                       className="border-2 border-[#f3df9c] bg-[#f3df9c] px-5 py-2 text-sm font-black uppercase text-[#123c2f] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">
                       {saving ? 'Saving...' : 'Save picks'}
                     </button>
+                  ) : groupsPending ? (
+                    <span className="w-fit border border-[#f3df9c] bg-[#f3df9c] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Groups pending</span>
                   ) : picksAreClosed ? (
                     <span className="w-fit border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-800">Picks closed</span>
                   ) : (
@@ -1794,7 +1800,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               {picks.map(name => (
                                 <span key={name} className="flex items-center gap-2 rounded-none border border-[#123c2f] bg-white px-3 py-1.5 text-sm font-bold text-[#123c2f]">
                                   {golferListName(name)}
-                                  {!picksAreClosed && (
+                                  {canEditPicks && (
                                     <button type="button" onClick={() => togglePick(name)} className="border border-[#123c2f] px-1 text-[10px] font-black leading-4 text-[#123c2f] hover:border-[#b21e23] hover:text-[#b21e23]" aria-label={`Remove ${golferListName(name)}`}>×</button>
                                   )}
                                 </span>
@@ -1809,7 +1815,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         {myPicks.map(name => (
                           <span key={name} className="flex items-center gap-2 rounded-none border border-[#123c2f] bg-[#eef7ef] px-3 py-1.5 text-sm font-bold text-[#123c2f]">
                             {golferListName(name)}
-                            {!picksAreClosed && fieldReady && (
+                            {canEditPicks && fieldReady && (
                               <button type="button" onClick={() => togglePick(name)} className="border border-[#123c2f] px-1 text-[10px] font-black leading-4 text-[#123c2f] hover:border-[#b21e23] hover:text-[#b21e23]" aria-label={`Remove ${golferListName(name)}`}>×</button>
                             )}
                           </span>
