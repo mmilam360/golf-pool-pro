@@ -1907,22 +1907,32 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="mb-4 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
                   <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? (groupsNeedLock ? 'Group preview' : `${pool.game_format === 'random_groups' ? 'Random' : 'Ranked'} groups`) : 'Tournament field'}</p>
-                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? (groupsNeedLock ? 'Current field view. Picking turns on after the pool runner locks groups.' : `Pick ${picksPerGroup} from each group. Groups are locked for this pool.`) : 'Sorted by last name for quick scanning.'}</p>
+                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? (groupsNeedLock ? 'Review the groups now. Picks open after the pool runner locks them.' : `Pick ${picksPerGroup} from each group. Groups are locked for this pool.`) : 'Sorted by last name for quick scanning.'}</p>
                     {groupedFormat && (
-                      <div className="mt-1.5 flex items-center gap-2">
-                        <span className="text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
-                          {groupsNeedLock ? 'Preview only' : `${myPicks.length}/${groupedTotalPicks} picks`}
-                        </span>
-                        {!groupsNeedLock && groupedGroupsRemaining > 0 && (
-                          <span className="text-[11px] font-bold text-[#b21e23]">
-                            {groupedGroupsRemaining} group{groupedGroupsRemaining !== 1 ? 's' : ''} left
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#d8cab0] pt-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
+                            {groupsNeedLock ? 'Preview only' : `${myPicks.length}/${groupedTotalPicks} picks`}
                           </span>
-                        )}
-                        {!groupsNeedLock && groupedGroupsRemaining === 0 && myPicks.length > 0 && (
-                          <span className="border border-[#123c2f] bg-[#eef7ef] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f]">
-                            Complete
-                          </span>
-                        )}
+                          {groupsNeedLock && (
+                            <span className="border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#7a5a19]">
+                              Picks not open yet
+                            </span>
+                          )}
+                          {!groupsNeedLock && groupedGroupsRemaining === 0 && myPicks.length > 0 && (
+                            <span className="border border-[#123c2f] bg-[#eef7ef] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f]">
+                              Complete
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f]">
+                          <span>{myPicks.length}/{groupedTotalPicks} picks</span>
+                          {groupedGroupsRemaining > 0 && (
+                            <span className="text-[#b21e23]">
+                              {groupedGroupsRemaining} group{groupedGroupsRemaining !== 1 ? 's' : ''} left
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
