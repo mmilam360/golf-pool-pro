@@ -12,11 +12,39 @@ export const metadata: Metadata = {
 const helpTopics = [
   {
     title: 'Joining a pool',
-    body: 'Use the passcode or invite link from your pool runner. If the code does not work, check that the pool is still open.',
+    body: 'Use the invite link from your host, or enter the 6-character passcode on Join a pool. If you need to sign in first, Golf Pools Pro brings you back to the pool after login.',
   },
   {
     title: 'Making picks',
-    body: 'Open the pool, go to My Team, choose your golfers, and save before the pool locks or the tournament starts.',
+    body: 'Open the pool, go to My Entry, choose your golfers, and save before picks lock. Open Picks uses the full field. Tiered Picks and Clubhouse Chaos open after groups lock.',
+  },
+  {
+    title: 'When picks lock',
+    body: 'Entries and picks lock automatically before the first tee time. Grouped pools lock groups earlier, usually Tuesday morning ET once the official field is ready.',
+  },
+  {
+    title: 'Open Picks',
+    body: 'Players pick from the full tournament field. The default setup is 12 picks with the best 8 scores counting. If the official field changes before lock, removed golfers drop off open entries so players can replace them.',
+  },
+  {
+    title: 'Tiered Picks',
+    body: 'The field is sorted by World Golf Ranking, then divided into the number of tiers the pool runner sets. Players pick the same number from each tier.',
+  },
+  {
+    title: 'Clubhouse Chaos',
+    body: 'The field is shuffled once with a fixed seed, then divided into groups. Everyone gets the same shuffled groups and picks the same number from each group.',
+  },
+  {
+    title: 'Cuts, withdrawals, and OB',
+    body: 'CUT, WD, DNQ, DNF, and DQ picks can become OB stand-ins when they are needed for counted scores. The app uses the worst active counted score in the pool plus the pool OB penalty.',
+  },
+  {
+    title: 'Leaderboard updates',
+    body: 'Live boards refresh during tournament play from PGA scoring data. If a board looks quiet before Thursday, that usually means scoring has not started yet.',
+  },
+  {
+    title: 'Poster and invites',
+    body: 'Pool runners can copy an invite link, share a passcode, invite previous players, or make a signup poster with a QR code from Pool Settings.',
   },
   {
     title: 'App install',

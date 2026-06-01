@@ -123,7 +123,7 @@ export default function JoinPoolPage() {
         <BackButton />
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Player entry</p>
         <h1 className="mb-4 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Join a Pool</h1>
-        <p className="mb-6 max-w-md leading-7 text-stone-600">Scan a pool poster and we’ll open the pool for you. If your host gave you a code, enter it here.</p>
+        <p className="mb-6 max-w-md leading-7 text-stone-600">Scan a pool poster and we’ll open the pool for you. If you need to sign in first, we’ll bring you right back to this pool.</p>
         {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
         <form onSubmit={handleJoin} className="space-y-5 rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">

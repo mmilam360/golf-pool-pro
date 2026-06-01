@@ -369,7 +369,7 @@ export default function CreatePoolPage() {
               </div>
             ) : null}
             {tournaments.length === 0 && (
-              <p className="mt-1 text-xs text-stone-500">No upcoming tournaments loaded. Sync tournaments first.</p>
+              <p className="mt-1 text-xs text-stone-500">No open tournaments are available right now. Check back soon or send a support note from Help.</p>
             )}
           </div>
 
@@ -481,6 +481,22 @@ export default function CreatePoolPage() {
                 : 'Only golfers who make the cut count toward your score.'}
             </p>
           </div>
+
+          <section className="border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
+            <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Pool setup summary</p>
+              <h2 className="mt-1 text-lg font-black text-[#123c2f]">Ready to create?</h2>
+            </div>
+            <div className="grid gap-3 p-4 text-sm font-semibold leading-6 text-[#1f2a24] sm:grid-cols-2">
+              <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Tournament</span>{tournament ? `${tournament.name} · ${formatDateOnly(tournament.start_date)}` : 'Choose a tournament'}</p>
+              <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Format</span>{gameFormat === 'standard' ? 'Open Picks' : gameFormat === 'ranked_groups' ? 'Tiered Picks' : 'Clubhouse Chaos'}</p>
+              <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Picks</span>{gameFormat === 'standard' ? `${toNumber(pickCount, 12)} picks · best ${toNumber(countScores, 8)} count` : `${toNumber(groupCount, 6)} ${gameFormat === 'ranked_groups' ? 'tiers' : 'groups'} × ${toNumber(picksPerGroup, 2)} picks · best ${toNumber(countScores, 8)} count`}</p>
+              <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">OB rule</span>{obEnabled ? `On · ${toNumber(obPenalty, 2)} penalty strokes` : 'Off · only made-cut scores count'}</p>
+            </div>
+            <p className="border-t border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-xs font-bold leading-5 text-[#657168]">
+              After this, copy the invite link or make a signup poster. Players can join and make picks until entries lock before the first tee time.
+            </p>
+          </section>
 
           <button type="submit" disabled={loading || !selectedTournament}
             className="gpp-3d gpp-button-3d gpp-button-wrap w-full disabled:opacity-50">

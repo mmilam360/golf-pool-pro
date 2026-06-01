@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [signupHref, setSignupHref] = useState('/signup')
+  const [joiningPool, setJoiningPool] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -30,6 +31,7 @@ export default function LoginPage() {
   useEffect(() => {
     const redirectParam = new URLSearchParams(window.location.search).get('redirect')
     setSignupHref(redirectParam ? `/signup?redirect=${encodeURIComponent(redirectParam)}` : '/signup')
+    setJoiningPool(Boolean(redirectParam?.startsWith('/pool/join')))
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -61,6 +63,11 @@ export default function LoginPage() {
     <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 shadow-[6px_6px_0_#d8cab0]">
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Account login</p>
       <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Sign in</h1>
+      {joiningPool && (
+        <div className="mb-5 border-2 border-[#b58a3a] bg-[#fff4cf] px-4 py-3 text-sm font-semibold leading-6 text-[#1f2a24]">
+          You are joining a pool. Sign in here and we will bring you back to finish joining.
+        </div>
+      )}
       {error && (
         <div className="bg-red-50 text-red-700 p-3 rounded-none mb-4 text-sm border border-red-200">{error}</div>
       )}

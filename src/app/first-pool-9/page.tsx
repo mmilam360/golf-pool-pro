@@ -173,7 +173,7 @@ export default function FirstPoolNinePage() {
           </ul>
         </div>
         <div>
-          <SignupPage />
+          <SignupPage defaultPromoCode="FIRSTPOOL9" />
         </div>
       </section>
     </main>

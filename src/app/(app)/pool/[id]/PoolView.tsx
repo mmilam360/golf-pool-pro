@@ -424,6 +424,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const pickCount = entry.submitted_pick_count ?? picks.length
     return pickCount < pool.pick_count
   })
+  const myPicksComplete = groupedFormat
+    ? validateGroupedPicks(pickGroups, myPicks, picksPerGroup).valid
+    : myPicks.length >= pool.pick_count
+  const myPicksRemaining = groupedFormat
+    ? Math.max(0, groupedTotalPicks - myPicks.length)
+    : Math.max(0, pool.pick_count - myPicks.length)
   const submittedPickCount = activeEntries.length - entriesNeedingPicks.length
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
@@ -1645,19 +1651,21 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         </div>
       )}
       {!publicView && tab === 'leaderboard' && myEntry && !picksAreLocked && (
-        <section className="mb-4 border-2 border-[#123c2f] bg-white p-4 shadow-[5px_5px_0_#d8cab0]">
+        <section className={`mb-4 border-2 p-4 shadow-[5px_5px_0_#d8cab0] ${myPicksComplete ? 'border-[#123c2f] bg-[#eef7ef]' : 'border-[#b21e23] bg-[#fff4cf]'}`}>
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Make picks</p>
-              <h2 className="font-display text-xl font-bold text-[#0f2f25]">{myPicks.length ? 'Edit your picks before lock' : 'Make your picks before lock'}</h2>
-              <p className="mt-1 text-sm font-semibold text-[#657168]">You can view the leaderboard preview below. Other entrants’ picks stay hidden until the pool locks.</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Your entry</p>
+              <h2 className="font-display text-xl font-bold text-[#0f2f25]">
+                {myPicksComplete ? 'Picks are saved. You can still edit before lock.' : `${myPicksRemaining} ${myPicksRemaining === 1 ? 'pick' : 'picks'} left before your entry is complete.`}
+              </h2>
+              <p className="mt-1 text-sm font-semibold text-[#657168]">Other entrants’ picks stay hidden until the pool locks. Use My Entry to finish or change yours.</p>
             </div>
             <button
               type="button"
               onClick={() => setTab('my-entry')}
               className="gpp-3d gpp-button-3d gpp-button-wrap text-sm"
             >
-              <span className="gpp-button-face px-4 py-2">{myPicks.length ? 'Edit picks' : 'Make picks'}</span>
+              <span className="gpp-button-face px-4 py-2">{myPicksComplete ? 'Edit picks' : 'Finish picks'}</span>
             </button>
           </div>
         </section>

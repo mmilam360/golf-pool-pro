@@ -39,7 +39,7 @@ function PasswordInput({ value, onChange, label }: { value: string; onChange: (v
   )
 }
 
-export default function SignupPage() {
+export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode?: string } = {}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -48,13 +48,17 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [signupPromoCode, setSignupPromoCode] = useState('FIRSTPOOL9')
+  const [signupPromoCode, setSignupPromoCode] = useState(defaultPromoCode)
+  const [joiningPool, setJoiningPool] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    setSignupPromoCode(new URLSearchParams(window.location.search).get('promo') || 'FIRSTPOOL9')
-  }, [])
+    const params = new URLSearchParams(window.location.search)
+    setSignupPromoCode(params.get('promo') || defaultPromoCode)
+    const redirectParam = params.get('redirect') || ''
+    setJoiningPool(redirectParam.startsWith('/pool/join'))
+  }, [defaultPromoCode])
 
   function getLoginHref() {
     if (typeof window === 'undefined') return '/login'
@@ -150,6 +154,11 @@ export default function SignupPage() {
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">New account</p>
           <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Create account</h1>
         </>
+      )}
+      {joiningPool && (
+        <div className="mb-5 border-2 border-[#b58a3a] bg-[#fff4cf] px-4 py-3 text-sm font-semibold leading-6 text-[#1f2a24]">
+          You are joining a pool. Create your account here and we will bring you back to finish joining.
+        </div>
       )}
       {error && (
         <div className="bg-red-50 text-red-700 p-3 rounded-none mb-4 text-sm border border-red-200">{error}</div>
