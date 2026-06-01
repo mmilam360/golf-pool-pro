@@ -13,17 +13,19 @@ type NotificationPrefs = {
   pick_deadline?: boolean
   leaderboard_live?: boolean
   took_lead?: boolean
+  field_update?: boolean
 }
 
 function cleanPrefs(prefs: NotificationPrefs | undefined) {
   return {
     pick_deadline: prefs?.pick_deadline !== false,
     leaderboard_live: prefs?.leaderboard_live !== false,
+    field_update: prefs?.field_update !== false,
     took_lead: Boolean(prefs?.took_lead),
   }
 }
 
-function validPushSubscription(subscription: PushSubscriptionPayload | undefined) {
+function validPushSubscription(subscription: PushSubscriptionPayload | undefined): subscription is Required<PushSubscriptionPayload> & { keys: { p256dh: string; auth: string } } {
   if (!subscription?.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) return false
   if (!/^https:\/\//i.test(subscription.endpoint) || subscription.endpoint.length > 2048) return false
   const keyPattern = /^[A-Za-z0-9_-]+={0,2}$/

@@ -3,6 +3,7 @@ import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompet
 import { autoFinalizeGroupedPools } from './grouped-pool-auto-lock'
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
 import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
+import { notificationPrefsAllow, recordNotificationEvent, sendPushToUser } from './notifications/push'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 const ESPN_EVENT_URL = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${eventId}`
@@ -129,14 +130,57 @@ async function loadExistingFingerprints(supabase: any): Promise<Map<string, stri
   return map
 }
 
+async function fieldUpdatePushAllowed(supabase: any, userId: string) {
+  const { data } = await supabase
+    .from('gpp_notification_preferences')
+    .select('field_update')
+    .eq('user_id', userId)
+    .maybeSingle()
+  return notificationPrefsAllow(data, 'field_update')
+}
+
+async function recordFieldUpdateAlert(params: {
+  supabase: any
+  userId?: string | null
+  poolId: string
+  dedupeKey: string
+  title: string
+  body: string
+  payload: Record<string, unknown>
+}) {
+  if (!params.userId) return
+  const inserted = await recordNotificationEvent({
+    userId: params.userId,
+    poolId: params.poolId,
+    type: 'field_update',
+    dedupeKey: params.dedupeKey,
+    payload: params.payload,
+  })
+  if (!inserted) return
+  if (!await fieldUpdatePushAllowed(params.supabase, params.userId)) return
+  await sendPushToUser(params.userId, {
+    title: params.title,
+    body: params.body,
+    url: `/pool/${params.poolId}#make-picks`,
+    tag: params.dedupeKey,
+  })
+}
+
 async function pruneOpenStandardPoolPicksForTournament(supabase: any, tournamentId: string, players: any[]) {
   if (!Array.isArray(players) || players.length === 0) return 0
   const validNames = new Set(players.map(player => player?.name).filter(Boolean))
   if (validNames.size === 0) return 0
+  const fingerprint = fieldFingerprint(players)
+
+  const { data: tournament } = await supabase
+    .from('gpp_tournaments')
+    .select('name')
+    .eq('id', tournamentId)
+    .maybeSingle() as { data: { name?: string } | null }
 
   const { data: pools, error: poolsError } = await supabase
     .from('gpp_pools')
-    .select('id')
+    .select('id, name, owner_id')
     .eq('tournament_id', tournamentId)
     .eq('game_format', 'standard')
     .eq('is_locked', false)
@@ -144,27 +188,80 @@ async function pruneOpenStandardPoolPicksForTournament(supabase: any, tournament
   if (poolsError) throw poolsError
   const poolIds = (pools || []).map((pool: { id: string }) => pool.id)
   if (poolIds.length === 0) return 0
+  const poolById = new Map<string, any>((pools || []).map((pool: any) => [pool.id, pool]))
 
   const { data: entries, error: entriesError } = await supabase
     .from('gpp_entries')
-    .select('id, golfer_picks')
+    .select('id, pool_id, user_id, display_name, golfer_picks')
     .in('pool_id', poolIds)
     .eq('is_removed', false)
 
   if (entriesError) throw entriesError
 
   let pruned = 0
+  const hostSummaries = new Map<string, { pool: any; affected: Array<{ displayName: string; removed: string[] }> }>()
   for (const entry of entries || []) {
     const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
+    const removedPicks = picks.filter((name: string) => !validNames.has(name))
+    if (removedPicks.length === 0) continue
     const nextPicks = picks.filter((name: string) => validNames.has(name))
-    if (nextPicks.length === picks.length) continue
     const { error } = await supabase
       .from('gpp_entries')
       .update({ golfer_picks: nextPicks })
       .eq('id', entry.id)
     if (error) throw error
     pruned++
+
+    const pool = poolById.get(entry.pool_id)
+    const poolName = pool?.name || 'Your pool'
+    const removedCount = removedPicks.length
+    await recordFieldUpdateAlert({
+      supabase,
+      userId: entry.user_id,
+      poolId: entry.pool_id,
+      dedupeKey: `field_update:entry:${entry.id}:${fingerprint}`,
+      title: 'Field changed — update your picks',
+      body: `${poolName}: ${removedCount} ${removedCount === 1 ? 'golfer was' : 'golfers were'} removed from the official field. Make replacement picks before lock.`,
+      payload: {
+        role: 'entrant',
+        poolName,
+        tournamentName: tournament?.name || null,
+        entryId: entry.id,
+        entryName: entry.display_name || 'Entry',
+        removedPicks,
+        removedCount,
+        remainingPickCount: nextPicks.length,
+      },
+    })
+
+    if (pool?.owner_id) {
+      const summary = hostSummaries.get(entry.pool_id) || { pool, affected: [] }
+      summary.affected.push({ displayName: entry.display_name || 'Entry', removed: removedPicks })
+      hostSummaries.set(entry.pool_id, summary)
+    }
   }
+
+  for (const [poolId, summary] of hostSummaries.entries()) {
+    const affectedCount = summary.affected.length
+    const removedCount = summary.affected.reduce((total, entry) => total + entry.removed.length, 0)
+    await recordFieldUpdateAlert({
+      supabase,
+      userId: summary.pool.owner_id,
+      poolId,
+      dedupeKey: `field_update:host:${poolId}:${fingerprint}`,
+      title: 'Field changed in your pool',
+      body: `${summary.pool.name}: ${affectedCount} ${affectedCount === 1 ? 'entry needs' : 'entries need'} replacement picks before lock.`,
+      payload: {
+        role: 'host',
+        poolName: summary.pool.name,
+        tournamentName: tournament?.name || null,
+        affectedEntries: summary.affected,
+        affectedCount,
+        removedCount,
+      },
+    })
+  }
+
   return pruned
 }
 

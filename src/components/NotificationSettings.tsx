@@ -3,9 +3,17 @@
 import { useEffect, useMemo, useState } from 'react'
 
 type NotificationPrefs = {
-  pick_deadline?: boolean
-  leaderboard_live?: boolean
-  took_lead?: boolean
+  pick_deadline: boolean
+  leaderboard_live: boolean
+  took_lead: boolean
+  field_update: boolean
+}
+
+const DEFAULT_PREFS: NotificationPrefs = {
+  pick_deadline: true,
+  leaderboard_live: true,
+  field_update: true,
+  took_lead: false,
 }
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -25,7 +33,7 @@ export function NotificationSettings({
   onChange: (prefs: NotificationPrefs) => void
 }) {
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('unsupported')
-  const [prefs, setPrefs] = useState<NotificationPrefs>(initialPrefs || {})
+  const [prefs, setPrefs] = useState<NotificationPrefs>({ ...DEFAULT_PREFS, ...initialPrefs })
   const [subscriptionSynced, setSubscriptionSynced] = useState(false)
 
   useEffect(() => {
@@ -74,6 +82,7 @@ export function NotificationSettings({
         ...prefs,
         pick_deadline: true,
         leaderboard_live: true,
+        field_update: true,
         took_lead: prefs.took_lead ?? false,
       }
       try {
@@ -98,6 +107,7 @@ export function NotificationSettings({
       ...prefs,
       pick_deadline: prefs.pick_deadline !== false,
       leaderboard_live: prefs.leaderboard_live !== false,
+      field_update: prefs.field_update !== false,
       took_lead: Boolean(prefs.took_lead),
     }
     registerPushSubscription(next)
@@ -141,6 +151,10 @@ export function NotificationSettings({
         <label className="flex items-center justify-between gap-3 border border-[#d8cab0] bg-white px-3 py-2 text-sm font-bold text-[#1f2a24]">
           <span>Leaderboard is live</span>
           <input type="checkbox" disabled={!enabled} checked={Boolean(prefs.leaderboard_live)} onChange={event => update('leaderboard_live', event.target.checked)} className="h-4 w-4 accent-[#123c2f]" />
+        </label>
+        <label className="flex items-center justify-between gap-3 border border-[#d8cab0] bg-white px-3 py-2 text-sm font-bold text-[#1f2a24]">
+          <span>Field changes affect my picks</span>
+          <input type="checkbox" disabled={!enabled} checked={prefs.field_update !== false} onChange={event => update('field_update', event.target.checked)} className="h-4 w-4 accent-[#123c2f]" />
         </label>
         <label className="flex items-center justify-between gap-3 border border-[#d8cab0] bg-white px-3 py-2 text-sm font-bold text-[#1f2a24]">
           <span>When I take the lead</span>

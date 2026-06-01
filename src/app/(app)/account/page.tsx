@@ -98,8 +98,8 @@ export default function AccountPage() {
   const [name, setName] = useState('')
   const [originalName, setOriginalName] = useState('')
   const [marketingOptIn, setMarketingOptIn] = useState(false)
-  const [notificationPrefs, setNotificationPrefs] = useState({ pick_deadline: false, leaderboard_live: false, took_lead: false })
-  const [originalNotificationPrefs, setOriginalNotificationPrefs] = useState({ pick_deadline: false, leaderboard_live: false, took_lead: false })
+  const [notificationPrefs, setNotificationPrefs] = useState({ pick_deadline: false, leaderboard_live: false, field_update: true, took_lead: false })
+  const [originalNotificationPrefs, setOriginalNotificationPrefs] = useState({ pick_deadline: false, leaderboard_live: false, field_update: true, took_lead: false })
   const [originalMarketingOptIn, setOriginalMarketingOptIn] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -129,7 +129,13 @@ export default function AccountPage() {
         || ''
       const nextName = profile?.display_name || fallbackName
       const nextMarketing = Boolean(user.user_metadata?.marketing_emails)
-      const nextNotifications = user.user_metadata?.notification_prefs || { pick_deadline: false, leaderboard_live: false, took_lead: false }
+      const nextNotifications = {
+        pick_deadline: false,
+        leaderboard_live: false,
+        field_update: true,
+        took_lead: false,
+        ...(user.user_metadata?.notification_prefs || {}),
+      }
 
       setEmail(profile?.email || user.email || '')
       setName(nextName)

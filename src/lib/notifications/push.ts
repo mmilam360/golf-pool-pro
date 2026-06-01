@@ -1,10 +1,13 @@
 import * as webpush from 'web-push'
 import { createServiceClient } from '@/lib/supabase/service'
 
+type NotificationType = 'pick_deadline' | 'leaderboard_live' | 'took_lead' | 'field_update'
+
 type NotificationPrefs = {
   pick_deadline?: boolean | null
   leaderboard_live?: boolean | null
   took_lead?: boolean | null
+  field_update?: boolean | null
 }
 
 type PushPayload = {
@@ -26,7 +29,7 @@ function configureWebPush() {
   return true
 }
 
-export function notificationPrefsAllow(prefs: NotificationPrefs | null | undefined, type: 'pick_deadline' | 'leaderboard_live' | 'took_lead') {
+export function notificationPrefsAllow(prefs: NotificationPrefs | null | undefined, type: NotificationType) {
   if (!prefs) return type !== 'took_lead'
   if (type === 'took_lead') return Boolean(prefs.took_lead)
   return prefs[type] !== false
@@ -78,7 +81,7 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
 export async function recordNotificationEvent(params: {
   userId: string
   poolId?: string | null
-  type: 'pick_deadline' | 'leaderboard_live' | 'took_lead'
+  type: NotificationType
   dedupeKey: string
   payload: Record<string, unknown>
 }) {

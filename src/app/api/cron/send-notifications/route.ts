@@ -8,7 +8,7 @@ import type { GolfPlayer } from '@/lib/golf-api'
 
 export const runtime = 'nodejs'
 
-type Prefs = { user_id: string; pick_deadline?: boolean; leaderboard_live?: boolean; took_lead?: boolean }
+type Prefs = { user_id: string; pick_deadline?: boolean; leaderboard_live?: boolean; took_lead?: boolean; field_update?: boolean }
 
 function dateKey(value?: string | null) {
   return value ? value.split('T')[0] : new Date().toISOString().slice(0, 10)

@@ -14,7 +14,7 @@ import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
-import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup } from '@/lib/pool-formats'
+import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup, type PoolGameFormat } from '@/lib/pool-formats'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 
 type PaymentQuote = {
@@ -265,6 +265,20 @@ const ROUND_SCORE_LABELS: Record<number, string> = { 1: 'THU', 2: 'FRI', 3: 'SAT
 
 type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
 
+type FieldUpdateAlert = {
+  id: string
+  payload: {
+    role?: 'entrant' | 'host'
+    entryName?: string
+    removedPicks?: string[]
+    removedCount?: number
+    affectedEntries?: Array<{ displayName: string; removed: string[] }>
+    affectedCount?: number
+    poolName?: string
+    tournamentName?: string | null
+  }
+}
+
 function roundMenuLabel(round: number) {
   return ROUND_MENU_LABELS[round] || `ROUND ${round}`
 }
@@ -314,6 +328,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
   const [toasts, setToasts] = useState<ToastMessage[]>([])
+  const [fieldUpdateAlerts, setFieldUpdateAlerts] = useState<FieldUpdateAlert[]>([])
+  const [dismissedFieldUpdateAlertIds, setDismissedFieldUpdateAlertIds] = useState<Set<string>>(() => new Set())
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
@@ -334,6 +350,23 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
   }, [])
   const supabase = useMemo(() => createClient(), [])
+
+  useEffect(() => {
+    if (publicView || !userId) return
+    let active = true
+    supabase
+      .from('gpp_notification_events')
+      .select('id, payload, sent_at')
+      .eq('pool_id', pool.id)
+      .eq('type', 'field_update')
+      .order('sent_at', { ascending: false })
+      .limit(4)
+      .then(({ data }) => {
+        if (!active) return
+        setFieldUpdateAlerts(((data || []) as FieldUpdateAlert[]).filter(alert => alert?.payload))
+      })
+    return () => { active = false }
+  }, [pool.id, publicView, supabase, userId])
 
   const dismissToast = useCallback((id: number) => {
     setToasts(current => current.filter(toast => toast.id !== id))
@@ -1403,6 +1436,52 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       </div>
 
       {statusMessage && <div className="mb-4 rounded-none border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
+
+      {fieldUpdateAlerts.filter(alert => !dismissedFieldUpdateAlertIds.has(alert.id)).map(alert => {
+        const payload = alert.payload || {}
+        const isHostAlert = payload.role === 'host'
+        const affectedCount = Number(payload.affectedCount || 0)
+        const removedCount = Number(payload.removedCount || payload.removedPicks?.length || 0)
+        const removedNames = Array.isArray(payload.removedPicks) ? payload.removedPicks.join(', ') : ''
+        return (
+          <div key={alert.id} className="mb-4 border-2 border-[#b58a3a] bg-[#fff7dc] p-4 shadow-[5px_5px_0_#d8cab0]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7a5a19]">Official field changed</p>
+                <p className="mt-1 text-lg font-black leading-6 text-[#123c2f]">
+                  {isHostAlert
+                    ? `${affectedCount} ${affectedCount === 1 ? 'entry needs' : 'entries need'} replacement picks.`
+                    : `${removedCount} ${removedCount === 1 ? 'golfer was' : 'golfers were'} removed from your entry.`}
+                </p>
+                <p className="mt-1 text-sm font-semibold leading-5 text-[#5f4617]">
+                  {isHostAlert
+                    ? 'The field refreshed before lock. Check the affected entries and remind players to fill their open spots.'
+                    : `Make replacement picks before the tournament starts.${removedNames ? ` Removed: ${removedNames}.` : ''}`}
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTab('my-entry')
+                    window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+                  }}
+                  className="border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-white"
+                >
+                  {isHostAlert ? 'Review pool' : 'Make picks'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDismissedFieldUpdateAlertIds(current => new Set(current).add(alert.id))}
+                  className="border-2 border-[#123c2f] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f]"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })}
 
       {!publicView && isOwner && groupedFormat && !groupsFinalized && (
         <div className="mb-6 rounded-none border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">

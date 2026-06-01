@@ -5,12 +5,14 @@ type NotificationPrefs = {
   pick_deadline?: boolean
   leaderboard_live?: boolean
   took_lead?: boolean
+  field_update?: boolean
 }
 
 function cleanPrefs(prefs: NotificationPrefs | undefined) {
   return {
     pick_deadline: prefs?.pick_deadline !== false,
     leaderboard_live: prefs?.leaderboard_live !== false,
+    field_update: prefs?.field_update !== false,
     took_lead: Boolean(prefs?.took_lead),
   }
 }
