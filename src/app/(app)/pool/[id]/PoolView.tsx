@@ -1544,7 +1544,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         )
       })}
 
-      {!publicView && isOwner && groupedFormat && !groupsFinalized && (
+      {!publicView && isOwner && tab === 'pool-settings' && groupedFormat && !groupsFinalized && (
         <div className="mb-6 rounded-none border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1563,7 +1563,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         </div>
       )}
 
-      {!publicView && groupedFormat && groupsNeedLock && (
+      {!publicView && tab === 'leaderboard' && groupedFormat && groupsNeedLock && (
         <section className="mb-6 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
           <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{pool.game_format === 'ranked_groups' ? 'Tier preview' : 'Group preview'}</p>
@@ -1601,7 +1601,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         </section>
       )}
 
-      {isOwner && paymentStatus !== 'active' && (
+      {isOwner && tab === 'pool-settings' && paymentStatus !== 'active' && (
         <div className="mb-6 rounded-none border-2 border-amber-300 bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1619,7 +1619,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         </div>
       )}
 
-      {!publicView && canInvitePlayers && (
+      {!publicView && tab === 'pool-settings' && canInvitePlayers && (
         <div className="mb-6">
           <PoolInvitePrepPanel
             poolName={poolName}
@@ -1642,7 +1642,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           />
         </div>
       )}
-      {!publicView && myEntry && !picksAreLocked && (
+      {!publicView && tab === 'leaderboard' && myEntry && !picksAreLocked && (
         <section className="mb-4 border-2 border-[#123c2f] bg-white p-4 shadow-[5px_5px_0_#d8cab0]">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             <div>
@@ -2219,6 +2219,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {/* Pool Settings Tab */}
       {tab === 'pool-settings' && isOwner && (
         <div ref={adminSectionRef} className="scroll-mt-6 space-y-6">
+          {myEntry && !picksAreLocked && (
+            <section className="border border-[#d8cab0] bg-white px-4 py-3 text-sm font-semibold text-[#1f2a24] shadow-[4px_4px_0_#d8cab0]">
+              Your entry is under <button type="button" onClick={() => setTab('my-entry')} className="font-black uppercase tracking-[0.08em] text-[#123c2f] underline decoration-[#b58a3a] underline-offset-4">My Entry</button>. Pool Settings is just for runner controls.
+            </section>
+          )}
           <section className="border-2 border-[#123c2f] bg-[#fbf7ed] p-5 shadow-[5px_5px_0_#d8cab0]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
