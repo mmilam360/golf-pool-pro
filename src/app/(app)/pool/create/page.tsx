@@ -381,19 +381,16 @@ export default function CreatePoolPage() {
                   value: 'standard',
                   label: 'Open Picks',
                   helperLines: ['Full field.', 'No tiers or groups.'],
-                  image: '/game-modes/standard-wordmark.svg',
                 },
                 {
                   value: 'ranked_groups',
                   label: 'Tiered Picks',
                   helperLines: ['Ranked tiers.', 'Same board for every entry.'],
-                  image: '/game-modes/ranked-wordmark.svg',
                 },
                 {
                   value: 'random_groups',
                   label: 'Clubhouse Chaos',
                   helperLines: ['Shuffled groups.', 'Same board for every entry.'],
-                  image: '/game-modes/clubhouse-chaos-wordmark.svg',
                 },
               ].map(option => (
                 <button
@@ -402,14 +399,6 @@ export default function CreatePoolPage() {
                   onClick={() => setGameFormat(option.value as PoolGameFormat)}
                   className={`border-2 px-3 py-3 text-left transition-colors ${gameFormat === option.value ? 'border-[#123c2f] bg-white text-[#123c2f]' : 'border-[#d8cab0] bg-[#fffaf0] text-stone-700 hover:border-[#123c2f]'}`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- these are static mode-card tags, not LCP content */}
-                  <img
-                    src={option.image}
-                    alt=""
-                    aria-hidden="true"
-                    className="mb-3 aspect-[16/11] w-full border border-[#d8cab0] bg-[#fbf7ed] object-cover"
-                    loading="eager"
-                  />
                   <span className="block text-center text-sm font-black uppercase tracking-[0.08em]">{option.label}</span>
                   <span className="mt-1 block text-center text-xs font-semibold leading-4">
                     {option.helperLines.map(line => <span key={line} className="block">{line}</span>)}
