@@ -80,7 +80,7 @@ function formatSummary(pool: PosterPool) {
       mode: 'Tiered Picks',
       picks: `Pick ${perGroup} per tier`,
       scoring: `Best ${pool.count_scores || 8} count`,
-      explainer: `${groups} tiers by WGR`,
+      explainer: `${groups} WGR tiers`,
     }
   }
 
@@ -94,10 +94,10 @@ function formatSummary(pool: PosterPool) {
   }
 
   return {
-    mode: 'Open Field',
+    mode: 'Standard Picks',
     picks: `Pick ${pool.pick_count || 6} golfers`,
-    scoring: `Top ${pool.count_scores || pool.pick_count || 4} count`,
-    explainer: 'Open field, no groups',
+    scoring: `Best ${pool.count_scores || pool.pick_count || 4} count`,
+    explainer: 'Full field',
   }
 }
 
@@ -276,7 +276,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [inkSaver, setInkSaver] = useState(false)
   const [entryDeadline, setEntryDeadline] = useState(defaultEntryDeadline)
-  const [hostNote, setHostNote] = useState('Join before the first tee time.')
+  const [hostNote, setHostNote] = useState('Pay the host before picks lock.')
   const [hostLogoSrc, setHostLogoSrc] = useState('')
   const [qrSrc, setQrSrc] = useState('')
   const [exportFormat, setExportFormat] = useState<PosterExportFormat>('png')
@@ -528,7 +528,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
                       <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Pick.</p>
                       <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Follow.</p>
                       <div className="mt-4 h-[6px] w-[170px] bg-[#b58a3a]" aria-hidden="true" />
-                      <p className="mt-3 text-[13px] font-black uppercase tracking-[0.18em] text-[#657168]">Live board all weekend</p>
+                      <p className="mt-3 text-[13px] font-black uppercase tracking-[0.18em] text-[#657168]">Live leaderboard all week</p>
                     </div>
                   )}
                 </div>

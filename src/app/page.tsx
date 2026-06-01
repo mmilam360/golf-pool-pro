@@ -100,8 +100,8 @@ const featureRows = [
 ]
 
 const formatRows = [
-  ['Open Field', 'Open field, no groups. Players pick from the full tournament field.'],
-  ['Tiered Picks', 'Ranked by World Golf Ranking. Players pick from each tier.'],
+  ['Standard', 'Pick from the full field. Simple, familiar, and easy for first-time players.'],
+  ['Ranked groups', 'Field is sorted into groups based on WGR. Players pick from each group.'],
   ['Clubhouse Chaos', 'Field is randomly shuffled, then divided into groups. Same groups for everyone.'],
 ]
 
