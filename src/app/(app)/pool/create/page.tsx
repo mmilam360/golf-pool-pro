@@ -385,12 +385,12 @@ export default function CreatePoolPage() {
                 {
                   value: 'ranked_groups',
                   label: 'Tiered Picks',
-                  helperLines: ['Ranked tiers.', 'Same board for every entry.'],
+                  helperLines: ['Ranked tiers.', 'Divided into tiers you set.'],
                 },
                 {
                   value: 'random_groups',
                   label: 'Clubhouse Chaos',
-                  helperLines: ['Shuffled groups.', 'Same board for every entry.'],
+                  helperLines: ['Shuffled groups.', 'Divided into groups you set.'],
                 },
               ].map(option => (
                 <button
