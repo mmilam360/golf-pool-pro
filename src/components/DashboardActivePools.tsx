@@ -394,6 +394,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const harePickMap = leaderboardModeIsCurrent ? buildHarePickMap(scoredEntries, 2) : new Map()
   const tortoisePickMap = leaderboardModeIsCurrent ? buildTortoisePickMap(scoredEntries, currentEntryId, 2) : new Map()
   const showLeverageLegend = leaderboardModeIsCurrent && (harePickMap.size > 0 || tortoisePickMap.size > 0)
+  const showMyEntryBar = mode === 'player' && Boolean(currentScoredEntry)
   const showJumpToMyEntry = mode === 'player' && Boolean(currentScoredEntry && scoredEntries.length >= 10)
   const jumpToCurrentEntry = () => {
     if (!currentEntryId) return
@@ -416,8 +417,23 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   return (
     <div className="overflow-hidden border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-4 sm:px-5">
       <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
+      {showMyEntryBar && currentScoredEntry ? (
+        <div className="mb-3 flex flex-col gap-2 border-2 border-[#123c2f] bg-white px-3 py-2 shadow-[3px_3px_0_#d8cab0] sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-[0.1em]">
+            <span className="inline-flex items-center gap-1.5 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
+            <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{currentScoredEntry.rank || '—'} of {scoredEntries.length}</span>
+            <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>Score {formatScore(currentScoredEntry.totalScore)}</span>
+            {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
+          </div>
+          {showJumpToMyEntry ? (
+            <button type="button" onClick={jumpToCurrentEntry} className="w-fit border border-[#123c2f] bg-[#fbf7ed] px-3 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] hover:bg-[#fff4cf]">
+              Jump to my row
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {showJumpToMyEntry ? (
-        <div className="mb-3 flex justify-center">
+        <div className="mb-3 flex justify-center sm:hidden">
           <button type="button" onClick={jumpToCurrentEntry} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0] hover:bg-[#fffdf8]">
             Jump to my entry
           </button>
