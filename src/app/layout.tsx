@@ -7,8 +7,8 @@ import { NavigationHistoryTracker } from "@/components/NavigationHistoryTracker"
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Golf Pools Pro | PGA Golf Pool Manager with Live Leaderboards",
-  description: "Run a PGA golf pool online with pick tracking, private join links, automatic scoring, live leaderboards, and clear rules for Masters pools, PGA Championship pools, office pools, and fantasy golf groups.",
+  title: "Golf Pools Pro | Golf Pools People Actually Check",
+  description: "Run a golf pool online with private join links, player pick entry, automatic scoring, OB rules, and a live leaderboard worth refreshing all weekend.",
   keywords: [
     "PGA golf pool manager",
     "online golf pool manager",
@@ -27,8 +27,8 @@ export const metadata: Metadata = {
     canonical: "https://www.golfpoolspro.com",
   },
   openGraph: {
-    title: "Golf Pools Pro | PGA Golf Pool Manager with Live Leaderboards",
-    description: "Run a PGA golf pool online with pick tracking, private join links, automatic scoring, and live leaderboards for Masters pools, PGA Championship pools, office pools, and fantasy golf groups.",
+    title: "Golf Pools Pro | Golf Pools People Actually Check",
+    description: "Run a golf pool online with private join links, player pick entry, automatic scoring, and a live leaderboard worth refreshing all weekend.",
     url: "https://www.golfpoolspro.com",
     siteName: "Golf Pools Pro",
     type: "website",

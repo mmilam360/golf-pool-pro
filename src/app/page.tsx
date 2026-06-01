@@ -84,13 +84,13 @@ const setupSteps = [
 
 const pricingRows = [
   ['First 5 entries', 'Free'],
-  ['6 to 100 entries', '$1 each, $25 max'],
-  ['Over 100 entries', '+$15 / 100'],
-  ['Maximum pool fee', '$99 cap'],
+  ['6 to 100 entries', '$1 each, $20 max'],
+  ['Over 100 entries', '+$10 / 100'],
 ]
 
 const featureRows = [
   ['Live standings', 'Watch the full pool leaderboard from the dashboard once scores start moving.'],
+  ['Tournament board feel', 'A golf pool should feel like major week, not a stale office admin screen.'],
   ['Smart alerts', 'Players can get notified when scoring starts, picks are due, or they jump into first.'],
   ['Cut and OB scoring', 'Missed cuts and OB stand-ins are handled by the pool rules instead of spreadsheet math.'],
   ['Fast invites', 'Invite by link, passcode, or previous-player list when you run the next pool.'],
@@ -100,8 +100,8 @@ const featureRows = [
 ]
 
 const formatRows = [
-  ['Open Field', 'Open field, no groups. Players pick from the full tournament field.'],
-  ['Tiered Picks', 'Ranked by World Golf Ranking. Players pick from each tier.'],
+  ['Standard', 'Pick from the full field. Simple, familiar, and easy for first-time players.'],
+  ['Ranked groups', 'Field is sorted into groups based on WGR. Players pick from each group.'],
   ['Clubhouse Chaos', 'Field is randomly shuffled, then divided into groups. Same groups for everyone.'],
 ]
 
@@ -123,7 +123,7 @@ const faqItems = [
   },
   {
     question: 'Is there a limit on entries?',
-    answer: 'No. Add as many entries as you need. The first 5 are free, entries 6 through 100 are $1 each with a $25 cap, pools over 100 add $15 for each started 100 entries after that, and the maximum pool fee is $99.',
+    answer: 'No. Add as many entries as you need. The first 5 are free, entries 6 through 100 are $1 each with a $20 cap, and pools over 100 add $10 for each started 100 entries after that.',
   },
   {
     question: 'Do players need to pay to join?',
@@ -173,7 +173,7 @@ const softwareSchema = {
     '@type': 'Offer',
     price: '0',
     priceCurrency: 'USD',
-    description: 'First 5 active entries free. Extra active entries are $1 each, capped at $25 through 100 entries. Pools over 100 add $15 per started 100 entries, with a $99 maximum pool fee.',
+    description: 'First 5 active entries free. Extra active entries are $1 each, capped at $20 through 100 entries. Pools over 100 add $10 per started 100 entries.',
   },
 }
 
@@ -241,11 +241,11 @@ export default function Home() {
               Golf pool manager
             </p>
             <h1 className="max-w-full font-display text-[2.05rem] font-bold leading-[1.02] tracking-[-0.035em] text-[#0f2f25] sm:text-[3rem] md:text-[4.1rem] xl:text-[4.55rem]">
-              <span className="block">Golf pools without</span>
-              <span className="block">the spreadsheet.</span>
+              <span className="block">Golf pools people</span>
+              <span className="block">actually want to check.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#4f5b52] sm:text-lg sm:leading-8">
-              Create a golf pool, send one link, lock picks at the first tee time, and let everyone follow the live leaderboard.
+              Create the pool, send one link, collect picks, and give everyone a live leaderboard worth refreshing from Thursday through Sunday.
             </p>
           </div>
 
@@ -384,7 +384,7 @@ export default function Home() {
         <section className="mx-auto max-w-7xl px-5 py-14 md:px-8 md:py-20">
           <div className="mb-8 max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">What runs the pool</p>
-            <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Everything your golf pool needs after picks lock.</h2>
+            <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">A golf pool app that does not feel like office software.</h2>
             <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
               Golf Pools Pro keeps picks, invites, scoring, alerts, and the live board your group actually checks in one place.
             </p>
@@ -469,7 +469,7 @@ export default function Home() {
               </div>
             ))}
             <div className="border-t-2 border-[#123c2f] bg-[#fbf7ed] px-5 py-4 text-sm font-semibold leading-6 text-[#4f5b52]">
-              Example: a 13-entry pool costs $8. A 100-entry pool is capped at $25. A 160-entry pool costs $40.
+              Example: a 13-entry pool costs $8. A 100-entry pool is capped at $20. A 160-entry pool costs $30.
             </div>
           </div>
         </section>
