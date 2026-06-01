@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { toPng } from 'html-to-image'
+import { toJpeg, toPng } from 'html-to-image'
 
 type PosterPool = {
   id: string
@@ -108,9 +108,36 @@ function lockDateText(value?: string | null) {
   return `${new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date)}, first tee time`
 }
 
-function slugFileName(poolName: string) {
+type PosterExportFormat = 'pdf' | 'png' | 'jpeg'
+
+function posterFileName(poolName: string, format: PosterExportFormat) {
   const slug = poolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-  return `${slug || 'golf-pool'}-signup-poster.png`
+  return `${slug || 'golf-pool'}-signup-poster.${format === 'jpeg' ? 'jpg' : format}`
+}
+
+function dataUrlToBlob(dataUrl: string) {
+  const [header, base64] = dataUrl.split(',')
+  const mimeMatch = header.match(/data:([^;]+)/)
+  const mimeType = mimeMatch?.[1] || 'application/octet-stream'
+  const binary = window.atob(base64)
+  const bytes = new Uint8Array(binary.length)
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index)
+  }
+
+  return new Blob([bytes], { type: mimeType })
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = objectUrl
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
 }
 
 type BoardSection =
@@ -251,6 +278,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
   const [hostNote, setHostNote] = useState('Pay the host before picks lock.')
   const [hostLogoSrc, setHostLogoSrc] = useState('')
   const [qrSrc, setQrSrc] = useState('')
+  const [exportFormat, setExportFormat] = useState<PosterExportFormat>('png')
   const [exportStatus, setExportStatus] = useState('')
   const [isPrinting, setIsPrinting] = useState(false)
 
@@ -345,42 +373,62 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
     reader.readAsDataURL(file)
   }
 
-  async function exportPosterImage() {
+  async function makePosterImage(format: Exclude<PosterExportFormat, 'pdf'>) {
+    if (!posterRef.current) return null
+
+    const options = {
+      cacheBust: true,
+      pixelRatio: 2,
+      width: POSTER_WIDTH,
+      height: POSTER_HEIGHT,
+      backgroundColor: inkSaver ? '#ffffff' : '#fbf7ed',
+    }
+
+    return format === 'jpeg'
+      ? toJpeg(posterRef.current, { ...options, quality: 0.95 })
+      : toPng(posterRef.current, options)
+  }
+
+  async function makePosterPdf() {
+    const pngDataUrl = await makePosterImage('png')
+    if (!pngDataUrl) return null
+
+    const { jsPDF } = await import('jspdf')
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' })
+    pdf.addImage(pngDataUrl, 'PNG', 0, 0, 612, 792)
+    return pdf.output('blob')
+  }
+
+  async function exportPosterFile(format: PosterExportFormat) {
     if (!posterRef.current) return
-    setExportStatus('Making image...')
+    setExportStatus(`Making ${format.toUpperCase()}...`)
 
     try {
-      const dataUrl = await toPng(posterRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        width: POSTER_WIDTH,
-        height: POSTER_HEIGHT,
-        backgroundColor: inkSaver ? '#ffffff' : '#fbf7ed',
-      })
+      const fileName = posterFileName(pool.name, format)
+      let blob: Blob | null = null
+      if (format === 'pdf') {
+        blob = await makePosterPdf()
+      } else {
+        const imageFormat = format as Exclude<PosterExportFormat, 'pdf'>
+        const dataUrl = await makePosterImage(imageFormat)
+        blob = dataUrl ? dataUrlToBlob(dataUrl) : null
+      }
 
-      const fileName = slugFileName(pool.name)
-      const response = await fetch(dataUrl)
-      const blob = await response.blob()
-      const file = new File([blob], fileName, { type: 'image/png' })
+      if (!blob) return
+
+      const file = new File([blob], fileName, { type: blob.type })
       const canUseMobileShare = window.matchMedia('(hover: none), (pointer: coarse)').matches
 
       if (canUseMobileShare && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: `${pool.name} signup poster` })
-        setExportStatus('Image ready to share.')
+        setExportStatus(`${format.toUpperCase()} ready to share.`)
         return
       }
 
-      const objectUrl = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = objectUrl
-      link.download = fileName
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
-      setExportStatus('Image downloaded.')
+      downloadBlob(blob, fileName)
+      setExportStatus(`${format.toUpperCase()} downloaded.`)
     } catch {
-      setExportStatus('Image export failed. Try Print / Save as PDF.')
+      setExportStatus('Download failed. Try another format or use Print.')
     }
   }
 
@@ -411,10 +459,22 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
         <div>
           <Link href={`/pool/${pool.id}`} className="text-xs font-black uppercase tracking-[0.16em] text-[#657168] underline decoration-[#b58a3a] underline-offset-4">Back to pool</Link>
           <h1 className="mt-2 font-black uppercase leading-none tracking-[-0.05em] text-[#123c2f] text-[clamp(2rem,7vw,4rem)]">Signup poster</h1>
-          <p className="mt-2 max-w-2xl text-sm font-semibold text-[#4f5b54]">Edit the details, then print it or download it as an image for texts, Facebook groups, and pro shop counters.</p>
+          <p className="mt-2 max-w-2xl text-sm font-semibold text-[#4f5b54]">Edit the details, then print it or download it as a PDF, PNG, or JPEG.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={exportPosterImage} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-white shadow-[3px_3px_0_#b58a3a]">Download</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 border-2 border-[#123c2f] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0]">
+            Format
+            <select
+              value={exportFormat}
+              onChange={event => setExportFormat(event.target.value as PosterExportFormat)}
+              className="bg-white text-xs font-black uppercase tracking-[0.08em] text-[#123c2f] outline-none"
+            >
+              <option value="pdf">PDF</option>
+              <option value="png">PNG</option>
+              <option value="jpeg">JPEG</option>
+            </select>
+          </label>
+          <button type="button" onClick={() => exportPosterFile(exportFormat)} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-white shadow-[3px_3px_0_#b58a3a]">Download</button>
           <button type="button" onClick={printPoster} className="border-2 border-[#123c2f] bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0]">Print</button>
         </div>
       </div>
