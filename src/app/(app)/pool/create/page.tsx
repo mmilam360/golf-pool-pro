@@ -392,7 +392,7 @@ export default function CreatePoolPage() {
                 {
                   value: 'random_groups',
                   label: 'Clubhouse Chaos',
-                  helper: 'Field is randomly shuffled, then divided into groups. Everyone gets the same groups.',
+                  helper: 'Shuffled groups. Same board for every entry.',
                   image: '/game-modes/clubhouse-chaos-wordmark.svg',
                 },
               ].map(option => (
