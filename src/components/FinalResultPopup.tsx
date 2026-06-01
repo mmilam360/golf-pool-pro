@@ -102,7 +102,12 @@ function drawShareImage(announcement: FinalResultAnnouncement) {
   const headH = 200
   const labelH = 54
   const trimW = 28
-  const rowCount = Math.min(announcement.scoredEntries.length, 5)
+  const topRows = announcement.scoredEntries.slice(0, 5)
+  const currentEntry = announcement.scoredEntries.find(entry => entry.entryId === announcement.entryId)
+  const displayRows = currentEntry && !topRows.some(entry => entry.entryId === currentEntry.entryId)
+    ? [...announcement.scoredEntries.slice(0, 4), currentEntry]
+    : topRows
+  const rowCount = Math.min(displayRows.length, 5)
   const rowAreaH = 690
   const rowH = (rowAreaH - trimW * 2) / Math.max(rowCount, 1)
   const scoreFaceH = headH + labelH + rowAreaH
@@ -156,7 +161,7 @@ function drawShareImage(announcement: FinalResultAnnouncement) {
   fitText('Entry', tableX + 144, labelY + 35, tableW - 360, '800 21px Arial', '#111111')
   fitText('Score', tableX + tableW - 95, labelY + 35, 142, '800 21px Arial', '#111111', 'center')
 
-  announcement.scoredEntries.slice(0, rowCount).forEach((entry, index) => {
+  displayRows.slice(0, rowCount).forEach((entry, index) => {
     const y = labelY + labelH + index * rowH
     drawRect(tableX, y, tableW, rowH, index % 2 === 0 ? '#f7f7f2' : '#fbfbf5')
     ctx.strokeStyle = '#d8cab0'
@@ -171,7 +176,7 @@ function drawShareImage(announcement: FinalResultAnnouncement) {
     ctx.stroke()
     const textY = y + rowH / 2 + 18
     fitText(String(entry.rank || index + 1), tableX + 56, textY, 90, '800 44px Arial', '#b21e23', 'center')
-    fitText(String(entry.displayName || 'Entry'), tableX + 144, textY, tableW - 374, '600 48px Arial', '#111111')
+    fitText(entry.entryId === announcement.entryId ? `${entry.displayName || 'Entry'} (You)` : String(entry.displayName || 'Entry'), tableX + 144, textY, tableW - 374, '600 48px Arial', '#111111')
     fitText(formatScore(entry.totalScore), tableX + tableW - 95, y + rowH / 2 + 23, 150, '800 58px Arial', entry.totalScore !== null && entry.totalScore < 0 ? '#b21e23' : '#111111', 'center')
   })
 
@@ -294,7 +299,7 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
 
             {announcement.showSharePreview ? (
               <p className="mt-5 max-w-xl text-base font-semibold leading-7 text-[#314339]">
-                Top five. Nice finish. Your share image is ready if you want to post the final board.
+                Your share image is ready if you want to post the final board.
               </p>
             ) : (
               <p className="mt-5 max-w-xl text-base font-semibold leading-7 text-[#314339]">

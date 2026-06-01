@@ -160,6 +160,36 @@ function ScoreBadge({ score }: { score: number | null | undefined }) {
   )
 }
 
+function formatScoreFreshness(value?: string | null) {
+  if (!value) return null
+  const updatedMs = new Date(value).getTime()
+  if (!Number.isFinite(updatedMs)) return null
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - updatedMs) / 1000))
+  if (diffSeconds < 60) return 'Updated just now'
+  const diffMinutes = Math.floor(diffSeconds / 60)
+  if (diffMinutes < 60) return `Updated ${diffMinutes}m ago`
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `Updated ${diffHours}h ago`
+  return `Updated ${Math.floor(diffHours / 24)}d ago`
+}
+
+function entryPositionLabel(currentEntry: ScoredEntry, scoredEntries: ScoredEntry[]) {
+  if (currentEntry.totalScore === null || scoredEntries.length <= 1) return null
+  const sorted = [...scoredEntries]
+    .filter(entry => entry.totalScore !== null)
+    .sort((a, b) => (a.totalScore ?? 0) - (b.totalScore ?? 0))
+  const leader = sorted[0]
+  if (!leader || leader.totalScore === null) return null
+  if (currentEntry.rank === 1) {
+    const next = sorted.find(entry => entry.entryId !== currentEntry.entryId && entry.totalScore !== null && entry.totalScore > currentEntry.totalScore!)
+    if (!next || next.totalScore === null) return 'Tied for lead'
+    const lead = next.totalScore - currentEntry.totalScore
+    return lead > 0 ? `Leading by ${lead}` : 'Tied for lead'
+  }
+  const back = currentEntry.totalScore - leader.totalScore
+  return back > 0 ? `${back} back` : 'Tied for lead'
+}
+
 function DateIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
@@ -391,6 +421,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
   const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
+  const currentEntryPosition = currentScoredEntry ? entryPositionLabel(currentScoredEntry, scoredEntries) : null
+  const scoreFreshness = formatScoreFreshness(tournament?.last_scores_fetch)
   const harePickMap = leaderboardModeIsCurrent ? buildHarePickMap(scoredEntries, 2) : new Map()
   const tortoisePickMap = leaderboardModeIsCurrent ? buildTortoisePickMap(scoredEntries, currentEntryId, 2) : new Map()
   const showLeverageLegend = leaderboardModeIsCurrent && (harePickMap.size > 0 || tortoisePickMap.size > 0)
@@ -423,6 +455,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
             <span className="inline-flex items-center gap-1.5 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{currentScoredEntry.rank || '—'} of {scoredEntries.length}</span>
             <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>Score {formatScore(currentScoredEntry.totalScore)}</span>
+            {currentEntryPosition ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#123c2f]">{currentEntryPosition}</span> : null}
             {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
           </div>
           {showJumpToMyEntry ? (
@@ -443,6 +476,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
             <div className="relative border-b-2 border-[#111] px-3 py-2">
               <p className="mx-auto max-w-[92%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:text-2xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
               <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{pool.name}</p>
+              {scoreFreshness ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{scoreFreshness}</p> : null}
               {availableHistoricalRounds.length > 0 && (
                 <details
                   className="relative z-50 mx-auto mt-2 w-fit text-left"
@@ -496,7 +530,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const isOpen = openEntryIds ? openEntryIds.has(entry.entryId) : (entry.entryId === currentEntryId || (!currentEntryId && entryIndex === 0))
                 return (
                   <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#111] last:border-b-0">
-                    <summary className="grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 bg-[#f7f7f2] px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden">
+                    <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
                       <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                       <div className="min-w-0">
                         <span className="flex min-w-0 items-center gap-1.5">
@@ -566,7 +600,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                     const tortoiseNames = !isCurrentEntry ? tortoisePickMap.get(entry.entryId) : undefined
                     return (
                       <Fragment key={entry.entryId}>
-                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className="scroll-mt-28 bg-[#f7f7f2]">
+                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className={`scroll-mt-28 ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_6px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
                           <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</td>
                           <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
                             <span className="flex min-w-0 items-center gap-1.5" title={entry.displayName}>
