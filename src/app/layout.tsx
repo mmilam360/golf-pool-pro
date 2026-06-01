@@ -7,8 +7,8 @@ import { NavigationHistoryTracker } from "@/components/NavigationHistoryTracker"
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Golf Pools Pro | Golf Pools People Actually Check",
-  description: "Run a golf pool online with private join links, player pick entry, automatic scoring, OB rules, and a live leaderboard worth refreshing all weekend.",
+  title: "Golf Pools for your favorite majors and pro golf events",
+  description: "Golf pools for your favorite majors and pro golf events.",
   keywords: [
     "PGA golf pool manager",
     "online golf pool manager",
@@ -27,11 +27,16 @@ export const metadata: Metadata = {
     canonical: "https://www.golfpoolspro.com",
   },
   openGraph: {
-    title: "Golf Pools Pro | Golf Pools People Actually Check",
-    description: "Run a golf pool online with private join links, player pick entry, automatic scoring, and a live leaderboard worth refreshing all weekend.",
+    title: "Golf Pools for your favorite majors and pro golf events",
+    description: "Golf pools for your favorite majors and pro golf events.",
     url: "https://www.golfpoolspro.com",
     siteName: "Golf Pools Pro",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Golf Pools for your favorite majors and pro golf events",
+    description: "Golf pools for your favorite majors and pro golf events.",
   },
   appleWebApp: {
     capable: true,
