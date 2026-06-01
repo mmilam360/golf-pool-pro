@@ -380,19 +380,19 @@ export default function CreatePoolPage() {
                 {
                   value: 'standard',
                   label: 'Open Picks',
-                  helper: 'Full field, no tiers or groups.',
+                  helperLines: ['Full field.', 'No tiers or groups.'],
                   image: '/game-modes/standard-wordmark.svg',
                 },
                 {
                   value: 'ranked_groups',
                   label: 'Tiered Picks',
-                  helper: 'Ranked by World Golf Ranking. Players pick from each tier.',
+                  helperLines: ['Ranked tiers.', 'Same board for every entry.'],
                   image: '/game-modes/ranked-wordmark.svg',
                 },
                 {
                   value: 'random_groups',
                   label: 'Clubhouse Chaos',
-                  helper: 'Shuffled groups. Same board for every entry.',
+                  helperLines: ['Shuffled groups.', 'Same board for every entry.'],
                   image: '/game-modes/clubhouse-chaos-wordmark.svg',
                 },
               ].map(option => (
@@ -411,7 +411,9 @@ export default function CreatePoolPage() {
                     loading="eager"
                   />
                   <span className="block text-center text-sm font-black uppercase tracking-[0.08em]">{option.label}</span>
-                  <span className="mt-1 block text-center text-xs font-semibold leading-4">{option.helper}</span>
+                  <span className="mt-1 block text-center text-xs font-semibold leading-4">
+                    {option.helperLines.map(line => <span key={line} className="block">{line}</span>)}
+                  </span>
                 </button>
               ))}
             </div>
