@@ -75,9 +75,14 @@ function formatDateRange(start?: string | null, end?: string | null) {
 }
 
 function formatPoolFormat(pool: PoolRecord) {
-  if (pool.game_format === 'ranked_groups') return `Tiered • ${pool.group_count || 6}×${pool.picks_per_group || 2}`
-  if (pool.game_format === 'random_groups') return `Chaos • ${pool.group_count || 6}×${pool.picks_per_group || 2}`
-  return `Standard • ${pool.pick_count || 12} picks`
+  const count = pool.count_scores || 8
+  if (pool.game_format === 'ranked_groups') {
+    return { name: 'Tiered', detail: `${pool.group_count || 6}×${pool.picks_per_group || 2}, Top ${count} Count` }
+  }
+  if (pool.game_format === 'random_groups') {
+    return { name: 'Chaos', detail: `${pool.group_count || 6}×${pool.picks_per_group || 2}, Top ${count} Count` }
+  }
+  return { name: 'Open Picks', detail: `${pool.pick_count || 12} Picks, Top ${pool.count_scores || 8} Count` }
 }
 
 function feeStatus(pool: PoolRecord, activeEntryCount: number, tournament: Tournament | null) {
@@ -224,6 +229,16 @@ function QuickStat({ label, value }: { label: string; value: string }) {
   )
 }
 
+function FormatStat({ name, detail }: { name: string; detail: string }) {
+  return (
+    <div className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2">
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#657168]">Format</p>
+      <p className="mt-1 text-sm font-black leading-tight text-[#123c2f]">{name}</p>
+      <p className="mt-1 text-xs font-bold leading-tight text-[#1f2a24]">{detail}</p>
+    </div>
+  )
+}
+
 function SettingsIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
@@ -239,6 +254,7 @@ function CurrentPoolCard({ pool, entries }: { pool: PoolRecord; entries: EntryRe
   const activeEntryCount = entries.length
   const label = statusLabel(pool, tournament)
   const showInvitePrep = canShowInvitePrep(pool, tournament)
+  const format = formatPoolFormat(pool)
 
   return (
     <article className="border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0]">
@@ -258,7 +274,7 @@ function CurrentPoolCard({ pool, entries }: { pool: PoolRecord; entries: EntryRe
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <QuickStat label="Entrants" value={String(activeEntryCount)} />
-        <QuickStat label="Format" value={formatPoolFormat(pool)} />
+        <FormatStat name={format.name} detail={format.detail} />
         <QuickStat label="Fee" value={feeStatus(pool, activeEntryCount, tournament)} />
         <QuickStat label="Status" value={lockSummary(pool, tournament)} />
       </div>

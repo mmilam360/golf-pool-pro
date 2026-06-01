@@ -379,8 +379,8 @@ export default function CreatePoolPage() {
               {[
                 {
                   value: 'standard',
-                  label: 'Open Field',
-                  helper: 'Open field, no groups.',
+                  label: 'Open Picks',
+                  helper: 'Full field, no tiers or groups.',
                   image: '/game-modes/standard-wordmark.svg',
                 },
                 {
@@ -457,7 +457,7 @@ export default function CreatePoolPage() {
                 <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, 12)} fallback={8} />
               </div>
               <p className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-xs font-semibold leading-5 text-stone-700">
-                Standard pools use the live tournament field until picks lock. If the official field changes before the first tee time, removed golfers drop off open entries and players can pick replacements. Picks lock automatically when the tournament starts.
+                Open Picks pools use the live tournament field until picks lock. If the official field changes before the first tee time, removed golfers drop off open entries and players can pick replacements. Picks lock automatically when the tournament starts.
               </p>
             </div>
           ) : (

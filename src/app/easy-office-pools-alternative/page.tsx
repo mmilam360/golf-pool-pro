@@ -32,7 +32,7 @@ export default function EasyOfficePoolsAlternativePage() {
         'Mobile pick entry',
         'Golf-specific scoring rules',
         'Live PGA leaderboard data',
-        'Ranked groups and random Clubhouse Chaos formats',
+        'Open Picks, Tiered Picks, and Clubhouse Chaos formats',
         'Signup posters with QR codes',
       ]}
     />

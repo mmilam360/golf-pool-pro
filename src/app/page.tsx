@@ -100,8 +100,8 @@ const featureRows = [
 ]
 
 const formatRows = [
-  ['Standard', 'Pick from the full field. Simple, familiar, and easy for first-time players.'],
-  ['Ranked groups', 'Field is sorted into groups based on WGR. Players pick from each group.'],
+  ['Open Picks', 'Pick from the full field. Simple, familiar, and easy for first-time players.'],
+  ['Tiered Picks', 'Field is sorted into WGR tiers. Players pick from each tier.'],
   ['Clubhouse Chaos', 'Field is randomly shuffled, then divided into groups. Same groups for everyone.'],
 ]
 

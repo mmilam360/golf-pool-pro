@@ -53,8 +53,8 @@ export default function RulesPage() {
               <h2 className="text-lg font-black text-[#0f2f25]">Pool types</h2>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
                 <div className="border border-[#d8cab0] bg-[#fbf7ed] p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8a6724]">Open Field</p>
-                  <p className="mt-2">Open field, no groups. Entrants pick from the full tournament field.</p>
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8a6724]">Open Picks</p>
+                  <p className="mt-2">Pick from the full tournament field with no tiers or groups.</p>
                 </div>
                 <div className="border border-[#d8cab0] bg-[#fbf7ed] p-4">
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8a6724]">Tiered Picks</p>
@@ -69,7 +69,7 @@ export default function RulesPage() {
                 <p className="font-black uppercase tracking-[0.08em]">Tiered-pick example</p>
                 <p className="mt-2 font-semibold">Setup: 6 tiers, 2 picks per tier, best 8 scores count.</p>
                 <p className="mt-2">In Tiered Picks, Tier 1 might include Scheffler, McIlroy, Schauffele, and Rahm. Tier 2 might include Morikawa, Hovland, Fleetwood, and Cantlay.</p>
-                <p className="mt-2">In a random pool, those names can be mixed across groups after the shuffle. The groups stay the same for everyone after they lock.</p>
+                <p className="mt-2">In Clubhouse Chaos, those names can be mixed across groups after the shuffle. The groups stay the same for everyone after they lock.</p>
                 <p className="mt-2">Groups auto-lock Tuesday morning of tournament week when the field is available. The pool runner can also lock groups once the official field is posted.</p>
               </div>
             </section>

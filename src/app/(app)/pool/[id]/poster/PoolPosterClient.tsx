@@ -94,7 +94,7 @@ function formatSummary(pool: PosterPool) {
   }
 
   return {
-    mode: 'Standard Picks',
+    mode: 'Open Picks',
     picks: `Pick ${pool.pick_count || 6} golfers`,
     scoring: `Best ${pool.count_scores || pool.pick_count || 4} count`,
     explainer: 'Full field',

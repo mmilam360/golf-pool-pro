@@ -30,7 +30,7 @@ export default function GolfPoolSoftwarePage() {
       bullets={[
         'Private join link and passcode',
         'Players enter their own picks',
-        'Standard, ranked group, and Clubhouse Chaos formats',
+        'Open Picks, Tiered Picks, and Clubhouse Chaos formats',
         'Live scoring and pool standings',
         'Cut and OB rules handled automatically',
         'QR signup posters for the clubhouse, office, or group chat',
