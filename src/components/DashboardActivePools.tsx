@@ -65,7 +65,12 @@ type LiveTournamentPayload = {
 type RankPreview = {
   rank: number | null
   totalScore: number | null
-  fieldSize: number
+  movementToday: EntryMovement | null
+}
+
+type EntryMovement = {
+  direction: 'up' | 'down' | 'none'
+  spots: number
 }
 
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
@@ -173,21 +178,36 @@ function formatScoreFreshness(value?: string | null) {
   return `Updated ${Math.floor(diffHours / 24)}d ago`
 }
 
-function entryPositionLabel(currentEntry: ScoredEntry, scoredEntries: ScoredEntry[]) {
-  if (currentEntry.totalScore === null || scoredEntries.length <= 1) return null
-  const sorted = [...scoredEntries]
-    .filter(entry => entry.totalScore !== null)
-    .sort((a, b) => (a.totalScore ?? 0) - (b.totalScore ?? 0))
-  const leader = sorted[0]
-  if (!leader || leader.totalScore === null) return null
-  if (currentEntry.rank === 1) {
-    const next = sorted.find(entry => entry.entryId !== currentEntry.entryId && entry.totalScore !== null && entry.totalScore > currentEntry.totalScore!)
-    if (!next || next.totalScore === null) return 'Tied for lead'
-    const lead = next.totalScore - currentEntry.totalScore
-    return lead > 0 ? `Leading by ${lead}` : 'Tied for lead'
+function entryMovementToday(currentEntry: ScoredEntry, scoredEntries: ScoredEntry[]): EntryMovement | null {
+  if (currentEntry.rank === null || currentEntry.todayScore === null) return null
+  const priorEntries = scoredEntries.map(entry => ({
+    ...entry,
+    totalScore: entry.totalScore !== null && entry.todayScore !== null ? entry.totalScore - entry.todayScore : null,
+    tiebreakScores: [],
+    rank: null,
+  }))
+  const priorTotals = priorEntries
+    .map(entry => entry.totalScore)
+    .filter((score): score is number => score !== null)
+  if (new Set(priorTotals).size <= 1) return null
+
+  const priorRank = rankEntries(priorEntries).find(entry => entry.entryId === currentEntry.entryId)?.rank
+  if (!priorRank) return null
+  const spots = priorRank - currentEntry.rank
+  if (spots > 0) return { direction: 'up', spots }
+  if (spots < 0) return { direction: 'down', spots: Math.abs(spots) }
+  return { direction: 'none', spots: 0 }
+}
+
+function MovementBadge({ movement }: { movement: EntryMovement | null }) {
+  if (!movement) return null
+  if (movement.direction === 'up') {
+    return <span className="border border-[#1f6b4a] bg-[#eef7ef] px-2 py-1 text-[#1f6b4a]">↑ {movement.spots} today</span>
   }
-  const back = currentEntry.totalScore - leader.totalScore
-  return back > 0 ? `${back} back` : 'Tied for lead'
+  if (movement.direction === 'down') {
+    return <span className="border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-[#b21e23]">↓ {movement.spots} today</span>
+  }
+  return <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">— today</span>
 }
 
 function DateIcon() {
@@ -421,7 +441,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
   const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
-  const currentEntryPosition = currentScoredEntry ? entryPositionLabel(currentScoredEntry, scoredEntries) : null
+  const currentMovementToday = currentScoredEntry && leaderboardModeIsCurrent ? entryMovementToday(currentScoredEntry, scoredEntries) : null
   const scoreFreshness = formatScoreFreshness(tournament?.last_scores_fetch)
   const harePickMap = leaderboardModeIsCurrent ? buildHarePickMap(scoredEntries, 2) : new Map()
   const tortoisePickMap = leaderboardModeIsCurrent ? buildTortoisePickMap(scoredEntries, currentEntryId, 2) : new Map()
@@ -453,9 +473,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
         <div className="sticky top-2 z-30 mb-3 flex flex-col gap-2 border-2 border-[#123c2f] bg-white px-3 py-2 shadow-[3px_3px_0_#d8cab0] sm:static sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-[0.1em]">
             <span className="inline-flex items-center gap-1.5 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
-            <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{currentScoredEntry.rank || '—'} of {scoredEntries.length}</span>
+            <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
             <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>Score {formatScore(currentScoredEntry.totalScore)}</span>
-            {currentEntryPosition ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#123c2f]">{currentEntryPosition}</span> : null}
+            <MovementBadge movement={currentMovementToday} />
             {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
           </div>
           {showJumpToMyEntry ? (
@@ -665,7 +685,7 @@ function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: Entr
   const scored = buildScoredEntries(pool, allEntries)
   const current = scored.find(scoredEntry => scoredEntry.entryId === entry.id)
   if (!current) return null
-  return { rank: current.rank, totalScore: current.totalScore, fieldSize: scored.length }
+  return { rank: current.rank, totalScore: current.totalScore, movementToday: entryMovementToday(current, scored) }
 }
 
 function entryPicks(entry?: EntryRecord | null) {
@@ -886,7 +906,8 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   <span className={`mr-auto inline-flex items-center border border-[#123c2f] px-2 py-1 ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
-                  {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Rank #{rankPreview.rank}</span> : null}
+                  {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{rankPreview.rank}</span> : null}
+                  <MovementBadge movement={rankPreview?.movementToday ?? null} />
                   {entry ? <PickProgressBadge entry={entry} pool={pool} tournament={effectiveTournament} /> : null}
                   {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : null}
                 </div>
