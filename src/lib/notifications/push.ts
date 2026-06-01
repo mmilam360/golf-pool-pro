@@ -7,7 +7,6 @@ type NotificationPrefs = {
   pick_deadline?: boolean | null
   leaderboard_live?: boolean | null
   took_lead?: boolean | null
-  field_update?: boolean | null
 }
 
 type PushPayload = {
@@ -30,9 +29,11 @@ function configureWebPush() {
 }
 
 export function notificationPrefsAllow(prefs: NotificationPrefs | null | undefined, type: NotificationType) {
+  if (type === 'field_update') return true
   if (!prefs) return type !== 'took_lead'
   if (type === 'took_lead') return Boolean(prefs.took_lead)
-  return prefs[type] !== false
+  if (type === 'pick_deadline') return prefs.pick_deadline !== false
+  return prefs.leaderboard_live !== false
 }
 
 export async function sendPushToUser(userId: string, payload: PushPayload) {

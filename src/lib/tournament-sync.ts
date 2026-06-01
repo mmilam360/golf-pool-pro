@@ -3,7 +3,7 @@ import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompet
 import { autoFinalizeGroupedPools } from './grouped-pool-auto-lock'
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
 import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
-import { notificationPrefsAllow, recordNotificationEvent, sendPushToUser } from './notifications/push'
+import { recordNotificationEvent, sendPushToUser } from './notifications/push'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 const ESPN_EVENT_URL = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${eventId}`
@@ -130,13 +130,8 @@ async function loadExistingFingerprints(supabase: any): Promise<Map<string, stri
   return map
 }
 
-async function fieldUpdatePushAllowed(supabase: any, userId: string) {
-  const { data } = await supabase
-    .from('gpp_notification_preferences')
-    .select('field_update')
-    .eq('user_id', userId)
-    .maybeSingle()
-  return notificationPrefsAllow(data, 'field_update')
+async function fieldUpdatePushAllowed() {
+  return true
 }
 
 async function recordFieldUpdateAlert(params: {
@@ -157,7 +152,7 @@ async function recordFieldUpdateAlert(params: {
     payload: params.payload,
   })
   if (!inserted) return
-  if (!await fieldUpdatePushAllowed(params.supabase, params.userId)) return
+  if (!await fieldUpdatePushAllowed()) return
   await sendPushToUser(params.userId, {
     title: params.title,
     body: params.body,
