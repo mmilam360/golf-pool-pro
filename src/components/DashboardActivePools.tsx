@@ -707,7 +707,7 @@ function formatLockTime(value?: string | null) {
 
 export default function DashboardActivePools({ cards, entriesByPool, mode = 'player' }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner' }) {
   const router = useRouter()
-  const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set())
+  const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set(cards[0]?.pool.id ? [cards[0].pool.id] : []))
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
   const [liveLeaderboardsByExternalId, setLiveLeaderboardsByExternalId] = useState<Record<string, LiveTournamentPayload>>({})
   const [secondsToRefresh, setSecondsToRefresh] = useState(60)
