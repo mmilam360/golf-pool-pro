@@ -99,6 +99,7 @@ export function buildPickGroups({
   if (format === 'standard') return []
   const players = (Array.isArray(field) ? field : [])
     .filter(player => player?.name)
+    .filter(player => String(player?.status).toLowerCase() !== 'wd')
     .map(toGroupPlayer)
 
   if (format === 'ranked_groups') {
