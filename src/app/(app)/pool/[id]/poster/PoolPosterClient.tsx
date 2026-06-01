@@ -252,6 +252,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
   const [hostLogoSrc, setHostLogoSrc] = useState('')
   const [qrSrc, setQrSrc] = useState('')
   const [exportStatus, setExportStatus] = useState('')
+  const [isPrinting, setIsPrinting] = useState(false)
 
 
   useEffect(() => {
@@ -294,6 +295,23 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
     const observer = new ResizeObserver(resize)
     observer.observe(node)
     return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    function handleBeforePrint() {
+      setIsPrinting(true)
+    }
+
+    function handleAfterPrint() {
+      setIsPrinting(false)
+    }
+
+    window.addEventListener('beforeprint', handleBeforePrint)
+    window.addEventListener('afterprint', handleAfterPrint)
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint)
+      window.removeEventListener('afterprint', handleAfterPrint)
+    }
   }, [])
 
   useEffect(() => {
@@ -344,25 +362,51 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
       const response = await fetch(dataUrl)
       const blob = await response.blob()
       const file = new File([blob], fileName, { type: 'image/png' })
+      const canUseMobileShare = window.matchMedia('(hover: none), (pointer: coarse)').matches
 
-      if (navigator.canShare?.({ files: [file] })) {
+      if (canUseMobileShare && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: `${pool.name} signup poster` })
         setExportStatus('Image ready to share.')
         return
       }
 
+      const objectUrl = URL.createObjectURL(blob)
       const link = document.createElement('a')
-      link.href = dataUrl
+      link.href = objectUrl
       link.download = fileName
+      document.body.appendChild(link)
       link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
       setExportStatus('Image downloaded.')
     } catch {
       setExportStatus('Image export failed. Try Print / Save as PDF.')
     }
   }
 
+  function printPoster() {
+    setIsPrinting(true)
+    window.requestAnimationFrame(() => window.print())
+  }
+
   return (
-    <main className="min-h-screen bg-[#fbf7ed] px-4 py-5 text-[#1f2a24] sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#fbf7ed] px-4 py-5 text-[#1f2a24] print:min-h-0 print:bg-white print:p-0 sm:px-6 lg:px-8">
+      <style>{`
+        @media print {
+          @page {
+            size: letter portrait;
+            margin: 0;
+          }
+
+          html,
+          body {
+            width: 8.5in;
+            height: 11in;
+            margin: 0 !important;
+            background: #ffffff !important;
+          }
+        }
+      `}</style>
       <div className="mx-auto mb-5 flex max-w-6xl flex-col gap-3 print:hidden md:flex-row md:items-end md:justify-between">
         <div>
           <Link href={`/pool/${pool.id}`} className="text-xs font-black uppercase tracking-[0.16em] text-[#657168] underline decoration-[#b58a3a] underline-offset-4">Back to pool</Link>
@@ -371,7 +415,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={exportPosterImage} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-white shadow-[3px_3px_0_#b58a3a]">Download</button>
-          <button type="button" onClick={() => window.print()} className="border-2 border-[#123c2f] bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0]">Print</button>
+          <button type="button" onClick={printPoster} className="border-2 border-[#123c2f] bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0]">Print</button>
         </div>
       </div>
 
@@ -395,12 +439,12 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
         {exportStatus ? <p className="text-xs font-black uppercase tracking-[0.14em] text-[#1f6b4a] md:col-span-2">{exportStatus}</p> : null}
       </div>
 
-      <div ref={scaleHostRef} className="mx-auto max-w-6xl pb-8 print:pb-0">
-        <div className="mx-auto print:contents" style={{ width: POSTER_WIDTH * scale, height: POSTER_HEIGHT * scale }}>
+      <div ref={scaleHostRef} className="mx-auto max-w-6xl pb-8 print:m-0 print:max-w-none print:p-0">
+        <div className="mx-auto print:contents" style={{ width: isPrinting ? POSTER_WIDTH : POSTER_WIDTH * scale, height: isPrinting ? POSTER_HEIGHT : POSTER_HEIGHT * scale }}>
           <section
             ref={posterRef}
-            className={`relative origin-top-left overflow-hidden border-0 print:h-[11in] print:w-[8.5in] print:scale-100 print:shadow-none ${inkSaver ? 'bg-white shadow-none' : 'bg-[#fbf7ed] shadow-[12px_12px_0_#d8cab0]'}`}
-            style={{ width: POSTER_WIDTH, height: POSTER_HEIGHT, transform: `scale(${scale})` }}
+            className={`relative origin-top-left overflow-hidden border-0 print:h-[11in] print:w-[8.5in] print:shadow-none ${inkSaver ? 'bg-white shadow-none' : 'bg-[#fbf7ed] shadow-[12px_12px_0_#d8cab0]'}`}
+            style={{ width: POSTER_WIDTH, height: POSTER_HEIGHT, transform: isPrinting ? 'none' : `scale(${scale})` }}
           >
             {!inkSaver ? <div className="pointer-events-none absolute inset-0 z-50 border-[10px] border-[#123c2f]" aria-hidden="true" /> : null}
             <div className="absolute bottom-0 left-0 z-20 h-[74px] w-full bg-[#123c2f]" aria-hidden="true" />
