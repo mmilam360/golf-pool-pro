@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompetitorToPlayer, enrichPlayersWithTeeTimes, enrichPlayersWithFirstRoundTeeTimes } from './golf-api'
 import { autoFinalizeGroupedPools } from './grouped-pool-auto-lock'
-import { findPgaTourTournament, getPgaTourField, getPgaTourSchedule } from './pga-tour-field'
+import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
+import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 const ESPN_EVENT_URL = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${eventId}`
@@ -12,6 +13,7 @@ export interface TournamentSyncResult {
   inserted: number
   updated: number
   fieldsUpdated: number
+  fieldsRejected: number
   leaderboardsUpdated: number
   poolsAutoLocked: number
   groupedPoolsAutoFinalized: number
@@ -114,6 +116,83 @@ async function fetchEventSpecificField(eventId: string) {
   }
 }
 
+async function loadExistingFingerprints(supabase: any): Promise<Map<string, string[]>> {
+  const { data } = await supabase
+    .from('gpp_tournaments')
+    .select('id, field_fingerprint')
+    .not('field_fingerprint', 'is', null)
+    .limit(500)
+  const map = new Map<string, string[]>()
+  for (const row of data || []) {
+    const ids = map.get(row.field_fingerprint) || []
+    ids.push(row.id)
+    map.set(row.field_fingerprint, ids)
+  }
+  return map
+}
+
+async function pruneOpenStandardPoolPicksForTournament(supabase: any, tournamentId: string, players: any[]) {
+  if (!Array.isArray(players) || players.length === 0) return 0
+  const validNames = new Set(players.map(player => player?.name).filter(Boolean))
+  if (validNames.size === 0) return 0
+
+  const { data: pools, error: poolsError } = await supabase
+    .from('gpp_pools')
+    .select('id')
+    .eq('tournament_id', tournamentId)
+    .eq('game_format', 'standard')
+    .eq('is_locked', false)
+
+  if (poolsError) throw poolsError
+  const poolIds = (pools || []).map((pool: { id: string }) => pool.id)
+  if (poolIds.length === 0) return 0
+
+  const { data: entries, error: entriesError } = await supabase
+    .from('gpp_entries')
+    .select('id, golfer_picks')
+    .in('pool_id', poolIds)
+    .eq('is_removed', false)
+
+  if (entriesError) throw entriesError
+
+  let pruned = 0
+  for (const entry of entries || []) {
+    const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
+    const nextPicks = picks.filter((name: string) => validNames.has(name))
+    if (nextPicks.length === picks.length) continue
+    const { error } = await supabase
+      .from('gpp_entries')
+      .update({ golfer_picks: nextPicks })
+      .eq('id', entry.id)
+    if (error) throw error
+    pruned++
+  }
+  return pruned
+}
+
+function shouldAcceptField(
+  players: any[],
+  source: string,
+  existingFingerprint: string | null | undefined,
+  fingerprintMap: Map<string, string[]>,
+  tournamentId: string,
+): { ok: boolean; fingerprint: string; message?: string } {
+  if (!Array.isArray(players) || players.length === 0) {
+    return { ok: false, fingerprint: '', message: 'empty' }
+  }
+  const fp = fieldFingerprint(players)
+  if (existingFingerprint && fp === existingFingerprint) {
+    return { ok: true, fingerprint: fp, message: 'same-as-stored' }
+  }
+  const collisionIds = (fingerprintMap.get(fp) || []).filter((id: string) => id !== tournamentId)
+  const check = looksLikePlaceholderField(players, collisionIds)
+  if (check.isPlaceholder) {
+    console.warn(`[sync] Field rejected for ${tournamentId}: ${check.reason} (source=${source})`)
+    return { ok: false, fingerprint: fp, message: check.reason }
+  }
+  return { ok: true, fingerprint: fp, message: 'pass' }
+}
+
 function rowFromEvent(event: any, season: number) {
   const startDate = toDateOnly(event.date)
   const endDate = toDateOnly(event.endDate || event.date)
@@ -149,6 +228,79 @@ function rowFromEvent(event: any, season: number) {
   }
 }
 
+export async function refreshPgaTourFields(supabase: any, season: number): Promise<{ checked: number; refreshed: number; rejected: number; alertsSent: number; failures: Array<{ tournamentId: string; name: string; count: number }> }> {
+  const result = { checked: 0, refreshed: 0, rejected: 0, alertsSent: 0, failures: [] as Array<{ tournamentId: string; name: string; count: number }> }
+  const pgaTourSchedule = await getPgaTourSchedule(season).catch(() => [])
+
+  const { data: upcomingTournaments, error } = await supabase
+    .from('gpp_tournaments')
+    .select('id, name, start_date, external_id, field_json, field_fingerprint, last_field_fetch, field_source')
+    .eq('status', 'upcoming')
+    .order('start_date', { ascending: true })
+
+  if (error) throw error
+
+  const fingerprintMap = await loadExistingFingerprints(supabase)
+
+  for (const t of (upcomingTournaments || [])) {
+    result.checked++
+
+    const pgaMatch = findPgaTourTournament({
+      pgaSchedule: pgaTourSchedule,
+      eventName: t.name,
+      startDate: t.start_date,
+    })
+
+    if (!pgaMatch?.tournamentId) {
+      recordFieldFetchAttempt(t.id, false)
+      const alert = shouldAlertOnFieldFailures(t.id)
+      if (alert.shouldAlert) {
+        result.alertsSent++
+        result.failures.push({ tournamentId: t.id, name: t.name || 'Unknown', count: alert.failureCount })
+        console.error(`[refreshFields] ALERT: ${t.name} — no PGA Tour match after ${alert.failureCount} attempts`)
+      }
+      continue
+    }
+
+    const fresh = await getPgaTourFieldWithMeta(pgaMatch.tournamentId).catch(() => ({ players: [], lastUpdated: null }))
+    if (fresh.players.length === 0) {
+      recordFieldFetchAttempt(t.id, false)
+      const alert = shouldAlertOnFieldFailures(t.id)
+      if (alert.shouldAlert) {
+        result.alertsSent++
+        result.failures.push({ tournamentId: t.id, name: t.name || 'Unknown', count: alert.failureCount })
+        console.error(`[refreshFields] ALERT: ${t.name} — empty field from PGA Tour API after ${alert.failureCount} attempts`)
+      }
+      continue
+    }
+
+    recordFieldFetchAttempt(t.id, true)
+
+    const fp = fieldFingerprint(fresh.players)
+    const collisionIds = (fingerprintMap.get(fp) || []).filter((id: string) => id !== t.id)
+    const check = looksLikePlaceholderField(fresh.players, collisionIds)
+
+    if (check.isPlaceholder) {
+      console.warn(`[refreshFields] Rejected for ${t.name}: ${check.reason}`)
+      result.rejected++
+      continue
+    }
+
+    await supabase.from('gpp_tournaments').update({
+      field_json: fresh.players,
+      field_fingerprint: fp,
+      field_source: 'pga_tour',
+      last_field_fetch: fresh.lastUpdated || new Date().toISOString(),
+    }).eq('id', t.id)
+
+    await pruneOpenStandardPoolPicksForTournament(supabase, t.id, fresh.players)
+
+    result.refreshed++
+  }
+
+  return result
+}
+
 async function syncLiveFromScoreboard(supabase: any, season: number): Promise<TournamentSyncResult> {
   const scoreboardEvents = await fetchScoreboardEvents()
   const result: TournamentSyncResult = {
@@ -157,12 +309,14 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     inserted: 0,
     updated: 0,
     fieldsUpdated: 0,
+    fieldsRejected: 0,
     leaderboardsUpdated: 0,
     poolsAutoLocked: 0,
     groupedPoolsAutoFinalized: 0,
   }
 
   const liveTournamentIds: string[] = []
+  const fingerprintMap = await loadExistingFingerprints(supabase)
 
   for (const event of scoreboardEvents) {
     const normalized = rowFromEvent(event, season)
@@ -195,9 +349,35 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     const effectiveStatus = completedStatusFromFinalRound(status, playersForStorage, liveLeaderboard?.round || event.status?.period || event.competitions?.[0]?.status?.period)
     row.status = effectiveStatus
 
-    if (playersForStorage.length > 0) {
+    // Decide source label used for validation
+    const fieldSource = playersForStorage.length > 0 && playersForStorage === players
+      ? 'espn_scoreboard'
+      : 'espn_event'
+
+    const { data: existing, error: existingError } = await supabase
+      .from('gpp_tournaments')
+      .select('id, status, leaderboard_json, field_json, field_fingerprint')
+      .eq('external_id', row.external_id)
+      .maybeSingle()
+
+    if (existingError) throw existingError
+
+    const fieldCheck = shouldAcceptField(
+      playersForStorage,
+      fieldSource,
+      existing?.field_fingerprint,
+      fingerprintMap,
+      existing?.id || row.external_id,
+    )
+
+    if (fieldCheck.ok) {
       row.field_json = playersForStorage
+      row.field_fingerprint = fieldCheck.fingerprint
+      row.field_source = fieldSource
+      row.last_field_fetch = new Date().toISOString()
       result.fieldsUpdated++
+    } else if (playersForStorage.length > 0) {
+      result.fieldsRejected++
     }
 
     if ((effectiveStatus === 'live' || effectiveStatus === 'completed') && playersForStorage.length > 0) {
@@ -206,18 +386,13 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       result.leaderboardsUpdated++
     }
 
-    const { data: existing, error: existingError } = await supabase
-      .from('gpp_tournaments')
-      .select('id, status, leaderboard_json, field_json')
-      .eq('external_id', row.external_id)
-      .maybeSingle()
-
-    if (existingError) throw existingError
-
     // If ESPN returns zero competitors but we already have a stored field, preserve it.
     // Only replace when we found real data.
     if (existing && playersForStorage.length === 0 && Array.isArray(existing.field_json) && existing.field_json.length > 0) {
       delete row.field_json
+      delete row.field_fingerprint
+      delete row.field_source
+      delete row.last_field_fetch
     }
 
     if (existing) {
@@ -229,6 +404,9 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       if (hasStoredFinalBoard) {
         delete row.leaderboard_json
         delete row.field_json
+        delete row.field_fingerprint
+        delete row.field_source
+        delete row.last_field_fetch
         delete row.last_scores_fetch
       }
 
@@ -240,6 +418,9 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       }
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
+      if (Array.isArray(row.field_json)) {
+        await pruneOpenStandardPoolPicksForTournament(supabase, existing.id, row.field_json)
+      }
       result.updated++
       if (effectiveStatus === 'live' || effectiveStatus === 'completed') liveTournamentIds.push(existing.id)
     } else {
@@ -302,11 +483,13 @@ export async function syncTournaments({
     inserted: 0,
     updated: 0,
     fieldsUpdated: 0,
+    fieldsRejected: 0,
     leaderboardsUpdated: 0,
     poolsAutoLocked: 0,
     groupedPoolsAutoFinalized: 0,
   }
 
+  const fingerprintMap = await loadExistingFingerprints(supabase)
   const liveTournamentIds: string[] = []
 
   for (const event of schedule) {
@@ -325,6 +508,7 @@ export async function syncTournaments({
       || null
     const status = getStatus(bestEvent)
     let players = extractPlayers(bestEvent)
+    let pgaMeta: { players: any[]; lastUpdated: string | null } = { players: [], lastUpdated: null }
 
     // Prefer PGA Tour field data for upcoming tournaments — it includes OWGR
     // and is available earlier/more completely than ESPN's pre-event field.
@@ -335,8 +519,8 @@ export async function syncTournaments({
         startDate,
       })
       if (pgaTourTournament?.tournamentId) {
-        const pgaField = await getPgaTourField(pgaTourTournament.tournamentId).catch(() => [])
-        if (pgaField.length > 0) players = pgaField
+        pgaMeta = await getPgaTourFieldWithMeta(pgaTourTournament.tournamentId).catch(() => ({ players: [], lastUpdated: null }))
+        if (pgaMeta.players.length > 0) players = pgaMeta.players
       }
     }
 
@@ -353,8 +537,8 @@ export async function syncTournaments({
           startDate,
         })
         if (pgaTourTournament?.tournamentId) {
-          const earlyField = await getPgaTourField(pgaTourTournament.tournamentId).catch(() => [])
-          if (earlyField.length > 0) players = earlyField
+          pgaMeta = await getPgaTourFieldWithMeta(pgaTourTournament.tournamentId).catch(() => ({ players: [], lastUpdated: null }))
+          if (pgaMeta.players.length > 0) players = pgaMeta.players
         }
       }
     }
@@ -363,7 +547,7 @@ export async function syncTournaments({
 
     const { data: existing, error: existingError } = await supabase
       .from('gpp_tournaments')
-      .select('id, status, leaderboard_json, field_json')
+      .select('id, status, leaderboard_json, field_json, field_fingerprint')
       .eq('external_id', externalId)
       .maybeSingle()
 
@@ -381,14 +565,30 @@ export async function syncTournaments({
       status,
     }
 
-    // ESPN often has the event before the field. Once competitors appear,
-    // replace the cached field every sync so late adds/WDs update before start.
-    // If ESPN temporarily returns zero competitors, do not erase the prior field.
-    if (players.length > 0) {
+    // Determine field source and, for PGA Tour upcoming, the lastUpdated timestamp.
+    let fieldSource: 'espn_scoreboard' | 'espn_event' | 'pga_tour' = scoreboardEvent ? 'espn_scoreboard' : 'espn_event'
+    let lastUpdated: string | null = null
+    if (status === 'upcoming' && pgaMeta.players.length > 0) {
+      fieldSource = 'pga_tour'
+      lastUpdated = pgaMeta.lastUpdated
+    }
+
+    const fieldCheck = shouldAcceptField(
+      players,
+      fieldSource,
+      existing?.field_fingerprint,
+      fingerprintMap,
+      existing?.id || row.external_id,
+    )
+
+    if (fieldCheck.ok) {
       row.field_json = players
+      row.field_fingerprint = fieldCheck.fingerprint
+      row.field_source = fieldSource
+      row.last_field_fetch = lastUpdated || new Date().toISOString()
       result.fieldsUpdated++
-    } else if (existing && Array.isArray(existing.field_json) && existing.field_json.length > 0) {
-      // Keep existing field — don't overwrite with empty
+    } else if (players.length > 0) {
+      result.fieldsRejected++
     }
 
     let leaderboardPlayers: any[] | null = null
@@ -420,6 +620,9 @@ export async function syncTournaments({
       if (hasStoredFinalBoard) {
         delete row.leaderboard_json
         delete row.field_json
+        delete row.field_fingerprint
+        delete row.field_source
+        delete row.last_field_fetch
         delete row.last_scores_fetch
       }
 
@@ -431,6 +634,9 @@ export async function syncTournaments({
       }
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
+      if (Array.isArray(row.field_json)) {
+        await pruneOpenStandardPoolPicksForTournament(supabase, existing.id, row.field_json)
+      }
       result.updated++
       if (effectiveStatus === 'live' || effectiveStatus === 'completed') liveTournamentIds.push(existing.id)
     } else {

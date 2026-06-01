@@ -9,6 +9,10 @@
       "schedule": "0 8 * * *"
     },
     {
+      "path": "/api/cron/refresh-fields",
+      "schedule": "0 */4 * * *"
+    },
+    {
       "path": "/api/cron/archive-unpaid-pools",
       "schedule": "*/30 * * * *"
     },

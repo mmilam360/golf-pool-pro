@@ -14,7 +14,7 @@ import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
-import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup, type PoolGameFormat } from '@/lib/pool-formats'
+import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup } from '@/lib/pool-formats'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 
 type PaymentQuote = {
@@ -346,9 +346,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [dismissToast])
 
   const activeEntries = entries.filter(e => !e.is_removed)
-  const pickGroups: PickGroup[] = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
+  const storedPickGroups: PickGroup[] = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
   const groupedFormat = pool.game_format === 'ranked_groups' || pool.game_format === 'random_groups'
-  const groupsFinalized = !groupedFormat || (pickGroups.length > 0 && Boolean(pool.groups_finalized_at))
+  const pickGroups: PickGroup[] = useMemo(() => {
+    if (!groupedFormat) return []
+    if (storedPickGroups.length > 0) return storedPickGroups
+    if (!field.length) return []
+    return buildPickGroups({
+      field,
+      format: pool.game_format,
+      groupCount: Number(pool.group_count || 6),
+      seed: `${pool.id}:${tournament?.id || tournament?.external_id || tournament?.name || 'group-preview'}`,
+    })
+  }, [field, groupedFormat, pool.game_format, pool.group_count, pool.id, storedPickGroups, tournament?.external_id, tournament?.id, tournament?.name])
+  const groupsFinalized = !groupedFormat || (storedPickGroups.length > 0 && Boolean(pool.groups_finalized_at))
   const picksPerGroup = groupedFormat ? Number(pool.picks_per_group || 1) : 0
   const groupedTotalPicks = groupedFormat ? pickGroups.length * picksPerGroup : 0
   const groupedGroupsRemaining = groupedFormat ? pickGroups.filter(g => {
@@ -393,7 +404,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   useEffect(() => {
     if (!leaderboardModeIsCurrent && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
   }, [availableHistoricalRounds, leaderboardMode, leaderboardModeIsCurrent])
-  const picksAreClosed = isLocked || scoringIsLive || (groupedFormat && !groupsFinalized)
+  const groupsNeedLock = groupedFormat && !groupsFinalized
+  const picksAreLocked = isLocked || scoringIsLive
+  const pickSelectionOpen = !picksAreLocked && !groupsNeedLock
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
   const paymentCollectionOpen = isLocked || scoringIsLive
@@ -435,12 +448,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const fieldReady = field.length > 0
-  const showPickList = !picksAreClosed && (fieldReady || (groupedFormat && pickGroups.length > 0))
-  const showSelectedPicks = fieldReady || myPicks.length > 0 || (groupedFormat && pickGroups.length > 0)
+  const currentFieldNames = useMemo(() => new Set(field.map(player => player.name).filter(Boolean)), [field])
+  const invalidMyPicks = !groupedFormat && fieldReady
+    ? myPicks.filter(name => !currentFieldNames.has(name))
+    : []
+  const showGroupPreview = groupedFormat && groupsNeedLock && (fieldReady || pickGroups.length > 0)
+  const showPickList = (pickSelectionOpen && (fieldReady || (groupedFormat && pickGroups.length > 0))) || showGroupPreview
+  const showSelectedPicks = myPicks.length > 0 || (!groupsNeedLock && (fieldReady || (groupedFormat && pickGroups.length > 0)))
   const visibleEntries = activeEntries
 
   const maskHiddenPicks = useCallback((poolEntries: any[]) => {
-    if (picksAreClosed) return poolEntries
+    if (picksAreLocked) return poolEntries
     return poolEntries.map(entry => {
       const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
       if (entry.user_id === userId) return entry
@@ -451,7 +469,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         picks_hidden: true,
       }
     })
-  }, [picksAreClosed, userId])
+  }, [picksAreLocked, userId])
 
   const refreshPoolEntries = useCallback(async () => {
     const query = supabase
@@ -488,6 +506,28 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   useEffect(() => {
     setEntryNameValue(myEntry?.display_name || '')
   }, [myEntry?.display_name])
+
+  useEffect(() => {
+    if (groupedFormat || picksAreLocked || !myEntry || !fieldReady || invalidMyPicks.length === 0) return
+
+    const nextPicks = myPicks.filter(name => currentFieldNames.has(name))
+    const updatedEntry = { ...myEntry, golfer_picks: nextPicks }
+    setMyPicks(nextPicks)
+    setMyEntry(updatedEntry)
+    setEntries(current => current.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
+
+    supabase
+      .from('gpp_entries')
+      .update({ golfer_picks: nextPicks })
+      .eq('id', myEntry.id)
+      .then(({ error }) => {
+        if (error) {
+          showToast('Field updated. Review your picks before saving.', 'error')
+          return
+        }
+        showToast('Field updated. Removed golfers no longer in the tournament.', 'info')
+      })
+  }, [currentFieldNames, fieldReady, groupedFormat, invalidMyPicks.length, myEntry, myPicks, picksAreLocked, showToast, supabase])
 
   const refreshPaymentQuote = useCallback(async () => {
     if (!isOwner) return
@@ -751,7 +791,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         const liveLeaderboard = data.leaderboard || []
         if (liveLeaderboard.length > 0) {
           setLeaderboard(liveLeaderboard)
-          setField(liveLeaderboard)
+          // Only overwrite field state when tournament is live, not upcoming.
+          // For upcoming events, field comes from server-rendered field_json and
+          // should not be replaced by empty or placeholder leaderboard data.
+          if (tournament?.status === 'live') {
+            setField(liveLeaderboard)
+          }
           setLeaderboardLastUpdated(new Date().toISOString())
         }
         setCutLine(data.cutLine || null)
@@ -784,9 +829,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   // Save picks
   async function savePicks() {
     if (!myEntry) return
-    if (picksAreClosed) {
-      setStatusMessage('Picks are closed for this pool.')
-      showToast('Picks are closed for this pool.', 'error')
+    if (picksAreLocked || groupsNeedLock) {
+      const message = groupsNeedLock ? 'Groups need to lock before picks can be saved.' : 'Picks are closed for this pool.'
+      setStatusMessage(message)
+      showToast(message, groupsNeedLock ? 'info' : 'error')
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
@@ -808,6 +854,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             : `Pick ${picksPerGroup} from each group.`
         setStatusMessage(message)
         showToast(message, 'error')
+        setTimeout(() => setStatusMessage(''), 2500)
+        return
+      }
+    } else {
+      const invalidPicks = myPicks.filter(name => !currentFieldNames.has(name))
+      if (invalidPicks.length > 0) {
+        const nextPicks = myPicks.filter(name => currentFieldNames.has(name))
+        setMyPicks(nextPicks)
+        setStatusMessage('Field updated. Removed golfers no longer in the tournament.')
+        showToast('Field updated. Removed golfers no longer in the tournament.', 'info')
         setTimeout(() => setStatusMessage(''), 2500)
         return
       }
@@ -877,7 +933,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   // Toggle golfer in picks
   function togglePick(name: string) {
-    if (picksAreClosed) return
+    if (!pickSelectionOpen) return
     setMyPicks(prev => {
       if (prev.includes(name)) return prev.filter(n => n !== name)
       if (groupedFormat) {
@@ -910,7 +966,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   async function lockPool() {
     if (scoringIsLive || isLocked) return
     if (groupedFormat && !groupsFinalized) {
-      showToast('Finalize groups before locking picks.', 'error')
+      showToast('Lock groups before locking picks.', 'error')
       return
     }
     const { error } = await supabase
@@ -931,45 +987,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   async function finalizeGroups() {
     if (!isOwner || !groupedFormat || groupsFinalized || finalizingGroups) return
-    const fieldSnapshot = field.length > 0
-      ? field
-      : Array.isArray(tournament?.field_json)
-        ? tournament.field_json as GolfPlayer[]
-        : Array.isArray(tournament?.leaderboard_json)
-          ? tournament.leaderboard_json as GolfPlayer[]
-          : []
-    if (fieldSnapshot.length === 0) {
-      showToast('Tournament field is not loaded yet.', 'error')
-      return
-    }
-
-    const nextGroups = buildPickGroups({
-      field: fieldSnapshot,
-      format: pool.game_format as PoolGameFormat,
-      groupCount: Number(pool.group_count || 6),
-      seed: `${pool.tournament_id || tournament?.id || ''}:${pool.passcode}:${pool.game_format}`,
-    })
-    if (nextGroups.length === 0) {
-      showToast('Could not build groups from this field.', 'error')
-      return
-    }
-
     setFinalizingGroups(true)
-    const { error } = await supabase
-      .from('gpp_pools')
-      .update({
-        pick_groups_json: nextGroups,
-        field_snapshot_json: fieldSnapshot,
-        groups_finalized_at: new Date().toISOString(),
+    try {
+      const res = await fetch('/api/pools/finalize-groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poolId: pool.id }),
       })
-      .eq('id', pool.id)
-    setFinalizingGroups(false)
-    if (error) {
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        showToast(data.error || 'Could not finalize groups.', 'error')
+        return
+      }
+      showToast('Groups finalized.', 'success')
+      router.refresh()
+    } catch {
       showToast('Could not finalize groups.', 'error')
-      return
+    } finally {
+      setFinalizingGroups(false)
     }
-    showToast('Groups finalized.', 'success')
-    router.refresh()
   }
 
   async function renamePool() {
@@ -1361,7 +1397,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
           <span className="text-stone-600">Field: {field.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.length || 0)} golfers</span>
-          {picksAreClosed && <span className="text-amber-700">Picks closed</span>}
+          {picksAreLocked && <span className="text-amber-700">Picks closed</span>}
+          {!picksAreLocked && groupsNeedLock && <span className="text-amber-700">Groups pending</span>}
           {pool.is_completed && <span className="text-emerald-700">Final results</span>}
         </div>}
       </div>
@@ -1606,7 +1643,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   </span>
                                 ) : null}
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className={`mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
+                                <div className={`mt-1 truncate text-[clamp(8px,2.2vw,10px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
                                   {pick ? shortName(pick.name, allPickNames) : '—'}
                                 </div>
                                 <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : '—'}</div>
@@ -1761,7 +1798,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </div>
           ) : (
             <>
-              {!fieldReady && !picksAreClosed && (
+              {!fieldReady && !picksAreLocked && (
                 <div className="mb-4 border-2 border-[#b58a3a] bg-[#fff4cf] p-4 shadow-[5px_5px_0_#d8cab0]">
                   <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#7a5a19]">Tournament field pending</p>
                   <p className="mt-1 text-lg font-black leading-6 text-[#123c2f]">Golfers are not available for this event yet.</p>
@@ -1773,20 +1810,30 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="flex flex-col gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f3df9c]">Make picks</p>
-                    <h2 className="text-xl font-black text-white">Pick {pool.pick_count}. Best {pool.count_scores} count.</h2>
+                    <h2 className="text-xl font-black text-white">{groupsNeedLock ? 'Picks open soon. Review the groups now.' : `Pick ${pool.pick_count}. Best ${pool.count_scores} count.`}</h2>
                   </div>
-                  {!picksAreClosed && fieldReady ? (
+                  {pickSelectionOpen && fieldReady ? (
                     <button onClick={savePicks} disabled={saving}
                       className="border-2 border-[#f3df9c] bg-[#f3df9c] px-5 py-2 text-sm font-black uppercase text-[#123c2f] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">
                       {saving ? 'Saving...' : 'Save picks'}
                     </button>
-                  ) : picksAreClosed ? (
+                  ) : groupsNeedLock ? (
+                    <span className="w-fit border border-[#f3df9c] bg-[#f3df9c] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Picks open soon</span>
+                  ) : picksAreLocked ? (
                     <span className="w-fit border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-800">Picks closed</span>
                   ) : (
                     <span className="w-fit border border-[#f3df9c] bg-[#f3df9c] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Field pending</span>
                   )}
                 </div>
                 <div className="p-4">
+                  {groupsNeedLock && (
+                    <div className="mb-4 border-2 border-[#b58a3a] bg-[#fff4cf] p-3 shadow-[4px_4px_0_#d8cab0]">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#7a5a19]">Picks open soon</p>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-[#1f2a24]">
+                        {isOwner ? 'Review the groups now. Players can see this preview, but picking stays off until you lock groups. Groups also auto-lock Tuesday morning ET once the field is set.' : 'The pool runner is reviewing the groups. You can check the field now, but picks stay off until groups are locked. Groups auto-lock Tuesday morning ET once the field is set.'}
+                      </p>
+                    </div>
+                  )}
                   <details className="group border border-[#d8cab0] bg-white" open={obRulesOpen} onToggle={event => setObRulesOpen(event.currentTarget.open)}>
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] [&::-webkit-details-marker]:hidden">
                       <span>How OB works</span>
@@ -1808,7 +1855,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">
                       Your picks ({myPicks.length}/{pool.pick_count})
                     </h3>
-                    {fieldReady && <span className="text-xs font-bold text-stone-500">Tap a golfer below to add or remove</span>}
+                    {fieldReady && (pickSelectionOpen ? <span className="text-xs font-bold text-stone-500">Tap a golfer below to add or remove</span> : groupsNeedLock ? <span className="text-xs font-bold text-stone-500">Preview only until groups lock</span> : null)}
                   </div>
                   <div className="p-4">
                     {groupedFormat ? (
@@ -1823,7 +1870,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               {picks.map(name => (
                                 <span key={name} className="flex items-center gap-2 rounded-none border border-[#123c2f] bg-white px-3 py-1.5 text-sm font-bold text-[#123c2f]">
                                   {golferListName(name)}
-                                  {!picksAreClosed && (
+                                  {pickSelectionOpen && (
                                     <button type="button" onClick={() => togglePick(name)} className="border border-[#123c2f] px-1 text-[10px] font-black leading-4 text-[#123c2f] hover:border-[#b21e23] hover:text-[#b21e23]" aria-label={`Remove ${golferListName(name)}`}>×</button>
                                   )}
                                 </span>
@@ -1838,7 +1885,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         {myPicks.map(name => (
                           <span key={name} className="flex items-center gap-2 rounded-none border border-[#123c2f] bg-[#eef7ef] px-3 py-1.5 text-sm font-bold text-[#123c2f]">
                             {golferListName(name)}
-                            {!picksAreClosed && fieldReady && (
+                            {pickSelectionOpen && fieldReady && (
                               <button type="button" onClick={() => togglePick(name)} className="border border-[#123c2f] px-1 text-[10px] font-black leading-4 text-[#123c2f] hover:border-[#b21e23] hover:text-[#b21e23]" aria-label={`Remove ${golferListName(name)}`}>×</button>
                             )}
                           </span>
@@ -1854,38 +1901,58 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               {showPickList && (
                 <div className="mb-4 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
                   <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? `${pool.game_format === 'random_groups' ? 'Random' : 'Ranked'} groups` : 'Tournament field'}</p>
-                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? `Pick ${picksPerGroup} from each group.` : 'Sorted by last name for quick scanning.'}</p>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? (groupsNeedLock ? 'Group preview' : `${pool.game_format === 'random_groups' ? 'Random' : 'Ranked'} groups`) : 'Tournament field'}</p>
+                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? (groupsNeedLock ? 'Picks open after groups lock. Groups auto-lock Tuesday morning ET once the field is set.' : `Pick ${picksPerGroup} from each group.`) : 'Sorted by last name for quick scanning.'}</p>
                     {groupedFormat && (
-                      <div className="mt-1.5 flex items-center gap-2">
-                        <span className="text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
-                          {myPicks.length}/{groupedTotalPicks} picks
-                        </span>
-                        {groupedGroupsRemaining > 0 && (
-                          <span className="text-[11px] font-bold text-[#b21e23]">
-                            {groupedGroupsRemaining} group{groupedGroupsRemaining !== 1 ? 's' : ''} left
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#d8cab0] pt-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
+                            {groupsNeedLock ? 'Preview only' : `${myPicks.length}/${groupedTotalPicks} picks`}
                           </span>
-                        )}
-                        {groupedGroupsRemaining === 0 && myPicks.length > 0 && (
-                          <span className="border border-[#123c2f] bg-[#eef7ef] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f]">
-                            Complete
-                          </span>
-                        )}
+                          {groupsNeedLock && (
+                            <span className="border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#7a5a19]">
+                              Picks not open yet
+                            </span>
+                          )}
+                          {!groupsNeedLock && groupedGroupsRemaining === 0 && myPicks.length > 0 && (
+                            <span className="border border-[#123c2f] bg-[#eef7ef] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f]">
+                              Complete
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f]">
+                          <span>{myPicks.length}/{groupedTotalPicks} picks</span>
+                          {groupedGroupsRemaining > 0 && (
+                            <span className="text-[#b21e23]">
+                              {groupedGroupsRemaining} group{groupedGroupsRemaining !== 1 ? 's' : ''} left
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
                   <div className="max-h-[28rem] overflow-y-auto">
                     {groupedFormat ? (
-                      <div className="p-2 sm:p-3">
-                        <GroupedPickGrid
-                          pickGroups={pickGroups}
-                          myPicks={myPicks}
-                          picksPerGroup={picksPerGroup}
-                          picksAreClosed={picksAreClosed}
-                          golferListName={golferListName}
-                          onTogglePick={togglePick}
-                        />
-                      </div>
+                      pickGroups.length > 0 ? (
+                        <div className="p-2 sm:p-3">
+                          <GroupedPickGrid
+                            pickGroups={pickGroups}
+                            myPicks={myPicks}
+                            picksPerGroup={picksPerGroup}
+                            readOnly={picksAreLocked || groupsNeedLock}
+                            golferListName={golferListName}
+                            onTogglePick={togglePick}
+                          />
+                        </div>
+                      ) : (
+                        [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => (
+                          <div key={player.id || player.name}
+                            className="flex w-full items-center justify-between border-b border-[#eadfca] px-4 py-2.5 text-left text-stone-500">
+                            <span className="text-sm font-semibold">{golferListName(player.name)}</span>
+                            <span className="border border-stone-300 bg-stone-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-stone-500">Field</span>
+                          </div>
+                        ))
+                      )
                     ) : [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => {
                       const selected = myPicks.includes(player.name)
                       return (
@@ -1937,7 +2004,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </details>
 
               {/* Leave pool — available to non-owners before picks close */}
-              {myEntry && !isOwner && !picksAreClosed && (
+              {myEntry && !isOwner && !picksAreLocked && (
                 <details className="group rounded-none border border-stone-200 bg-white shadow-[4px_4px_0_#d8cab0]">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-[0.12em] text-[#b21e23] [&::-webkit-details-marker]:hidden">
                     <span>Leave pool</span>
@@ -2123,7 +2190,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             )}
           </section>
 
-          {!picksAreClosed && (
+          {!picksAreLocked && (
             <section className="border border-[#d8cab0] bg-[#fbf7ed] p-5 shadow-[5px_5px_0_#d8cab0]">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>

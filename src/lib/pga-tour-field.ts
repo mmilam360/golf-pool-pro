@@ -70,12 +70,26 @@ function normalizeName(value: string | null | undefined) {
   return String(value || '')
     .toLowerCase()
     .replace(/&/g, 'and')
-    .replace(/\b(the|presented by|pres\.? by|championship|challenge|classic|open|invitational|tournament)\b/g, '')
+    .replace(/\bu\.?\s*s\.?\b/g, 'us')
+    .replace(/\b(the|presented by|pres\.? by|challenge|classic|invitational|tournament)\b/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
 }
 
+function majorKey(value: string | null | undefined) {
+  const normalized = normalizeName(value)
+  if (/\bmasters\b/.test(normalized)) return 'masters'
+  if (/\bpga\b/.test(normalized) && /\bchampionship\b/.test(normalized)) return 'pga-championship'
+  if (/\bus\b/.test(normalized) && /\bopen\b/.test(normalized)) return 'us-open'
+  if (/\bopen\b/.test(normalized) && !/\bus\b/.test(normalized)) return 'open-championship'
+  return null
+}
+
 function overlapScore(a: string, b: string) {
+  const leftMajor = majorKey(a)
+  const rightMajor = majorKey(b)
+  if (leftMajor || rightMajor) return leftMajor && leftMajor === rightMajor ? 1 : 0
+
   const left = new Set(normalizeName(a).split(' ').filter(Boolean))
   const right = new Set(normalizeName(b).split(' ').filter(Boolean))
   if (!left.size || !right.size) return 0
@@ -194,6 +208,13 @@ function toNullableNumber(value: string | number | null | undefined) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function normalizeLastUpdated(value: string | number | null | undefined) {
+  if (value == null || value === '') return null
+  const numeric = Number(value)
+  const parsed = Number.isFinite(numeric) ? new Date(numeric) : new Date(value)
+  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : null
+}
+
 function mapPgaFieldPlayer(player: PgaFieldPlayer): GolfPlayer | null {
   const name = displayNameForPlayer(player)
   if (!player.id || !name) return null
@@ -217,9 +238,9 @@ function mapPgaFieldPlayer(player: PgaFieldPlayer): GolfPlayer | null {
   }
 }
 
-export async function getPgaTourField(tournamentId: string) {
+export async function getPgaTourFieldWithMeta(tournamentId: string): Promise<{ players: GolfPlayer[]; lastUpdated: string | null }> {
   const apiKey = await getPgaTourApiKey()
-  if (!apiKey) return []
+  if (!apiKey) return { players: [], lastUpdated: null }
 
   const res = await fetch(PGA_TOUR_GRAPHQL, {
     method: 'POST',
@@ -235,11 +256,18 @@ export async function getPgaTourField(tournamentId: string) {
     }),
     ...NEXT_REVALIDATE_HOURLY,
   })
-  if (!res.ok) return []
+  if (!res.ok) return { players: [], lastUpdated: null }
 
   const data = await res.json().catch(() => null)
-  const players = data?.data?.field?.players
-  if (!Array.isArray(players)) return []
+  const field = data?.data?.field
+  const players = field?.players
+  if (!Array.isArray(players)) return { players: [], lastUpdated: null }
   const mapped = players.map(mapPgaFieldPlayer).filter(Boolean) as GolfPlayer[]
-  return hydrateFieldWithOwgr(mapped)
+  const hydrated = await hydrateFieldWithOwgr(mapped)
+  return { players: hydrated, lastUpdated: normalizeLastUpdated(field?.lastUpdated) }
+}
+
+export async function getPgaTourField(tournamentId: string): Promise<GolfPlayer[]> {
+  const meta = await getPgaTourFieldWithMeta(tournamentId)
+  return meta.players
 }

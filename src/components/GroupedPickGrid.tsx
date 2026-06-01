@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import type { PickGroup } from '@/lib/pool-formats'
 
 export type PickState = {
@@ -67,7 +67,7 @@ export type GroupedPickGridProps = {
   pickGroups: PickGroup[]
   myPicks: string[]
   picksPerGroup: number
-  picksAreClosed: boolean
+  readOnly: boolean
   golferListName: (name: string) => string
   onTogglePick: (name: string) => void
 }
@@ -76,11 +76,11 @@ export function GroupedPickGrid({
   pickGroups,
   myPicks,
   picksPerGroup,
-  picksAreClosed,
+  readOnly,
   golferListName,
   onTogglePick,
 }: GroupedPickGridProps) {
-  const [isMobile, setIsMobile] = useState(() =>
+  const [isMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 640 : false
   )
 
@@ -95,7 +95,7 @@ export function GroupedPickGrid({
 
           const pickStates: PickState[] = group.players.map(player => {
             const selected = myPicks.includes(player.name)
-            const disabled = !selected && selectedCount >= picksPerGroup
+            const disabled = readOnly || (!selected && selectedCount >= picksPerGroup)
             return {
               rawName: player.name,
               displayName: golferListName(player.name),
