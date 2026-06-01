@@ -1443,6 +1443,21 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         const affectedCount = Number(payload.affectedCount || 0)
         const removedCount = Number(payload.removedCount || payload.removedPicks?.length || 0)
         const removedNames = Array.isArray(payload.removedPicks) ? payload.removedPicks.join(', ') : ''
+        const affectedEntries = Array.isArray(payload.affectedEntries) ? payload.affectedEntries : []
+        const poolLabel = payload.poolName || poolName
+        const poolLink = typeof window !== 'undefined' ? `${window.location.origin}/pool/${pool.id}` : ''
+        const hostCopyMessage = [
+          `Heads up — the official field changed for ${poolLabel}.`,
+          '',
+          'These entries need replacement picks before the tournament starts:',
+          ...affectedEntries.map(entry => {
+            const removed = Array.isArray(entry.removed) ? entry.removed : []
+            return `- ${entry.displayName}: ${removed.length} ${removed.length === 1 ? 'pick' : 'picks'} removed${removed.length ? ` (${removed.join(', ')})` : ''}`
+          }),
+          '',
+          'Please open the pool and fill your open spots before picks lock.',
+          poolLink ? `Pool link: ${poolLink}` : '',
+        ].filter(Boolean).join('\n')
         return (
           <div key={alert.id} className="mb-4 border-2 border-[#b58a3a] bg-[#fff7dc] p-4 shadow-[5px_5px_0_#d8cab0]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1479,6 +1494,37 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </button>
               </div>
             </div>
+            {isHostAlert && affectedEntries.length > 0 && (
+              <div className="mt-4 border-2 border-[#d8cab0] bg-white p-3">
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">Group chat message</p>
+                    <p className="mt-1 text-xs font-semibold text-stone-600">Names are filled in. Copy this and drop it into your group chat.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(hostCopyMessage)
+                        showToast('Message copied.', 'success')
+                      } catch {
+                        showToast('Could not copy. Select the text box and copy it.', 'error')
+                      }
+                    }}
+                    className="border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f]"
+                  >
+                    Copy message
+                  </button>
+                </div>
+                <textarea
+                  readOnly
+                  value={hostCopyMessage}
+                  rows={Math.min(8, Math.max(5, hostCopyMessage.split('\n').length))}
+                  onFocus={event => event.currentTarget.select()}
+                  className="w-full resize-y border border-[#d8cab0] bg-[#fbf7ed] p-3 font-mono text-xs leading-5 text-[#1f2a24] outline-none"
+                />
+              </div>
+            )}
           </div>
         )
       })}
