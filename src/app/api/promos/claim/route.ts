@@ -49,6 +49,16 @@ export async function GET() {
     if (!user) return NextResponse.json({ claimedPromo: null }, { status: 401 })
 
     const serviceSupabase = createServiceClient() as any
+    const { data: firstOwnedPool } = await serviceSupabase
+      .from('gpp_pools')
+      .select('id')
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (firstOwnedPool) return NextResponse.json({ claimedPromo: null, used: true })
+
     const { data: redemption } = await serviceSupabase
       .from('gpp_promo_redemptions')
       .select('id')
@@ -92,6 +102,16 @@ export async function POST(request: Request) {
     if (!promoCode) return NextResponse.json({ error: 'Missing promo code' }, { status: 400 })
 
     const serviceSupabase = createServiceClient() as any
+    const { data: firstOwnedPool } = await serviceSupabase
+      .from('gpp_pools')
+      .select('id')
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (firstOwnedPool) return NextResponse.json({ error: 'This offer only applies before you create your first pool.' }, { status: 409 })
+
     const { data: redemption } = await serviceSupabase
       .from('gpp_promo_redemptions')
       .select('id')

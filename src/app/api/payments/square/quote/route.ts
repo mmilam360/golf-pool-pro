@@ -61,11 +61,19 @@ async function getOwnedPoolQuote(poolId: string) {
       .maybeSingle()
 
     if (!redemption && quote.amountDueCents > 0) {
-      const { data: claim } = await serviceSupabase
+      const { data: firstOwnedPool } = await serviceSupabase
+        .from('gpp_pools')
+        .select('id')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      const { data: claim } = firstOwnedPool?.id === poolId ? await serviceSupabase
         .from('gpp_user_promo_claims')
         .select('gpp_promo_codes(code, description, free_pool, discount_cents, target_amount_cents, max_redemptions, times_redeemed, starts_at, expires_at, is_active)')
         .eq('user_id', user.id)
-        .maybeSingle()
+        .maybeSingle() : { data: null }
 
       const promo = Array.isArray(claim?.gpp_promo_codes) ? claim.gpp_promo_codes[0] : claim?.gpp_promo_codes
       const nowMs = Date.now()
