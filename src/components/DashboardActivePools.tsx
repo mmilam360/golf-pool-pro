@@ -8,6 +8,7 @@ import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
+import { displayTournamentName } from '@/lib/tournament-name'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -224,7 +225,7 @@ function shortName(name: string, peerNames: string[] = []) {
 }
 
 function boardTitle(tournament: Tournament | null) {
-  return tournament?.name || 'Leaderboard'
+  return displayTournamentName(tournament?.name) || 'Leaderboard'
 }
 
 function formatEventDate(value?: string | null) {
@@ -235,13 +236,21 @@ function poolIsOpenForPicks(pool: PoolRecord, tournament: Tournament | null) {
   return !pool.is_locked && !pool.is_completed && tournament?.status !== 'live' && tournament?.status !== 'completed'
 }
 
-function OpenPicksBar({ pool, tournament }: { pool: PoolRecord; tournament: Tournament | null }) {
+function OpenPicksBar({ pool, tournament, mode }: { pool: PoolRecord; tournament: Tournament | null; mode: 'player' | 'runner' }) {
   if (!poolIsOpenForPicks(pool, tournament)) return null
+  const href = mode === 'runner' ? `/pool/${pool.id}?tab=pool-settings` : `/pool/${pool.id}#make-picks`
+  const label = mode === 'runner' ? 'Settings' : 'Edit picks'
   return (
     <div className="mb-3 flex flex-col gap-2 border border-[#d8cab0] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] sm:flex-row sm:items-center sm:justify-between">
       <span className="text-[#657168]">Event starts: <span className="text-[#123c2f]">{formatEventDate(tournament?.start_date)}</span></span>
-      <a href={`/pool/${pool.id}#make-picks`} className="inline-flex w-fit border border-[#123c2f] bg-[#fbf7ed] px-3 py-1.5 text-[#123c2f] hover:bg-[#fff4cf]">
-        Edit picks
+      <a href={href} className="inline-flex w-fit items-center gap-1.5 border border-[#123c2f] bg-[#fbf7ed] px-3 py-1.5 text-[#123c2f] hover:bg-[#fff4cf]" aria-label={mode === 'runner' ? `Open settings for ${pool.name}` : `Edit picks for ${pool.name}`}>
+        {mode === 'runner' ? (
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
+            <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
+            <path d="M19 12a7.1 7.1 0 0 0-.1-1.1l2-1.5-2-3.4-2.4 1a7.8 7.8 0 0 0-1.9-1.1L14.3 3h-4.6l-.3 2.9A7.8 7.8 0 0 0 7.5 7l-2.4-1-2 3.4 2 1.5A7.1 7.1 0 0 0 5 12c0 .4 0 .8.1 1.1l-2 1.5 2 3.4 2.4-1a7.8 7.8 0 0 0 1.9 1.1l.3 2.9h4.6l.3-2.9a7.8 7.8 0 0 0 1.9-1.1l2.4 1 2-3.4-2-1.5c.1-.3.1-.7.1-1.1Z" />
+          </svg>
+        ) : null}
+        {label}
       </a>
     </div>
   )
@@ -341,13 +350,14 @@ function CurrentUserMarker({ className = '' }: { className?: string }) {
   return <span aria-label="Your entry" title="Your entry" className={`inline-block h-2.5 w-2.5 shrink-0 bg-[#1f6b4a] ${className}`} />
 }
 
-function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntryToggle, teeTimeZone }: {
+function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntryToggle, teeTimeZone, mode }: {
   pool: PoolRecord
   entries: EntryRecord[]
   currentEntryId?: string | null
   openEntryIds: Set<string> | null
   onEntryToggle: (entryId: string, open: boolean) => void
   teeTimeZone: string
+  mode: 'player' | 'runner'
 }) {
   const countScores = pool.count_scores || 4
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
@@ -384,7 +394,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const harePickMap = leaderboardModeIsCurrent ? buildHarePickMap(scoredEntries, 2) : new Map()
   const tortoisePickMap = leaderboardModeIsCurrent ? buildTortoisePickMap(scoredEntries, currentEntryId, 2) : new Map()
   const showLeverageLegend = leaderboardModeIsCurrent && (harePickMap.size > 0 || tortoisePickMap.size > 0)
-  const showJumpToMyEntry = Boolean(currentScoredEntry && scoredEntries.length >= 10)
+  const showJumpToMyEntry = mode === 'player' && Boolean(currentScoredEntry && scoredEntries.length >= 10)
   const jumpToCurrentEntry = () => {
     if (!currentEntryId) return
     onEntryToggle(currentEntryId, true)
@@ -398,14 +408,14 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   if (scoredEntries.length === 0) {
     return (
       <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-4 py-4 sm:px-5">
-        <OpenPicksBar pool={pool} tournament={tournament} />
+        <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
       </div>
     )
   }
 
   return (
     <div className="overflow-hidden border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-4 sm:px-5">
-      <OpenPicksBar pool={pool} tournament={tournament} />
+      <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
       {showJumpToMyEntry ? (
         <div className="mb-3 flex justify-center">
           <button type="button" onClick={jumpToCurrentEntry} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] shadow-[3px_3px_0_#d8cab0] hover:bg-[#fffdf8]">
@@ -695,7 +705,7 @@ function formatLockTime(value?: string | null) {
   }).toLowerCase().replace(',', '')
 }
 
-export default function DashboardActivePools({ cards, entriesByPool }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]> }) {
+export default function DashboardActivePools({ cards, entriesByPool, mode = 'player' }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner' }) {
   const router = useRouter()
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set())
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
@@ -794,6 +804,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
           const isPoolOpen = expandedPoolIds.has(pool.id)
           const openEntryIds = expandedEntryIds[pool.id] ?? null
           const eventBegun = hasEventBegun(effectiveTournament)
+          const tournamentDisplayName = displayTournamentName(effectiveTournament?.name) || 'Tournament'
           return (
             <details
               key={`${role}-${pool.id}`}
@@ -820,7 +831,7 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                          className="h-4 w-4 shrink-0 opacity-80"
                          loading="lazy"
                        />
-                       {effectiveTournament?.name || 'Tournament'}
+                       {tournamentDisplayName}
                      </p>
                   </div>
                   <div className="flex flex-col items-end gap-1.5">
@@ -852,12 +863,13 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                     return next
                   })
                 }}
+                mode={mode}
                 teeTimeZone={teeTimeZone}
               />
               <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
                 <TournamentLeaderboard
                   leaderboard={effectiveTournament?.leaderboard_json}
-                  tournamentName={effectiveTournament?.name}
+                  tournamentName={tournamentDisplayName}
                   lastUpdated={effectiveTournament?.last_scores_fetch}
                   pickedGolfers={entryPicks(entry)}
                   cutLine={effectiveTournament?.cutLine}

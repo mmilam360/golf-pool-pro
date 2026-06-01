@@ -9,6 +9,7 @@ import { selectNextRunItBackTournament } from '@/lib/run-it-back'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import ClaimedPromoBanner from '@/components/ClaimedPromoBanner'
 import DashboardActivePools from '@/components/DashboardActivePools'
+import { displayTournamentName } from '@/lib/tournament-name'
 import type { GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -192,6 +193,7 @@ function ResultBadge({ label, value, tone = 'green' }: { label: string; value: s
 
 function PoolCard({ pool, entries, nextOpenTournament }: { pool: PoolRecord; entries: EntryRecord[]; nextOpenTournament: Tournament | null }) {
   const tournament = getTournament(pool)
+  const tournamentName = displayTournamentName(tournament?.name) || 'Tournament'
   const label = statusLabel(pool, tournament)
   const activeEntryCount = entries.length
   const showInvitePrep = canShowInvitePrep(pool, tournament)
@@ -212,7 +214,7 @@ function PoolCard({ pool, entries, nextOpenTournament }: { pool: PoolRecord; ent
               ) : null}
             </div>
             <p className="mt-1 text-xs leading-5 text-[#657168]">
-              <span className="font-semibold text-[#1f2a24]">{tournament?.name || 'Tournament'}</span>
+              <span className="font-semibold text-[#1f2a24]">{tournamentName}</span>
               <span className="mx-1.5 text-[#b58a3a]">/</span>
               <span className="font-mono">{formatDateRange(tournament?.start_date, tournament?.end_date)}</span>
             </p>
@@ -229,7 +231,7 @@ function PoolCard({ pool, entries, nextOpenTournament }: { pool: PoolRecord; ent
       {isCompleted && nextOpenTournament?.id && nextOpenTournament.name ? (
         <Link href={`/pool/create?clone=${pool.id}&tournament=${nextOpenTournament.id}`} className="mt-3 flex w-full flex-col items-center justify-center border border-[#123c2f] bg-[#fbf7ed] px-3 py-2.5 text-center text-[#123c2f] transition-colors hover:bg-[#eef7ef]">
           <span className="text-[11px] font-black uppercase tracking-[0.12em]">Copy settings for</span>
-          <span className="mt-0.5 text-sm font-bold leading-tight">{nextOpenTournament.name}</span>
+          <span className="mt-0.5 text-sm font-bold leading-tight">{displayTournamentName(nextOpenTournament.name) || nextOpenTournament.name}</span>
         </Link>
       ) : null}
     </div>
@@ -310,7 +312,7 @@ export default async function ManagePoolsPage() {
                   <h2 className="font-display text-xl font-bold uppercase text-[#0f2f25]">Current pools</h2>
                   <span className="border border-[#d8cab0] bg-white px-2 py-1 text-xs font-black uppercase tracking-[0.1em] text-[#657168]">{currentPools.length}</span>
                 </div>
-                <DashboardActivePools cards={currentPoolCards} entriesByPool={entriesByPool} />
+                <DashboardActivePools cards={currentPoolCards} entriesByPool={entriesByPool} mode="runner" />
               </div>
             ) : null}
             {finalPools.length ? (

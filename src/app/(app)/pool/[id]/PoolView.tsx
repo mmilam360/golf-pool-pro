@@ -72,6 +72,7 @@ interface Props {
   previousPlayerCandidates: { userId: string; displayName: string }[]
   inviteSummary: { pending: number; accepted: number; declined: number }
   publicView?: boolean
+  initialTab?: Tab
 }
 
 type Tab = 'leaderboard' | 'my-entry' | 'pool-settings'
@@ -301,9 +302,10 @@ function roundScoreLabel(round: number) {
   return ROUND_SCORE_LABELS[round] || `R${round}`
 }
 
-export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false }: Props) {
+export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, initialTab }: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>(publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry')
+  const defaultTab: Tab = publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry'
+  const [tab, setTab] = useState<Tab>(initialTab || defaultTab)
   const [entries, setEntries] = useState(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [poolName, setPoolName] = useState(pool.name)

@@ -4,10 +4,11 @@ import { redirect } from 'next/navigation'
 import PoolView from './PoolView'
 import { buildPreviousPlayerCandidates, summarizeInviteStatuses } from '@/lib/pool-invite-logic'
 
-export default async function PoolPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ inviteFrom?: string }> }) {
+export default async function PoolPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ inviteFrom?: string; tab?: string }> }) {
   const { id } = await params
   const query = searchParams ? await searchParams : {}
   const inviteFromPoolId = typeof query?.inviteFrom === 'string' ? query.inviteFrom : ''
+  const requestedTab = typeof query?.tab === 'string' ? query.tab : ''
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirect=${encodeURIComponent(`/pool/${id}`)}`)
@@ -101,6 +102,7 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
       userId={user.id}
       previousPlayerCandidates={previousPlayerCandidates}
       inviteSummary={inviteSummary}
+      initialTab={isOwner && requestedTab === 'pool-settings' ? 'pool-settings' : undefined}
     />
   )
 }
