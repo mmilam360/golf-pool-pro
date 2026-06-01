@@ -276,7 +276,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [inkSaver, setInkSaver] = useState(false)
   const [entryDeadline, setEntryDeadline] = useState(defaultEntryDeadline)
-  const [hostNote, setHostNote] = useState('Pay the host before picks lock.')
+  const [hostNote, setHostNote] = useState('Settle up with the host before picks lock.')
   const [hostLogoSrc, setHostLogoSrc] = useState('')
   const [qrSrc, setQrSrc] = useState('')
   const [exportFormat, setExportFormat] = useState<PosterExportFormat>('png')
