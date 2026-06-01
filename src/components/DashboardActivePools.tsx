@@ -400,6 +400,42 @@ function CurrentUserMarker({ className = '' }: { className?: string }) {
   return <span aria-label="Your entry" title="Your entry" className={`inline-block h-2.5 w-2.5 shrink-0 bg-[#1f6b4a] ${className}`} />
 }
 
+function isGroupedFormat(pool: PoolRecord) {
+  return pool.game_format === 'grouped' || pool.game_format === 'random_groups' || pool.game_format === 'ranked_groups'
+}
+
+function formatMyEntryLockTime(value?: string | null) {
+  if (!value) return null
+  const parsed = new Date(value)
+  if (!Number.isFinite(parsed.getTime())) return null
+  const weekday = parsed.toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'long' })
+  const time = parsed.toLocaleTimeString('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).toLowerCase().replace(' ', '')
+  return `Locks ${weekday} ${time}`
+}
+
+function MyEntryPreTournamentBadges({ pool, entry }: { pool: PoolRecord; entry?: EntryRecord | null }) {
+  if (isGroupedFormat(pool) && !pool.groups_finalized_at) {
+    return <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Groups pending</span>
+  }
+
+  const needed = totalPicksNeeded(pool)
+  const picked = entryPicks(entry).length
+  const remaining = Math.max(0, needed - picked)
+  const lockLabel = formatMyEntryLockTime(pool.lock_at)
+
+  return (
+    <>
+      <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#123c2f]">{picked}/{needed} picks</span>
+      {remaining > 0 ? <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Needs {remaining}</span> : null}
+      {remaining === 0 && lockLabel ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{lockLabel}</span> : null}
+    </>
+  )
+}
+
 function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntryToggle, teeTimeZone, mode }: {
   pool: PoolRecord
   entries: EntryRecord[]
@@ -441,6 +477,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
   const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
+  const currentEntryRecord = currentEntryId ? entries.find(entry => entry.id === currentEntryId) : null
   const currentMovementToday = currentScoredEntry && leaderboardModeIsCurrent ? entryMovementToday(currentScoredEntry, scoredEntries) : null
   const scoreFreshness = formatScoreFreshness(tournament?.last_scores_fetch)
   const harePickMap = leaderboardModeIsCurrent ? buildHarePickMap(scoredEntries, 2) : new Map()
@@ -473,10 +510,16 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
         <div className="sticky top-2 z-30 mb-3 flex flex-col gap-2 border-2 border-[#123c2f] bg-white px-3 py-2 shadow-[3px_3px_0_#d8cab0] sm:static sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-[0.1em]">
             <span className="inline-flex items-center gap-1.5 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
-            <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
-            <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>Score {formatScore(currentScoredEntry.totalScore)}</span>
-            <MovementBadge movement={currentMovementToday} />
-            {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
+            {scoringIsLive ? (
+              <>
+                <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
+                <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>Score {formatScore(currentScoredEntry.totalScore)}</span>
+                <MovementBadge movement={currentMovementToday} />
+                {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
+              </>
+            ) : (
+              <MyEntryPreTournamentBadges pool={pool} entry={currentEntryRecord} />
+            )}
           </div>
           {showJumpToMyEntry ? (
             <button type="button" onClick={jumpToCurrentEntry} className="w-fit border border-[#123c2f] bg-[#fbf7ed] px-3 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] hover:bg-[#fff4cf]">
