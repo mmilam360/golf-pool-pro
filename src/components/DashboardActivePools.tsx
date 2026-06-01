@@ -197,6 +197,7 @@ function lastNameFor(name: string) {
 }
 
 function shortName(name: string, peerNames: string[] = []) {
+  if (name === 'Picks hidden') return 'Hidden'
   const clean = name.replace(/^OB Stand-in #/, 'OB ')
   if (clean.startsWith('OB ')) return clean
   const parts = clean.split(' ').filter(Boolean)
@@ -274,6 +275,68 @@ function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<strin
   return leaderboardBackedPickProgressLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
 }
 
+function pickGridColumnCount(count: number) {
+  if (count <= 3) return Math.max(1, count)
+  if (count === 6) return 3
+  if (count === 12) return 4
+  if (count % 5 === 0) return 5
+  if (count % 4 === 0) return 4
+  if (count % 3 === 0) return 3
+  return Math.min(4, count)
+}
+
+function buildPreScoringEntry(entry: EntryRecord, countScores: number, hidePicks: boolean): ScoredEntry {
+  if (hidePicks) {
+    return {
+      entryId: entry.id,
+      displayName: entry.display_name || 'Entry',
+      picks: ['__hidden__'],
+      pickScores: Array.from({ length: countScores }, () => ({
+        name: 'Picks hidden',
+        scoreToPar: null,
+        strokes: null,
+        thru: '',
+        status: 'active' as const,
+        counted: true,
+        isObStandIn: false,
+      })),
+      totalScore: null,
+      todayScore: null,
+      finalNineScore: null,
+      tiebreakScores: [],
+      rank: null,
+      obStandIns: 0,
+    }
+  }
+
+  const orderedPicks = (Array.isArray(entry.golfer_picks) ? [...entry.golfer_picks] as string[] : []).sort((a, b) => a.localeCompare(b))
+  const pickScores = Array.from({ length: countScores }, (_, index) => {
+    const name = orderedPicks[index]
+    return {
+      name: name || '—',
+      scoreToPar: null,
+      strokes: null,
+      thru: '',
+      status: 'active' as const,
+      counted: true,
+      isObStandIn: false,
+    }
+  })
+
+  return {
+    entryId: entry.id,
+    displayName: entry.display_name || 'Entry',
+    picks: orderedPicks,
+    pickScores,
+    totalScore: null,
+    todayScore: null,
+    finalNineScore: null,
+    tiebreakScores: [],
+    rank: null,
+    obStandIns: 0,
+  }
+}
+
 function CurrentUserMarker({ className = '' }: { className?: string }) {
   return <span aria-label="Your entry" title="Your entry" className={`inline-block h-2.5 w-2.5 shrink-0 bg-[#1f6b4a] ${className}`} />
 }
@@ -308,7 +371,11 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
       ? roundScoreLabel(leaderboardMode.round)
       : null
-  const scoredEntries = buildScoredEntries(pool, entries, leaderboardRows, selectedBoardIsHistorical)
+  const scoringIsLive = Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboardRows))
+  const scoredEntries = scoringIsLive
+    ? buildScoredEntries(pool, entries, leaderboardRows, selectedBoardIsHistorical)
+    : entries.map(entry => buildPreScoringEntry(entry, countScores, entry.id !== currentEntryId))
+  const pickGridColumns = pickGridColumnCount(countScores)
   const leaderboardByName = new Map(leaderboardRows.map(player => [normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()), player]))
   const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
@@ -427,11 +494,12 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                       </div>
                     </summary>
-                    <div className="grid grid-cols-4 border-t border-[#111] bg-[#fbfbf5]">
+                    <div className="grid border-t border-[#111] bg-[#fbfbf5]" style={{ gridTemplateColumns: `repeat(${pickGridColumns}, minmax(0, 1fr))` }}>
                       {Array.from({ length: countScores }, (_, i) => {
                         const pick = countingPicks[i]
+                        const picksHidden = entry.picks.includes('__hidden__')
                         return (
-                          <div key={i} className="relative border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
+                          <div key={i} className={`relative border-t border-[#111] px-1 py-1.5 text-center ${((i + 1) % pickGridColumns === 0) ? '' : 'border-r'} ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
                             <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                             <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                             <div className="mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
@@ -578,7 +646,7 @@ function PickProgressBadge({ entry, pool, tournament }: { entry?: EntryRecord | 
   const needed = totalPicksNeeded(pool)
   const count = picks.length
   const done = count >= needed
-  if (!canShowPickBadge(pool, tournament)) return null
+  if (!canShowPickBadge(pool, tournament ?? null)) return null
   if (done) {
     return (
       <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#1f6b4a] bg-[#eef7ef] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#1f6b4a]">

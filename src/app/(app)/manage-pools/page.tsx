@@ -8,6 +8,7 @@ import { getPoolPaymentQuote, getPoolPaymentStatus, formatMoney } from '@/lib/pa
 import { selectNextRunItBackTournament } from '@/lib/run-it-back'
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import ClaimedPromoBanner from '@/components/ClaimedPromoBanner'
+import DashboardActivePools from '@/components/DashboardActivePools'
 import type { GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -17,6 +18,7 @@ type Tournament = {
   end_date?: string | null
   status?: string | null
   leaderboard_json?: GolfPlayer[] | null
+  last_scores_fetch?: string | null
 }
 
 type PoolRecord = {
@@ -31,14 +33,21 @@ type PoolRecord = {
   is_completed: boolean | null
   payment_status?: string | null
   amount_paid_cents?: number | null
+  game_format?: string | null
+  group_count?: number | null
+  picks_per_group?: number | null
+  pick_groups_json?: unknown | null
+  lock_at?: string | null
+  groups_finalized_at?: string | null
   gpp_tournaments?: Tournament | Tournament[] | null
 }
 
 type EntryRecord = {
+  id: string
   pool_id: string
   user_id?: string | null
-  display_name?: string | null
-  golfer_picks?: unknown
+  display_name: string | null
+  golfer_picks: unknown
 }
 
 function getTournament(pool?: PoolRecord | null): Tournament | null {
@@ -234,7 +243,7 @@ export default async function ManagePoolsPage() {
 
   const { data: ownedPools } = await supabase
     .from('gpp_pools')
-    .select('id, name, passcode, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, is_locked, is_completed, payment_status, amount_paid_cents, gpp_tournaments(name, start_date, end_date, status, leaderboard_json)')
+    .select('id, name, passcode, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, is_locked, is_completed, payment_status, amount_paid_cents, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch)')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -250,7 +259,7 @@ export default async function ManagePoolsPage() {
   const { data: ownedPoolEntries } = ownedPoolIds.length
     ? await supabase
       .from('gpp_entries')
-      .select('pool_id, user_id, display_name, golfer_picks, is_removed')
+      .select('id, pool_id, user_id, display_name, golfer_picks, is_removed')
       .in('pool_id', ownedPoolIds)
       .eq('is_removed', false)
     : { data: [] }
@@ -268,6 +277,12 @@ export default async function ManagePoolsPage() {
     const tournament = getTournament(pool)
     return Boolean(pool.is_completed || tournament?.status === 'completed')
   })
+  const currentPoolCards = currentPools.map(pool => ({
+    pool,
+    tournament: getTournament(pool),
+    role: 'Running',
+    entry: null,
+  }))
 
   return (
     <div className="space-y-8">
@@ -295,11 +310,7 @@ export default async function ManagePoolsPage() {
                   <h2 className="font-display text-xl font-bold uppercase text-[#0f2f25]">Current pools</h2>
                   <span className="border border-[#d8cab0] bg-white px-2 py-1 text-xs font-black uppercase tracking-[0.1em] text-[#657168]">{currentPools.length}</span>
                 </div>
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {currentPools.map(pool => (
-                    <PoolCard key={pool.id} pool={pool} entries={entriesByPool[pool.id] || []} nextOpenTournament={nextOpenTournament ?? null} />
-                  ))}
-                </div>
+                <DashboardActivePools cards={currentPoolCards} entriesByPool={entriesByPool} />
               </div>
             ) : null}
             {finalPools.length ? (

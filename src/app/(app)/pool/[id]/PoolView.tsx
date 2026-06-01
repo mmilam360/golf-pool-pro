@@ -143,6 +143,8 @@ function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
       })),
       totalScore: null,
       todayScore: null,
+      finalNineScore: null,
+      tiebreakScores: [],
       rank: null,
       obStandIns: 0,
     }
@@ -166,6 +168,8 @@ function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
     pickScores,
     totalScore: null,
     todayScore: null,
+    finalNineScore: null,
+    tiebreakScores: [],
     rank: null,
     obStandIns: 0,
   }
@@ -207,6 +211,16 @@ function shortName(name: string, peerNames: string[] = []) {
 
 function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<string, GolfPlayer>, timeZone: string) {
   return leaderboardBackedPickProgressLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
+}
+
+function pickGridColumnCount(count: number) {
+  if (count <= 3) return Math.max(1, count)
+  if (count === 6) return 3
+  if (count === 12) return 4
+  if (count % 5 === 0) return 5
+  if (count % 4 === 0) return 4
+  if (count % 3 === 0) return 3
+  return Math.min(4, count)
 }
 
 function LivePulseBadge() {
@@ -1128,6 +1142,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const harePickMap = leaderboardModeIsCurrent && !publicView ? buildHarePickMap(scoredEntries, 2) : new Map()
   const tortoisePickMap = leaderboardModeIsCurrent && !publicView ? buildTortoisePickMap(scoredEntries, myEntry?.id, 2) : new Map()
   const showLeverageLegend = leaderboardModeIsCurrent && !publicView && (harePickMap.size > 0 || tortoisePickMap.size > 0)
+  const pickGridColumns = pickGridColumnCount(pool.count_scores)
 
   async function copyNeedsPicksReminder() {
     if (!entriesNeedingPicks.length) {
@@ -1569,7 +1584,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   golferListName={golferListName}
                   onTogglePick={() => {}}
                   groupLabelForDisplay={displayGroupLabel}
-                  allSelectedCount={0}
                 />
               ) : (
                 [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => (
@@ -1628,6 +1642,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           />
         </div>
       )}
+      {!publicView && myEntry && !picksAreLocked && (
+        <section className="mb-4 border-2 border-[#123c2f] bg-white p-4 shadow-[5px_5px_0_#d8cab0]">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Make picks</p>
+              <h2 className="font-display text-xl font-bold text-[#0f2f25]">{myPicks.length ? 'Edit your picks before lock' : 'Make your picks before lock'}</h2>
+              <p className="mt-1 text-sm font-semibold text-[#657168]">You can view the leaderboard preview below. Other entrants’ picks stay hidden until the pool locks.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTab('my-entry')}
+              className="gpp-3d gpp-button-3d gpp-button-wrap text-sm"
+            >
+              <span className="gpp-button-face px-4 py-2">{myPicks.length ? 'Edit picks' : 'Make picks'}</span>
+            </button>
+          </div>
+        </section>
+      )}
+
       {!publicView && (
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-none p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-entry', ...(isOwner ? ['pool-settings'] as Tab[] : [])] as Tab[]).map(t => (
@@ -1794,11 +1827,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             <span className="sr-only">Toggle entry</span>
                           </div>
                         </summary>
-                        <div className="grid grid-cols-4 border-t border-[#d8cab0] bg-[#fbfbf5]">
+                        <div className="grid border-t border-[#d8cab0] bg-[#fbfbf5]" style={{ gridTemplateColumns: `repeat(${pickGridColumns}, minmax(0, 1fr))` }}>
                           {Array.from({ length: pool.count_scores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <div key={i} className={`relative border-r border-t border-[#d8cab0] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0 ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
+                              <div key={i} className={`relative border-t border-[#d8cab0] px-1 py-1.5 text-center ${((i + 1) % pickGridColumns === 0) ? '' : 'border-r'} ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
                                 <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                 <div className={`mt-1 truncate text-[clamp(8px,2.2vw,10px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
