@@ -476,9 +476,14 @@ export default function CreatePoolPage() {
           </div>
 
           {gameFormat === 'standard' ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <NumberStepper label="Golfers to Pick" value={pickCount} onChange={setPickCount} min={1} max={30} fallback={12} />
-              <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, 12)} fallback={8} />
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <NumberStepper label="Golfers to Pick" value={pickCount} onChange={setPickCount} min={1} max={30} fallback={12} />
+                <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, 12)} fallback={8} />
+              </div>
+              <p className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-xs font-semibold leading-5 text-stone-700">
+                Standard pools use the live tournament field until picks lock. If the official field changes before the first tee time, removed golfers drop off open entries and players can pick replacements. Picks lock automatically when the tournament starts.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
