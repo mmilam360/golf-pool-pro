@@ -64,7 +64,7 @@ export function SeoLandingPage({
         <section className="mt-12 border-2 border-[#123c2f] bg-[#0f2f25] p-6 text-white shadow-[7px_7px_0_#d8cab0] md:p-8">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f3df9c]">Tournament week ready</p>
           <h2 className="mt-3 font-display text-3xl font-black md:text-4xl">Send the link before Thursday. Let the board carry the weekend.</h2>
-          <p className="mt-4 max-w-3xl leading-7 text-[#f3ead7]">Players make their own picks, the pool locks at the right time, and everyone has one place to check standings when the cut line starts moving.</p>
+          <p className="mt-4 max-w-3xl leading-7 text-[#f3ead7]">Players make their own picks, entries lock automatically before the first tee time Thursday, and everyone has one place to check standings when the cut line starts moving.</p>
         </section>
       </main>
     </div>

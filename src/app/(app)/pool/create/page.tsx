@@ -390,6 +390,7 @@ export default function CreatePoolPage() {
               <div className="mt-3 border border-[#d8cab0] bg-[#fbf7ed] px-3 py-3 text-sm text-[#1f2a24]">
                 <p className="font-black uppercase tracking-[0.08em] text-[#123c2f]">{tournament.name}</p>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#657168]">{tournament.course || 'Course TBA'} · {formatDateOnly(tournament.start_date)}</p>
+                <p className="mt-2 text-xs font-bold text-[#123c2f]">Entries lock automatically before the first tee time Thursday.</p>
               </div>
             ) : null}
             {tournaments.length === 0 && (

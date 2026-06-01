@@ -38,7 +38,7 @@ export function PoolInvitePrepPanel({
   const [format, setFormat] = useState<'text' | 'email'>('text')
   const [copied, setCopied] = useState<'invite' | 'passcode' | 'link' | null>(null)
   const missingPickCount = Math.max(entryCount - submittedPickCount, 0)
-  const lockLine = `Picks lock before the first tee time on tournament day${startDateLabel !== 'Date TBA' ? ` (${startDateLabel})` : ''}.`
+  const lockLine = `Picks lock automatically before the first tee time on tournament day${startDateLabel !== 'Date TBA' ? ` (${startDateLabel})` : ''}.`
 
   const copy = useMemo(() => {
     if (format === 'email') {

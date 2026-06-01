@@ -80,7 +80,7 @@ function formatSummary(pool: PosterPool) {
       mode: 'Tiered Picks',
       picks: `Pick ${perGroup} per tier`,
       scoring: `Best ${pool.count_scores || 8} count`,
-      explainer: `${groups} WGR tiers`,
+      explainer: `${groups} tiers by WGR`,
     }
   }
 
@@ -94,18 +94,19 @@ function formatSummary(pool: PosterPool) {
   }
 
   return {
-    mode: 'Standard Picks',
+    mode: 'Open Field',
     picks: `Pick ${pool.pick_count || 6} golfers`,
-    scoring: `Best ${pool.count_scores || pool.pick_count || 4} count`,
-    explainer: 'Full field',
+    scoring: `Top ${pool.count_scores || pool.pick_count || 4} count`,
+    explainer: 'Open field, no groups',
   }
 }
 
-function lockDateText(value?: string | null) {
-  if (!value) return 'First tee time Thursday'
+function lockTimingText(value?: string | null) {
+  if (!value) return 'Before first tee time Thursday'
   const date = new Date(`${value}T12:00:00Z`)
-  if (Number.isNaN(date.getTime())) return 'First tee time Thursday'
-  return `${new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date)}, first tee time`
+  if (Number.isNaN(date.getTime())) return 'Before first tee time Thursday'
+  const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'UTC' }).format(date)
+  return `Before first tee time ${weekday}`
 }
 
 type PosterExportFormat = 'pdf' | 'png' | 'jpeg'
@@ -160,8 +161,8 @@ function RulesScoreboard({ pool, tournament, entryDeadline, hostNote, hostName }
     {
       type: 'rules',
       label: 'Rules',
-      lockLabel: 'Picks lock',
-      lockText: lockDateText(tournament?.start_date),
+      lockLabel: 'Entries lock',
+      lockText: lockTimingText(tournament?.start_date),
       deadlineLabel: 'Entries due',
       deadlineText: entryDeadline || 'Tournament start',
     },
