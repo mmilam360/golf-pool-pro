@@ -2,11 +2,14 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { todayDateOnly } from './date-utils'
 import type { PoolGameFormat } from './pool-formats'
 
+const PICK_LOCK_BEFORE_FIRST_TEE_MS = 5 * 60 * 1000
+
 type LockPoolTournament = {
   id: string
   name?: string | null
   start_date?: string | null
   status?: string | null
+  field_json?: Array<{ teeTime?: string | null }> | null
 }
 
 type LockPool = {
@@ -27,11 +30,40 @@ function getTournament(value: LockPool['gpp_tournaments']) {
   return Array.isArray(value) ? value[0] || null : value || null
 }
 
-export function tournamentIsDueToLock(tournament: LockPoolTournament | null, today: string) {
+export function firstTeeTimeFromField(field: LockPoolTournament['field_json']) {
+  if (!Array.isArray(field)) return null
+  let firstTee: Date | null = null
+  for (const player of field) {
+    if (!player?.teeTime) continue
+    const teeTime = new Date(player.teeTime)
+    if (!Number.isFinite(teeTime.getTime())) continue
+    if (!firstTee || teeTime.getTime() < firstTee.getTime()) firstTee = teeTime
+  }
+  return firstTee
+}
+
+export function tournamentIsDueToLock(tournament: LockPoolTournament | null, today: string, now = new Date()) {
   if (!tournament) return false
   const status = String(tournament.status || '').toLowerCase()
   if (status === 'live' || status === 'completed') return true
+
+  const firstTee = firstTeeTimeFromField(tournament.field_json)
+  if (firstTee) {
+    return now.getTime() >= firstTee.getTime() - PICK_LOCK_BEFORE_FIRST_TEE_MS
+  }
+
   return Boolean(tournament.start_date && tournament.start_date <= today)
+}
+
+export function tournamentIsInLiveActivationWindow(tournament: LockPoolTournament | null, now = new Date()) {
+  if (!tournament) return false
+  const status = String(tournament.status || '').toLowerCase()
+  if (status === 'live') return true
+  if (status !== 'upcoming') return false
+
+  const firstTee = firstTeeTimeFromField(tournament.field_json)
+  if (!firstTee) return false
+  return now.getTime() >= firstTee.getTime() - PICK_LOCK_BEFORE_FIRST_TEE_MS
 }
 
 export function groupsAreReady(pool: LockPool) {
@@ -39,7 +71,8 @@ export function groupsAreReady(pool: LockPool) {
 }
 
 export async function autoLockPools(supabase: SupabaseClient<any>, options: { now?: Date } = {}): Promise<AutoLockPoolsResult> {
-  const today = todayDateOnly('America/New_York', options.now || new Date())
+  const now = options.now || new Date()
+  const today = todayDateOnly('America/New_York', now)
   const result: AutoLockPoolsResult = {
     checked: 0,
     locked: 0,
@@ -49,7 +82,7 @@ export async function autoLockPools(supabase: SupabaseClient<any>, options: { no
 
   const { data: pools, error } = await supabase
     .from('gpp_pools')
-    .select('id, game_format, groups_finalized_at, gpp_tournaments(id, name, start_date, status)')
+    .select('id, game_format, groups_finalized_at, gpp_tournaments(id, name, start_date, status, field_json)')
     .eq('is_locked', false)
     .eq('is_completed', false)
     .limit(1000)
@@ -60,7 +93,7 @@ export async function autoLockPools(supabase: SupabaseClient<any>, options: { no
   for (const pool of (pools || []) as LockPool[]) {
     result.checked++
     const tournament = getTournament(pool.gpp_tournaments)
-    if (!tournamentIsDueToLock(tournament, today)) {
+    if (!tournamentIsDueToLock(tournament, today, now)) {
       result.skippedNotDue++
       continue
     }
@@ -75,7 +108,7 @@ export async function autoLockPools(supabase: SupabaseClient<any>, options: { no
 
   const { data: lockedPools, error: updateError } = await supabase
     .from('gpp_pools')
-    .update({ is_locked: true, lock_at: new Date().toISOString() })
+    .update({ is_locked: true, lock_at: now.toISOString() })
     .in('id', dueIds)
     .eq('is_locked', false)
     .select('id')

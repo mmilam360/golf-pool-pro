@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompetitorToPlayer, enrichPlayersWithTeeTimes, enrichPlayersWithFirstRoundTeeTimes } from './golf-api'
 import { autoFinalizeGroupedPools } from './grouped-pool-auto-lock'
+import { autoLockPools, tournamentIsDueToLock, tournamentIsInLiveActivationWindow } from './pool-auto-lock'
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
 import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
 import { recordNotificationEvent, sendPushToUser } from './notifications/push'
@@ -18,6 +19,8 @@ export interface TournamentSyncResult {
   leaderboardsUpdated: number
   poolsAutoLocked: number
   groupedPoolsAutoFinalized: number
+  skipped?: boolean
+  reason?: string
 }
 
 function toDateOnly(value: string | null | undefined) {
@@ -391,11 +394,45 @@ export async function refreshPgaTourFields(supabase: any, season: number): Promi
   return result
 }
 
+async function liveSyncActivationState(supabase: any, now: Date) {
+  const { data: tournaments, error } = await supabase
+    .from('gpp_tournaments')
+    .select('id, external_id, start_date, status, field_json')
+    .in('status', ['upcoming', 'live'])
+
+  if (error) throw error
+
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+  const activatedExternalIds = new Set<string>()
+  let hasLiveTournament = false
+  let hasDateFallbackDue = false
+  for (const tournament of tournaments || []) {
+    const status = String(tournament.status || '').toLowerCase()
+    if (status === 'live') hasLiveTournament = true
+    if (tournamentIsInLiveActivationWindow(tournament, now) && tournament.external_id) {
+      activatedExternalIds.add(String(tournament.external_id))
+    } else if (status === 'upcoming' && tournamentIsDueToLock(tournament, today, now)) {
+      hasDateFallbackDue = true
+    }
+  }
+
+  return {
+    shouldSync: hasLiveTournament || hasDateFallbackDue || activatedExternalIds.size > 0,
+    activatedExternalIds,
+  }
+}
+
 async function syncLiveFromScoreboard(supabase: any, season: number): Promise<TournamentSyncResult> {
-  const scoreboardEvents = await fetchScoreboardEvents()
+  const now = new Date()
+  const activation = await liveSyncActivationState(supabase, now)
   const result: TournamentSyncResult = {
     season,
-    fetched: scoreboardEvents.length,
+    fetched: 0,
     inserted: 0,
     updated: 0,
     fieldsUpdated: 0,
@@ -405,6 +442,16 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     groupedPoolsAutoFinalized: 0,
   }
 
+  if (!activation.shouldSync) {
+    return { ...result, skipped: true, reason: 'no-live-or-first-tee-window' }
+  }
+
+  const poolLock = await autoLockPools(supabase, { now })
+  result.poolsAutoLocked = poolLock.locked
+
+  const scoreboardEvents = await fetchScoreboardEvents()
+  result.fetched = scoreboardEvents.length
+
   const liveTournamentIds: string[] = []
   const fingerprintMap = await loadExistingFingerprints(supabase)
 
@@ -412,7 +459,12 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     const normalized = rowFromEvent(event, season)
     if (!normalized) continue
 
-    const { row, players, status } = normalized
+    const { row, players } = normalized
+    let { status } = normalized
+    if (status === 'upcoming' && activation.activatedExternalIds.has(row.external_id)) {
+      status = 'live'
+      row.status = 'live'
+    }
     const liveLeaderboard = status === 'live' ? await getLeaderboard(row.external_id).catch(() => null) : null
     let playersForStorage = liveLeaderboard?.leaderboard?.length ? liveLeaderboard.leaderboard : players
 
@@ -536,7 +588,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       .select('id')
 
     if (error) throw error
-    result.poolsAutoLocked = lockedPools?.length || 0
+    result.poolsAutoLocked += lockedPools?.length || 0
   }
 
   const groupFinalization = await autoFinalizeGroupedPools(supabase)
@@ -748,7 +800,7 @@ export async function syncTournaments({
       .select('id')
 
     if (error) throw error
-    result.poolsAutoLocked = lockedPools?.length || 0
+    result.poolsAutoLocked += lockedPools?.length || 0
   }
 
   const groupFinalization = await autoFinalizeGroupedPools(supabase)
