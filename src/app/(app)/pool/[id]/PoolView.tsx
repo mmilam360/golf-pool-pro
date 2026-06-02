@@ -1734,7 +1734,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[16px]">
               <div className="gpp-score-face border-2 border-[#d8b45d] bg-[#f7f7f2] text-center">
                 <div className="relative border-b-2 border-[#d8cab0] px-3 py-2">
-                  <p className="mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]" title={tournament?.name || 'Leaderboard'}>{tournament?.name || 'Leaderboard'}</p>
+                  <p className="mx-auto max-w-[90%] text-[clamp(0.78rem,4.8vw,1.25rem)] font-black uppercase leading-[0.95] tracking-[clamp(0.02em,1vw,0.1em)] text-[#111] [text-wrap:balance] sm:max-w-[90%] sm:text-3xl sm:tracking-[0.16em]" title={tournament?.name || 'Leaderboard'}>{tournament?.name || 'Leaderboard'}</p>
                   <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{poolName}</p>
                   {availableHistoricalRounds.length > 0 && (
                     <details
