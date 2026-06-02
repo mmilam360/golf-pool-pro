@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
@@ -8,6 +9,8 @@ import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
+import { groupForPick, type PickGroup } from '@/lib/pool-formats'
+import { isGroupedPoolFormat, totalPicksRequired } from '@/lib/pick-counts'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -29,6 +32,7 @@ type PoolRecord = {
   is_completed: boolean | null
   payment_status?: string | null
   amount_paid_cents?: number | null
+  pick_count?: number | null
   count_scores?: number | null
   ob_rule_enabled?: boolean | null
   ob_penalty_strokes?: number | null
@@ -159,25 +163,6 @@ function ScoreBadge({ score }: { score: number | null | undefined }) {
   )
 }
 
-function DateIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
-      <path d="M7 3v4M17 3v4M4 9h16" />
-      <rect x="4" y="5" width="16" height="16" />
-      <path d="M8 13h2M12 13h2M16 13h2M8 17h2M12 17h2" />
-    </svg>
-  )
-}
-
-function StartDateBadge({ date }: { date?: string | null }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 font-black text-[#7a5a19]">
-      <DateIcon />
-      Starts {formatEventDate(date)}
-    </span>
-  )
-}
-
 function formatScore(score: number | null) {
   if (score === null) return '—'
   if (score === 0) return 'E'
@@ -274,6 +259,12 @@ function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<strin
   return leaderboardBackedPickProgressLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
 }
 
+function pickGroupShortLabel(pickGroups: PickGroup[], name?: string | null) {
+  if (!name || pickGroups.length === 0) return null
+  const group = groupForPick(pickGroups, name)
+  return group ? group.label.replace('Group ', 'G') : null
+}
+
 function CurrentUserMarker({ className = '' }: { className?: string }) {
   return <span aria-label="Your entry" title="Your entry" className={`inline-block h-2.5 w-2.5 shrink-0 bg-[#1f6b4a] ${className}`} />
 }
@@ -287,6 +278,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   teeTimeZone: string
 }) {
   const countScores = pool.count_scores || 4
+  const pickGroups: PickGroup[] = (pool.game_format === 'ranked_groups' || pool.game_format === 'random_groups') && pool.pick_groups_json
+    ? (Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : [])
+    : []
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
   const baseLeaderboardRows = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
@@ -433,8 +427,13 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         return (
                           <div key={i} className="relative border-r border-t border-[#111] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
                             <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
+                            {pick && pickGroupShortLabel(pickGroups, pick.name) ? (
+                              <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">
+                                {pickGroupShortLabel(pickGroups, pick.name)}
+                              </span>
+                            ) : null}
                             <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                            <div className="mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
+                            <div className="mt-1 truncate text-[clamp(8px,2.2vw,10px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                             <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone) : '—'}</div>
                           </div>
                         )
@@ -449,7 +448,12 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                               {pick.isObStandIn ? <ObMarker /> : null}
                               {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                               {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                              <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span>
+                              {pickGroupShortLabel(pickGroups, pick.name) ? (
+                                <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[7px] font-black leading-none text-white">
+                                  {pickGroupShortLabel(pickGroups, pick.name)}
+                                </span>
+                              ) : null}
+                              <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                             </span>
                           ))}
                         </div>
@@ -493,8 +497,13 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                             return (
                               <td key={i} className="relative border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                                 <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
+                                {pick && pickGroupShortLabel(pickGroups, pick.name) ? (
+                                  <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">
+                                    {pickGroupShortLabel(pickGroups, pick.name)}
+                                  </span>
+                                ) : null}
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className="mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
+                                <div className="mt-0.5 truncate text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
                                 <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone) : '—'}</div>
                               </td>
                             )
@@ -515,6 +524,11 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                                     {pick.isObStandIn ? <ObMarker /> : null}
                                     {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                     {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
+                                    {pickGroupShortLabel(pickGroups, pick.name) ? (
+                                      <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[7px] font-black leading-none text-white">
+                                        {pickGroupShortLabel(pickGroups, pick.name)}
+                                      </span>
+                                    ) : null}
                                     <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                                   </span>
                                 ))}
@@ -552,23 +566,15 @@ function entryPicks(entry?: EntryRecord | null) {
 }
 
 function totalPicksNeeded(pool: PoolRecord): number {
-  if (pool.game_format === 'grouped' && pool.pick_groups_json && typeof pool.pick_groups_json === 'object') {
-    const groups = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : (pool.pick_groups_json as Record<string, unknown>)?.groups
-    if (Array.isArray(groups)) return groups.reduce((sum: number, g: unknown) => sum + (typeof g === 'object' && g !== null ? ((g as Record<string, unknown>).picks_per_group as number || 1) : 1), 0)
-  }
-  if (pool.game_format === 'random_groups' || pool.game_format === 'ranked_groups') {
-    return pool.picks_per_group ? pool.picks_per_group * (pool.group_count || 6) : pool.count_scores || 12
-  }
-  return pool.count_scores || 4
+  return totalPicksRequired(pool)
 }
 
-function canShowPickBadge(pool: PoolRecord, tournament: Tournament | null) {
+function canShowPickBadge(pool: PoolRecord, tournament?: Tournament | null) {
   // Once tournament starts, hide pick badge entirely
   if (tournament?.status === 'live' || tournament?.status === 'completed') return false
   if (pool.is_locked || pool.is_completed) return false
   // For grouped pools, only show after groups are locked
-  const isGrouped = pool.game_format === 'random_groups' || pool.game_format === 'ranked_groups'
-  if (isGrouped) return Boolean(pool.groups_finalized_at)
+  if (isGroupedPoolFormat(pool.game_format)) return Boolean(pool.groups_finalized_at)
   // Standard pool: show as soon as field is imported (picks can be made)
   return true
 }
@@ -604,14 +610,6 @@ function LockTimeBadge({ pool }: { pool: PoolRecord }) {
       Picks Lock:<br />{formatted} ET
     </span>
   )
-}
-
-function isWithinTwoDaysOfStart(startDate?: string | null) {
-  if (!startDate) return false
-  const start = new Date(startDate + 'T00:00:00')
-  const now = new Date()
-  const diffMs = start.getTime() - now.getTime()
-  return diffMs > 0 && diffMs <= 2 * 24 * 60 * 60 * 1000
 }
 
 function formatLockTime(value?: string | null) {
@@ -746,11 +744,12 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   <div className="min-w-0">
                     <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
                      <p className="mt-1 flex items-center gap-1.5 break-words text-sm font-semibold leading-5 text-[#1f2a24]">
-                       <img
+                       <Image
                          src="/flag-icon.png"
                          alt=""
+                         width={16}
+                         height={16}
                          className="h-4 w-4 shrink-0 opacity-80"
-                         loading="lazy"
                        />
                        {effectiveTournament?.name || 'Tournament'}
                      </p>
@@ -793,6 +792,9 @@ export default function DashboardActivePools({ cards, entriesByPool }: { cards: 
                   lastUpdated={effectiveTournament?.last_scores_fetch}
                   pickedGolfers={entryPicks(entry)}
                   cutLine={effectiveTournament?.cutLine}
+                  pickGroups={(pool.game_format === 'ranked_groups' || pool.game_format === 'random_groups') && Array.isArray(pool.pick_groups_json)
+                    ? pool.pick_groups_json
+                    : undefined}
                 />
               </div>
             </details>
