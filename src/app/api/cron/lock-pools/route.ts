@@ -2,8 +2,6 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { refreshPgaTourFields } from '@/lib/tournament-sync'
-import { autoFinalizeGroupedPools } from '@/lib/grouped-pool-auto-lock'
 import { autoLockPools } from '@/lib/pool-auto-lock'
 import { requireCronAuth } from '@/lib/cron-auth'
 
@@ -18,19 +16,8 @@ export async function GET(request: Request) {
       throw new Error('Missing Supabase credentials')
     }
     const supabase = createClient(supabaseUrl, supabaseKey)
-    const season = new Date().getFullYear()
-    const fieldRefresh = await refreshPgaTourFields(supabase, season)
-    const groupFinalization = await autoFinalizeGroupedPools(supabase)
-    const poolLocks = await autoLockPools(supabase)
-    return NextResponse.json({
-      ok: true,
-      ...fieldRefresh,
-      groupedPoolsAutoFinalized: groupFinalization.finalized,
-      groupedPoolsChecked: groupFinalization.checked,
-      poolsAutoLocked: poolLocks.locked,
-      poolsCheckedForLock: poolLocks.checked,
-      poolsSkippedGroupsPending: poolLocks.skippedGroupsPending,
-    })
+    const result = await autoLockPools(supabase)
+    return NextResponse.json({ ok: true, ...result })
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
   }

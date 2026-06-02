@@ -13,6 +13,14 @@
       "schedule": "0 */4 * * *"
     },
     {
+      "path": "/api/cron/finalize-grouped-pools",
+      "schedule": "5 * * * 2-4"
+    },
+    {
+      "path": "/api/cron/lock-pools",
+      "schedule": "7 * * * *"
+    },
+    {
       "path": "/api/cron/archive-unpaid-pools",
       "schedule": "*/30 * * * *"
     },
