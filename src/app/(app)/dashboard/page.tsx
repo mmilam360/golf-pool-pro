@@ -267,7 +267,7 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('gpp_pool_invites')
-      .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
+      .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, last_scores_fetch))')
       .eq('invited_user_id', user.id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),

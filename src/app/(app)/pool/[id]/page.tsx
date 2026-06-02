@@ -12,12 +12,20 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirect=${encodeURIComponent(`/pool/${id}`)}`)
 
-  // Get pool with tournament
-  const { data: pool } = await supabase
-    .from('gpp_pools')
-    .select('*, gpp_tournaments(*)')
-    .eq('id', id)
-    .single()
+  const [poolResult, entriesResult] = await Promise.all([
+    supabase
+      .from('gpp_pools')
+      .select('*, gpp_tournaments(*)')
+      .eq('id', id)
+      .single(),
+    supabase
+      .from('gpp_entries')
+      .select('*')
+      .eq('pool_id', id)
+      .order('created_at', { ascending: true }),
+  ])
+  const { data: pool } = poolResult
+  const { data: entries } = entriesResult
 
   if (!pool) redirect('/dashboard')
 
@@ -26,14 +34,7 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
   const picksAreVisible = pool.is_locked || scoringIsLive
 
-  // Get all entries for this pool so the board/counts update as soon as people join.
   // Before lock/start, mask other entrants' golfer picks before sending data to the client.
-  const entriesQuery = supabase
-    .from('gpp_entries')
-    .select('*')
-    .eq('pool_id', id)
-
-  const { data: entries } = await entriesQuery.order('created_at', { ascending: true })
 
   const safeEntries = (entries || []).map(entry => {
     const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
@@ -53,10 +54,18 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
   let inviteSummary = { pending: 0, accepted: 0, declined: 0 }
 
   if (isOwner) {
-    const { data: ownedPools } = await supabase
-      .from('gpp_pools')
-      .select('id')
-      .eq('owner_id', user.id)
+    const [ownedPoolsResult, poolInvitesResult] = await Promise.all([
+      supabase
+        .from('gpp_pools')
+        .select('id')
+        .eq('owner_id', user.id),
+      supabase
+        .from('gpp_pool_invites')
+        .select('invited_user_id, status')
+        .eq('pool_id', id),
+    ])
+    const { data: ownedPools } = ownedPoolsResult
+    const { data: poolInvites } = poolInvitesResult
 
     const previousPoolIds = (ownedPools || [])
       .map(item => item.id)
@@ -69,11 +78,6 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
         .in('pool_id', previousPoolIds)
         .eq('is_removed', false)
       : { data: [] }
-
-    const { data: poolInvites } = await supabase
-      .from('gpp_pool_invites')
-      .select('invited_user_id, status')
-      .eq('pool_id', id)
 
     const currentPoolEntryUserIds = (entries || [])
       .filter(entry => entry.user_id && !entry.is_removed)
