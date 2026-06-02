@@ -1,11 +1,86 @@
 import Link from 'next/link'
 import AppHeader from '@/components/AppHeader'
+import RunnerIncompletePicksReminder from '@/components/RunnerIncompletePicksReminder'
+import { createClient } from '@/lib/supabase/server'
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+type RunnerPool = {
+  id: string
+  name: string
+  pick_count?: number | null
+  game_format?: string | null
+  groups_finalized_at?: string | null
+  is_locked?: boolean | null
+  is_completed?: boolean | null
+  gpp_tournaments?: { status?: string | null } | { status?: string | null }[] | null
+}
+
+type RunnerEntry = {
+  pool_id: string
+  golfer_picks: unknown
+}
+
+function getTournamentStatus(pool: RunnerPool) {
+  const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
+  return String(tournament?.status || '').toLowerCase()
+}
+
+async function getRunnerIncompletePickReminders() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data: pools } = await supabase
+    .from('gpp_pools')
+    .select('id, name, pick_count, game_format, groups_finalized_at, is_locked, is_completed, gpp_tournaments(status)')
+    .eq('owner_id', user.id)
+    .eq('is_completed', false)
+    .order('created_at', { ascending: false })
+
+  const openPools = ((pools || []) as RunnerPool[]).filter(pool => {
+    const status = getTournamentStatus(pool)
+    const groupsPending = pool.game_format && pool.game_format !== 'standard' && !pool.groups_finalized_at
+    return !pool.is_locked && !pool.is_completed && !groupsPending && status !== 'live' && status !== 'completed'
+  })
+
+  if (openPools.length === 0) return []
+
+  const { data: entries } = await supabase
+    .from('gpp_entries')
+    .select('pool_id, golfer_picks')
+    .in('pool_id', openPools.map(pool => pool.id))
+    .eq('is_removed', false)
+
+  const entriesByPool = ((entries || []) as RunnerEntry[]).reduce<Record<string, RunnerEntry[]>>((groups, entry) => {
+    groups[entry.pool_id] = groups[entry.pool_id] || []
+    groups[entry.pool_id].push(entry)
+    return groups
+  }, {})
+
+  return openPools
+    .map(pool => {
+      const poolEntries = entriesByPool[pool.id] || []
+      const requiredPickCount = Number(pool.pick_count || 0)
+      if (poolEntries.length === 0 || requiredPickCount <= 0) return null
+      const incompleteCount = poolEntries.filter(entry => !Array.isArray(entry.golfer_picks) || entry.golfer_picks.length < requiredPickCount).length
+      if (incompleteCount === 0) return null
+      return {
+        id: pool.id,
+        name: pool.name,
+        incompleteCount,
+        activeEntryCount: poolEntries.length,
+      }
+    })
+    .filter((pool): pool is { id: string; name: string; incompleteCount: number; activeEntryCount: number } => Boolean(pool))
+}
+
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const incompletePickReminders = await getRunnerIncompletePickReminders()
+
   return (
     <div className="min-h-screen scorecard-paper text-[#1f2a24]">
       <AppHeader />
       <main className="mx-auto max-w-7xl flex-1 px-4 py-8 sm:px-5 md:px-8 md:py-10">{children}</main>
+      <RunnerIncompletePicksReminder pools={incompletePickReminders} />
       <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-5 text-center text-sm text-[#657168]">
         <div>
           <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
