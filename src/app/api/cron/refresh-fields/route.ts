@@ -3,6 +3,7 @@ export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { refreshPgaTourFields } from '@/lib/tournament-sync'
+import { autoFinalizeGroupedPools } from '@/lib/grouped-pool-auto-lock'
 import { requireCronAuth } from '@/lib/cron-auth'
 
 export async function GET(request: Request) {
@@ -17,8 +18,14 @@ export async function GET(request: Request) {
     }
     const supabase = createClient(supabaseUrl, supabaseKey)
     const season = new Date().getFullYear()
-    const result = await refreshPgaTourFields(supabase, season)
-    return NextResponse.json({ ok: true, ...result })
+    const fieldRefresh = await refreshPgaTourFields(supabase, season)
+    const groupFinalization = await autoFinalizeGroupedPools(supabase)
+    return NextResponse.json({
+      ok: true,
+      ...fieldRefresh,
+      groupedPoolsAutoFinalized: groupFinalization.finalized,
+      groupedPoolsChecked: groupFinalization.checked,
+    })
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
   }
