@@ -55,7 +55,7 @@ export default function LoginPage() {
           redirectTo = '/dashboard'
         }
       }
-      router.push(redirectTo)
+      router.replace(redirectTo)
     }
   }
 

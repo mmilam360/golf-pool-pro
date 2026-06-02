@@ -12,7 +12,7 @@ import { dismissFinalResultAnnouncement } from '@/app/(app)/dashboard/final-resu
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import { selectFinalResultAnnouncement, type FinalResultAnnouncementCandidate } from '@/lib/final-result-announcements'
 import { hasOnCourseScores } from '@/lib/golf-live'
-import { getLeaderboard, type GolfCutLine, type GolfPlayer } from '@/lib/golf-api'
+import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
   id?: string | null
@@ -34,6 +34,7 @@ type PoolRecord = {
   is_completed: boolean | null
   payment_status?: string | null
   amount_paid_cents?: number | null
+  pick_count?: number | null
   count_scores?: number | null
   ob_rule_enabled?: boolean | null
   ob_penalty_strokes?: number | null
@@ -252,56 +253,63 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: ownedPools } = await supabase
-    .from('gpp_pools')
-    .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch)')
-    .eq('owner_id', user.id)
-    .order('created_at', { ascending: false })
-
-  const { data: entries } = await supabase
-    .from('gpp_entries')
-    .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
-    .eq('user_id', user.id)
-    .eq('is_removed', false)
-    .order('created_at', { ascending: false })
-
-  const { data: pendingInvites } = await supabase
-    .from('gpp_pool_invites')
-    .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
-    .eq('invited_user_id', user.id)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false })
-
-  const { data: dismissedFinalResults } = await supabase
-    .from('gpp_final_result_dismissals')
-    .select('pool_id')
-    .eq('user_id', user.id)
-
-  const { data: upcomingTournaments } = await supabase
-    .from('gpp_tournaments')
-    .select('id, name, start_date, status')
-    .in('status', ['upcoming', 'live'])
-    .order('start_date', { ascending: true })
+  const [ownedPoolsResult, entriesResult, pendingInvitesResult, dismissedFinalResultsResult, upcomingTournamentsResult] = await Promise.all([
+    supabase
+      .from('gpp_pools')
+      .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch)')
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('gpp_entries')
+      .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
+      .eq('user_id', user.id)
+      .eq('is_removed', false)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('gpp_pool_invites')
+      .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
+      .eq('invited_user_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('gpp_final_result_dismissals')
+      .select('pool_id')
+      .eq('user_id', user.id),
+    supabase
+      .from('gpp_tournaments')
+      .select('id, name, start_date, status')
+      .in('status', ['upcoming', 'live'])
+      .order('start_date', { ascending: true }),
+  ])
+  const { data: ownedPools } = ownedPoolsResult
+  const { data: entries } = entriesResult
+  const { data: pendingInvites } = pendingInvitesResult
+  const { data: dismissedFinalResults } = dismissedFinalResultsResult
+  const { data: upcomingTournaments } = upcomingTournamentsResult
 
   const owned = (ownedPools ?? []) as PoolRecord[]
   const joined = (entries ?? []) as EntryRecord[]
   const invites = (pendingInvites ?? []) as PendingInviteRecord[]
   const ownedPoolIds = owned.map(pool => pool.id)
-  const { data: ownedPoolEntries } = ownedPoolIds.length
-    ? await supabase
-      .from('gpp_entries')
-      .select('id, pool_id, display_name, golfer_picks, is_removed')
-      .in('pool_id', ownedPoolIds)
-      .eq('is_removed', false)
-    : { data: [] }
   const joinedPoolIds = Array.from(new Set(joined.map(entry => entry.pool_id).filter(Boolean)))
-  const { data: joinedPoolEntries } = joinedPoolIds.length
-    ? await supabase
-      .from('gpp_entries')
-      .select('id, pool_id, display_name, golfer_picks, is_removed')
-      .in('pool_id', joinedPoolIds)
-      .eq('is_removed', false)
-    : { data: [] }
+  const [ownedPoolEntriesResult, joinedPoolEntriesResult] = await Promise.all([
+    ownedPoolIds.length
+      ? supabase
+        .from('gpp_entries')
+        .select('id, pool_id, display_name, golfer_picks, is_removed')
+        .in('pool_id', ownedPoolIds)
+        .eq('is_removed', false)
+      : Promise.resolve({ data: [] }),
+    joinedPoolIds.length
+      ? supabase
+        .from('gpp_entries')
+        .select('id, pool_id, display_name, golfer_picks, is_removed')
+        .in('pool_id', joinedPoolIds)
+        .eq('is_removed', false)
+      : Promise.resolve({ data: [] }),
+  ])
+  const { data: ownedPoolEntries } = ownedPoolEntriesResult
+  const { data: joinedPoolEntries } = joinedPoolEntriesResult
   const allPoolEntries = Array.from(
     new Map([...((ownedPoolEntries ?? []) as EntryRecord[]), ...((joinedPoolEntries ?? []) as EntryRecord[])].map(entry => [entry.id, entry])).values()
   )
@@ -327,31 +335,6 @@ export default async function DashboardPage() {
     const aDate = a.tournament?.start_date || '9999-12-31'
     const bDate = b.tournament?.start_date || '9999-12-31'
     return aDate.localeCompare(bDate)
-  })
-  const activeExternalIds = Array.from(new Set(activePoolCards.map(card => card.tournament?.external_id).filter(Boolean) as string[]))
-  const liveLeaderboardsByExternalId = new Map(
-    (await Promise.all(activeExternalIds.map(async externalId => {
-      try {
-        const live = await getLeaderboard(externalId)
-        return [externalId, live] as const
-      } catch {
-        return [externalId, null] as const
-      }
-    }))).filter(([, live]) => Boolean(live))
-  )
-  const activePoolCardsWithLiveBoards = activePoolCards.map(card => {
-    const externalId = card.tournament?.external_id
-    if (!externalId || !card.tournament) return card
-    const live = liveLeaderboardsByExternalId.get(externalId) ?? null
-    if (!live) return card
-    return {
-      ...card,
-      tournament: {
-        ...card.tournament,
-        leaderboard_json: live.leaderboard.length ? live.leaderboard : card.tournament.leaderboard_json,
-        cutLine: live.cutLine ?? null,
-      },
-    }
   })
   const hasAnyPools = owned.length > 0 || joined.length > 0 || invites.length > 0
   const pastEntries = joined.filter(entry => {
@@ -396,7 +379,7 @@ export default async function DashboardPage() {
 
       <ClaimedPromoBanner />
       <PendingInvites invites={invites} />
-      <DashboardActivePools cards={activePoolCardsWithLiveBoards} entriesByPool={entriesByPool} />
+      <DashboardActivePools cards={activePoolCards} entriesByPool={entriesByPool} />
 
       {!hasAnyPools ? (
         <section className="border-2 border-[#123c2f] bg-white p-5 shadow-[7px_7px_0_#d8cab0] sm:p-7">

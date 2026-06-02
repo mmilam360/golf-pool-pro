@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getStoredBackRoute, isSafeBackRoute } from './NavigationHistoryTracker'
 
@@ -40,9 +41,16 @@ function safeBackTarget(fallbackHref: string) {
 
 export function BackButton({ fallbackHref = '/dashboard', label = 'Back', className = '' }: BackButtonProps) {
   const router = useRouter()
+  const [target, setTarget] = useState(fallbackHref)
+
+  useEffect(() => {
+    const nextTarget = safeBackTarget(fallbackHref)
+    setTarget(nextTarget)
+    router.prefetch(nextTarget)
+  }, [fallbackHref, router])
 
   function goBack() {
-    router.push(safeBackTarget(fallbackHref))
+    router.push(target)
   }
 
   return (

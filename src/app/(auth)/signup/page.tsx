@@ -107,7 +107,7 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
       setError(error.message)
       setLoading(false)
     } else if (data.session) {
-      router.push(redirectTo)
+      router.replace(redirectTo)
     } else {
       setSuccess(true)
       setLoading(false)

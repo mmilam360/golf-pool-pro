@@ -9,6 +9,7 @@ import { formatDateOnly } from '@/lib/date-utils'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { displayTournamentName } from '@/lib/tournament-name'
+import { isGroupedPoolFormat, totalPicksRequired } from '@/lib/pick-counts'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -30,6 +31,7 @@ type PoolRecord = {
   is_completed: boolean | null
   payment_status?: string | null
   amount_paid_cents?: number | null
+  pick_count?: number | null
   count_scores?: number | null
   ob_rule_enabled?: boolean | null
   ob_penalty_strokes?: number | null
@@ -736,14 +738,7 @@ function entryPicks(entry?: EntryRecord | null) {
 }
 
 function totalPicksNeeded(pool: PoolRecord): number {
-  if (pool.game_format === 'grouped' && pool.pick_groups_json && typeof pool.pick_groups_json === 'object') {
-    const groups = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : (pool.pick_groups_json as Record<string, unknown>)?.groups
-    if (Array.isArray(groups)) return groups.reduce((sum: number, g: unknown) => sum + (typeof g === 'object' && g !== null ? ((g as Record<string, unknown>).picks_per_group as number || 1) : 1), 0)
-  }
-  if (pool.game_format === 'random_groups' || pool.game_format === 'ranked_groups') {
-    return pool.picks_per_group ? pool.picks_per_group * (pool.group_count || 6) : pool.count_scores || 12
-  }
-  return pool.count_scores || 4
+  return totalPicksRequired(pool)
 }
 
 function canShowPickBadge(pool: PoolRecord, tournament: Tournament | null) {
@@ -751,8 +746,7 @@ function canShowPickBadge(pool: PoolRecord, tournament: Tournament | null) {
   if (tournament?.status === 'live' || tournament?.status === 'completed') return false
   if (pool.is_locked || pool.is_completed) return false
   // For grouped pools, only show after groups are locked
-  const isGrouped = pool.game_format === 'random_groups' || pool.game_format === 'ranked_groups'
-  if (isGrouped) return Boolean(pool.groups_finalized_at)
+  if (isGroupedPoolFormat(pool.game_format)) return Boolean(pool.groups_finalized_at)
   // Open Field pool: show as soon as field is imported (picks can be made)
   return true
 }
