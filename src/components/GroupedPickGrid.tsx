@@ -95,7 +95,7 @@ export function GroupedPickGrid({
             myPicks.includes(p.name)
           ).length
 
-          const pickStates: PickState[] = group.players.map(player => {
+          const pickStates: PickState[] = [...group.players].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name), undefined, { sensitivity: 'base' })).map(player => {
             const selected = myPicks.includes(player.name)
             const disabled = readOnly || (!selected && selectedCount >= picksPerGroup)
             return {

@@ -5,6 +5,7 @@ import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { useRouter } from 'next/navigation'
+import { compareGolfersByListName, golferFullName, golferListNameFromParts } from '@/lib/golfer-display'
 
 type JoinStep = 'code' | 'name' | 'picks' | 'saved'
 
@@ -34,7 +35,7 @@ type PickGroup = { label: string; players: GolfPlayer[] }
 type SavedEntry = { entry_id: string; pool_id: string; leaderboard_path: string; claim_path: string }
 
 function playerName(player: GolfPlayer) {
-  return player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()
+  return golferFullName(player)
 }
 
 function createClaimToken() {
@@ -351,7 +352,7 @@ export default function JoinPoolPage() {
                       <span className="text-xs font-black uppercase tracking-[0.12em] text-[#8a6724]">{groupPickCount(group)}/{pool?.picks_per_group}</span>
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      {group.players.map(player => {
+                      {[...group.players].sort(compareGolfersByListName).map(player => {
                         const name = playerName(player)
                         const selected = picks.includes(name)
                         const disabled = !canToggleGroupedPick(group, name)
@@ -363,7 +364,7 @@ export default function JoinPoolPage() {
                             disabled={disabled}
                             className={`border-2 px-3 py-2 text-left text-sm font-bold ${selected ? 'border-[#123c2f] bg-[#123c2f] text-white' : 'border-stone-300 bg-[#fbf7ed] text-stone-800'} disabled:cursor-not-allowed disabled:opacity-45`}
                           >
-                            {name}
+                            {golferListNameFromParts(player)}
                           </button>
                         )
                       })}
@@ -376,7 +377,7 @@ export default function JoinPoolPage() {
             )
           ) : (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {field.map(player => {
+              {[...field].sort(compareGolfersByListName).map(player => {
                 const name = playerName(player)
                 const selected = picks.includes(name)
                 const disabled = !selected && picks.length >= requiredPickCount
@@ -388,7 +389,7 @@ export default function JoinPoolPage() {
                     disabled={disabled}
                     className={`border-2 px-3 py-2 text-left text-sm font-bold ${selected ? 'border-[#123c2f] bg-[#123c2f] text-white' : 'border-stone-300 bg-white text-stone-800'} disabled:cursor-not-allowed disabled:opacity-45`}
                   >
-                    {name}
+                    {golferListNameFromParts(player)}
                   </button>
                 )
               })}

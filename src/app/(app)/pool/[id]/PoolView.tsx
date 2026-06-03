@@ -16,6 +16,7 @@ import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup, type PoolGameFormat } from '@/lib/pool-formats'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
+import { compareGolfersByListName, golferListName } from '@/lib/golfer-display'
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -244,16 +245,6 @@ function hasRecentOnCourseScores(tournament: any, leaderboard: GolfPlayer[]) {
   const lastFetchMs = new Date(tournament.last_scores_fetch).getTime()
   if (!Number.isFinite(lastFetchMs)) return false
   return Date.now() - lastFetchMs <= 5 * 60 * 1000
-}
-
-function golferListName(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length < 2) return name
-  const suffixes = new Set(['Jr.', 'Jr', 'Sr.', 'Sr', 'II', 'III', 'IV', 'V'])
-  const suffix = suffixes.has(parts[parts.length - 1]) ? parts.pop() : null
-  const lastName = parts.pop()
-  const firstNames = parts.join(' ')
-  return `${lastName}, ${firstNames}${suffix ? ` ${suffix}` : ''}`
 }
 
 function TrustCheckIcon() {
@@ -1607,7 +1598,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   groupLabelForDisplay={displayGroupLabel}
                 />
               ) : (
-                [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => (
+                [...field].sort(compareGolfersByListName).map(player => (
                   <div key={player.id || player.name}
                     className="flex w-full items-center justify-between border-b border-[#eadfca] px-4 py-2.5 text-left text-stone-500">
                     <span className="text-sm font-semibold">{golferListName(player.name)}</span>
@@ -2160,7 +2151,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           />
                         </div>
                       ) : (
-                        [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => (
+                        [...field].sort(compareGolfersByListName).map(player => (
                           <div key={player.id || player.name}
                             className="flex w-full items-center justify-between border-b border-[#eadfca] px-4 py-2.5 text-left text-stone-500">
                             <span className="text-sm font-semibold">{golferListName(player.name)}</span>
@@ -2168,7 +2159,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           </div>
                         ))
                       )
-                    ) : [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => {
+                    ) : [...field].sort(compareGolfersByListName).map(player => {
                       const selected = myPicks.includes(player.name)
                       return (
                         <button key={player.id}
