@@ -6,8 +6,10 @@ import { createClient } from '@/lib/supabase/server'
 import PoolView from '@/app/(app)/pool/[id]/PoolView'
 import { hasOnCourseScores } from '@/lib/golf-live'
 
-export default async function PublicLeaderboardPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PublicLeaderboardPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ entry?: string }> }) {
   const { id } = await params
+  const query = searchParams ? await searchParams : {}
+  const highlightedEntryId = typeof query?.entry === 'string' && /^[0-9a-f-]{36}$/i.test(query.entry) ? query.entry : null
   const supabase = await createClient()
 
   const { data: pool } = await supabase
@@ -64,6 +66,7 @@ export default async function PublicLeaderboardPage({ params }: { params: Promis
           userId=""
           previousPlayerCandidates={[]}
           inviteSummary={{ pending: 0, accepted: 0, declined: 0 }}
+          initialHighlightedEntryId={highlightedEntryId}
           publicView
         />
         <section className="mt-8 border-2 border-[#123c2f] bg-[#123c2f] p-5 text-white shadow-[5px_5px_0_#d8cab0] sm:flex sm:items-center sm:justify-between sm:gap-5">

@@ -106,7 +106,7 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
       userId={user.id}
       previousPlayerCandidates={previousPlayerCandidates}
       inviteSummary={inviteSummary}
-      initialTab={isOwner && requestedTab === 'pool-settings' ? 'pool-settings' : undefined}
+      initialTab={requestedTab === 'my-entry' ? 'my-entry' : isOwner && requestedTab === 'pool-settings' ? 'pool-settings' : undefined}
     />
   )
 }

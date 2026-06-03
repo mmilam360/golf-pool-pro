@@ -71,6 +71,8 @@ interface Props {
   userId: string
   previousPlayerCandidates: { userId: string; displayName: string }[]
   inviteSummary: { pending: number; accepted: number; declined: number }
+  initialTab?: Tab
+  initialHighlightedEntryId?: string | null
   publicView?: boolean
   initialTab?: Tab
 }
@@ -302,7 +304,7 @@ function roundScoreLabel(round: number) {
   return ROUND_SCORE_LABELS[round] || `R${round}`
 }
 
-export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, initialTab }: Props) {
+export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, initialTab, initialHighlightedEntryId = null }: Props) {
   const router = useRouter()
   const defaultTab: Tab = publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry'
   const [tab, setTab] = useState<Tab>(initialTab || defaultTab)
@@ -339,7 +341,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null)
   const [selectedSavedCardId, setSelectedSavedCardId] = useState('')
   const [saveCard, setSaveCard] = useState(false)
-  const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null)
+  const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(initialHighlightedEntryId)
   const [forceOpenEntryId, setForceOpenEntryId] = useState<string | null>(null)
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
@@ -383,6 +385,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       })
     return () => { active = false }
   }, [pool.id, publicView, supabase, userId])
+
+  useEffect(() => {
+    if (!initialHighlightedEntryId) return
+    setTab('leaderboard')
+    setForceOpenEntryId(initialHighlightedEntryId)
+    window.setTimeout(() => {
+      const targetId = window.matchMedia('(min-width: 1024px)').matches ? `entry-row-${initialHighlightedEntryId}` : `entry-card-${initialHighlightedEntryId}`
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 120)
+    window.setTimeout(() => setHighlightedEntryId(null), 3200)
+  }, [initialHighlightedEntryId])
 
   const dismissToast = useCallback((id: number) => {
     setToasts(current => current.filter(toast => toast.id !== id))
