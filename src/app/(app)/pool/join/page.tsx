@@ -351,7 +351,7 @@ export default function JoinPoolPage() {
                       <h3 className="font-black uppercase tracking-[-0.02em] text-[#0f2f25]">{group.label}</h3>
                       <span className="text-xs font-black uppercase tracking-[0.12em] text-[#8a6724]">{groupPickCount(group)}/{pool?.picks_per_group}</span>
                     </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-2">
                       {[...group.players].sort(compareGolfersByListName).map(player => {
                         const name = playerName(player)
                         const selected = picks.includes(name)
@@ -376,7 +376,7 @@ export default function JoinPoolPage() {
               <div className="rounded-none border-2 border-[#123c2f] bg-white p-5 text-sm font-semibold text-stone-700 shadow-[4px_4px_0_#d8cab0]">Picks open after groups lock.</div>
             )
           ) : (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-2">
               {[...field].sort(compareGolfersByListName).map(player => {
                 const name = playerName(player)
                 const selected = picks.includes(name)

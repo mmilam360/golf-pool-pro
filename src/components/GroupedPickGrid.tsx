@@ -27,7 +27,7 @@ function GroupPickCard({
   const headerColor = completed ? 'bg-[#123c2f]' : 'bg-[#b21e23]'
 
   return (
-    <div className={`rounded-none border-2 border-[#2a2a2a] bg-white shadow-[3px_3px_0_#888] ${isMobile ? 'w-[11rem]' : 'w-[13.5rem]'}`}>
+    <div className={`rounded-none border-2 border-[#2a2a2a] bg-white shadow-[3px_3px_0_#888] ${isMobile ? 'w-[11rem]' : 'w-full'}`}>
       {/* Title bar */}
       <div className={`flex items-center justify-between ${headerColor} px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-white`}>
         <span className="truncate">{groupLabel}</span>
@@ -88,8 +88,8 @@ export function GroupedPickGrid({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Cards: horizontal scroll on mobile, flex-wrap on desktop */}
-      <div className="flex flex-nowrap gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
+      {/* Cards: horizontal scroll on mobile, one full-width column on desktop */}
+      <div className="flex flex-nowrap gap-2 overflow-x-auto px-1 pb-1 sm:flex-col sm:overflow-visible">
         {pickGroups.map(group => {
           const selectedCount = group.players.filter(p =>
             myPicks.includes(p.name)
