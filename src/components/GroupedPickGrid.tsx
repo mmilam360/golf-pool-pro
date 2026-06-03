@@ -26,7 +26,7 @@ function GroupPickCard({
   const selectedCount = pickStates.filter(p => p.selected).length
 
   return (
-    <div className="bg-transparent">
+    <div className="mx-auto w-fit max-w-full bg-transparent">
       <div className="mb-2 flex w-fit max-w-full items-center justify-between gap-3 border-b border-[#d8cab0] pb-1 pr-2 text-[11px] font-black uppercase tracking-[0.08em] text-[#0f2f25]">
         <span className="truncate">{groupLabel}</span>
         <span className="ml-1 flex-shrink-0 text-[#8a6724]">{selectedCount}/{picksRequired}</span>
@@ -39,7 +39,7 @@ function GroupPickCard({
             type="button"
             onClick={() => !disabled && onToggle(rawName)}
             disabled={disabled}
-            className={`flex w-full min-w-[14rem] max-w-full items-center justify-between gap-4 border-x border-b border-[#d8cab0] px-3 py-2 text-left text-sm font-bold leading-tight last:border-b-0 transition-colors ${
+            className={`flex w-full min-w-[14rem] max-w-full items-center justify-between gap-4 border-x border-b border-[#d8cab0] px-3 py-2 text-left text-sm font-bold leading-tight last:border-b-0 transition-colors sm:min-w-[17.5rem] ${
               selected
                 ? 'bg-[#123c2f] text-white'
                 : disabled
