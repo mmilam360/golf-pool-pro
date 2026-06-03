@@ -279,9 +279,9 @@ function OpenPicksBar({ pool, tournament, mode }: { pool: PoolRecord; tournament
   const href = mode === 'runner' ? `/pool/${pool.id}?tab=pool-settings` : `/pool/${pool.id}#make-picks`
   const label = mode === 'runner' ? 'Settings' : 'Edit picks'
   return (
-    <div className="mb-3 flex flex-col gap-2 border border-[#d8cab0] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-[#657168]">Event starts: <span className="text-[#123c2f]">{formatEventDate(tournament?.start_date)}</span></span>
-      <a href={href} className="inline-flex w-fit items-center gap-1.5 border border-[#123c2f] bg-[#fbf7ed] px-3 py-1.5 text-[#123c2f] hover:bg-[#fff4cf]" aria-label={mode === 'runner' ? `Open settings for ${pool.name}` : `Edit picks for ${pool.name}`}>
+    <div className="mb-3 flex items-center justify-between gap-2 border border-[#d8cab0] bg-white px-2 py-2 text-[clamp(0.58rem,2.25vw,0.75rem)] font-black uppercase tracking-[0.08em] text-[#123c2f] sm:px-3">
+      <span className="min-w-0 whitespace-nowrap text-[#657168]">Event starts: <span className="text-[#123c2f]">{formatEventDate(tournament?.start_date)}</span></span>
+      <a href={href} className="inline-flex shrink-0 items-center gap-1 border border-[#123c2f] bg-[#fbf7ed] px-2 py-1.5 text-[#123c2f] hover:bg-[#fff4cf] sm:px-3" aria-label={mode === 'runner' ? `Open settings for ${pool.name}` : `Edit picks for ${pool.name}`}>
         {mode === 'runner' ? (
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
             <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
@@ -417,9 +417,9 @@ function MyEntryPreTournamentBadges({ pool, entry }: { pool: PoolRecord; entry?:
 
   return (
     <>
-      <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#123c2f]">{picked}/{needed} picks</span>
-      {remaining > 0 ? <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">Needs {remaining}</span> : null}
-      {remaining === 0 && lockLabel ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{lockLabel}</span> : null}
+      <span className="border border-[#d8cab0] bg-[#fbf7ed] px-1.5 py-1 text-[#123c2f] sm:px-2">{picked}/{needed} picks</span>
+      {remaining > 0 ? <span className="border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-1 text-[#7a5a19] sm:px-2">Needs {remaining}</span> : null}
+      {remaining === 0 && lockLabel ? <span className="hidden border border-[#d8cab0] bg-[#fbf7ed] px-1.5 py-1 text-[#657168] sm:inline-flex sm:px-2">{lockLabel}</span> : null}
     </>
   )
 }
@@ -495,9 +495,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     <div className="overflow-hidden border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-4 sm:px-5">
       <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
       {showMyEntryBar && currentScoredEntry ? (
-        <div className="sticky top-2 z-30 mb-3 flex flex-col gap-2 border-2 border-[#123c2f] bg-white px-3 py-2 shadow-[3px_3px_0_#d8cab0] sm:static sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-[0.1em]">
-            <span className="inline-flex items-center gap-1.5 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
+        <div className="sticky top-2 z-30 mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:static sm:px-3">
+          <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
+            <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             {scoringIsLive ? (
               <>
                 <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
@@ -510,7 +510,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
             )}
           </div>
           {showJumpToMyEntry ? (
-            <button type="button" onClick={jumpToCurrentEntry} className="w-fit border border-[#123c2f] bg-[#fbf7ed] px-3 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] hover:bg-[#fff4cf]">
+            <button type="button" onClick={jumpToCurrentEntry} className="shrink-0 whitespace-nowrap border border-[#123c2f] bg-[#fbf7ed] px-2 py-1.5 font-black uppercase tracking-[0.08em] text-[#123c2f] hover:bg-[#fff4cf] sm:px-3">
               Jump to my row
             </button>
           ) : null}
