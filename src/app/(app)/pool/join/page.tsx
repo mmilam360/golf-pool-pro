@@ -346,25 +346,27 @@ export default function JoinPoolPage() {
             groups.length > 0 ? (
               <div className="space-y-4">
                 {groups.map(group => (
-                  <section key={group.label} className="rounded-none border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0]">
-                    <div className="mb-3 flex items-center justify-between gap-3 border-b border-stone-200 pb-2">
+                  <section key={group.label} className="bg-transparent">
+                    <div className="mb-2 flex w-fit max-w-full items-center justify-between gap-3 border-b border-[#d8cab0] pb-1 pr-2">
                       <h3 className="font-black uppercase tracking-[-0.02em] text-[#0f2f25]">{group.label}</h3>
                       <span className="text-xs font-black uppercase tracking-[0.12em] text-[#8a6724]">{groupPickCount(group)}/{pool?.picks_per_group}</span>
                     </div>
-                    <div className="grid gap-2">
+                    <div className="inline-flex w-max max-w-full flex-col overflow-hidden border-y border-[#d8cab0] bg-white">
                       {[...group.players].sort(compareGolfersByListName).map(player => {
                         const name = playerName(player)
                         const selected = picks.includes(name)
                         const disabled = !canToggleGroupedPick(group, name)
+                        const pickNumber = picks.indexOf(name) + 1
                         return (
                           <button
                             key={name}
                             type="button"
                             onClick={() => togglePick(name)}
                             disabled={disabled}
-                            className={`border-2 px-3 py-2 text-left text-sm font-bold ${selected ? 'border-[#123c2f] bg-[#123c2f] text-white' : 'border-stone-300 bg-[#fbf7ed] text-stone-800'} disabled:cursor-not-allowed disabled:opacity-45`}
+                            className={`flex w-full min-w-[14rem] max-w-full items-center justify-between gap-4 border-x border-b border-[#d8cab0] px-3 py-2 text-left text-sm font-bold last:border-b-0 ${selected ? 'bg-[#123c2f] text-white' : 'bg-white text-stone-800 hover:bg-[#fbf7ed]'} disabled:cursor-not-allowed disabled:opacity-45`}
                           >
-                            {golferListNameFromParts(player)}
+                            <span className="truncate pr-2">{golferListNameFromParts(player)}</span>
+                            {selected ? <span className="shrink-0 border border-white/80 bg-white px-1.5 py-0.5 text-[10px] font-black text-[#123c2f]">{pickNumber}/{requiredPickCount}</span> : null}
                           </button>
                         )
                       })}
@@ -376,20 +378,22 @@ export default function JoinPoolPage() {
               <div className="rounded-none border-2 border-[#123c2f] bg-white p-5 text-sm font-semibold text-stone-700 shadow-[4px_4px_0_#d8cab0]">Picks open after groups lock.</div>
             )
           ) : (
-            <div className="grid gap-2">
+            <div className="inline-flex w-max max-w-full flex-col overflow-hidden border-y border-[#d8cab0] bg-white">
               {[...field].sort(compareGolfersByListName).map(player => {
                 const name = playerName(player)
                 const selected = picks.includes(name)
                 const disabled = !selected && picks.length >= requiredPickCount
+                const pickNumber = picks.indexOf(name) + 1
                 return (
                   <button
                     key={name}
                     type="button"
                     onClick={() => togglePick(name)}
                     disabled={disabled}
-                    className={`border-2 px-3 py-2 text-left text-sm font-bold ${selected ? 'border-[#123c2f] bg-[#123c2f] text-white' : 'border-stone-300 bg-white text-stone-800'} disabled:cursor-not-allowed disabled:opacity-45`}
+                    className={`flex w-full min-w-[14rem] max-w-full items-center justify-between gap-4 border-x border-b border-[#d8cab0] px-3 py-2 text-left text-sm font-bold last:border-b-0 ${selected ? 'bg-[#123c2f] text-white' : 'bg-white text-stone-800 hover:bg-[#fbf7ed]'} disabled:cursor-not-allowed disabled:opacity-45`}
                   >
-                    {golferListNameFromParts(player)}
+                    <span className="truncate pr-2">{golferListNameFromParts(player)}</span>
+                    {selected ? <span className="shrink-0 border border-white/80 bg-white px-1.5 py-0.5 text-[10px] font-black text-[#123c2f]">{pickNumber}/{requiredPickCount}</span> : null}
                   </button>
                 )
               })}

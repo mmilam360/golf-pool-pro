@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import type { PickGroup } from '@/lib/pool-formats'
 
 export type PickState = {
@@ -8,6 +7,7 @@ export type PickState = {
   displayName: string
   selected: boolean
   disabled: boolean
+  pickNumber: number | null
 }
 
 function GroupPickCard({
@@ -15,45 +15,42 @@ function GroupPickCard({
   picksRequired,
   pickStates,
   onToggle,
-  isMobile,
+  totalPicksRequired,
 }: {
   groupLabel: string
   picksRequired: number
   pickStates: PickState[]
   onToggle: (rawName: string) => void
-  isMobile: boolean
+  totalPicksRequired: number
 }) {
-  const completed = pickStates.filter(p => p.selected).length >= picksRequired
-  const headerColor = completed ? 'bg-[#123c2f]' : 'bg-[#b21e23]'
+  const selectedCount = pickStates.filter(p => p.selected).length
 
   return (
-    <div className={`rounded-none border-2 border-[#2a2a2a] bg-white shadow-[3px_3px_0_#888] ${isMobile ? 'w-[11rem]' : 'w-full'}`}>
-      {/* Title bar */}
-      <div className={`flex items-center justify-between ${headerColor} px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-white`}>
+    <div className="bg-transparent">
+      <div className="mb-2 flex w-fit max-w-full items-center justify-between gap-3 border-b border-[#d8cab0] pb-1 pr-2 text-[11px] font-black uppercase tracking-[0.08em] text-[#0f2f25]">
         <span className="truncate">{groupLabel}</span>
-        <span className="ml-1 flex-shrink-0">{pickStates.filter(p => p.selected).length}/{picksRequired}</span>
+        <span className="ml-1 flex-shrink-0 text-[#8a6724]">{selectedCount}/{picksRequired}</span>
       </div>
 
-      {/* Player rows */}
-      <div className="border-t-2 border-[#2a2a2a]">
-        {pickStates.map(({ rawName, displayName, selected, disabled }) => (
+      <div className="inline-flex w-max max-w-full flex-col overflow-hidden border-y border-[#d8cab0] bg-white">
+        {pickStates.map(({ rawName, displayName, selected, disabled, pickNumber }) => (
           <button
             key={rawName}
             type="button"
             onClick={() => !disabled && onToggle(rawName)}
             disabled={disabled}
-            className={`flex w-full items-center justify-between border-b border-[#e0dcd0] px-2.5 py-[5px] text-left text-[12px] font-semibold leading-tight last:border-b-0 transition-colors ${
+            className={`flex w-full min-w-[14rem] max-w-full items-center justify-between gap-4 border-x border-b border-[#d8cab0] px-3 py-2 text-left text-sm font-bold leading-tight last:border-b-0 transition-colors ${
               selected
-                ? 'bg-[#eef7ef] text-[#123c2f]'
+                ? 'bg-[#123c2f] text-white'
                 : disabled
                   ? 'cursor-not-allowed text-stone-400'
                   : 'text-stone-800 hover:bg-[#fbf7ed]'
             }`}
           >
-            <span className="truncate pr-1">{displayName}</span>
+            <span className="truncate pr-2">{displayName}</span>
             {selected && (
-              <span className="ml-1 flex-shrink-0 border border-[#123c2f] bg-white px-1.5 py-0 text-[9px] font-black uppercase tracking-[0.06em] text-[#123c2f]">
-                PICK
+              <span className="shrink-0 border border-white/80 bg-white px-1.5 py-0.5 text-[10px] font-black text-[#123c2f]">
+                {pickNumber}/{totalPicksRequired}
               </span>
             )}
           </button>
@@ -82,14 +79,11 @@ export function GroupedPickGrid({
   onTogglePick,
   groupLabelForDisplay = label => label,
 }: GroupedPickGridProps) {
-  const [isMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 640 : false
-  )
+  const totalPicksRequired = pickGroups.length * picksPerGroup
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Cards: horizontal scroll on mobile, one full-width column on desktop */}
-      <div className="flex flex-nowrap gap-2 overflow-x-auto px-1 pb-1 sm:flex-col sm:overflow-visible">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         {pickGroups.map(group => {
           const selectedCount = group.players.filter(p =>
             myPicks.includes(p.name)
@@ -103,6 +97,7 @@ export function GroupedPickGrid({
               displayName: golferListName(player.name),
               selected,
               disabled,
+              pickNumber: selected ? myPicks.indexOf(player.name) + 1 : null,
             }
           })
 
@@ -113,7 +108,7 @@ export function GroupedPickGrid({
                 picksRequired={picksPerGroup}
                 pickStates={pickStates}
                 onToggle={onTogglePick}
-                isMobile={isMobile}
+                totalPicksRequired={totalPicksRequired}
               />
             </div>
           )
