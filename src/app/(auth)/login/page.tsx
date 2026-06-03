@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [signupHref, setSignupHref] = useState('/signup')
   const [joiningPool, setJoiningPool] = useState(false)
+  const [linkingEntry, setLinkingEntry] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -32,6 +33,7 @@ export default function LoginPage() {
     const redirectParam = new URLSearchParams(window.location.search).get('redirect')
     setSignupHref(redirectParam ? `/signup?redirect=${encodeURIComponent(redirectParam)}` : '/signup')
     setJoiningPool(Boolean(redirectParam?.startsWith('/pool/join')))
+    setLinkingEntry(Boolean(redirectParam?.startsWith('/pool/join?claim=')))
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -65,7 +67,7 @@ export default function LoginPage() {
       <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Sign in</h1>
       {joiningPool && (
         <div className="mb-5 border-2 border-[#b58a3a] bg-[#fff4cf] px-4 py-3 text-sm font-semibold leading-6 text-[#1f2a24]">
-          You are joining a pool. Sign in here and we will bring you back to finish joining.
+          {linkingEntry ? 'Sign in and we will link your saved entry to this account.' : 'You are joining a pool. Sign in here and we will bring you back to finish joining.'}
         </div>
       )}
       {error && (

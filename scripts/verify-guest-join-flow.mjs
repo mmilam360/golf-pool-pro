@@ -24,6 +24,8 @@ assert(joinPage.includes("type JoinStep = 'code' | 'name' | 'picks' | 'saved'"),
 assert(joinPage.includes('Guest picks can’t be edited after saving.'), 'guest pick screen must explain one-time save')
 assert(joinPage.includes('Pick 12 golfers to save') || joinPage.includes('Pick ${requiredPickCount} golfers to save'), 'save button must stay disabled until complete')
 assert(joinPage.includes('Create account to link entry'), 'saved screen must offer account linking after picks are saved')
+assert(joinPage.includes('Sign in to connect account'), 'join page must offer optional sign-in before saving picks')
+assert(joinPage.includes('gpp_claim_guest_entry'), 'signed-in entrants must automatically link saved entries')
 assert(joinPage.includes('quick My Entry view'), 'account CTA must mention quick My Entry view')
 assert(joinPage.includes("/pool/${poolId}?tab=my-entry"), 'claim flow must land account users on My Entry')
 assert(!joinPage.includes('/login?redirect=${encodeURIComponent(currentJoinRedirect())}'), 'join flow must not redirect to login before entry save')

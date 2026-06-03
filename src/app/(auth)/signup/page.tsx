@@ -50,6 +50,7 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
   const [success, setSuccess] = useState(false)
   const [signupPromoCode, setSignupPromoCode] = useState(defaultPromoCode)
   const [joiningPool, setJoiningPool] = useState(false)
+  const [linkingEntry, setLinkingEntry] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -58,6 +59,7 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
     setSignupPromoCode(params.get('promo') || defaultPromoCode)
     const redirectParam = params.get('redirect') || ''
     setJoiningPool(redirectParam.startsWith('/pool/join'))
+    setLinkingEntry(redirectParam.startsWith('/pool/join?claim='))
   }, [defaultPromoCode])
 
   function getLoginHref() {
@@ -157,7 +159,7 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
       )}
       {joiningPool && (
         <div className="mb-5 border-2 border-[#b58a3a] bg-[#fff4cf] px-4 py-3 text-sm font-semibold leading-6 text-[#1f2a24]">
-          You are joining a pool. Create your account here and we will bring you back to finish joining.
+          {linkingEntry ? 'Create your account and we will link your saved entry after you sign in.' : 'You are joining a pool. Create your account here and we will bring you back to finish joining.'}
         </div>
       )}
       {error && (

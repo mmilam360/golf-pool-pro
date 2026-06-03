@@ -32,7 +32,7 @@ type JoinPayload = {
 
 type GolfPlayer = { name?: string; firstName?: string; lastName?: string; worldRank?: number | null }
 type PickGroup = { label: string; players: GolfPlayer[] }
-type SavedEntry = { entry_id: string; pool_id: string; leaderboard_path: string; claim_path: string }
+type SavedEntry = { entry_id: string; pool_id: string; leaderboard_path: string; claim_path: string; linked_to_account?: boolean }
 
 function playerName(player: GolfPlayer) {
   return golferFullName(player)
@@ -59,6 +59,7 @@ export default function JoinPoolPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [claiming, setClaiming] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const autoJoinAttempted = useRef(false)
   const router = useRouter()
@@ -78,6 +79,21 @@ export default function JoinPoolPage() {
     : ''
   const claimRedirect = savedEntry?.claim_path || ''
   const claimRedirectParam = claimRedirect ? encodeURIComponent(claimRedirect) : ''
+  const joinRedirect = passcode.length === 6 ? `/pool/join?code=${passcode}` : '/pool/join'
+
+  useEffect(() => {
+    let mounted = true
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted) setUserEmail(data.user?.email ?? null)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email ?? null)
+    })
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [supabase])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -185,15 +201,32 @@ export default function JoinPoolPage() {
       p_claim_token: claimToken,
     })
 
-    setLoading(false)
     if (error || !data) {
+      setLoading(false)
       setError(error?.message || 'Could not save picks.')
       return
     }
 
     const nextSaved = data as SavedEntry
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { error: claimError } = await (supabase as any).rpc('gpp_claim_guest_entry', {
+        p_entry_id: nextSaved.entry_id,
+        p_claim_token: claimToken,
+      })
+      if (claimError) {
+        setError(claimError.message || 'Picks saved, but we could not link this entry to your account.')
+        setLoading(false)
+        setSavedEntry(nextSaved)
+        setStep('saved')
+        return
+      }
+      nextSaved.linked_to_account = true
+      nextSaved.claim_path = ''
+    }
     setSavedEntry(nextSaved)
     setStep('saved')
+    setLoading(false)
     trackGppEvent('entry_submitted', {
       pool_id: payload.pool.id,
       entry_source: 'guest_join',
@@ -260,6 +293,21 @@ export default function JoinPoolPage() {
       </div>
 
       {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
+
+      {step !== 'saved' && (
+        <div className="mb-4 rounded-none border border-[#d8cab0] bg-white px-4 py-3 text-sm font-semibold text-stone-700">
+          {userEmail ? (
+            <p><span className="font-black text-[#123c2f]">Signed in:</span> this entry will save to {userEmail}.</p>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p><span className="font-black text-[#123c2f]">Account optional.</span> Sign in first if you already have one, or keep going as a guest.</p>
+              <Link href={`/login?redirect=${encodeURIComponent(joinRedirect)}`} className="shrink-0 border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-center text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] hover:bg-[#fff4cf]">
+                Sign in to connect account
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {step === 'code' && (
         <form onSubmit={handlePasscodeSubmit} className="space-y-5 rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
@@ -406,7 +454,7 @@ export default function JoinPoolPage() {
         <div className="rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Picks saved</p>
           <h2 className="mt-1 font-display text-3xl font-black uppercase tracking-[-0.04em] text-[#0f2f25]">You’re in</h2>
-          <p className="mt-3 text-stone-700">Save the leaderboard link so you can follow your entry during the tournament.</p>
+          <p className="mt-3 text-stone-700">{savedEntry.linked_to_account ? 'This entry is connected to your account.' : 'Save the leaderboard link so you can follow your entry during the tournament.'}</p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <Link href={savedEntry.leaderboard_path} className="gpp-3d gpp-button-3d gpp-button-wrap text-center">
               <span className="gpp-button-face px-5 py-3">View leaderboard</span>
@@ -415,14 +463,16 @@ export default function JoinPoolPage() {
               Copy leaderboard link
             </button>
           </div>
-          <div className="mt-6 border-t border-stone-200 pt-5">
-            <h3 className="text-lg font-black text-[#0f2f25]">Want this saved to your account?</h3>
-            <p className="mt-2 text-sm leading-6 text-stone-700">Create account to link entry, get a quick My Entry view, edit picks before lock, see pool history, re-enter faster next time, and run your own pools.</p>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <Link href={`/signup?redirect=${claimRedirectParam}`} className="border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-white">Create account to link entry</Link>
-              <Link href={`/login?redirect=${claimRedirectParam}`} className="border-2 border-[#123c2f] bg-white px-5 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">Sign in to link entry</Link>
+          {!savedEntry.linked_to_account && claimRedirectParam ? (
+            <div className="mt-6 border-t border-stone-200 pt-5">
+              <h3 className="text-lg font-black text-[#0f2f25]">Want this saved to your account?</h3>
+              <p className="mt-2 text-sm leading-6 text-stone-700">Create an account or sign in to link this entry. It’s optional, but it gives you a quick My Entry view and lets you edit picks before lock.</p>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <Link href={`/signup?redirect=${claimRedirectParam}`} className="border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-white">Create account to link entry</Link>
+                <Link href={`/login?redirect=${claimRedirectParam}`} className="border-2 border-[#123c2f] bg-white px-5 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">Sign in to link entry</Link>
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       )}
     </div>
