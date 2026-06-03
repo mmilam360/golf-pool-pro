@@ -61,23 +61,18 @@ export default function RunnerIncompletePicksReminder({ pools }: { pools: Remind
   }, [dateKey, pools])
 
   const visiblePools = pools.filter(pool => !dismissedPoolIds.has(pool.id))
-  const pool = visiblePools[0]
 
-  if (!loaded || !pool) return null
-
-  const copy = buildReminderCopy(pool)
-  const playerLabel = plural(pool.incompleteCount, 'player')
-  const poolPosition = visiblePools.length > 1 ? `${pools.length - visiblePools.length + 1} of ${pools.length}` : null
+  if (!loaded || visiblePools.length === 0) return null
 
   function dismiss(poolId: string) {
     window.localStorage.setItem(storageKeyForPool(dateKey, poolId), 'dismissed')
     setDismissedPoolIds(current => new Set(current).add(poolId))
   }
 
-  async function copyText(reminderPool: ReminderPool) {
+  async function copyText(pool: ReminderPool) {
     try {
-      await navigator.clipboard.writeText(buildReminderCopy(reminderPool))
-      setCopiedPoolId(reminderPool.id)
+      await navigator.clipboard.writeText(buildReminderCopy(pool))
+      setCopiedPoolId(pool.id)
       window.setTimeout(() => setCopiedPoolId(null), 1600)
     } catch {
       setCopiedPoolId(null)
@@ -85,55 +80,63 @@ export default function RunnerIncompletePicksReminder({ pools }: { pools: Remind
   }
 
   return (
-    <div className="fixed inset-x-3 top-24 z-[90] mx-auto max-w-md sm:inset-x-auto sm:right-5 sm:top-20 sm:w-[26rem]" role="status" aria-live="polite">
-      <section className="relative overflow-hidden rounded-[18px] border border-[#123c2f]/20 bg-white shadow-[0_20px_60px_rgba(15,47,37,0.34)] ring-1 ring-black/5">
-        <div className="absolute left-0 top-0 h-full w-1.5 bg-[#f3df9c]" />
-        <button
-          type="button"
-          onClick={() => dismiss(pool.id)}
-          aria-label="Dismiss picks reminder"
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-[#d8cab0] bg-white text-lg font-black leading-none text-[#657168] shadow-sm hover:bg-[#fbf7ed] hover:text-[#123c2f]"
-        >
-          ×
-        </button>
+    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-[#0f2f25]/65 p-3 backdrop-blur-sm sm:items-end sm:justify-end sm:p-5" role="status" aria-live="polite">
+      <div className="flex max-h-[86vh] w-full max-w-xl flex-col gap-3 overflow-y-auto sm:w-[30rem]">
+        {visiblePools.map(pool => {
+          const copy = buildReminderCopy(pool)
+          const playerLabel = plural(pool.incompleteCount, 'player')
 
-        <div className="space-y-3 px-5 pb-4 pt-4">
-          <div className="pr-10">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="rounded-full bg-[#b93a32] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">Picks missing</p>
-              {poolPosition ? <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#657168]">{poolPosition}</p> : null}
-            </div>
-            <h2 className="mt-2 text-lg font-black leading-tight text-[#0f2f25]">{pool.name}</h2>
-            <p className="mt-1 text-sm font-bold text-[#657168]">{playerLabel} need{pool.incompleteCount === 1 ? 's' : ''} picks</p>
-          </div>
+          return (
+            <section key={pool.id} className="relative border-4 border-[#123c2f] bg-white shadow-[10px_10px_0_rgba(15,47,37,0.55)] ring-4 ring-white">
+              <button
+                type="button"
+                onClick={() => dismiss(pool.id)}
+                aria-label="Dismiss picks reminder"
+                className="absolute right-3 top-3 z-10 border border-[#d8cab0] bg-white px-2 py-1 text-lg font-black leading-none text-[#657168] hover:bg-[#fbf7ed] hover:text-[#123c2f]"
+              >
+                ×
+              </button>
 
-          <div className="rounded-xl border border-[#eadfca] bg-[#fbf7ed] px-3 py-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#8a6724]">Needs picks</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {pool.incompleteEntries.map(entry => (
-                <span key={entry.id} className="rounded-full border border-[#d8cab0] bg-white px-2.5 py-1 text-xs font-black text-[#123c2f] shadow-sm">
-                  {entry.displayName} <span className="font-mono text-[#657168]">{entry.submittedPickCount}/{entry.requiredPickCount}</span>
-                </span>
-              ))}
-            </div>
-          </div>
+              <div className="border-b-2 border-[#d8cab0] bg-[#123c2f] px-4 py-3 pr-12 text-white">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#d7c99f]">Picks still missing</p>
+                <p className="mt-1 text-xl font-black leading-tight text-white">{pool.name}</p>
+                <p className="mt-1 text-sm font-black text-[#fbf7ed]">{playerLabel} need{pool.incompleteCount === 1 ? 's' : ''} picks</p>
+              </div>
 
-          <p className="text-sm font-semibold leading-6 text-[#1f2a24]">Copy this for the {pool.name} group chat.</p>
+              <div className="space-y-3 px-4 py-4">
+                <div className="border-2 border-[#b93a32] bg-[#fff8f0] px-3 py-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#b93a32]">Needs picks</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {pool.incompleteEntries.map(entry => (
+                      <span key={entry.id} className="border border-[#d8cab0] bg-white px-2.5 py-1 text-xs font-black text-[#123c2f]">
+                        {entry.displayName} <span className="font-mono text-[#657168]">{entry.submittedPickCount}/{entry.requiredPickCount}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
 
-          <div className="max-h-44 overflow-y-auto rounded-xl border border-[#d8cab0] bg-[#fffdf8] p-3 text-sm font-semibold leading-6 text-[#1f2a24] shadow-inner">
-            <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{copy}</p>
-          </div>
+                <p className="text-sm font-semibold leading-6 text-[#1f2a24]">Copy this for the {pool.name} group chat.</p>
 
-          <div className="grid grid-cols-2 gap-2">
-            <Link href="/manage-pools" onClick={() => dismiss(pool.id)} className="rounded-lg border border-[#d8cab0] bg-white px-3 py-2 text-center text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] hover:bg-[#eef7ef]">
-              Review pools
-            </Link>
-            <button type="button" onClick={() => copyText(pool)} className="rounded-lg border border-[#123c2f] bg-[#123c2f] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white shadow-sm hover:bg-[#0f2f25]">
-              {copiedPoolId === pool.id ? 'Copied' : 'Copy text'}
-            </button>
-          </div>
-        </div>
-      </section>
+                <div className="max-h-60 overflow-y-auto border-2 border-[#123c2f] bg-[#fbf7ed] p-3 text-sm font-semibold leading-6 text-[#1f2a24] shadow-inner">
+                  <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{copy}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                  <button type="button" onClick={() => dismiss(pool.id)} className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#657168] hover:bg-white">
+                    Dismiss
+                  </button>
+                  <Link href="/manage-pools" onClick={() => dismiss(pool.id)} className="border border-[#123c2f] bg-white px-3 py-2 text-center text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] hover:bg-[#eef7ef]">
+                    Review pools
+                  </Link>
+                  <button type="button" onClick={() => copyText(pool)} className="col-span-2 border-2 border-[#123c2f] bg-[#f3df9c] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#0f2f25] hover:bg-[#f8e9b2] sm:col-span-1">
+                    {copiedPoolId === pool.id ? 'Copied' : 'Copy text'}
+                  </button>
+                </div>
+              </div>
+            </section>
+          )
+        })}
+      </div>
     </div>
   )
 }
