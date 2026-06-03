@@ -19,6 +19,7 @@
     "test:run-it-back": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-run-it-back-defaults.mjs",
     "test:grouped-auto-lock": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-grouped-auto-lock.mjs",
     "test:pool-auto-lock": "npx tsx scripts/verify-pool-auto-lock.mjs",
+    "test:pick-lock-display": "npx tsx scripts/verify-pick-lock-display.mjs",
     "test:pick-counts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pick-count-rules.mjs",
     "smoke:deployment": "node scripts/smoke-deployment.mjs"
   },

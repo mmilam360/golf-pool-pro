@@ -10,6 +10,7 @@ import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { displayTournamentName } from '@/lib/tournament-name'
 import { isGroupedPoolFormat, totalPicksRequired } from '@/lib/pick-counts'
+import { getPickLockBadgeText } from '@/lib/pick-lock-display'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -778,9 +779,11 @@ function PickProgressBadge({ entry, pool, tournament }: { entry?: EntryRecord | 
 }
 
 function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tournament | null }) {
-  const formatted = pool.lock_at
-    ? formatLockTime(pool.lock_at)
-    : formatLockDate(tournament?.start_date)
+  const formatted = getPickLockBadgeText({
+    lockAt: pool.lock_at,
+    groupsFinalizedAt: pool.groups_finalized_at,
+    tournamentStartDate: tournament?.start_date,
+  })
   if (!formatted) return null
   return (
     <span className="whitespace-nowrap text-right text-[10px] font-black uppercase tracking-[0.08em] text-[#b21e23]">
@@ -795,27 +798,6 @@ function isWithinTwoDaysOfStart(startDate?: string | null) {
   const now = new Date()
   const diffMs = start.getTime() - now.getTime()
   return diffMs > 0 && diffMs <= 2 * 24 * 60 * 60 * 1000
-}
-
-function formatLockTime(value?: string | null) {
-  if (!value) return null
-  const parsed = new Date(value)
-  if (!Number.isFinite(parsed.getTime())) return null
-  return parsed.toLocaleString('en-US', {
-    timeZone: 'America/New_York',
-    month: '2-digit',
-    day: '2-digit',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).toLowerCase().replace(',', '')
-}
-
-function formatLockDate(value?: string | null) {
-  if (!value) return null
-  const dateOnly = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0]
-  if (!dateOnly) return formatLockTime(value)
-  const [, month, day] = dateOnly.split('-')
-  return `${month}/${day}`
 }
 
 export default function DashboardActivePools({ cards, entriesByPool, mode = 'player' }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner' }) {
