@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
@@ -780,13 +780,15 @@ function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tou
 
 export default function DashboardActivePools({ cards, entriesByPool, mode = 'player' }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner' }) {
   const router = useRouter()
-  const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set(cards[0]?.pool.id ? [cards[0].pool.id] : []))
+  const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set())
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
   const [liveLeaderboardsByExternalId, setLiveLeaderboardsByExternalId] = useState<Record<string, LiveTournamentPayload>>({})
   const [secondsToRefresh, setSecondsToRefresh] = useState(60)
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [poolOrder, setPoolOrder] = useState<string[]>(() => cards.map(card => card.pool.id))
+  const [poolOrderHydrated, setPoolOrderHydrated] = useState(false)
   const [draggedPoolId, setDraggedPoolId] = useState<string | null>(null)
+  const initialExpandedPoolSetRef = useRef(false)
 
   const storageKey = `${DASHBOARD_POOL_ORDER_STORAGE_KEY}:${mode}`
   const activeCardIds = useMemo(() => cards.map(card => card.pool.id), [cards])
@@ -869,12 +871,20 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
       }
     } catch {
       // Ignore bad local dashboard order data.
+    } finally {
+      setPoolOrderHydrated(true)
     }
   }, [activeCardIds, storageKey])
 
   useEffect(() => {
     setPoolOrder(current => applySavedPoolOrder(current, activeCardIds))
   }, [activeCardIds])
+
+  useEffect(() => {
+    if (!poolOrderHydrated || initialExpandedPoolSetRef.current || !orderedPoolIds[0]) return
+    setExpandedPoolIds(new Set([orderedPoolIds[0]]))
+    initialExpandedPoolSetRef.current = true
+  }, [orderedPoolIds, poolOrderHydrated])
 
   useEffect(() => {
     try {

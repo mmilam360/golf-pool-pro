@@ -9,5 +9,9 @@ assert.ok(source.includes('{orderedCards.map(({ pool, tournament, role, entry },
 assert.ok(source.includes('Drag') && source.includes('title="Drag to reorder"'), 'dashboard should expose a direct drag reorder handle')
 assert.ok(source.includes('Up') && source.includes('Down'), 'dashboard should include fallback move controls for touch users')
 assert.ok(source.includes("mode === 'player' && orderedCards.length > 1"), 'reorder controls should only show for player dashboards with multiple active pools')
+assert.ok(source.includes('const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set())'), 'dashboard should wait for saved order before expanding a pool')
+assert.ok(source.includes('setPoolOrderHydrated(true)'), 'dashboard should mark saved order hydration before initial auto-expand')
+assert.ok(source.includes('setExpandedPoolIds(new Set([orderedPoolIds[0]]))'), 'dashboard should auto-expand the first saved-order pool')
+assert.ok(source.includes('initialExpandedPoolSetRef.current = true'), 'dashboard should only set initial expanded pool once')
 
 console.log('dashboard reorder UI verified')
