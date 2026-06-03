@@ -203,7 +203,7 @@ begin
     null,
     left(v_name, 80),
     to_jsonb(p_golfer_picks),
-    encode(digest(v_token, 'sha256'), 'hex')
+    encode(extensions.digest(v_token, 'sha256'), 'hex')
   )
   returning id into v_entry_id;
 
@@ -234,7 +234,7 @@ begin
   select * into v_entry
   from public.gpp_entries
   where id = p_entry_id
-    and guest_entry_token_hash = encode(digest(coalesce(p_claim_token, ''), 'sha256'), 'hex')
+    and guest_entry_token_hash = encode(extensions.digest(coalesce(p_claim_token, ''), 'sha256'), 'hex')
     and user_id is null
     and is_removed = false
   limit 1;
