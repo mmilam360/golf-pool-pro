@@ -45,12 +45,13 @@ export function firstTeeTimeFromField(field: LockPoolTournament['field_json']) {
 export function tournamentIsDueToLock(tournament: LockPoolTournament | null, today: string, now = new Date()) {
   if (!tournament) return false
   const status = String(tournament.status || '').toLowerCase()
-  if (status === 'live' || status === 'completed') return true
 
   const firstTee = firstTeeTimeFromField(tournament.field_json)
   if (firstTee) {
     return now.getTime() >= firstTee.getTime() - PICK_LOCK_BEFORE_FIRST_TEE_MS
   }
+
+  if (status === 'live' || status === 'completed') return true
 
   return Boolean(tournament.start_date && tournament.start_date <= today)
 }

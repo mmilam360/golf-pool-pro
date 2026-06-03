@@ -574,21 +574,8 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
   }
 
   if (liveTournamentIds.length > 0) {
-    const uniqueLiveTournamentIds = Array.from(new Set(liveTournamentIds))
-    // Auto-lock STANDARD pools immediately when a tournament goes live.
-    // For grouped pools, only lock if groups have already been finalized.
-    // Unfinalized grouped pools should stay open so the Tuesday auto-finalize
-    // can set groups first, then Thursday's live status will lock them.
-    const { data: lockedPools, error } = await supabase
-      .from('gpp_pools')
-      .update({ is_locked: true })
-      .in('tournament_id', uniqueLiveTournamentIds)
-      .eq('is_locked', false)
-      .or('game_format.eq.standard,and(game_format.neq.standard,groups_finalized_at.not.is.null)')
-      .select('id')
-
-    if (error) throw error
-    result.poolsAutoLocked += lockedPools?.length || 0
+    const postSyncPoolLock = await autoLockPools(supabase, { now })
+    result.poolsAutoLocked += postSyncPoolLock.locked
   }
 
   const groupFinalization = await autoFinalizeGroupedPools(supabase)
