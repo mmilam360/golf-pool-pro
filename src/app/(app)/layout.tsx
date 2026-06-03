@@ -15,8 +15,18 @@ type RunnerPool = {
 }
 
 type RunnerEntry = {
+  id: string
   pool_id: string
+  display_name?: string | null
   golfer_picks: unknown
+}
+
+type RunnerReminderPool = {
+  id: string
+  name: string
+  incompleteCount: number
+  activeEntryCount: number
+  incompleteEntries: { id: string; displayName: string; submittedPickCount: number; requiredPickCount: number }[]
 }
 
 function getTournamentStatus(pool: RunnerPool) {
@@ -24,7 +34,7 @@ function getTournamentStatus(pool: RunnerPool) {
   return String(tournament?.status || '').toLowerCase()
 }
 
-async function getRunnerIncompletePickReminders() {
+async function getRunnerIncompletePickReminders(): Promise<RunnerReminderPool[]> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
@@ -46,7 +56,7 @@ async function getRunnerIncompletePickReminders() {
 
   const { data: entries } = await supabase
     .from('gpp_entries')
-    .select('pool_id, golfer_picks')
+    .select('id, pool_id, display_name, golfer_picks')
     .in('pool_id', openPools.map(pool => pool.id))
     .eq('is_removed', false)
 
@@ -61,16 +71,28 @@ async function getRunnerIncompletePickReminders() {
       const poolEntries = entriesByPool[pool.id] || []
       const requiredPickCount = Number(pool.pick_count || 0)
       if (poolEntries.length === 0 || requiredPickCount <= 0) return null
-      const incompleteCount = poolEntries.filter(entry => !Array.isArray(entry.golfer_picks) || entry.golfer_picks.length < requiredPickCount).length
-      if (incompleteCount === 0) return null
+      const incompleteEntries = poolEntries
+        .map(entry => {
+          const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
+          if (submittedPickCount >= requiredPickCount) return null
+          return {
+            id: entry.id,
+            displayName: entry.display_name?.trim() || 'Unnamed entry',
+            submittedPickCount,
+            requiredPickCount,
+          }
+        })
+        .filter((entry): entry is { id: string; displayName: string; submittedPickCount: number; requiredPickCount: number } => Boolean(entry))
+      if (incompleteEntries.length === 0) return null
       return {
         id: pool.id,
         name: pool.name,
-        incompleteCount,
+        incompleteCount: incompleteEntries.length,
         activeEntryCount: poolEntries.length,
+        incompleteEntries,
       }
     })
-    .filter((pool): pool is { id: string; name: string; incompleteCount: number; activeEntryCount: number } => Boolean(pool))
+    .filter((pool): pool is RunnerReminderPool => Boolean(pool))
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
