@@ -777,12 +777,13 @@ function PickProgressBadge({ entry, pool, tournament }: { entry?: EntryRecord | 
   )
 }
 
-function LockTimeBadge({ pool }: { pool: PoolRecord }) {
-  const lockTime = pool.lock_at || pool.groups_finalized_at
-  const formatted = formatLockTime(lockTime)
+function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tournament | null }) {
+  const formatted = pool.lock_at
+    ? formatLockTime(pool.lock_at)
+    : formatLockDate(tournament?.start_date)
   if (!formatted) return null
   return (
-    <span className="whitespace-nowrap text-[10px] font-black uppercase tracking-[0.08em] text-[#b21e23] text-right">
+    <span className="whitespace-nowrap text-right text-[10px] font-black uppercase tracking-[0.08em] text-[#b21e23]">
       Picks Lock:<br />{formatted} ET
     </span>
   )
@@ -809,6 +810,14 @@ function formatLockTime(value?: string | null) {
   }).toLowerCase().replace(',', '')
 }
 
+function formatLockDate(value?: string | null) {
+  if (!value) return null
+  const dateOnly = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0]
+  if (!dateOnly) return formatLockTime(value)
+  const [, month, day] = dateOnly.split('-')
+  return `${month}/${day}`
+}
+
 export default function DashboardActivePools({ cards, entriesByPool, mode = 'player' }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner' }) {
   const router = useRouter()
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set(cards[0]?.pool.id ? [cards[0].pool.id] : []))
@@ -817,7 +826,12 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const [secondsToRefresh, setSecondsToRefresh] = useState(60)
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
 
-  const activeExternalIds = useMemo(() => Array.from(new Set(cards.map(card => card.tournament?.external_id).filter(Boolean) as string[])), [cards])
+  const activeExternalIds = useMemo(() => Array.from(new Set(
+    cards
+      .filter(card => hasEventBegun(card.tournament))
+      .map(card => card.tournament?.external_id)
+      .filter((externalId): externalId is string => Boolean(externalId))
+  )), [cards])
 
   useEffect(() => {
     if (activeExternalIds.length === 0) return
@@ -940,7 +954,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   </div>
                   <div className="flex flex-col items-end gap-1.5">
                     {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
-                    {!pool.is_locked && !pool.is_completed && !eventBegun ? <LockTimeBadge pool={pool} /> : null}
+                    {!pool.is_locked && !pool.is_completed && !eventBegun ? <LockTimeBadge pool={pool} tournament={effectiveTournament} /> : null}
                   </div>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
