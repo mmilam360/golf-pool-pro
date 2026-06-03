@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
@@ -787,8 +787,6 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [poolOrder, setPoolOrder] = useState<string[]>(() => cards.map(card => card.pool.id))
   const [draggedPoolId, setDraggedPoolId] = useState<string | null>(null)
-  const [reorderingPoolId, setReorderingPoolId] = useState<string | null>(null)
-  const longPressTimerRef = useRef<number | null>(null)
 
   const storageKey = `${DASHBOARD_POOL_ORDER_STORAGE_KEY}:${mode}`
   const activeCardIds = useMemo(() => cards.map(card => card.pool.id), [cards])
@@ -797,13 +795,6 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     const cardByPoolId = new Map(cards.map(card => [card.pool.id, card]))
     return orderedPoolIds.map(poolId => cardByPoolId.get(poolId)).filter((card): card is ActivePoolCard => Boolean(card))
   }, [cards, orderedPoolIds])
-
-  const clearLongPressTimer = () => {
-    if (longPressTimerRef.current !== null) {
-      window.clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
-    }
-  }
 
   const reorderPool = (draggedId: string, targetId: string) => {
     setPoolOrder(current => movePoolId(applySavedPoolOrder(current, activeCardIds), draggedId, targetId))
@@ -893,8 +884,6 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     }
   }, [orderedPoolIds, storageKey])
 
-  useEffect(() => clearLongPressTimer, [])
-
   const activePoolIds = useMemo(() => new Set(activeCardIds), [activeCardIds])
 
   useEffect(() => {
@@ -938,13 +927,6 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
             <details
               key={`${role}-${pool.id}`}
               open={isPoolOpen}
-              draggable={canReorderPools && reorderingPoolId === pool.id}
-              onDragStart={event => {
-                if (reorderingPoolId !== pool.id) return
-                setDraggedPoolId(pool.id)
-                event.dataTransfer.effectAllowed = 'move'
-                event.dataTransfer.setData('text/plain', pool.id)
-              }}
               onDragEnter={event => {
                 if (!draggedPoolId || draggedPoolId === pool.id) return
                 event.preventDefault()
@@ -956,11 +938,9 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
               onDrop={event => {
                 event.preventDefault()
                 setDraggedPoolId(null)
-                setReorderingPoolId(null)
               }}
               onDragEnd={() => {
                 setDraggedPoolId(null)
-                setReorderingPoolId(null)
               }}
               onToggle={event => {
                 const open = event.currentTarget.open
@@ -998,44 +978,29 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
                   {canReorderPools ? (
-                    <button
-                      type="button"
-                      draggable={reorderingPoolId === pool.id}
-                      onClick={event => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        setReorderingPoolId(current => current === pool.id ? null : pool.id)
-                        setDraggedPoolId(null)
-                      }}
-                      onPointerDown={event => {
-                        event.stopPropagation()
-                        clearLongPressTimer()
-                        longPressTimerRef.current = window.setTimeout(() => {
-                          setReorderingPoolId(pool.id)
-                          setDraggedPoolId(pool.id)
-                        }, 350)
-                      }}
-                      onPointerUp={clearLongPressTimer}
-                      onPointerCancel={clearLongPressTimer}
-                      onDragStart={event => {
-                        event.stopPropagation()
-                        setReorderingPoolId(pool.id)
-                        setDraggedPoolId(pool.id)
-                        event.dataTransfer.effectAllowed = 'move'
-                        event.dataTransfer.setData('text/plain', pool.id)
-                      }}
-                      className={`inline-flex touch-none items-center gap-1 border px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${reorderingPoolId === pool.id ? 'border-[#123c2f] bg-[#123c2f] text-white' : 'border-[#d8cab0] bg-white text-[#657168]'}`}
-                      aria-label={`Hold and drag ${pool.name} to reorder active pools`}
-                      title="Hold and drag to reorder"
-                    >
-                      <svg aria-hidden="true" viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square">
-                        <path d="M2 3h8M2 6h8M2 9h8" />
-                      </svg>
-                      Move
-                    </button>
-                  ) : null}
-                  {reorderingPoolId === pool.id ? (
                     <span className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        draggable
+                        onClick={event => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                        }}
+                        onDragStart={event => {
+                          event.stopPropagation()
+                          setDraggedPoolId(pool.id)
+                          event.dataTransfer.effectAllowed = 'move'
+                          event.dataTransfer.setData('text/plain', pool.id)
+                        }}
+                        className="inline-flex cursor-grab touch-none items-center gap-1 border border-[#d8cab0] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#657168] active:cursor-grabbing"
+                        aria-label={`Drag ${pool.name} to reorder active pools`}
+                        title="Drag to reorder"
+                      >
+                        <svg aria-hidden="true" viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square">
+                          <path d="M2 3h8M2 6h8M2 9h8" />
+                        </svg>
+                        Drag
+                      </button>
                       <button
                         type="button"
                         onClick={event => {
@@ -1046,6 +1011,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                         }}
                         disabled={index === 0}
                         className="border border-[#123c2f] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f] disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label={`Move ${pool.name} up`}
                       >
                         Up
                       </button>
@@ -1059,6 +1025,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                         }}
                         disabled={index === orderedCards.length - 1}
                         className="border border-[#123c2f] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f] disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label={`Move ${pool.name} down`}
                       >
                         Down
                       </button>
