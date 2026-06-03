@@ -19,6 +19,7 @@ type Tournament = {
   start_date?: string | null
   end_date?: string | null
   status?: string | null
+  field_json?: Array<{ teeTime?: string | null }> | null
   leaderboard_json?: GolfPlayer[] | null
   last_scores_fetch?: string | null
   cutLine?: GolfCutLine | null
@@ -783,6 +784,7 @@ function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tou
     lockAt: pool.lock_at,
     groupsFinalizedAt: pool.groups_finalized_at,
     tournamentStartDate: tournament?.start_date,
+    fieldJson: tournament?.field_json,
   })
   if (!formatted) return null
   return (

@@ -21,6 +21,7 @@ type Tournament = {
   start_date?: string | null
   end_date?: string | null
   status?: string | null
+  field_json?: Array<{ teeTime?: string | null }> | null
   leaderboard_json?: GolfPlayer[] | null
   last_scores_fetch?: string | null
   cutLine?: GolfCutLine | null
@@ -256,12 +257,12 @@ export default async function DashboardPage() {
   const [ownedPoolsResult, entriesResult, pendingInvitesResult, dismissedFinalResultsResult, upcomingTournamentsResult] = await Promise.all([
     supabase
       .from('gpp_pools')
-      .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch)')
+      .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, field_json, leaderboard_json, last_scores_fetch)')
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false }),
     supabase
       .from('gpp_entries')
-      .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, leaderboard_json, last_scores_fetch))')
+      .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, field_json, leaderboard_json, last_scores_fetch))')
       .eq('user_id', user.id)
       .eq('is_removed', false)
       .order('created_at', { ascending: false }),
