@@ -82,7 +82,7 @@ export default function RunnerIncompletePicksReminder({ pools }: { pools: Remind
       </div>
       <div className="space-y-3 px-4 py-3">
         <p className="text-sm font-semibold leading-6 text-[#1f2a24]">
-          Copy this if you want to text the group. We’ll only show it once today.
+          Copy this if you want to text the group.
         </p>
         <div className="border-2 border-[#123c2f] bg-[#fbf7ed] p-3 text-sm font-semibold leading-6 text-[#1f2a24]">
           <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{copy}</p>
