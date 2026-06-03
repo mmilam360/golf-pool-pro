@@ -2066,13 +2066,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 </span>
                               ))}
                               {picks.length === 0 && (
-                                <div className="grid w-full gap-1">
-                                  {group.players.map(player => (
-                                    <span key={player.id || player.name} className="text-sm font-semibold text-stone-600">
-                                      {golferListName(player.name)}
-                                    </span>
-                                  ))}
-                                </div>
+                                <span className="text-sm font-semibold text-stone-500">
+                                  No pick from this group yet.
+                                </span>
                               )}
                             </div>
                           </div>
@@ -2099,7 +2095,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               {showPickList && (
                 <div className="mb-4 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
                   <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? (groupsNeedLock ? (pool.game_format === 'ranked_groups' ? 'Tier preview' : 'Group preview') : `${pool.game_format === 'random_groups' ? 'Random groups' : 'Tiered Picks'}`) : 'Tournament field'}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? (groupsNeedLock ? (pool.game_format === 'ranked_groups' ? 'Tier preview' : 'Group preview') : `${pool.game_format === 'random_groups' ? 'Random groups' : 'Tiered Picks'}`) : 'Tournament field'}</p>
+                      {!groupedFormat && (
+                        <span className="border border-[#123c2f] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f]">
+                          {myPicks.length}/{pool.pick_count} picks
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? (groupsNeedLock ? `Picks open after ${groupNamePlural} lock. ${pool.game_format === 'ranked_groups' ? 'Tiers' : 'Groups'} auto-lock Tuesday morning ET once the field is set.` : `Pick ${picksPerGroup} from each ${groupName}. ${pool.game_format === 'ranked_groups' ? 'Tiers' : 'Groups'} are locked for this pool.`) : 'Sorted by last name for quick scanning.'}</p>
                     {groupedFormat && (
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#d8cab0] pt-2">
