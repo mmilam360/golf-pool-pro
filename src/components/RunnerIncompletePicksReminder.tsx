@@ -37,7 +37,7 @@ function buildReminderCopy(pool: ReminderPool) {
 }
 
 function storageKeyForPool(dateKey: string, poolId: string) {
-  return `gpp-runner-incomplete-picks:${dateKey}:${poolId}`
+  return `gpp-runner-incomplete-picks:v2:${dateKey}:${poolId}`
 }
 
 export default function RunnerIncompletePicksReminder({ pools }: { pools: ReminderPool[] }) {
