@@ -87,7 +87,7 @@ export default function RunnerIncompletePicksReminder({ pools }: { pools: Remind
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-start justify-center bg-[#0f2f25]/65 px-4 py-24 backdrop-blur-sm sm:items-end sm:justify-end sm:p-5" role="status" aria-live="polite">
+    <div className="fixed inset-0 z-[300] flex items-start justify-center bg-[#0f2f25]/65 px-4 py-24 backdrop-blur-sm sm:items-end sm:justify-end sm:p-5" role="status" aria-live="polite">
       <div className="flex max-h-[82vh] w-full max-w-md flex-col gap-3 overflow-y-auto sm:w-[27rem]">
         {visiblePools.map(pool => {
           const copy = buildReminderCopy(pool)

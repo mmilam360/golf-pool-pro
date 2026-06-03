@@ -239,15 +239,6 @@ function FormatStat({ name, detail }: { name: string; detail: string }) {
   )
 }
 
-function SettingsIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
-      <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
-      <path d="M19 12a7.1 7.1 0 0 0-.1-1.1l2-1.5-2-3.4-2.4 1a7.8 7.8 0 0 0-1.9-1.1L14.3 3h-4.6l-.3 2.9A7.8 7.8 0 0 0 7.5 7l-2.4-1-2 3.4 2 1.5A7.1 7.1 0 0 0 5 12c0 .4 0 .8.1 1.1l-2 1.5 2 3.4 2.4-1a7.8 7.8 0 0 0 1.9 1.1l.3 2.9h4.6l.3-2.9a7.8 7.8 0 0 0 1.9-1.1l2.4 1 2-3.4-2-1.5c.1-.3.1-.7.1-1.1Z" />
-    </svg>
-  )
-}
-
 function CurrentPoolCard({ pool, entries }: { pool: PoolRecord; entries: EntryRecord[] }) {
   const tournament = getTournament(pool)
   const tournamentName = displayTournamentName(tournament?.name) || 'Tournament'
@@ -257,7 +248,7 @@ function CurrentPoolCard({ pool, entries }: { pool: PoolRecord; entries: EntryRe
   const format = formatPoolFormat(pool)
 
   return (
-    <article className="border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0]">
+    <Link href={`/pool/${pool.id}?tab=pool-settings`} className="block border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0] transition-colors hover:bg-[#fffdf8] focus:outline-none focus:ring-4 focus:ring-[#f3df9c]" aria-label={`Open settings for ${pool.name}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -279,13 +270,10 @@ function CurrentPoolCard({ pool, entries }: { pool: PoolRecord; entries: EntryRe
         <QuickStat label="Status" value={lockSummary(pool, tournament)} />
       </div>
 
-      <div className="mt-4 flex justify-end border-t border-[#eadfca] pt-3">
-        <Link href={`/pool/${pool.id}?tab=pool-settings`} className="inline-flex items-center gap-2 border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] hover:bg-[#fff4cf]" aria-label={`Open settings for ${pool.name}`}>
-          <SettingsIcon />
-          Settings
-        </Link>
-      </div>
-    </article>
+      <p className="mt-3 border-t border-[#eadfca] pt-3 text-right text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
+        Open pool settings →
+      </p>
+    </Link>
   )
 }
 
