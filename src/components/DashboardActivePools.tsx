@@ -787,6 +787,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [poolOrder, setPoolOrder] = useState<string[]>(() => cards.map(card => card.pool.id))
   const [poolOrderHydrated, setPoolOrderHydrated] = useState(false)
+  const [sortMode, setSortMode] = useState(false)
   const [draggedPoolId, setDraggedPoolId] = useState<string | null>(null)
   const initialExpandedPoolSetRef = useRef(false)
 
@@ -895,6 +896,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   }, [orderedPoolIds, storageKey])
 
   const activePoolIds = useMemo(() => new Set(activeCardIds), [activeCardIds])
+  const canSortPools = mode === 'player' && orderedCards.length > 1
 
   useEffect(() => {
     setExpandedPoolIds(current => {
@@ -910,13 +912,34 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     })
   }, [activePoolIds, cards])
 
+  useEffect(() => {
+    if (canSortPools) return
+    setSortMode(false)
+    setDraggedPoolId(null)
+  }, [canSortPools])
+
   if (cards.length === 0) return null
 
   return (
     <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
       <div className="flex items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:px-5">
         <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Active pools</h2>
-        <span className="border border-[#d7c99f] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#f3df9c]">Refresh {secondsToRefresh}s</span>
+        <div className="flex items-center gap-2">
+          {canSortPools ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSortMode(current => !current)
+                setDraggedPoolId(null)
+              }}
+              className={`border px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${sortMode ? 'border-white bg-white text-[#123c2f]' : 'border-[#d7c99f] text-[#f3df9c]'}`}
+              aria-pressed={sortMode}
+            >
+              {sortMode ? 'Done' : 'Sort'}
+            </button>
+          ) : null}
+          <span className="border border-[#d7c99f] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#f3df9c]">Refresh {secondsToRefresh}s</span>
+        </div>
       </div>
       <div className="divide-y divide-[#eadfca]">
         {orderedCards.map(({ pool, tournament, role, entry }, index) => {
@@ -932,18 +955,18 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
           const openEntryIds = expandedEntryIds[pool.id] ?? null
           const eventBegun = hasEventBegun(effectiveTournament)
           const tournamentDisplayName = displayTournamentName(effectiveTournament?.name) || 'Tournament'
-          const canReorderPools = mode === 'player' && orderedCards.length > 1
+          const canReorderPools = canSortPools && sortMode
           return (
             <details
               key={`${role}-${pool.id}`}
               open={isPoolOpen}
               onDragEnter={event => {
-                if (!draggedPoolId || draggedPoolId === pool.id) return
+                if (!sortMode || !draggedPoolId || draggedPoolId === pool.id) return
                 event.preventDefault()
                 reorderPool(draggedPoolId, pool.id)
               }}
               onDragOver={event => {
-                if (draggedPoolId) event.preventDefault()
+                if (sortMode && draggedPoolId) event.preventDefault()
               }}
               onDrop={event => {
                 event.preventDefault()
@@ -1006,10 +1029,9 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                         aria-label={`Drag ${pool.name} to reorder active pools`}
                         title="Drag to reorder"
                       >
-                        <svg aria-hidden="true" viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square">
+                        <svg aria-hidden="true" viewBox="0 0 12 12" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square">
                           <path d="M2 3h8M2 6h8M2 9h8" />
                         </svg>
-                        Drag
                       </button>
                       <button
                         type="button"
