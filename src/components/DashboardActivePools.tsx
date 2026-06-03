@@ -1047,33 +1047,37 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : null}
                 </div>
               </summary>
-              <InlineLeaderboard
-                pool={effectivePool}
-                entries={poolEntries}
-                currentEntryId={entry?.id}
-                openEntryIds={openEntryIds}
-                onEntryToggle={(entryId, open) => {
-                  setExpandedEntryIds(current => {
-                    const next = { ...current }
-                    const entrySet = new Set(next[pool.id] ?? [])
-                    if (open) entrySet.add(entryId)
-                    else entrySet.delete(entryId)
-                    next[pool.id] = entrySet
-                    return next
-                  })
-                }}
-                mode={mode}
-                teeTimeZone={teeTimeZone}
-              />
-              <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
-                <TournamentLeaderboard
-                  leaderboard={effectiveTournament?.leaderboard_json}
-                  tournamentName={tournamentDisplayName}
-                  lastUpdated={effectiveTournament?.last_scores_fetch}
-                  pickedGolfers={entryPicks(entry)}
-                  cutLine={effectiveTournament?.cutLine}
-                />
-              </div>
+              {isPoolOpen ? (
+                <>
+                  <InlineLeaderboard
+                    pool={effectivePool}
+                    entries={poolEntries}
+                    currentEntryId={entry?.id}
+                    openEntryIds={openEntryIds}
+                    onEntryToggle={(entryId, open) => {
+                      setExpandedEntryIds(current => {
+                        const next = { ...current }
+                        const entrySet = new Set(next[pool.id] ?? [])
+                        if (open) entrySet.add(entryId)
+                        else entrySet.delete(entryId)
+                        next[pool.id] = entrySet
+                        return next
+                      })
+                    }}
+                    mode={mode}
+                    teeTimeZone={teeTimeZone}
+                  />
+                  <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
+                    <TournamentLeaderboard
+                      leaderboard={effectiveTournament?.leaderboard_json}
+                      tournamentName={tournamentDisplayName}
+                      lastUpdated={effectiveTournament?.last_scores_fetch}
+                      pickedGolfers={entryPicks(entry)}
+                      cutLine={effectiveTournament?.cutLine}
+                    />
+                  </div>
+                </>
+              ) : null}
             </details>
           )
         })}

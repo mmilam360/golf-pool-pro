@@ -13,5 +13,6 @@ assert.ok(source.includes('const [expandedPoolIds, setExpandedPoolIds] = useStat
 assert.ok(source.includes('setPoolOrderHydrated(true)'), 'dashboard should mark saved order hydration before initial auto-expand')
 assert.ok(source.includes('setExpandedPoolIds(new Set([orderedPoolIds[0]]))'), 'dashboard should auto-expand the first saved-order pool')
 assert.ok(source.includes('initialExpandedPoolSetRef.current = true'), 'dashboard should only set initial expanded pool once')
+assert.ok(source.includes('{isPoolOpen ? (') && source.includes('<InlineLeaderboard'), 'dashboard should only render heavy leaderboard content for expanded pools')
 
 console.log('dashboard reorder UI verified')
