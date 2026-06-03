@@ -1,7 +1,8 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
@@ -11,6 +12,7 @@ import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { displayTournamentName } from '@/lib/tournament-name'
 import { isGroupedPoolFormat, totalPicksRequired } from '@/lib/pick-counts'
 import { getPickLockBadgeText } from '@/lib/pick-lock-display'
+import { applySavedPoolOrder, movePoolId } from '@/lib/dashboard-pool-order'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -78,6 +80,7 @@ type EntryMovement = {
 }
 
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
+const DASHBOARD_POOL_ORDER_STORAGE_KEY = 'gpp-dashboard-active-pool-order'
 const ROUND_MENU_LABELS: Record<number, string> = { 1: 'THURSDAY', 2: 'FRIDAY', 3: 'SATURDAY', 4: 'SUNDAY' }
 const ROUND_SCORE_LABELS: Record<number, string> = { 1: 'THU', 2: 'FRI', 3: 'SAT', 4: 'SUN' }
 
@@ -212,25 +215,6 @@ function MovementBadge({ movement }: { movement: EntryMovement | null }) {
     return <span className="border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-[#b21e23]">↓ {movement.spots} today</span>
   }
   return <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">— today</span>
-}
-
-function DateIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
-      <path d="M7 3v4M17 3v4M4 9h16" />
-      <rect x="4" y="5" width="16" height="16" />
-      <path d="M8 13h2M12 13h2M16 13h2M8 17h2M12 17h2" />
-    </svg>
-  )
-}
-
-function StartDateBadge({ date }: { date?: string | null }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 font-black text-[#7a5a19]">
-      <DateIcon />
-      Starts {formatEventDate(date)}
-    </span>
-  )
 }
 
 function formatScore(score: number | null) {
@@ -794,14 +778,6 @@ function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tou
   )
 }
 
-function isWithinTwoDaysOfStart(startDate?: string | null) {
-  if (!startDate) return false
-  const start = new Date(startDate + 'T00:00:00')
-  const now = new Date()
-  const diffMs = start.getTime() - now.getTime()
-  return diffMs > 0 && diffMs <= 2 * 24 * 60 * 60 * 1000
-}
-
 export default function DashboardActivePools({ cards, entriesByPool, mode = 'player' }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner' }) {
   const router = useRouter()
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set(cards[0]?.pool.id ? [cards[0].pool.id] : []))
@@ -809,6 +785,29 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const [liveLeaderboardsByExternalId, setLiveLeaderboardsByExternalId] = useState<Record<string, LiveTournamentPayload>>({})
   const [secondsToRefresh, setSecondsToRefresh] = useState(60)
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
+  const [poolOrder, setPoolOrder] = useState<string[]>(() => cards.map(card => card.pool.id))
+  const [draggedPoolId, setDraggedPoolId] = useState<string | null>(null)
+  const [reorderingPoolId, setReorderingPoolId] = useState<string | null>(null)
+  const longPressTimerRef = useRef<number | null>(null)
+
+  const storageKey = `${DASHBOARD_POOL_ORDER_STORAGE_KEY}:${mode}`
+  const activeCardIds = useMemo(() => cards.map(card => card.pool.id), [cards])
+  const orderedPoolIds = useMemo(() => applySavedPoolOrder(poolOrder, activeCardIds), [poolOrder, activeCardIds])
+  const orderedCards = useMemo(() => {
+    const cardByPoolId = new Map(cards.map(card => [card.pool.id, card]))
+    return orderedPoolIds.map(poolId => cardByPoolId.get(poolId)).filter((card): card is ActivePoolCard => Boolean(card))
+  }, [cards, orderedPoolIds])
+
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  const reorderPool = (draggedId: string, targetId: string) => {
+    setPoolOrder(current => movePoolId(applySavedPoolOrder(current, activeCardIds), draggedId, targetId))
+  }
 
   const activeExternalIds = useMemo(() => Array.from(new Set(
     cards
@@ -869,7 +868,34 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     return () => window.clearInterval(countdownId)
   }, [router])
 
-  const activePoolIds = useMemo(() => new Set(cards.map(card => card.pool.id)), [cards])
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(storageKey)
+      if (!saved) return
+      const parsed = JSON.parse(saved)
+      if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+        setPoolOrder(applySavedPoolOrder(parsed, activeCardIds))
+      }
+    } catch {
+      // Ignore bad local dashboard order data.
+    }
+  }, [activeCardIds, storageKey])
+
+  useEffect(() => {
+    setPoolOrder(current => applySavedPoolOrder(current, activeCardIds))
+  }, [activeCardIds])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(orderedPoolIds))
+    } catch {
+      // Reordering is a convenience. Do not block the dashboard if storage is unavailable.
+    }
+  }, [orderedPoolIds, storageKey])
+
+  useEffect(() => clearLongPressTimer, [])
+
+  const activePoolIds = useMemo(() => new Set(activeCardIds), [activeCardIds])
 
   useEffect(() => {
     setExpandedPoolIds(current => {
@@ -894,7 +920,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
         <span className="border border-[#d7c99f] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#f3df9c]">Refresh {secondsToRefresh}s</span>
       </div>
       <div className="divide-y divide-[#eadfca]">
-        {cards.map(({ pool, tournament, role, entry }, index) => {
+        {orderedCards.map(({ pool, tournament, role, entry }, index) => {
           const livePayload = tournament?.external_id ? liveLeaderboardsByExternalId[tournament.external_id] : null
           const effectiveTournament = tournament && livePayload?.leaderboard?.length
             ? { ...tournament, leaderboard_json: livePayload.leaderboard, cutLine: livePayload.cutLine ?? tournament.cutLine ?? null }
@@ -907,10 +933,35 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
           const openEntryIds = expandedEntryIds[pool.id] ?? null
           const eventBegun = hasEventBegun(effectiveTournament)
           const tournamentDisplayName = displayTournamentName(effectiveTournament?.name) || 'Tournament'
+          const canReorderPools = mode === 'player' && orderedCards.length > 1
           return (
             <details
               key={`${role}-${pool.id}`}
               open={isPoolOpen}
+              draggable={canReorderPools && reorderingPoolId === pool.id}
+              onDragStart={event => {
+                if (reorderingPoolId !== pool.id) return
+                setDraggedPoolId(pool.id)
+                event.dataTransfer.effectAllowed = 'move'
+                event.dataTransfer.setData('text/plain', pool.id)
+              }}
+              onDragEnter={event => {
+                if (!draggedPoolId || draggedPoolId === pool.id) return
+                event.preventDefault()
+                reorderPool(draggedPoolId, pool.id)
+              }}
+              onDragOver={event => {
+                if (draggedPoolId) event.preventDefault()
+              }}
+              onDrop={event => {
+                event.preventDefault()
+                setDraggedPoolId(null)
+                setReorderingPoolId(null)
+              }}
+              onDragEnd={() => {
+                setDraggedPoolId(null)
+                setReorderingPoolId(null)
+              }}
               onToggle={event => {
                 const open = event.currentTarget.open
                 setExpandedPoolIds(current => {
@@ -920,18 +971,19 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   return next
                 })
               }}
-              className={`group ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}
+              className={`group ${draggedPoolId === pool.id ? 'opacity-70' : ''} ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}
             >
               <summary className="block cursor-pointer list-none px-4 py-3 transition-colors hover:bg-[#fff8e8] sm:px-5 [&::-webkit-details-marker]:hidden">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                   <div className="min-w-0">
                     <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
                      <p className="mt-1 flex items-center gap-1.5 break-words text-sm font-semibold leading-5 text-[#1f2a24]">
-                       <img
+                       <Image
                          src="/flag-icon.png"
                          alt=""
+                         width={16}
+                         height={16}
                          className="h-4 w-4 shrink-0 opacity-80"
-                         loading="lazy"
                        />
                        {tournamentDisplayName}
                      </p>
@@ -945,6 +997,73 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   <span className={`mr-auto inline-flex items-center border border-[#123c2f] px-2 py-1 ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
+                  {canReorderPools ? (
+                    <button
+                      type="button"
+                      draggable={reorderingPoolId === pool.id}
+                      onClick={event => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        setReorderingPoolId(current => current === pool.id ? null : pool.id)
+                        setDraggedPoolId(null)
+                      }}
+                      onPointerDown={event => {
+                        event.stopPropagation()
+                        clearLongPressTimer()
+                        longPressTimerRef.current = window.setTimeout(() => {
+                          setReorderingPoolId(pool.id)
+                          setDraggedPoolId(pool.id)
+                        }, 350)
+                      }}
+                      onPointerUp={clearLongPressTimer}
+                      onPointerCancel={clearLongPressTimer}
+                      onDragStart={event => {
+                        event.stopPropagation()
+                        setReorderingPoolId(pool.id)
+                        setDraggedPoolId(pool.id)
+                        event.dataTransfer.effectAllowed = 'move'
+                        event.dataTransfer.setData('text/plain', pool.id)
+                      }}
+                      className={`inline-flex touch-none items-center gap-1 border px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${reorderingPoolId === pool.id ? 'border-[#123c2f] bg-[#123c2f] text-white' : 'border-[#d8cab0] bg-white text-[#657168]'}`}
+                      aria-label={`Hold and drag ${pool.name} to reorder active pools`}
+                      title="Hold and drag to reorder"
+                    >
+                      <svg aria-hidden="true" viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square">
+                        <path d="M2 3h8M2 6h8M2 9h8" />
+                      </svg>
+                      Move
+                    </button>
+                  ) : null}
+                  {reorderingPoolId === pool.id ? (
+                    <span className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={event => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          const previousPoolId = orderedCards[index - 1]?.pool.id
+                          if (previousPoolId) reorderPool(pool.id, previousPoolId)
+                        }}
+                        disabled={index === 0}
+                        className="border border-[#123c2f] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Up
+                      </button>
+                      <button
+                        type="button"
+                        onClick={event => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          const nextPoolId = orderedCards[index + 1]?.pool.id
+                          if (nextPoolId) reorderPool(nextPoolId, pool.id)
+                        }}
+                        disabled={index === orderedCards.length - 1}
+                        className="border border-[#123c2f] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#123c2f] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Down
+                      </button>
+                    </span>
+                  ) : null}
                   {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{rankPreview.rank}</span> : null}
                   <MovementBadge movement={rankPreview?.movementToday ?? null} />
                   {entry ? <PickProgressBadge entry={entry} pool={pool} tournament={effectiveTournament} /> : null}

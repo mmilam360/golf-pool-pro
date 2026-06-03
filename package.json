@@ -22,6 +22,8 @@
     "test:pick-lock-display": "npx tsx scripts/verify-pick-lock-display.mjs",
     "test:grouped-selected-picks": "node scripts/verify-grouped-selected-picks-summary.mjs",
     "test:open-pick-field-count": "node scripts/verify-open-pick-field-count.mjs",
+    "test:dashboard-pool-order": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-dashboard-pool-order.mjs",
+    "test:dashboard-reorder-ui": "node scripts/verify-dashboard-reorder-ui.mjs",
     "test:pick-counts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pick-count-rules.mjs",
     "smoke:deployment": "node scripts/smoke-deployment.mjs"
   },
