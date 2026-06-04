@@ -79,12 +79,6 @@ type EntryMovement = {
   spots: number
 }
 
-type FixedDesktopHeader = {
-  visible: boolean
-  left: number
-  width: number
-}
-
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 const DASHBOARD_POOL_ORDER_STORAGE_KEY = 'gpp-dashboard-active-pool-order'
 const ROUND_MENU_LABELS: Record<number, string> = { 1: 'THURSDAY', 2: 'FRIDAY', 3: 'SATURDAY', 4: 'SUNDAY' }
@@ -342,24 +336,6 @@ function OpenPicksBar({ pool, tournament, mode }: { pool: PoolRecord; tournament
 }
 
 
-function DesktopLeaderboardHeader({ countScores, fixedHeader }: { countScores: number; fixedHeader?: FixedDesktopHeader }) {
-  return (
-    <div
-      className={`${fixedHeader ? 'fixed z-[90] shadow-[0_2px_0_#111]' : 'relative z-10'} hidden bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111] lg:grid`}
-      style={{
-        gridTemplateColumns: `5% 19% repeat(${countScores}, minmax(0, 1fr)) 9%`,
-        ...(fixedHeader ? { left: fixedHeader.left, top: 0, width: fixedHeader.width } : {}),
-      }}
-      aria-hidden={fixedHeader ? 'true' : undefined}
-    >
-      <div className="border-b border-r border-[#111] px-1 py-1.5 text-center">Rank</div>
-      <div className="border-b border-r border-[#111] px-2 py-1.5 text-left">Entry</div>
-      <div className="border-b border-r border-[#111] px-1 py-1.5 text-center" style={{ gridColumn: `span ${countScores}` }}>Top {countScores} golfers</div>
-      <div className="border-b border-[#111] px-1 py-1.5 text-center">Total</div>
-    </div>
-  )
-}
-
 function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[], selectedLeaderboard?: GolfPlayer[], forceScoring = false): ScoredEntry[] {
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
   const leaderboard = selectedLeaderboard || (Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : [])
@@ -531,9 +507,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
   const [fixedMyEntryBarState, setFixedMyEntryBarState] = useState<'before' | 'shown' | 'after'>('before')
   const leaderboardWrapRef = useRef<HTMLDivElement | null>(null)
-  const desktopLeaderboardRef = useRef<HTMLDivElement | null>(null)
   const fixedMyEntryBarRef = useRef<HTMLDivElement | null>(null)
-  const [fixedDesktopHeader, setFixedDesktopHeader] = useState<FixedDesktopHeader | null>(null)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(baseLeaderboardRows), [baseLeaderboardRows])
   useEffect(() => {
     if (leaderboardMode.type !== 'current' && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
@@ -612,38 +586,6 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     }
   }, [showMyEntryBar])
 
-  useEffect(() => {
-    const updateFixedDesktopHeader = () => {
-      const wrapper = desktopLeaderboardRef.current
-      if (!wrapper || !window.matchMedia('(min-width: 1024px)').matches) {
-        setFixedDesktopHeader(null)
-        return
-      }
-
-      const rect = wrapper.getBoundingClientRect()
-      const headerHeight = wrapper.querySelector<HTMLElement>('[data-desktop-leaderboard-header="true"]')?.offsetHeight || 24
-      const shouldShow = rect.top < 0 && rect.bottom > headerHeight
-
-      if (!shouldShow) {
-        setFixedDesktopHeader(null)
-        return
-      }
-
-      setFixedDesktopHeader(current => {
-        const next = { visible: true, left: rect.left, width: rect.width }
-        if (current && Math.abs(current.left - next.left) < 0.5 && Math.abs(current.width - next.width) < 0.5) return current
-        return next
-      })
-    }
-
-    updateFixedDesktopHeader()
-    window.addEventListener('scroll', updateFixedDesktopHeader, { passive: true })
-    window.addEventListener('resize', updateFixedDesktopHeader)
-    return () => {
-      window.removeEventListener('scroll', updateFixedDesktopHeader)
-      window.removeEventListener('resize', updateFixedDesktopHeader)
-    }
-  }, [scoredEntries.length, countScores])
 
   const jumpToCurrentEntry = () => {
     if (!currentEntryId) return
@@ -682,7 +624,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
         </div>
       ) : null}
       {showMyEntryBar && currentScoredEntry ? (
-        <div className={`${fixedMyEntryBarIsShown ? 'invisible sm:visible' : ''} sticky top-2 z-30 mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:static sm:px-3`}>
+        <div className={`${fixedMyEntryBarIsShown ? 'invisible sm:visible' : ''} sticky top-2 z-40 mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:top-3 sm:px-3`}>
           <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
             <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             {scoringIsLive ? (
@@ -822,18 +764,14 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 )
               })}
             </div>
-            {fixedDesktopHeader?.visible ? <DesktopLeaderboardHeader countScores={countScores} fixedHeader={fixedDesktopHeader} /> : null}
-            <div ref={desktopLeaderboardRef} className="hidden bg-[#f7f7f2] lg:block">
-              <div data-desktop-leaderboard-header="true">
-                <DesktopLeaderboardHeader countScores={countScores} />
-              </div>
+            <div className="hidden bg-[#f7f7f2] lg:block">
               <table className="w-full table-fixed border-separate border-spacing-0 text-[12px] text-[#111]">
-                <thead className="sr-only">
-                  <tr>
-                    <th>Rank</th>
-                    <th>Entry</th>
-                    <th colSpan={countScores}>Top {countScores} golfers</th>
-                    <th>Total</th>
+                <thead>
+                  <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
+                    <th className="w-[5%] border-b border-r border-[#111] px-1 py-1.5 text-center">Rank</th>
+                    <th className="w-[19%] border-b border-r border-[#111] px-2 py-1.5 text-left">Entry</th>
+                    <th className="border-b border-r border-[#111] px-1 py-1.5 text-center" colSpan={countScores}>Top {countScores} golfers</th>
+                    <th className="w-[9%] border-b border-[#111] px-1 py-1.5 text-center">Total</th>
                   </tr>
                 </thead>
                 <tbody>
