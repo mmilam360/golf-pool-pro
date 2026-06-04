@@ -208,6 +208,14 @@ function MovementBadge({ movement }: { movement: EntryMovement | null }) {
   return null
 }
 
+function CompactMovementBadge({ movement }: { movement: EntryMovement | null }) {
+  if (!movement || movement.direction === 'none') return null
+  const directionClass = movement.direction === 'up'
+    ? 'border-[#1f6b4a] bg-[#eef7ef] text-[#1f6b4a]'
+    : 'border-[#b21e23] bg-[#fff1ef] text-[#b21e23]'
+  return <span className={`border px-1.5 py-1 ${directionClass}`}>{movement.direction === 'up' ? '↑' : '↓'}{movement.spots}</span>
+}
+
 function formatScore(score: number | null) {
   if (score === null) return '—'
   if (score === 0) return 'E'
@@ -548,6 +556,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
             <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
             <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>{formatScore(currentScoredEntry.totalScore)}</span>
+            <CompactMovementBadge movement={currentMovementToday} />
+            {currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-1.5 py-1 text-[#657168]">TODAY {formatScore(currentScoredEntry.todayScore)}</span> : null}
           </div>
         </div>
       ) : null}
@@ -566,11 +576,6 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               <MyEntryPreTournamentBadges pool={pool} entry={currentEntryRecord} />
             )}
           </div>
-          {showJumpToMyEntry ? (
-            <button type="button" onClick={jumpToCurrentEntry} className="shrink-0 whitespace-nowrap border border-[#123c2f] bg-[#fbf7ed] px-2 py-1.5 font-black uppercase tracking-[0.08em] text-[#123c2f] hover:bg-[#fff4cf] sm:px-3">
-              Jump to my row
-            </button>
-          ) : null}
         </div>
       ) : null}
       <div
@@ -584,6 +589,11 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
             <div className="relative border-b-2 border-[#111] px-3 py-2">
               <p className="mx-auto max-w-[94%] text-[clamp(0.8rem,5vw,1.25rem)] font-black uppercase leading-[0.95] tracking-[clamp(0.025em,1.1vw,0.1em)] text-[#111] [text-wrap:balance] sm:text-2xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
               <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{pool.name}</p>
+              {showJumpToMyEntry ? (
+                <button type="button" onClick={jumpToCurrentEntry} className="mx-auto mt-2 inline-flex border border-[#123c2f] bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] hover:bg-[#fff4cf] sm:px-3 sm:text-[10px]">
+                  Jump to my row
+                </button>
+              ) : null}
               {scoreFreshness ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{scoreFreshness}</p> : null}
               {availableHistoricalRounds.length > 0 && (
                 <details
