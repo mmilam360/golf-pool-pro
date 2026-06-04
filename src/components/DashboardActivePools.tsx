@@ -984,7 +984,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center border border-[#123c2f] ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'} sm:h-9 sm:w-9`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
-                  <p className="min-w-0 truncate text-base font-black leading-none text-[#0f2f25] sm:text-lg">{pool.name}</p>
+                  <p className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg">{pool.name}</p>
                   <div className="flex min-w-0 justify-center">
                     {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
                   </div>
