@@ -122,9 +122,9 @@ function picksAreVisible(pool: PoolRecord, tournament: Tournament | null) {
   return Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(tournament?.leaderboard_json))
 }
 
-function entryForDashboardBoard(entry: EntryRecord, pool?: PoolRecord | null): EntryRecord {
+function entryForDashboardBoard(entry: EntryRecord, pool?: PoolRecord | null, revealPicks = false): EntryRecord {
   const tournament = getTournament(pool)
-  if (!pool || picksAreVisible(pool, tournament)) return entry
+  if (!pool || revealPicks || picksAreVisible(pool, tournament)) return entry
   const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks as string[] : []
   return {
     ...entry,
@@ -336,7 +336,8 @@ export default async function DashboardPage() {
     const pool = getPool(entry)
     if (pool) poolById.set(pool.id, pool)
   })
-  const allPoolEntries = rawPoolEntries.map(entry => entryForDashboardBoard(entry, poolById.get(entry.pool_id)))
+  const myEntryIds = new Set(joined.map(entry => entry.id))
+  const allPoolEntries = rawPoolEntries.map(entry => entryForDashboardBoard(entry, poolById.get(entry.pool_id), myEntryIds.has(entry.id)))
   const entriesByPool = allPoolEntries.reduce<Record<string, EntryRecord[]>>((groups, entry) => {
     groups[entry.pool_id] = groups[entry.pool_id] || []
     groups[entry.pool_id].push(entry)
