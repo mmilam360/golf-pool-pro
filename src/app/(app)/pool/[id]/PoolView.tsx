@@ -15,8 +15,10 @@ import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup, type PoolGameFormat } from '@/lib/pool-formats'
+import { DUPLICATE_ENTRY_NAME_MESSAGE, isDuplicateEntryNameError, normalizeEntryName } from '@/lib/entry-name'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 import { compareGolfersByListName, golferListName } from '@/lib/golfer-display'
+
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -74,8 +76,8 @@ interface Props {
   inviteSummary: { pending: number; accepted: number; declined: number }
   initialTab?: Tab
   initialHighlightedEntryId?: string | null
+  initialError?: string
   publicView?: boolean
-  initialTab?: Tab
 }
 
 type Tab = 'leaderboard' | 'my-entry' | 'pool-settings'
@@ -319,7 +321,7 @@ function roundScoreLabel(round: number) {
   return ROUND_SCORE_LABELS[round] || `R${round}`
 }
 
-export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, initialTab, initialHighlightedEntryId = null }: Props) {
+export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, initialTab, initialHighlightedEntryId = null, initialError = '' }: Props) {
   const router = useRouter()
   const defaultTab: Tab = publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry'
   const [tab, setTab] = useState<Tab>(initialTab || defaultTab)
@@ -336,7 +338,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [entryNameSaving, setEntryNameSaving] = useState(false)
   const [refreshCountdown, setRefreshCountdown] = useState(REFRESH_SECONDS)
   const [saving, setSaving] = useState(false)
-  const [statusMessage, setStatusMessage] = useState('')
+  const [statusMessage, setStatusMessage] = useState(initialError)
   const [inviteUrl, setInviteUrl] = useState('')
   const [publicLeaderboardUrl, setPublicLeaderboardUrl] = useState('')
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
@@ -981,6 +983,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
     if (nextName === myEntry.display_name) return
 
+    const duplicateEntry = entries.find((entry: any) =>
+      !entry.is_removed &&
+      entry.id !== myEntry.id &&
+      normalizeEntryName(entry.display_name) === normalizeEntryName(nextName)
+    )
+    if (duplicateEntry) {
+      setStatusMessage(DUPLICATE_ENTRY_NAME_MESSAGE)
+      showToast(DUPLICATE_ENTRY_NAME_MESSAGE, 'error')
+      return
+    }
+
     setEntryNameSaving(true)
     const { error } = await supabase
       .from('gpp_entries')
@@ -989,8 +1002,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       .eq('user_id', userId)
 
     if (error) {
-      setStatusMessage('Could not update entry name.')
-      showToast('Could not update entry name.', 'error')
+      const message = isDuplicateEntryNameError(error) ? DUPLICATE_ENTRY_NAME_MESSAGE : 'Could not update entry name.'
+      setStatusMessage(message)
+      showToast(message, 'error')
     } else {
       const updatedEntry = { ...myEntry, display_name: nextName }
       setMyEntry(updatedEntry)

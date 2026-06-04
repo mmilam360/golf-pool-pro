@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { useRouter } from 'next/navigation'
 import { compareGolfersByListName, golferFullName, golferListNameFromParts } from '@/lib/golfer-display'
+import { DUPLICATE_ENTRY_NAME_MESSAGE, isDuplicateEntryNameError } from '@/lib/entry-name'
 
 type JoinStep = 'code' | 'name' | 'picks' | 'saved'
 
@@ -193,6 +194,27 @@ export default function JoinPoolPage() {
 
     setError('')
     setLoading(true)
+
+    const nameCheck = await fetch('/api/pools/check-entry-name', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ poolId: payload.pool.id, displayName: trimmedName }),
+    }).then(res => res.ok ? res.json() : null).catch(() => null)
+
+    if (!nameCheck?.ok) {
+      setLoading(false)
+      setError(nameCheck?.error || 'Could not check this entry name.')
+      setStep('name')
+      return
+    }
+
+    if (nameCheck.available === false) {
+      setLoading(false)
+      setError(DUPLICATE_ENTRY_NAME_MESSAGE)
+      setStep('name')
+      return
+    }
+
     const claimToken = createClaimToken()
     const { data, error } = await (supabase as any).rpc('gpp_create_guest_entry', {
       p_passcode: passcode,
@@ -203,7 +225,7 @@ export default function JoinPoolPage() {
 
     if (error || !data) {
       setLoading(false)
-      setError(error?.message || 'Could not save picks.')
+      setError(isDuplicateEntryNameError(error) ? DUPLICATE_ENTRY_NAME_MESSAGE : error?.message || 'Could not save picks.')
       return
     }
 

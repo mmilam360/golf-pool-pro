@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { hasDateOnlyStarted } from '@/lib/date-utils'
+import { DUPLICATE_ENTRY_NAME_MESSAGE, isDuplicateEntryNameError, normalizeEntryName } from '@/lib/entry-name'
 
 function formValues(formData: FormData, key: string) {
   return formData.getAll(key).map(value => String(value)).filter(Boolean)
@@ -94,14 +95,33 @@ export async function acceptPoolInvite(formData: FormData) {
       .eq('id', user.id)
       .single()
 
-    await supabase
+    const entryName = profile?.display_name || user.email?.split('@')[0] || 'Player'
+    const { data: poolEntries } = await supabase
+      .from('gpp_entries')
+      .select('id, display_name, is_removed')
+      .eq('pool_id', invite.pool_id)
+      .eq('is_removed', false)
+
+    const duplicateEntry = poolEntries?.find((entry: { display_name?: string | null }) => normalizeEntryName(entry.display_name) === normalizeEntryName(entryName))
+    if (duplicateEntry) {
+      revalidatePath('/dashboard')
+      redirect(`/pool/${invite.pool_id}?error=${encodeURIComponent(DUPLICATE_ENTRY_NAME_MESSAGE)}`)
+    }
+
+    const { error: insertError } = await supabase
       .from('gpp_entries')
       .insert({
         pool_id: invite.pool_id,
         user_id: user.id,
-        display_name: profile?.display_name || user.email?.split('@')[0] || 'Player',
+        display_name: entryName,
         golfer_picks: [],
       })
+
+    if (insertError) {
+      const message = isDuplicateEntryNameError(insertError) ? DUPLICATE_ENTRY_NAME_MESSAGE : 'Could not join this pool.'
+      revalidatePath('/dashboard')
+      redirect(`/pool/${invite.pool_id}?error=${encodeURIComponent(message)}`)
+    }
   }
 
   await supabase
