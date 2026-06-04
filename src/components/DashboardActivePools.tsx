@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
@@ -848,7 +848,6 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const [poolOrder, setPoolOrder] = useState<string[]>(() => cards.map(card => card.pool.id))
   const [poolOrderHydrated, setPoolOrderHydrated] = useState(false)
   const [sortMode, setSortMode] = useState(false)
-  const initialExpandedPoolSetRef = useRef(false)
 
   const storageKey = `${DASHBOARD_POOL_ORDER_STORAGE_KEY}:${mode}`
   const activeCardIds = useMemo(() => cards.map(card => card.pool.id), [cards])
@@ -934,11 +933,18 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     setPoolOrder(current => applySavedPoolOrder(current, activeCardIds))
   }, [activeCardIds])
 
+  const defaultTopPoolId = cards[0]?.pool.id
+
   useEffect(() => {
-    if (initialExpandedPoolSetRef.current || !orderedPoolIds[0]) return
-    setExpandedPoolIds(new Set([orderedPoolIds[0]]))
-    initialExpandedPoolSetRef.current = true
-  }, [orderedPoolIds])
+    const savedTopPoolId = orderedPoolIds[0]
+    if (!poolOrderHydrated || !savedTopPoolId) return
+
+    setExpandedPoolIds(current => {
+      if (current.size === 0) return new Set([savedTopPoolId])
+      if (defaultTopPoolId && current.size === 1 && current.has(defaultTopPoolId)) return new Set([savedTopPoolId])
+      return current
+    })
+  }, [defaultTopPoolId, orderedPoolIds, poolOrderHydrated])
 
   useEffect(() => {
     if (!poolOrderHydrated) return
