@@ -208,14 +208,6 @@ function MovementBadge({ movement }: { movement: EntryMovement | null }) {
   return null
 }
 
-function CompactMovementBadge({ movement }: { movement: EntryMovement | null }) {
-  if (!movement || movement.direction === 'none') return null
-  const directionClass = movement.direction === 'up'
-    ? 'border-[#1f6b4a] bg-[#eef7ef] text-[#1f6b4a]'
-    : 'border-[#b21e23] bg-[#fff1ef] text-[#b21e23]'
-  return <span className={`border px-1.5 py-1 ${directionClass}`}>{movement.direction === 'up' ? '↑' : '↓'}{movement.spots}</span>
-}
-
 function formatScore(score: number | null) {
   if (score === null) return '—'
   if (score === 0) return 'E'
@@ -505,9 +497,6 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const fieldRows = Array.isArray(tournament?.field_json) ? tournament.field_json : []
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
-  const [fixedMyEntryBarState, setFixedMyEntryBarState] = useState<'before' | 'shown' | 'after'>('before')
-  const leaderboardWrapRef = useRef<HTMLDivElement | null>(null)
-  const fixedMyEntryBarRef = useRef<HTMLDivElement | null>(null)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(baseLeaderboardRows), [baseLeaderboardRows])
   useEffect(() => {
     if (leaderboardMode.type !== 'current' && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
@@ -543,49 +532,6 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const showLeverageLegend = leaderboardModeIsCurrent && (harePickMap.size > 0 || tortoisePickMap.size > 0)
   const showMyEntryBar = mode === 'player' && scoringIsLive && Boolean(currentScoredEntry)
   const showJumpToMyEntry = mode === 'player' && scoringIsLive && Boolean(currentScoredEntry && scoredEntries.length >= 10)
-  const fixedMyEntryBarIsShown = fixedMyEntryBarState === 'shown'
-  const fixedMyEntryBarVisibilityClass = fixedMyEntryBarState === 'shown'
-    ? 'translate-y-0 opacity-100'
-    : fixedMyEntryBarState === 'after'
-      ? 'translate-y-0 opacity-0 pointer-events-none'
-      : '-translate-y-[calc(100%+1rem)] opacity-0 pointer-events-none'
-
-  useEffect(() => {
-    if (!showMyEntryBar) {
-      setFixedMyEntryBarState('before')
-      return
-    }
-
-    const updateFixedBar = () => {
-      const wrapper = leaderboardWrapRef.current
-      if (!wrapper || window.matchMedia('(min-width: 640px)').matches) {
-        setFixedMyEntryBarState('before')
-        return
-      }
-
-      const rect = wrapper.getBoundingClientRect()
-      const barHeight = fixedMyEntryBarRef.current?.offsetHeight || 40
-      const topOffset = 8
-      const bottomLimit = topOffset + barHeight
-
-      if (rect.top >= topOffset) {
-        setFixedMyEntryBarState('before')
-      } else if (rect.bottom <= bottomLimit) {
-        setFixedMyEntryBarState('after')
-      } else {
-        setFixedMyEntryBarState('shown')
-      }
-    }
-
-    updateFixedBar()
-    window.addEventListener('scroll', updateFixedBar, { passive: true })
-    window.addEventListener('resize', updateFixedBar)
-    return () => {
-      window.removeEventListener('scroll', updateFixedBar)
-      window.removeEventListener('resize', updateFixedBar)
-    }
-  }, [showMyEntryBar])
-
 
   const jumpToCurrentEntry = () => {
     if (!currentEntryId) return
@@ -606,25 +552,10 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   }
 
   return (
-    <div ref={leaderboardWrapRef} className="overflow-visible border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-2 sm:px-5 sm:pt-4">
+    <div className="overflow-visible border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-2 sm:px-5 sm:pt-4">
       <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
       {showMyEntryBar && currentScoredEntry ? (
-        <div
-          ref={fixedMyEntryBarRef}
-          className={`${fixedMyEntryBarVisibilityClass} fixed left-6 right-6 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[80] flex transform items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[2px_2px_0_#d8cab0] transition-[transform,opacity] duration-200 ease-out sm:hidden`}
-          aria-hidden={!fixedMyEntryBarIsShown}
-        >
-          <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
-            <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
-            <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
-            <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>{formatScore(currentScoredEntry.totalScore)}</span>
-            <CompactMovementBadge movement={currentMovementToday} />
-            {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-1.5 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
-          </div>
-        </div>
-      ) : null}
-      {showMyEntryBar && currentScoredEntry ? (
-        <div className={`${fixedMyEntryBarIsShown ? 'invisible sm:visible' : ''} sticky top-2 z-40 mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:top-3 sm:px-3`}>
+        <div className="mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:px-3">
           <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
             <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             {scoringIsLive ? (
@@ -910,7 +841,7 @@ function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tou
 
 export default function DashboardActivePools({ cards, entriesByPool, mode = 'player' }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner' }) {
   const router = useRouter()
-  const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set())
+  const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set(cards[0]?.pool.id ? [cards[0].pool.id] : []))
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
   const [liveLeaderboardsByExternalId, setLiveLeaderboardsByExternalId] = useState<Record<string, LiveTournamentPayload>>({})
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
@@ -1004,10 +935,10 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   }, [activeCardIds])
 
   useEffect(() => {
-    if (!poolOrderHydrated || initialExpandedPoolSetRef.current || !orderedPoolIds[0]) return
+    if (initialExpandedPoolSetRef.current || !orderedPoolIds[0]) return
     setExpandedPoolIds(new Set([orderedPoolIds[0]]))
     initialExpandedPoolSetRef.current = true
-  }, [orderedPoolIds, poolOrderHydrated])
+  }, [orderedPoolIds])
 
   useEffect(() => {
     if (!poolOrderHydrated) return
