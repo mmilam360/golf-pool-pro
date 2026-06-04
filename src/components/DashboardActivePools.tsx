@@ -53,6 +53,7 @@ type EntryRecord = {
   pool_id: string
   display_name: string | null
   golfer_picks: unknown
+  picks_hidden?: boolean | null
   gpp_pools?: PoolRecord | PoolRecord[] | null
 }
 
@@ -455,10 +456,10 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
       ? roundScoreLabel(leaderboardMode.round)
       : null
-  const scoringIsLive = Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboardRows))
+  const scoringIsLive = leaderboardRows.length > 0 && Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboardRows))
   const scoredEntries = scoringIsLive
     ? buildScoredEntries(pool, entries, leaderboardRows, selectedBoardIsHistorical)
-    : entries.map(entry => buildPreScoringEntry(entry, countScores, entry.id !== currentEntryId))
+    : entries.map(entry => buildPreScoringEntry(entry, countScores, entry.id !== currentEntryId && Boolean(entry.picks_hidden)))
   const pickGridColumns = pickGridColumnCount(countScores)
   const leaderboardByName = new Map(leaderboardRows.map(player => [normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()), player]))
   const golferNamePeers = leaderboardRows
@@ -724,6 +725,7 @@ function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: Entr
 }
 
 function entryPicks(entry?: EntryRecord | null) {
+  if (entry?.picks_hidden) return []
   return Array.isArray(entry?.golfer_picks) ? entry.golfer_picks as string[] : []
 }
 
@@ -1057,6 +1059,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                       leaderboard={effectiveTournament?.leaderboard_json}
                       tournamentName={tournamentDisplayName}
                       lastUpdated={effectiveTournament?.last_scores_fetch}
+                      defaultOpen
                       pickedGolfers={entryPicks(entry)}
                       cutLine={effectiveTournament?.cutLine}
                     />
