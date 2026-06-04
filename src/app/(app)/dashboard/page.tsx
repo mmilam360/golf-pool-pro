@@ -52,6 +52,7 @@ type EntryRecord = {
   pool_id: string
   display_name: string | null
   golfer_picks: unknown
+  picks_hidden?: boolean | null
   gpp_pools?: PoolRecord | PoolRecord[] | null
 }
 
@@ -114,6 +115,21 @@ function hasEventBegun(tournament: Tournament | null) {
 
 function isUpcomingEntry(pool: PoolRecord, tournament: Tournament | null) {
   return !pool.is_completed && tournament?.status !== 'completed' && !hasEventBegun(tournament)
+}
+
+function picksAreVisible(pool: PoolRecord, tournament: Tournament | null) {
+  return Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(tournament?.leaderboard_json))
+}
+
+function entryForDashboardBoard(entry: EntryRecord, pool?: PoolRecord | null): EntryRecord {
+  const tournament = getTournament(pool)
+  if (!pool || picksAreVisible(pool, tournament)) return entry
+  const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks as string[] : []
+  return {
+    ...entry,
+    golfer_picks: [],
+    picks_hidden: picks.length > 0,
+  }
 }
 
 function UpcomingBadge({ compact = false }: { compact?: boolean }) {
@@ -310,9 +326,16 @@ export default async function DashboardPage() {
   ])
   const { data: ownedPoolEntries } = ownedPoolEntriesResult
   const { data: joinedPoolEntries } = joinedPoolEntriesResult
-  const allPoolEntries = Array.from(
+  const rawPoolEntries = Array.from(
     new Map([...((ownedPoolEntries ?? []) as EntryRecord[]), ...((joinedPoolEntries ?? []) as EntryRecord[])].map(entry => [entry.id, entry])).values()
   )
+  const poolById = new Map<string, PoolRecord>()
+  owned.forEach(pool => poolById.set(pool.id, pool))
+  joined.forEach(entry => {
+    const pool = getPool(entry)
+    if (pool) poolById.set(pool.id, pool)
+  })
+  const allPoolEntries = rawPoolEntries.map(entry => entryForDashboardBoard(entry, poolById.get(entry.pool_id)))
   const entriesByPool = allPoolEntries.reduce<Record<string, EntryRecord[]>>((groups, entry) => {
     groups[entry.pool_id] = groups[entry.pool_id] || []
     groups[entry.pool_id].push(entry)
