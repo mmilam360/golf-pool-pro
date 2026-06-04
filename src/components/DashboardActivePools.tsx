@@ -2,7 +2,6 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
@@ -799,8 +798,8 @@ function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tou
   })
   if (!formatted) return null
   return (
-    <span className="whitespace-nowrap text-right text-[10px] font-black uppercase tracking-[0.08em] text-[#b21e23]">
-      Picks Lock:<br />{formatted} ET
+    <span className="whitespace-nowrap border border-[#f0c8c3] bg-[#fff1ef] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.06em] text-[#b21e23] sm:px-2 sm:py-1 sm:text-[10px]">
+      Lock {formatted} ET
     </span>
   )
 }
@@ -948,8 +947,8 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
 
   return (
     <section className={useSinglePoolMobileLayout ? 'border-0 bg-transparent shadow-none sm:border-2 sm:border-[#123c2f] sm:bg-white sm:shadow-[7px_7px_0_#d8cab0]' : 'border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]'}>
-      <div className={`${useSinglePoolMobileLayout ? 'hidden sm:flex' : 'flex'} items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:px-5`}>
-        <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Active pools</h2>
+      <div className={`${useSinglePoolMobileLayout ? 'hidden sm:flex' : 'flex'} items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-3 py-2 text-white sm:px-5 sm:py-3`}>
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#d7c99f] sm:text-xs sm:tracking-[0.22em]">Active pools</h2>
         <div className="flex items-center gap-2">
           {canSortPools ? (
             <button
@@ -996,30 +995,18 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
               }}
               className={`${useSinglePoolMobileLayout ? 'bg-transparent sm:bg-white' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'} group`}
             >
-              <summary className={`${useSinglePoolMobileLayout ? 'hidden sm:block' : 'block'} cursor-pointer list-none px-4 py-3 transition-colors hover:bg-[#fff8e8] sm:px-5 [&::-webkit-details-marker]:hidden`}>
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <div className="min-w-0">
-                    <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
-                     <p className="mt-1 flex items-center gap-1.5 break-words text-sm font-semibold leading-5 text-[#1f2a24]">
-                       <Image
-                         src="/flag-icon.png"
-                         alt=""
-                         width={16}
-                         height={16}
-                         className="h-4 w-4 shrink-0 opacity-80"
-                       />
-                       {tournamentDisplayName}
-                     </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1.5">
-                    {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
-                    {!pool.is_locked && !pool.is_completed && !eventBegun ? <LockTimeBadge pool={pool} tournament={effectiveTournament} /> : null}
-                  </div>
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#657168]">
-                  <span className={`mr-auto inline-flex items-center border border-[#123c2f] px-2 py-1 ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
+              <summary className={`${useSinglePoolMobileLayout ? 'hidden sm:block' : 'block'} cursor-pointer list-none px-2.5 py-2 transition-colors hover:bg-[#fff8e8] sm:px-5 sm:py-3 [&::-webkit-details-marker]:hidden`}>
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className={`inline-flex shrink-0 items-center border border-[#123c2f] px-1.5 py-1 ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
+                  <p className="min-w-0 flex-1 truncate text-sm font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
+                    {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : null}
+                  </div>
+                </div>
+                <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.07em] text-[#657168] sm:gap-2 sm:text-[11px] sm:tracking-[0.1em]">
                   {canReorderPools ? (
                     <span className="inline-flex items-center gap-1">
                       <button
@@ -1054,10 +1041,10 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                       </button>
                     </span>
                   ) : null}
-                  {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{rankPreview.rank}</span> : null}
+                  {rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[#7a5a19] sm:px-2 sm:py-1">#{rankPreview.rank}</span> : null}
                   <MovementBadge movement={rankPreview?.movementToday ?? null} />
                   {entry ? <PickProgressBadge entry={entry} pool={pool} tournament={effectiveTournament} /> : null}
-                  {eventBegun ? <ScoreBadge score={rankPreview?.totalScore} /> : null}
+                  {!pool.is_locked && !pool.is_completed && !eventBegun ? <LockTimeBadge pool={pool} tournament={effectiveTournament} /> : null}
                 </div>
               </summary>
               {isPoolOpen ? (
