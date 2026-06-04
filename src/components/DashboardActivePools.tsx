@@ -79,6 +79,12 @@ type EntryMovement = {
   spots: number
 }
 
+type FixedDesktopHeader = {
+  visible: boolean
+  left: number
+  width: number
+}
+
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 const DASHBOARD_POOL_ORDER_STORAGE_KEY = 'gpp-dashboard-active-pool-order'
 const ROUND_MENU_LABELS: Record<number, string> = { 1: 'THURSDAY', 2: 'FRIDAY', 3: 'SATURDAY', 4: 'SUNDAY' }
@@ -335,6 +341,25 @@ function OpenPicksBar({ pool, tournament, mode }: { pool: PoolRecord; tournament
   )
 }
 
+
+function DesktopLeaderboardHeader({ countScores, fixedHeader }: { countScores: number; fixedHeader?: FixedDesktopHeader }) {
+  return (
+    <div
+      className={`${fixedHeader ? 'fixed z-[90] shadow-[0_2px_0_#111]' : 'relative z-10'} hidden bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111] lg:grid`}
+      style={{
+        gridTemplateColumns: `5% 19% repeat(${countScores}, minmax(0, 1fr)) 9%`,
+        ...(fixedHeader ? { left: fixedHeader.left, top: 0, width: fixedHeader.width } : {}),
+      }}
+      aria-hidden={fixedHeader ? 'true' : undefined}
+    >
+      <div className="border-b border-r border-[#111] px-1 py-1.5 text-center">Rank</div>
+      <div className="border-b border-r border-[#111] px-2 py-1.5 text-left">Entry</div>
+      <div className="border-b border-r border-[#111] px-1 py-1.5 text-center" style={{ gridColumn: `span ${countScores}` }}>Top {countScores} golfers</div>
+      <div className="border-b border-[#111] px-1 py-1.5 text-center">Total</div>
+    </div>
+  )
+}
+
 function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[], selectedLeaderboard?: GolfPlayer[], forceScoring = false): ScoredEntry[] {
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
   const leaderboard = selectedLeaderboard || (Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : [])
@@ -506,7 +531,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
   const [fixedMyEntryBarState, setFixedMyEntryBarState] = useState<'before' | 'shown' | 'after'>('before')
   const leaderboardWrapRef = useRef<HTMLDivElement | null>(null)
+  const desktopLeaderboardRef = useRef<HTMLDivElement | null>(null)
   const fixedMyEntryBarRef = useRef<HTMLDivElement | null>(null)
+  const [fixedDesktopHeader, setFixedDesktopHeader] = useState<FixedDesktopHeader | null>(null)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(baseLeaderboardRows), [baseLeaderboardRows])
   useEffect(() => {
     if (leaderboardMode.type !== 'current' && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
@@ -584,6 +611,39 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
       window.removeEventListener('resize', updateFixedBar)
     }
   }, [showMyEntryBar])
+
+  useEffect(() => {
+    const updateFixedDesktopHeader = () => {
+      const wrapper = desktopLeaderboardRef.current
+      if (!wrapper || !window.matchMedia('(min-width: 1024px)').matches) {
+        setFixedDesktopHeader(null)
+        return
+      }
+
+      const rect = wrapper.getBoundingClientRect()
+      const headerHeight = wrapper.querySelector<HTMLElement>('[data-desktop-leaderboard-header="true"]')?.offsetHeight || 24
+      const shouldShow = rect.top < 0 && rect.bottom > headerHeight
+
+      if (!shouldShow) {
+        setFixedDesktopHeader(null)
+        return
+      }
+
+      setFixedDesktopHeader(current => {
+        const next = { visible: true, left: rect.left, width: rect.width }
+        if (current && Math.abs(current.left - next.left) < 0.5 && Math.abs(current.width - next.width) < 0.5) return current
+        return next
+      })
+    }
+
+    updateFixedDesktopHeader()
+    window.addEventListener('scroll', updateFixedDesktopHeader, { passive: true })
+    window.addEventListener('resize', updateFixedDesktopHeader)
+    return () => {
+      window.removeEventListener('scroll', updateFixedDesktopHeader)
+      window.removeEventListener('resize', updateFixedDesktopHeader)
+    }
+  }, [scoredEntries.length, countScores])
 
   const jumpToCurrentEntry = () => {
     if (!currentEntryId) return
@@ -762,15 +822,10 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 )
               })}
             </div>
-            <div className="hidden bg-[#f7f7f2] lg:block">
-              <div
-                className="sticky top-0 z-40 grid bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]"
-                style={{ gridTemplateColumns: `5% 19% repeat(${countScores}, minmax(0, 1fr)) 9%` }}
-              >
-                <div className="border-b border-r border-[#111] px-1 py-1.5 text-center">Rank</div>
-                <div className="border-b border-r border-[#111] px-2 py-1.5 text-left">Entry</div>
-                <div className="border-b border-r border-[#111] px-1 py-1.5 text-center" style={{ gridColumn: `span ${countScores}` }}>Top {countScores} golfers</div>
-                <div className="border-b border-[#111] px-1 py-1.5 text-center">Total</div>
+            {fixedDesktopHeader?.visible ? <DesktopLeaderboardHeader countScores={countScores} fixedHeader={fixedDesktopHeader} /> : null}
+            <div ref={desktopLeaderboardRef} className="hidden bg-[#f7f7f2] lg:block">
+              <div data-desktop-leaderboard-header="true">
+                <DesktopLeaderboardHeader countScores={countScores} />
               </div>
               <table className="w-full table-fixed border-separate border-spacing-0 text-[12px] text-[#111]">
                 <thead className="sr-only">
@@ -1017,12 +1072,13 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   }, [orderedPoolIds, poolOrderHydrated])
 
   useEffect(() => {
+    if (!poolOrderHydrated) return
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(orderedPoolIds))
     } catch {
       // Reordering is a convenience. Do not block the dashboard if storage is unavailable.
     }
-  }, [orderedPoolIds, storageKey])
+  }, [orderedPoolIds, poolOrderHydrated, storageKey])
 
   const activePoolIds = useMemo(() => new Set(activeCardIds), [activeCardIds])
   const canSortPools = mode === 'player' && orderedCards.length > 1
