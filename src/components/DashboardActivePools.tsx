@@ -984,7 +984,43 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center border border-[#123c2f] ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'} sm:h-9 sm:w-9`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
-                  <p className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg">{pool.name}</p>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <p className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg">{pool.name}</p>
+                    {canReorderPools ? (
+                      <span className="inline-flex shrink-0 flex-col border border-[#123c2f] bg-white text-[#123c2f]">
+                        <button
+                          type="button"
+                          onClick={event => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            const previousPoolId = orderedCards[index - 1]?.pool.id
+                            if (previousPoolId) reorderPool(pool.id, previousPoolId)
+                          }}
+                          disabled={index === 0}
+                          className="flex h-4 w-5 items-center justify-center border-b border-[#d8cab0] disabled:cursor-not-allowed disabled:text-[#b7bdb6] disabled:opacity-50"
+                          aria-label={`Move ${pool.name} up`}
+                          title="Move up"
+                        >
+                          <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={event => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            const nextPoolId = orderedCards[index + 1]?.pool.id
+                            if (nextPoolId) reorderPool(nextPoolId, pool.id)
+                          }}
+                          disabled={index === orderedCards.length - 1}
+                          className="flex h-4 w-5 items-center justify-center disabled:cursor-not-allowed disabled:text-[#b7bdb6] disabled:opacity-50"
+                          aria-label={`Move ${pool.name} down`}
+                          title="Move down"
+                        >
+                          <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
+                        </button>
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="flex min-w-0 justify-center">
                     {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
                   </div>
@@ -996,41 +1032,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                     </div>
                   ) : <div />}
                 </div>
-                <div className={`${eventBegun && !canReorderPools ? 'hidden' : 'mt-1.5 flex'} min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.07em] text-[#657168] sm:gap-2 sm:text-[11px] sm:tracking-[0.1em]`}>
-                  {canReorderPools ? (
-                    <span className="inline-flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={event => {
-                          event.preventDefault()
-                          event.stopPropagation()
-                          const previousPoolId = orderedCards[index - 1]?.pool.id
-                          if (previousPoolId) reorderPool(pool.id, previousPoolId)
-                        }}
-                        disabled={index === 0}
-                        className="inline-flex h-7 w-7 items-center justify-center border border-[#123c2f] bg-white text-sm font-black leading-none text-[#123c2f] disabled:cursor-not-allowed disabled:opacity-40"
-                        aria-label={`Move ${pool.name} up`}
-                        title="Move up"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={event => {
-                          event.preventDefault()
-                          event.stopPropagation()
-                          const nextPoolId = orderedCards[index + 1]?.pool.id
-                          if (nextPoolId) reorderPool(nextPoolId, pool.id)
-                        }}
-                        disabled={index === orderedCards.length - 1}
-                        className="inline-flex h-7 w-7 items-center justify-center border border-[#123c2f] bg-white text-sm font-black leading-none text-[#123c2f] disabled:cursor-not-allowed disabled:opacity-40"
-                        aria-label={`Move ${pool.name} down`}
-                        title="Move down"
-                      >
-                        ↓
-                      </button>
-                    </span>
-                  ) : null}
+                <div className={`${canReorderPools || eventBegun ? 'hidden' : 'mt-1.5 flex'} min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.07em] text-[#657168] sm:gap-2 sm:text-[11px] sm:tracking-[0.1em]`}>
                   {!eventBegun && rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[#7a5a19] sm:px-2 sm:py-1">#{rankPreview.rank}</span> : null}
                   <MovementBadge movement={rankPreview?.movementToday ?? null} />
                   {entry ? <PickProgressBadge entry={entry} pool={pool} tournament={effectiveTournament} /> : null}
