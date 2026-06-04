@@ -548,14 +548,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
             <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
             <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>{formatScore(currentScoredEntry.totalScore)}</span>
-            <MovementBadge movement={currentMovementToday} />
-            {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
           </div>
-          {showJumpToMyEntry ? (
-            <button type="button" onClick={jumpToCurrentEntry} className="shrink-0 whitespace-nowrap border border-[#123c2f] bg-[#fbf7ed] px-2 py-1.5 font-black uppercase tracking-[0.08em] text-[#123c2f] hover:bg-[#fff4cf]">
-              Jump to my row
-            </button>
-          ) : null}
         </div>
       ) : null}
       {showMyEntryBar && currentScoredEntry ? (
