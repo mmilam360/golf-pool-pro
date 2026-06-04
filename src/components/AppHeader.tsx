@@ -2,8 +2,9 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', match: ['/dashboard'] },
@@ -44,7 +45,28 @@ function SignOutButton({ className = '' }: { className?: string }) {
 
 export default function AppHeader() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const currentPath = `${pathname || '/dashboard'}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
   const [menuOpen, setMenuOpen] = useState(false)
+  const [signedIn, setSignedIn] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    let mounted = true
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted) setSignedIn(Boolean(data.user))
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session?.user))
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     setMenuOpen(false)
@@ -60,29 +82,8 @@ export default function AppHeader() {
         </Link>
 
         <div className="hidden min-w-0 items-center justify-end gap-2 text-sm font-black text-[#123c2f] md:flex">
-          {navLinks.map(link => {
-            const active = isActive(pathname, link.match)
-
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={active ? 'page' : undefined}
-                className={`whitespace-nowrap border-b-2 px-2 py-2 transition-colors ${link.secondary ? 'text-sm font-normal' : ''} ${activeClasses(active, link)}`}
-              >
-                {link.label}
-              </Link>
-            )
-          })}
-          <SignOutButton className="whitespace-nowrap border-b-2 border-transparent px-2 py-2 text-sm font-normal text-[#7b857d] transition-colors hover:border-[#d8cab0] hover:text-[#4f6258]" />
-        </div>
-
-        <details className="group md:hidden" open={menuOpen} onToggle={event => setMenuOpen(event.currentTarget.open)}>
-          <summary className="list-none border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white marker:hidden [&::-webkit-details-marker]:hidden">
-            Menu
-          </summary>
-          <div className="absolute left-0 right-0 top-[calc(100%+12px)] z-[200] border-2 border-[#123c2f] bg-[#fffdf8] p-3 shadow-[5px_5px_0_#d8cab0]">
-            <div className="grid text-sm font-black text-[#123c2f]">
+          {signedIn ? (
+            <>
               {navLinks.map(link => {
                 const active = isActive(pathname, link.match)
 
@@ -91,17 +92,52 @@ export default function AppHeader() {
                     key={link.href}
                     href={link.href}
                     aria-current={active ? 'page' : undefined}
-                    onClick={closeMenu}
-                    className={`${link.secondary ? 'px-6 py-3 text-sm font-normal text-[#7b857d]' : 'border-b border-[#d8cab0] px-6 py-4'} ${active ? link.secondary ? 'text-[#4f6258] shadow-[inset_4px_0_0_#d8cab0]' : 'bg-[#fbf7ed] text-[#123c2f] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                    className={`whitespace-nowrap border-b-2 px-2 py-2 transition-colors ${link.secondary ? 'text-sm font-normal' : ''} ${activeClasses(active, link)}`}
                   >
                     {link.label}
                   </Link>
                 )
               })}
-              <SignOutButton className="w-full px-6 py-3 text-left text-sm font-normal text-[#7b857d]" />
+              <SignOutButton className="whitespace-nowrap border-b-2 border-transparent px-2 py-2 text-sm font-normal text-[#7b857d] transition-colors hover:border-[#d8cab0] hover:text-[#4f6258]" />
+            </>
+          ) : (
+            <Link href={`/login?redirect=${encodeURIComponent(currentPath)}`} className="whitespace-nowrap border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]">
+              Log in
+            </Link>
+          )}
+        </div>
+
+        {signedIn ? (
+          <details className="group md:hidden" open={menuOpen} onToggle={event => setMenuOpen(event.currentTarget.open)}>
+            <summary className="list-none border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white marker:hidden [&::-webkit-details-marker]:hidden">
+              Menu
+            </summary>
+            <div className="absolute left-0 right-0 top-[calc(100%+12px)] z-[200] border-2 border-[#123c2f] bg-[#fffdf8] p-3 shadow-[5px_5px_0_#d8cab0]">
+              <div className="grid text-sm font-black text-[#123c2f]">
+                {navLinks.map(link => {
+                  const active = isActive(pathname, link.match)
+
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      aria-current={active ? 'page' : undefined}
+                      onClick={closeMenu}
+                      className={`${link.secondary ? 'px-6 py-3 text-sm font-normal text-[#7b857d]' : 'border-b border-[#d8cab0] px-6 py-4'} ${active ? link.secondary ? 'text-[#4f6258] shadow-[inset_4px_0_0_#d8cab0]' : 'bg-[#fbf7ed] text-[#123c2f] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                    >
+                      {link.label}
+                    </Link>
+                  )
+                })}
+                <SignOutButton className="w-full px-6 py-3 text-left text-sm font-normal text-[#7b857d]" />
+              </div>
             </div>
-          </div>
-        </details>
+          </details>
+        ) : (
+          <Link href={`/login?redirect=${encodeURIComponent(currentPath)}`} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white md:hidden">
+            Log in
+          </Link>
+        )}
       </div>
     </nav>
   )

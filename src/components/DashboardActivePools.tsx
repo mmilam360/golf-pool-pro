@@ -205,7 +205,7 @@ function MovementBadge({ movement }: { movement: EntryMovement | null }) {
   if (movement.direction === 'down') {
     return <span className="border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-[#b21e23]">↓ {movement.spots} today</span>
   }
-  return <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">— today</span>
+  return null
 }
 
 function formatScore(score: number | null) {
@@ -518,7 +518,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
             {scoringIsLive ? (
               <>
                 <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
-                <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>Score {formatScore(currentScoredEntry.totalScore)}</span>
+                <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>{formatScore(currentScoredEntry.totalScore)}</span>
                 <MovementBadge movement={currentMovementToday} />
                 {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
               </>
@@ -672,9 +672,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                     const tortoiseNames = !isCurrentEntry ? tortoisePickMap.get(entry.entryId) : undefined
                     return (
                       <Fragment key={entry.entryId}>
-                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className={`scroll-mt-28 ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_6px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
-                          <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</td>
-                          <td className="border-b border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">
+                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className="scroll-mt-28">
+                          <td className={`border-b border-r-2 border-[#111] px-1 py-1.5 text-center text-xl font-black text-[#b21e23] ${isCurrentEntry ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>{entry.rank || '—'}</td>
+                          <td className={`border-b border-r-2 border-[#111] px-2 py-1.5 text-left ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
                             <span className="flex min-w-0 items-center gap-1.5" title={entry.displayName}>
                               {isCurrentEntry ? <CurrentUserMarker /> : null}
                               <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]">{entry.displayName}</span>
