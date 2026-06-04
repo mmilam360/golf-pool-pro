@@ -763,13 +763,13 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               })}
             </div>
             <div className="hidden bg-[#f7f7f2] lg:block">
-              <table className="w-full table-fixed border-collapse text-[12px] text-[#111]">
+              <table className="w-full table-fixed border-separate border-spacing-0 text-[12px] text-[#111]">
                 <thead>
                   <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
-                    <th className="w-[5%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
-                    <th className="w-[19%] border-b-2 border-r-2 border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
-                    <th className="border-b-2 border-r-2 border-[#111] px-1 py-1.5 text-center" colSpan={countScores}>Top {countScores} golfers</th>
-                    <th className="w-[9%] border-b-2 border-[#111] px-1 py-1.5 text-center">Total</th>
+                    <th className="sticky top-0 z-30 w-[5%] border-b border-r border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
+                    <th className="sticky top-0 z-30 w-[19%] border-b border-r border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
+                    <th className="sticky top-0 z-30 border-b border-r border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center" colSpan={countScores}>Top {countScores} golfers</th>
+                    <th className="sticky top-0 z-30 w-[9%] border-b border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -783,8 +783,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                     return (
                       <Fragment key={entry.entryId}>
                         <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className="scroll-mt-28">
-                          <td className={`border-b border-r-2 border-[#111] px-1 py-1.5 text-center text-xl font-black text-[#b21e23] ${isCurrentEntry ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>{entry.rank || '—'}</td>
-                          <td className={`border-b border-r-2 border-[#111] px-2 py-1.5 text-left ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
+                          <td className={`border-b border-r border-[#111] px-1 py-1.5 text-center text-xl font-black text-[#b21e23] ${isCurrentEntry ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>{entry.rank || '—'}</td>
+                          <td className={`border-b border-r border-[#111] px-2 py-1.5 text-left ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
                             <span className="flex min-w-0 items-center gap-1.5" title={entry.displayName}>
                               {isCurrentEntry ? <CurrentUserMarker /> : null}
                               <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]">{entry.displayName}</span>
@@ -794,7 +794,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                           {Array.from({ length: countScores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <td key={i} className="relative border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                              <td key={i} className="relative border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle">
                                 <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                 <div className="mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
@@ -809,8 +809,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         </tr>
                         {outOfBoundsPicks.length > 0 && (
                           <tr className="bg-[#efeee6]">
-                            <td className="border-b border-r-2 border-[#111] bg-[#efeee6]" />
-                            <td className="border-b border-r-2 border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Outside Top {countScores}</td>
+                            <td className="border-b border-r border-[#111] bg-[#efeee6]" />
+                            <td className="border-b border-r border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Outside Top {countScores}</td>
                             <td className="border-b border-[#111] bg-[#efeee6] px-2 py-1 text-left" colSpan={countScores + 1}>
                               <div className="flex flex-wrap gap-1">
                                 {outOfBoundsPicks.map(pick => (
