@@ -79,6 +79,30 @@ function getInvitePool(invite: PendingInviteRecord): PoolRecord | null {
   return Array.isArray(pool) ? pool[0] ?? null : pool ?? null
 }
 
+function tournamentId(pool?: PoolRecord | null) {
+  return getTournament(pool)?.id || null
+}
+
+function attachTournamentJson(pool: PoolRecord, jsonByTournamentId: Map<string, Partial<Tournament>>) {
+  const id = tournamentId(pool)
+  if (!id) return
+  const json = jsonByTournamentId.get(id)
+  if (!json) return
+  const tournament = getTournament(pool)
+  if (!tournament) return
+  Object.assign(tournament, json)
+}
+
+function uniqueTournamentIds(pools: PoolRecord[], predicate: (pool: PoolRecord, tournament: Tournament | null) => boolean) {
+  return Array.from(new Set(
+    pools
+      .filter(pool => predicate(pool, getTournament(pool)))
+      .map(pool => tournamentId(pool))
+      .filter((id): id is string => Boolean(id))
+  ))
+}
+
+
 function formatDate(value?: string | null) {
   return formatDateOnly(value)
 }
@@ -106,6 +130,15 @@ function isActivePool(pool: PoolRecord, tournament: Tournament | null) {
   const today = todayDateOnly()
   const startDate = getDateOnly(tournament.start_date) || tournament.start_date
   return startDate >= today
+}
+
+function shouldHydrateActiveTournamentJson(pool: PoolRecord, tournament: Tournament | null) {
+  if (isActivePool(pool, tournament)) return true
+  if (pool.is_completed || tournament?.status === 'completed' || !tournament?.start_date) return false
+
+  const today = todayDateOnly()
+  const startDate = getDateOnly(tournament.start_date) || tournament.start_date
+  return startDate <= today
 }
 
 function hasEventBegun(tournament: Tournament | null) {
@@ -273,18 +306,18 @@ export default async function DashboardPage() {
   const [ownedPoolsResult, entriesResult, pendingInvitesResult, dismissedFinalResultsResult, upcomingTournamentsResult] = await Promise.all([
     supabase
       .from('gpp_pools')
-      .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, field_json, leaderboard_json, last_scores_fetch)')
+      .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, last_scores_fetch)')
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false }),
     supabase
       .from('gpp_entries')
-      .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, field_json, leaderboard_json, last_scores_fetch))')
+      .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, last_scores_fetch))')
       .eq('user_id', user.id)
       .eq('is_removed', false)
       .order('created_at', { ascending: false }),
     supabase
       .from('gpp_pool_invites')
-      .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(name, external_id, start_date, end_date, status, last_scores_fetch))')
+      .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, last_scores_fetch))')
       .eq('invited_user_id', user.id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
@@ -336,6 +369,38 @@ export default async function DashboardPage() {
     const pool = getPool(entry)
     if (pool) poolById.set(pool.id, pool)
   })
+
+  const dashboardPools = Array.from(poolById.values())
+  const activeTournamentIds = uniqueTournamentIds(dashboardPools, shouldHydrateActiveTournamentJson)
+  const completedTournamentIds = uniqueTournamentIds(
+    dashboardPools,
+    (pool, tournament) => !isActivePool(pool, tournament) && Boolean(pool.is_completed || tournament?.status === 'completed')
+  ).filter(id => !activeTournamentIds.includes(id))
+
+  const [activeTournamentJsonResult, completedTournamentJsonResult] = await Promise.all([
+    activeTournamentIds.length
+      ? supabase
+        .from('gpp_tournaments')
+        .select('id, field_json, leaderboard_json')
+        .in('id', activeTournamentIds)
+      : Promise.resolve({ data: [] }),
+    completedTournamentIds.length
+      ? supabase
+        .from('gpp_tournaments')
+        .select('id, leaderboard_json')
+        .in('id', completedTournamentIds)
+      : Promise.resolve({ data: [] }),
+  ])
+  const tournamentJsonById = new Map<string, Partial<Tournament>>(
+    [
+      ...((activeTournamentJsonResult.data ?? []) as Partial<Tournament>[]),
+      ...((completedTournamentJsonResult.data ?? []) as Partial<Tournament>[]),
+    ]
+      .filter(row => row.id)
+      .map(row => [String(row.id), row])
+  )
+  dashboardPools.forEach(pool => attachTournamentJson(pool, tournamentJsonById))
+
   const myEntryIds = new Set(joined.map(entry => entry.id))
   const allPoolEntries = rawPoolEntries.map(entry => entryForDashboardBoard(entry, poolById.get(entry.pool_id), myEntryIds.has(entry.id)))
   const entriesByPool = allPoolEntries.reduce<Record<string, EntryRecord[]>>((groups, entry) => {
