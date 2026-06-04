@@ -541,7 +541,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
       <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
       {showMyEntryBar && currentScoredEntry ? (
         <div
-          className={`${showFixedMyEntryBar ? 'translate-y-0 opacity-100' : '-translate-y-[calc(100%+1rem)] opacity-0 pointer-events-none'} fixed left-2 right-2 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[80] flex transform items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] transition-[transform,opacity] duration-200 ease-out sm:hidden`}
+          className={`${showFixedMyEntryBar ? 'translate-y-0 opacity-100' : '-translate-y-[calc(100%+1rem)] opacity-0 pointer-events-none'} fixed left-6 right-6 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[80] flex transform items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[2px_2px_0_#d8cab0] transition-[transform,opacity] duration-200 ease-out sm:hidden`}
           aria-hidden={!showFixedMyEntryBar}
         >
           <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
