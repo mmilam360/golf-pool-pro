@@ -550,8 +550,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
         <div className="gpp-board-depth-bottom" aria-hidden="true" />
         <div className="gpp-3d-face gpp-board-frame border-[8px] border-[#123c2f] md:border-[14px]">
           <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
-            <div className="relative border-b-2 border-[#111] px-2 py-1.5 sm:px-3 sm:py-2">
-              <p className="mx-auto max-w-[96%] truncate whitespace-nowrap text-[clamp(0.86rem,4.4vw,1.15rem)] font-black uppercase leading-none tracking-[clamp(0.02em,0.8vw,0.08em)] text-[#111] sm:text-2xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
+            <div className="relative border-b-2 border-[#111] px-3 py-2">
+              <p className="mx-auto max-w-[94%] text-[clamp(0.8rem,5vw,1.25rem)] font-black uppercase leading-[0.95] tracking-[clamp(0.025em,1.1vw,0.1em)] text-[#111] [text-wrap:balance] sm:text-2xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
               <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{pool.name}</p>
               {scoreFreshness ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{scoreFreshness}</p> : null}
               {availableHistoricalRounds.length > 0 && (
@@ -608,12 +608,12 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const picksHidden = entry.picks.includes('__hidden__')
                 return (
                   <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#111] last:border-b-0">
-                    <summary className={`grid min-h-[50px] cursor-pointer list-none grid-cols-[30px_minmax(0,1fr)_50px_18px] items-center gap-1 px-2 py-1.5 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:min-h-[58px] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 sm:py-2 [&::-webkit-details-marker]:hidden ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
+                    <summary className={`grid min-h-[54px] cursor-pointer list-none grid-cols-[30px_minmax(0,1fr)_50px_18px] items-center gap-1 px-2 py-1.5 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:min-h-[58px] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 sm:py-2 [&::-webkit-details-marker]:hidden ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
                       <div className="text-center text-lg font-black text-[#b21e23] sm:text-xl">{entry.rank || '—'}</div>
                       <div className="min-w-0">
                         <span className="flex min-w-0 items-center gap-1.5">
                           {isCurrentEntry ? <CurrentUserMarker /> : null}
-                          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[13px] font-black uppercase leading-tight tracking-[0.01em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
+                          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-sm font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
                         </span>
                         {(picksHidden || !scoringIsLive || entry.obStandIns > 0) && (
                           <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">

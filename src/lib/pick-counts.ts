@@ -32,6 +32,11 @@ export function isGroupedPoolFormat(format?: string | null) {
 
 export function totalPicksRequired(pool: PoolPickCountConfig) {
   if (isGroupedPoolFormat(pool.game_format)) {
+    const explicitPickCount = typeof pool.pick_count === 'number' && Number.isFinite(pool.pick_count) && pool.pick_count > 0
+      ? pool.pick_count
+      : null
+    if (explicitPickCount !== null) return explicitPickCount
+
     const snapshotTotal = groupedSnapshotPickTotal(pool.pick_groups_json)
     if (snapshotTotal !== null) return snapshotTotal
     return numericOr(pool.picks_per_group, 2) * numericOr(pool.group_count, 6)
