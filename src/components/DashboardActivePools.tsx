@@ -509,7 +509,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   }
 
   return (
-    <div className="overflow-hidden border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-2 sm:px-5 sm:pt-4">
+    <div className="overflow-visible border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-2 sm:px-5 sm:pt-4">
       <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
       {showMyEntryBar && currentScoredEntry ? (
         <div className="sticky top-2 z-30 mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:static sm:px-3">
