@@ -423,6 +423,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [dismissToast])
 
   const activeEntries = entries.filter(e => !e.is_removed)
+  const removeTargetEntry = removeTarget ? entries.find(entry => entry.id === removeTarget) : null
+  const removeTargetName = removeTargetEntry?.display_name?.trim() || 'this entry'
   const storedPickGroups: PickGroup[] = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
   const groupedFormat = pool.game_format === 'ranked_groups' || pool.game_format === 'random_groups'
   const pickGroups: PickGroup[] = useMemo(() => {
@@ -2559,8 +2561,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           {removeTarget && (
             <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm flex items-center justify-center z-50">
               <div className="bg-white rounded-none p-6 border border-stone-200 max-w-sm w-full mx-4 shadow-2xl">
-                <h3 className="text-lg font-semibold mb-3 text-emerald-950">Remove entry</h3>
-                <p className="text-stone-600 text-sm mb-4">Remove this person from the pool? They won't be able to rejoin.</p>
+                <h3 className="text-lg font-semibold mb-3 text-emerald-950">Remove {removeTargetName}</h3>
+                <p className="text-stone-600 text-sm mb-4">Remove <span className="font-black text-stone-900">{removeTargetName}</span> from this pool? They won't be able to rejoin.</p>
                 <input
                   type="text"
                   value={removeReason}
