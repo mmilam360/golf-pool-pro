@@ -269,6 +269,47 @@ function formatEventDate(value?: string | null) {
   return formatDateOnly(value, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+function easternDateKeyFromValue(value?: string | null) {
+  if (!value) return null
+  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (dateOnlyMatch) return Number(`${dateOnlyMatch[1]}${dateOnlyMatch[2]}${dateOnlyMatch[3]}`)
+
+  const parsed = new Date(value)
+  if (!Number.isFinite(parsed.getTime())) return null
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(parsed)
+  const year = parts.find(part => part.type === 'year')?.value
+  const month = parts.find(part => part.type === 'month')?.value
+  const day = parts.find(part => part.type === 'day')?.value
+  if (!year || !month || !day) return null
+  return Number(`${year}${month}${day}`)
+}
+
+function currentEasternDateKey() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const year = parts.find(part => part.type === 'year')?.value
+  const month = parts.find(part => part.type === 'month')?.value
+  const day = parts.find(part => part.type === 'day')?.value
+  if (!year || !month || !day) return null
+  return Number(`${year}${month}${day}`)
+}
+
+function isAfterOpeningRoundDate(tournament: Tournament | null) {
+  const startKey = easternDateKeyFromValue(tournament?.start_date)
+  const todayKey = currentEasternDateKey()
+  if (!startKey || !todayKey) return true
+  return todayKey > startKey
+}
+
 function poolIsOpenForPicks(pool: PoolRecord, tournament: Tournament | null) {
   return !pool.is_locked && !pool.is_completed && tournament?.status !== 'live' && tournament?.status !== 'completed'
 }
@@ -463,8 +504,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const fieldRows = Array.isArray(tournament?.field_json) ? tournament.field_json : []
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
-  const [showFixedMyEntryBar, setShowFixedMyEntryBar] = useState(false)
+  const [fixedMyEntryBarState, setFixedMyEntryBarState] = useState<'before' | 'shown' | 'after'>('before')
   const leaderboardWrapRef = useRef<HTMLDivElement | null>(null)
+  const fixedMyEntryBarRef = useRef<HTMLDivElement | null>(null)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(baseLeaderboardRows), [baseLeaderboardRows])
   useEffect(() => {
     if (leaderboardMode.type !== 'current' && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
@@ -478,7 +520,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const boardLabel = selectedBoardLabel(leaderboardMode)
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
   const totalScoreSubLabel = leaderboardMode.type === 'current'
-    ? 'TODAY'
+    ? isAfterOpeningRoundDate(tournament) ? 'TODAY' : null
     : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
       ? roundScoreLabel(leaderboardMode.round)
       : null
@@ -500,21 +542,38 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const showLeverageLegend = leaderboardModeIsCurrent && (harePickMap.size > 0 || tortoisePickMap.size > 0)
   const showMyEntryBar = mode === 'player' && scoringIsLive && Boolean(currentScoredEntry)
   const showJumpToMyEntry = mode === 'player' && scoringIsLive && Boolean(currentScoredEntry && scoredEntries.length >= 10)
+  const fixedMyEntryBarIsShown = fixedMyEntryBarState === 'shown'
+  const fixedMyEntryBarVisibilityClass = fixedMyEntryBarState === 'shown'
+    ? 'translate-y-0 opacity-100'
+    : fixedMyEntryBarState === 'after'
+      ? 'translate-y-0 opacity-0 pointer-events-none'
+      : '-translate-y-[calc(100%+1rem)] opacity-0 pointer-events-none'
 
   useEffect(() => {
     if (!showMyEntryBar) {
-      setShowFixedMyEntryBar(false)
+      setFixedMyEntryBarState('before')
       return
     }
 
     const updateFixedBar = () => {
       const wrapper = leaderboardWrapRef.current
       if (!wrapper || window.matchMedia('(min-width: 640px)').matches) {
-        setShowFixedMyEntryBar(false)
+        setFixedMyEntryBarState('before')
         return
       }
+
       const rect = wrapper.getBoundingClientRect()
-      setShowFixedMyEntryBar(rect.top < 8 && rect.bottom > 96)
+      const barHeight = fixedMyEntryBarRef.current?.offsetHeight || 40
+      const topOffset = 8
+      const bottomLimit = topOffset + barHeight
+
+      if (rect.top >= topOffset) {
+        setFixedMyEntryBarState('before')
+      } else if (rect.bottom <= bottomLimit) {
+        setFixedMyEntryBarState('after')
+      } else {
+        setFixedMyEntryBarState('shown')
+      }
     }
 
     updateFixedBar()
@@ -549,20 +608,21 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
       <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
       {showMyEntryBar && currentScoredEntry ? (
         <div
-          className={`${showFixedMyEntryBar ? 'translate-y-0 opacity-100' : '-translate-y-[calc(100%+1rem)] opacity-0 pointer-events-none'} fixed left-6 right-6 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[80] flex transform items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[2px_2px_0_#d8cab0] transition-[transform,opacity] duration-200 ease-out sm:hidden`}
-          aria-hidden={!showFixedMyEntryBar}
+          ref={fixedMyEntryBarRef}
+          className={`${fixedMyEntryBarVisibilityClass} fixed left-6 right-6 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[80] flex transform items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[2px_2px_0_#d8cab0] transition-[transform,opacity] duration-200 ease-out sm:hidden`}
+          aria-hidden={!fixedMyEntryBarIsShown}
         >
           <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
             <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
             <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>{formatScore(currentScoredEntry.totalScore)}</span>
             <CompactMovementBadge movement={currentMovementToday} />
-            {currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-1.5 py-1 text-[#657168]">TODAY {formatScore(currentScoredEntry.todayScore)}</span> : null}
+            {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-1.5 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
           </div>
         </div>
       ) : null}
       {showMyEntryBar && currentScoredEntry ? (
-        <div className={`${showFixedMyEntryBar ? 'invisible sm:visible' : ''} sticky top-2 z-30 mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:static sm:px-3`}>
+        <div className={`${fixedMyEntryBarIsShown ? 'invisible sm:visible' : ''} sticky top-2 z-30 mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:static sm:px-3`}>
           <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
             <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             {scoringIsLive ? (
