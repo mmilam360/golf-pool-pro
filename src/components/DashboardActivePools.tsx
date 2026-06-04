@@ -21,7 +21,7 @@ type Tournament = {
   start_date?: string | null
   end_date?: string | null
   status?: string | null
-  field_json?: Array<{ teeTime?: string | null }> | null
+  field_json?: GolfPlayer[] | null
   leaderboard_json?: GolfPlayer[] | null
   last_scores_fetch?: string | null
   cutLine?: GolfCutLine | null
@@ -323,6 +323,30 @@ function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<strin
   return leaderboardBackedPickProgressLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
 }
 
+function playerNameKey(player: GolfPlayer) {
+  return normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
+}
+
+function playerStatusByName(scoringRows: GolfPlayer[], fieldRows: GolfPlayer[]) {
+  const byName = new Map<string, GolfPlayer>()
+  for (const player of fieldRows) {
+    const key = playerNameKey(player)
+    if (key) byName.set(key, player)
+  }
+  for (const player of scoringRows) {
+    const key = playerNameKey(player)
+    if (!key) continue
+    const fieldPlayer = byName.get(key)
+    byName.set(key, {
+      ...fieldPlayer,
+      ...player,
+      teeTime: player.teeTime || fieldPlayer?.teeTime,
+      startTee: player.startTee ?? fieldPlayer?.startTee,
+    })
+  }
+  return byName
+}
+
 function pickGridColumnCount(count: number) {
   if (count <= 3) return Math.max(1, count)
   if (count === 6) return 3
@@ -437,6 +461,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const countScores = pool.count_scores || 4
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
   const baseLeaderboardRows = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
+  const fieldRows = Array.isArray(tournament?.field_json) ? tournament.field_json : []
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(baseLeaderboardRows), [baseLeaderboardRows])
@@ -461,7 +486,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     ? buildScoredEntries(pool, entries, leaderboardRows, selectedBoardIsHistorical)
     : entries.map(entry => buildPreScoringEntry(entry, countScores, entry.id !== currentEntryId && Boolean(entry.picks_hidden)))
   const pickGridColumns = pickGridColumnCount(countScores)
-  const leaderboardByName = new Map(leaderboardRows.map(player => [normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()), player]))
+  const leaderboardByName = playerStatusByName(leaderboardRows, fieldRows)
   const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
@@ -1056,7 +1081,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   />
                   <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
                     <TournamentLeaderboard
-                      leaderboard={effectiveTournament?.leaderboard_json}
+                      leaderboard={effectiveTournament?.leaderboard_json?.length ? effectiveTournament.leaderboard_json : effectiveTournament?.field_json}
                       tournamentName={tournamentDisplayName}
                       lastUpdated={effectiveTournament?.last_scores_fetch}
                       defaultOpen

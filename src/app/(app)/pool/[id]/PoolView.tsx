@@ -217,6 +217,30 @@ function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<strin
   return leaderboardBackedPickProgressLabel(pick, leaderboardByName.get(normalizePickName(pick.name)), timeZone)
 }
 
+function playerNameKey(player: GolfPlayer) {
+  return normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
+}
+
+function playerStatusByName(scoringRows: GolfPlayer[], fieldRows: GolfPlayer[]) {
+  const byName = new Map<string, GolfPlayer>()
+  for (const player of fieldRows) {
+    const key = playerNameKey(player)
+    if (key) byName.set(key, player)
+  }
+  for (const player of scoringRows) {
+    const key = playerNameKey(player)
+    if (!key) continue
+    const fieldPlayer = byName.get(key)
+    byName.set(key, {
+      ...fieldPlayer,
+      ...player,
+      teeTime: player.teeTime || fieldPlayer?.teeTime,
+      startTee: player.startTee ?? fieldPlayer?.startTee,
+    })
+  }
+  return byName
+}
+
 function pickGridColumnCount(count: number) {
   if (count <= 3) return Math.max(1, count)
   if (count === 6) return 3
@@ -1147,7 +1171,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     })
   }, [defaultOpenedEntryId, scoredEntries])
   const leaderboardRows = selectedLeaderboard.length ? selectedLeaderboard : field
-  const leaderboardByName = new Map(leaderboardRows.map(player => [normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()), player]))
+  const leaderboardByName = playerStatusByName(leaderboardRows, field)
   const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)

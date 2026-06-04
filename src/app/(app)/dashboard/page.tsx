@@ -21,7 +21,7 @@ type Tournament = {
   start_date?: string | null
   end_date?: string | null
   status?: string | null
-  field_json?: Array<{ teeTime?: string | null }> | null
+  field_json?: GolfPlayer[] | null
   leaderboard_json?: GolfPlayer[] | null
   last_scores_fetch?: string | null
   cutLine?: GolfCutLine | null
