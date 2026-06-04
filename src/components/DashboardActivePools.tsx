@@ -613,7 +613,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                       <div className="min-w-0">
                         <span className="flex min-w-0 items-center gap-1.5">
                           {isCurrentEntry ? <CurrentUserMarker /> : null}
-                          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-sm font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
+                          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-base font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
                         </span>
                         {(picksHidden || !scoringIsLive || entry.obStandIns > 0) && (
                           <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
@@ -810,7 +810,6 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set())
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
   const [liveLeaderboardsByExternalId, setLiveLeaderboardsByExternalId] = useState<Record<string, LiveTournamentPayload>>({})
-  const [secondsToRefresh, setSecondsToRefresh] = useState(60)
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [poolOrder, setPoolOrder] = useState<string[]>(() => cards.map(card => card.pool.id))
   const [poolOrderHydrated, setPoolOrderHydrated] = useState(false)
@@ -862,7 +861,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     }
 
     fetchLiveLeaderboards()
-    const intervalId = window.setInterval(fetchLiveLeaderboards, 60000)
+    const intervalId = window.setInterval(fetchLiveLeaderboards, 30000)
     return () => {
       cancelled = true
       window.clearInterval(intervalId)
@@ -875,17 +874,11 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   }, [])
 
   useEffect(() => {
-    const countdownId = window.setInterval(() => {
-      setSecondsToRefresh(seconds => {
-        if (seconds <= 1) {
-          router.refresh()
-          return 60
-        }
-        return seconds - 1
-      })
-    }, 1000)
+    const refreshId = window.setInterval(() => {
+      router.refresh()
+    }, 30000)
 
-    return () => window.clearInterval(countdownId)
+    return () => window.clearInterval(refreshId)
   }, [router])
 
   useEffect(() => {
@@ -963,7 +956,6 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
               {sortMode ? 'Done' : 'Sort'}
             </button>
           ) : null}
-          <span className="hidden border border-[#d7c99f] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#f3df9c] sm:inline-flex">Refresh {secondsToRefresh}s</span>
         </div>
       </div>
       <div className={useSinglePoolMobileLayout ? 'sm:divide-y sm:divide-[#eadfca]' : 'divide-y divide-[#eadfca]'}>
