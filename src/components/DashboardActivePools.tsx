@@ -81,6 +81,8 @@ type EntryMovement = {
 
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 const DASHBOARD_POOL_ORDER_STORAGE_KEY = 'gpp-dashboard-active-pool-order'
+export const DASHBOARD_ACTIVE_POOLS_CACHE_KEY = 'gpp-dashboard-active-pools-cache'
+const DASHBOARD_ACTIVE_POOLS_CACHE_VERSION = 1
 const ROUND_MENU_LABELS: Record<number, string> = { 1: 'THURSDAY', 2: 'FRIDAY', 3: 'SATURDAY', 4: 'SUNDAY' }
 const ROUND_SCORE_LABELS: Record<number, string> = { 1: 'THU', 2: 'FRI', 3: 'SAT', 4: 'SUN' }
 
@@ -839,7 +841,7 @@ function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tou
   )
 }
 
-export default function DashboardActivePools({ cards, entriesByPool, mode = 'player' }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner' }) {
+export default function DashboardActivePools({ cards, entriesByPool, mode = 'player', snapshot = false }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner'; snapshot?: boolean }) {
   const router = useRouter()
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set(cards[0]?.pool.id ? [cards[0].pool.id] : []))
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
@@ -869,7 +871,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   )), [cards])
 
   useEffect(() => {
-    if (activeExternalIds.length === 0) return
+    if (snapshot || activeExternalIds.length === 0) return
     let cancelled = false
 
     async function fetchLiveLeaderboards() {
@@ -899,7 +901,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
       cancelled = true
       window.clearInterval(intervalId)
     }
-  }, [activeExternalIds])
+  }, [activeExternalIds, snapshot])
 
   useEffect(() => {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -907,12 +909,13 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   }, [])
 
   useEffect(() => {
+    if (snapshot) return
     const refreshId = window.setInterval(() => {
       router.refresh()
     }, 30000)
 
     return () => window.clearInterval(refreshId)
-  }, [router])
+  }, [router, snapshot])
 
   useEffect(() => {
     try {
@@ -954,6 +957,20 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
       // Reordering is a convenience. Do not block the dashboard if storage is unavailable.
     }
   }, [orderedPoolIds, poolOrderHydrated, storageKey])
+
+  useEffect(() => {
+    if (snapshot || mode !== 'player' || cards.length === 0) return
+    try {
+      window.localStorage.setItem(`${DASHBOARD_ACTIVE_POOLS_CACHE_KEY}:${mode}`, JSON.stringify({
+        version: DASHBOARD_ACTIVE_POOLS_CACHE_VERSION,
+        cachedAt: Date.now(),
+        cards,
+        entriesByPool,
+      }))
+    } catch {
+      // Snapshot restore is best-effort. The live dashboard still works without local storage.
+    }
+  }, [cards, entriesByPool, mode, snapshot])
 
   const activePoolIds = useMemo(() => new Set(activeCardIds), [activeCardIds])
   const canSortPools = mode === 'player' && orderedCards.length > 1

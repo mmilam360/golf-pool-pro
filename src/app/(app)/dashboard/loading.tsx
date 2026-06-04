@@ -1,5 +1,5 @@
-import { AppRouteSkeleton } from '@/components/AppRouteSkeleton'
+import DashboardCachedActivePools from '@/components/DashboardCachedActivePools'
 
 export default function DashboardLoading() {
-  return <AppRouteSkeleton title="Loading dashboard" />
+  return <DashboardCachedActivePools />
 }
