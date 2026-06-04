@@ -923,6 +923,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
 
   const activePoolIds = useMemo(() => new Set(activeCardIds), [activeCardIds])
   const canSortPools = mode === 'player' && orderedCards.length > 1
+  const useSinglePoolMobileLayout = mode === 'player' && orderedCards.length === 1
 
   useEffect(() => {
     setExpandedPoolIds(current => {
@@ -946,8 +947,8 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   if (cards.length === 0) return null
 
   return (
-    <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
-      <div className="flex items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:px-5">
+    <section className={useSinglePoolMobileLayout ? 'border-0 bg-transparent shadow-none sm:border-2 sm:border-[#123c2f] sm:bg-white sm:shadow-[7px_7px_0_#d8cab0]' : 'border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]'}>
+      <div className={`${useSinglePoolMobileLayout ? 'hidden sm:flex' : 'flex'} items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:px-5`}>
         <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Active pools</h2>
         <div className="flex items-center gap-2">
           {canSortPools ? (
@@ -962,10 +963,10 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
               {sortMode ? 'Done' : 'Sort'}
             </button>
           ) : null}
-          <span className="border border-[#d7c99f] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#f3df9c]">Refresh {secondsToRefresh}s</span>
+          <span className="hidden border border-[#d7c99f] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#f3df9c] sm:inline-flex">Refresh {secondsToRefresh}s</span>
         </div>
       </div>
-      <div className="divide-y divide-[#eadfca]">
+      <div className={useSinglePoolMobileLayout ? 'sm:divide-y sm:divide-[#eadfca]' : 'divide-y divide-[#eadfca]'}>
         {orderedCards.map(({ pool, tournament, role, entry }, index) => {
           const livePayload = tournament?.external_id ? liveLeaderboardsByExternalId[tournament.external_id] : null
           const effectiveTournament = tournament && livePayload?.leaderboard?.length
@@ -975,7 +976,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
           const label = statusLabel(effectivePool, effectiveTournament)
           const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
           const rankPreview = entry ? buildRankPreview(entry, effectivePool, poolEntries) : null
-          const isPoolOpen = expandedPoolIds.has(pool.id)
+          const isPoolOpen = useSinglePoolMobileLayout || expandedPoolIds.has(pool.id)
           const openEntryIds = expandedEntryIds[pool.id] ?? null
           const eventBegun = hasEventBegun(effectiveTournament)
           const tournamentDisplayName = displayTournamentName(effectiveTournament?.name) || 'Tournament'
@@ -993,9 +994,9 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   return next
                 })
               }}
-              className={`group ${index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}`}
+              className={`${useSinglePoolMobileLayout ? 'bg-transparent sm:bg-white' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'} group`}
             >
-              <summary className="block cursor-pointer list-none px-4 py-3 transition-colors hover:bg-[#fff8e8] sm:px-5 [&::-webkit-details-marker]:hidden">
+              <summary className={`${useSinglePoolMobileLayout ? 'hidden sm:block' : 'block'} cursor-pointer list-none px-4 py-3 transition-colors hover:bg-[#fff8e8] sm:px-5 [&::-webkit-details-marker]:hidden`}>
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                   <div className="min-w-0">
                     <p className="break-words text-base font-black leading-5 text-[#0f2f25] sm:text-lg">{pool.name}</p>

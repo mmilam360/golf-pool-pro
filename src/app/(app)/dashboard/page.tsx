@@ -394,9 +394,9 @@ export default async function DashboardPage() {
   const finalResultAnnouncement = selectFinalResultAnnouncement(finalResultCandidates, dismissedPoolIds)
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-8">
       <FinalResultPopup announcement={finalResultAnnouncement} dismissAction={dismissFinalResultAnnouncement} />
-      <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
+      <section className="hidden border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0] sm:block">
         <div className="flex flex-col gap-4 border-b border-[#d8cab0] bg-[#fbf7ed] p-5 md:flex-row md:items-center md:justify-between md:p-7">
           <h1 className="font-display text-4xl font-bold uppercase tracking-[-0.03em] text-[#0f2f25] md:text-5xl">Player Dashboard</h1>
         </div>
