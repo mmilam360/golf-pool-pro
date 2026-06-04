@@ -44,12 +44,5 @@ export default function DashboardCachedActivePools() {
     )
   }
 
-  return (
-    <div className="space-y-3 opacity-95">
-      <div className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#657168] shadow-[3px_3px_0_#eadfca]">
-        Showing your last dashboard while live scores load.
-      </div>
-      <DashboardActivePools cards={cached.cards} entriesByPool={cached.entriesByPool} snapshot />
-    </div>
-  )
+  return <DashboardActivePools cards={cached.cards} entriesByPool={cached.entriesByPool} snapshot />
 }
