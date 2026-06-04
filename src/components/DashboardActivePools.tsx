@@ -455,6 +455,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const fieldRows = Array.isArray(tournament?.field_json) ? tournament.field_json : []
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
+  const [showFixedMyEntryBar, setShowFixedMyEntryBar] = useState(false)
+  const leaderboardWrapRef = useRef<HTMLDivElement | null>(null)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(baseLeaderboardRows), [baseLeaderboardRows])
   useEffect(() => {
     if (leaderboardMode.type !== 'current' && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
@@ -490,6 +492,32 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const showLeverageLegend = leaderboardModeIsCurrent && (harePickMap.size > 0 || tortoisePickMap.size > 0)
   const showMyEntryBar = mode === 'player' && scoringIsLive && Boolean(currentScoredEntry)
   const showJumpToMyEntry = mode === 'player' && scoringIsLive && Boolean(currentScoredEntry && scoredEntries.length >= 10)
+
+  useEffect(() => {
+    if (!showMyEntryBar) {
+      setShowFixedMyEntryBar(false)
+      return
+    }
+
+    const updateFixedBar = () => {
+      const wrapper = leaderboardWrapRef.current
+      if (!wrapper || window.matchMedia('(min-width: 640px)').matches) {
+        setShowFixedMyEntryBar(false)
+        return
+      }
+      const rect = wrapper.getBoundingClientRect()
+      setShowFixedMyEntryBar(rect.top < 8 && rect.bottom > 96)
+    }
+
+    updateFixedBar()
+    window.addEventListener('scroll', updateFixedBar, { passive: true })
+    window.addEventListener('resize', updateFixedBar)
+    return () => {
+      window.removeEventListener('scroll', updateFixedBar)
+      window.removeEventListener('resize', updateFixedBar)
+    }
+  }, [showMyEntryBar])
+
   const jumpToCurrentEntry = () => {
     if (!currentEntryId) return
     onEntryToggle(currentEntryId, true)
@@ -509,10 +537,26 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   }
 
   return (
-    <div className="overflow-visible border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-2 sm:px-5 sm:pt-4">
+    <div ref={leaderboardWrapRef} className="overflow-visible border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-2 sm:px-5 sm:pt-4">
       <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
+      {showMyEntryBar && currentScoredEntry && showFixedMyEntryBar ? (
+        <div className="fixed left-3 right-3 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[80] flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:hidden">
+          <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
+            <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
+            <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
+            <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>{formatScore(currentScoredEntry.totalScore)}</span>
+            <MovementBadge movement={currentMovementToday} />
+            {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
+          </div>
+          {showJumpToMyEntry ? (
+            <button type="button" onClick={jumpToCurrentEntry} className="shrink-0 whitespace-nowrap border border-[#123c2f] bg-[#fbf7ed] px-2 py-1.5 font-black uppercase tracking-[0.08em] text-[#123c2f] hover:bg-[#fff4cf]">
+              Jump to my row
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {showMyEntryBar && currentScoredEntry ? (
-        <div className="sticky top-2 z-30 mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:static sm:px-3">
+        <div className={`${showFixedMyEntryBar ? 'invisible sm:visible' : ''} sticky top-2 z-30 mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:static sm:px-3`}>
           <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
             <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             {scoringIsLive ? (
