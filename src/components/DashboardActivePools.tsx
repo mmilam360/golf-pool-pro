@@ -763,13 +763,22 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               })}
             </div>
             <div className="hidden bg-[#f7f7f2] lg:block">
+              <div
+                className="sticky top-0 z-40 grid bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]"
+                style={{ gridTemplateColumns: `5% 19% repeat(${countScores}, minmax(0, 1fr)) 9%` }}
+              >
+                <div className="border-b border-r border-[#111] px-1 py-1.5 text-center">Rank</div>
+                <div className="border-b border-r border-[#111] px-2 py-1.5 text-left">Entry</div>
+                <div className="border-b border-r border-[#111] px-1 py-1.5 text-center" style={{ gridColumn: `span ${countScores}` }}>Top {countScores} golfers</div>
+                <div className="border-b border-[#111] px-1 py-1.5 text-center">Total</div>
+              </div>
               <table className="w-full table-fixed border-separate border-spacing-0 text-[12px] text-[#111]">
-                <thead>
-                  <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
-                    <th className="sticky top-0 z-30 w-[5%] border-b border-r border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
-                    <th className="sticky top-0 z-30 w-[19%] border-b border-r border-[#111] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
-                    <th className="sticky top-0 z-30 border-b border-r border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center" colSpan={countScores}>Top {countScores} golfers</th>
-                    <th className="sticky top-0 z-30 w-[9%] border-b border-[#111] bg-[#f7f7f2] px-1 py-1.5 text-center">Total</th>
+                <thead className="sr-only">
+                  <tr>
+                    <th>Rank</th>
+                    <th>Entry</th>
+                    <th colSpan={countScores}>Top {countScores} golfers</th>
+                    <th>Total</th>
                   </tr>
                 </thead>
                 <tbody>
