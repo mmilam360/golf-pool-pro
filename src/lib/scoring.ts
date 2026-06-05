@@ -66,6 +66,11 @@ export interface ScoredEntry {
   finalNineScore: number | null; tiebreakScores: number[]; rank: number | null; obStandIns: number
 }
 
+export type EntryMovement = {
+  direction: 'up' | 'down' | 'none'
+  spots: number
+}
+
 export type LeveragePickMap = Map<string, Set<string>>
 export type HorsePickMap = LeveragePickMap
 
@@ -247,6 +252,16 @@ export function rankEntries(entries: ScoredEntry[]): ScoredEntry[] {
     }
   })
   return ranked
+}
+
+export function entryMovementSincePriorRank(currentEntry: ScoredEntry, priorEntries: ScoredEntry[]): EntryMovement | null {
+  if (currentEntry.rank === null) return null
+  const priorRank = priorEntries.find(entry => entry.entryId === currentEntry.entryId)?.rank
+  if (!priorRank) return null
+  const spots = priorRank - currentEntry.rank
+  if (spots > 0) return { direction: 'up', spots }
+  if (spots < 0) return { direction: 'down', spots: Math.abs(spots) }
+  return null
 }
 
 function compareTiebreakScores(a: ScoredEntry, b: ScoredEntry) {

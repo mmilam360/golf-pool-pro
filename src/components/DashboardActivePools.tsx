@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, rankEntries, scoreEntry, type PickScore, type ScoredEntry } from '@/lib/scoring'
+import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, entryMovementSincePriorRank, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, rankEntries, scoreEntry, type EntryMovement, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
@@ -74,11 +74,6 @@ type RankPreview = {
   totalScore: number | null
   todayScore: number | null
   movementToday: EntryMovement | null
-}
-
-type EntryMovement = {
-  direction: 'up' | 'down' | 'none'
-  spots: number
 }
 
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
@@ -180,25 +175,21 @@ function formatScoreFreshness(value?: string | null) {
   return `Updated ${Math.floor(diffHours / 24)}d ago`
 }
 
-function entryMovementToday(currentEntry: ScoredEntry, scoredEntries: ScoredEntry[]): EntryMovement | null {
-  if (currentEntry.rank === null || currentEntry.todayScore === null) return null
-  const priorEntries = scoredEntries.map(entry => ({
-    ...entry,
-    totalScore: entry.totalScore !== null && entry.todayScore !== null ? entry.totalScore - entry.todayScore : null,
-    tiebreakScores: [],
-    rank: null,
-  }))
-  const priorTotals = priorEntries
-    .map(entry => entry.totalScore)
-    .filter((score): score is number => score !== null)
-  if (new Set(priorTotals).size <= 1) return null
-
-  const priorRank = rankEntries(priorEntries).find(entry => entry.entryId === currentEntry.entryId)?.rank
-  if (!priorRank) return null
-  const spots = priorRank - currentEntry.rank
-  if (spots > 0) return { direction: 'up', spots }
-  if (spots < 0) return { direction: 'down', spots: Math.abs(spots) }
-  return { direction: 'none', spots: 0 }
+function priorCompletedRoundForMovement(leaderboard: GolfPlayer[]) {
+  const completedRounds = availableCompletedRounds(leaderboard)
+  if (!completedRounds.length) return null
+  const roundNumbers = new Set<number>()
+  for (const player of leaderboard) {
+    for (const round of player.roundScores || []) {
+      roundNumbers.add(round.round)
+    }
+  }
+  const incompleteRounds = Array.from(roundNumbers)
+    .filter(roundNumber => leaderboard.some(player => player.roundScores?.some(round => round.round === roundNumber && !round.complete)))
+    .sort((a, b) => a - b)
+  const currentRound = incompleteRounds[0] ?? Math.max(...completedRounds)
+  const priorRound = currentRound - 1
+  return completedRounds.includes(priorRound) ? priorRound : null
 }
 
 function MovementArrow({ movement }: { movement: EntryMovement }) {
@@ -549,7 +540,13 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     .filter(Boolean)
   const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
   const currentEntryRecord = currentEntryId ? entries.find(entry => entry.id === currentEntryId) : null
-  const currentMovementToday = currentScoredEntry && leaderboardModeIsCurrent ? entryMovementToday(currentScoredEntry, scoredEntries) : null
+  const priorMovementRound = leaderboardModeIsCurrent ? priorCompletedRoundForMovement(baseLeaderboardRows) : null
+  const priorMovementEntries = priorMovementRound
+    ? buildScoredEntries(pool, entries, leaderboardForCompletedRound(baseLeaderboardRows, priorMovementRound), true)
+    : []
+  const currentMovementToday = currentScoredEntry && leaderboardModeIsCurrent && priorMovementEntries.length > 0
+    ? entryMovementSincePriorRank(currentScoredEntry, priorMovementEntries)
+    : null
   const scoreFreshness = formatScoreFreshness(tournament?.last_scores_fetch)
   const boardSectionRef = useRef<HTMLDivElement>(null)
   const fixedMyEntryBarRef = useRef<HTMLDivElement>(null)
@@ -857,7 +854,16 @@ function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: Entr
   const scored = buildScoredEntries(pool, allEntries)
   const current = scored.find(scoredEntry => scoredEntry.entryId === entry.id)
   if (!current) return null
-  return { rank: current.rank, totalScore: current.totalScore, todayScore: current.todayScore, movementToday: entryMovementToday(current, scored) }
+  const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
+  const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
+  const priorRound = priorCompletedRoundForMovement(leaderboard)
+  const priorEntries = priorRound ? buildScoredEntries(pool, allEntries, leaderboardForCompletedRound(leaderboard, priorRound), true) : []
+  return {
+    rank: current.rank,
+    totalScore: current.totalScore,
+    todayScore: current.todayScore,
+    movementToday: priorEntries.length > 0 ? entryMovementSincePriorRank(current, priorEntries) : null,
+  }
 }
 
 function entryPicks(entry?: EntryRecord | null) {

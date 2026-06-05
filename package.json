@@ -23,6 +23,7 @@
     "test:grouped-selected-picks": "node scripts/verify-grouped-selected-picks-summary.mjs",
     "test:open-pick-field-count": "node scripts/verify-open-pick-field-count.mjs",
     "test:dashboard-pool-order": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-dashboard-pool-order.mjs",
+    "test:dashboard-entry-movement": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-dashboard-entry-movement.mjs",
     "test:dashboard-reorder-ui": "node scripts/verify-dashboard-reorder-ui.mjs",
     "test:pick-counts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pick-count-rules.mjs",
     "test:guest-join-flow": "node scripts/verify-guest-join-flow.mjs",
