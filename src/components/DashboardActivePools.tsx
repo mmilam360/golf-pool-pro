@@ -12,6 +12,7 @@ import { displayTournamentName } from '@/lib/tournament-name'
 import { isGroupedPoolFormat, totalPicksRequired } from '@/lib/pick-counts'
 import { getPickLockBadgeText } from '@/lib/pick-lock-display'
 import { applySavedPoolOrder, movePoolId } from '@/lib/dashboard-pool-order'
+import { trackGppEvent } from '@/lib/posthog-events'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -971,6 +972,22 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
       // Snapshot restore is best-effort. The live dashboard still works without local storage.
     }
   }, [cards, entriesByPool, mode, snapshot])
+
+  useEffect(() => {
+    if (cards.length === 0) return
+    trackGppEvent(snapshot ? 'dashboard_cached_snapshot_shown' : 'dashboard_viewed', {
+      mode,
+      pool_count: cards.length,
+      live_pool_count: cards.filter(card => hasEventBegun(card.tournament)).length,
+      incomplete_entry_count: cards.filter(card => {
+        const entry = card.entry
+        if (!entry) return false
+        const requiredPicks = totalPicksRequired(card.pool)
+        const submittedPicks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
+        return requiredPicks > 0 && submittedPicks < requiredPicks
+      }).length,
+    })
+  }, [cards, mode, snapshot])
 
   const activePoolIds = useMemo(() => new Set(activeCardIds), [activeCardIds])
   const canSortPools = mode === 'player' && orderedCards.length > 1

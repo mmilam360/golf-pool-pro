@@ -157,6 +157,11 @@ export default function JoinPoolPage() {
 
     if (normalizedPasscode.length < 6) {
       setError('Enter the full pool code from your host.')
+      trackGppEvent('passcode_failed', {
+        reason: 'too_short',
+        source,
+        guest_flow: true,
+      })
       setLoading(false)
       return
     }
@@ -168,6 +173,11 @@ export default function JoinPoolPage() {
     setLoading(false)
     if (error || !data) {
       setError(error?.message || 'Invalid passcode. Check with the pool host.')
+      trackGppEvent('passcode_failed', {
+        reason: 'invalid_or_missing',
+        source,
+        guest_flow: true,
+      })
       return
     }
 
@@ -175,6 +185,14 @@ export default function JoinPoolPage() {
     const picksClosed = nextPayload.pool.is_locked || nextPayload.tournament.status === 'live' || nextPayload.tournament.status === 'completed'
     if (picksClosed) {
       setError('This pool is locked. Picks have closed.')
+      trackGppEvent('passcode_failed', {
+        reason: 'pool_locked',
+        source,
+        guest_flow: true,
+        pool_id: nextPayload.pool.id,
+        tournament: nextPayload.tournament.name,
+        game_format: nextPayload.pool.game_format || 'standard',
+      })
       return
     }
 
@@ -287,6 +305,13 @@ export default function JoinPoolPage() {
       return
     }
     setError('')
+    trackGppEvent('picks_started', {
+      pool_id: payload.pool.id,
+      tournament: payload.tournament.name,
+      game_format: payload.pool.game_format || 'standard',
+      required_pick_count: requiredPickCount,
+      entry_source: 'guest_join',
+    })
     setStep('picks')
   }
 

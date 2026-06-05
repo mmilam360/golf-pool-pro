@@ -64,6 +64,15 @@ export function PoolInvitePrepPanel({
     }
   }
 
+  function trackPosterOpened() {
+    trackGppEvent('poster_opened', {
+      tournament: tournamentName,
+      entry_count: entryCount,
+      submitted_pick_count: submittedPickCount,
+      has_poster: Boolean(posterHref),
+    })
+  }
+
   return (
     <div className="w-full max-w-full overflow-hidden border-b border-[#eadfca] bg-[#fffdf8] px-3 py-5 sm:px-5">
       <div className="grid w-full min-w-0 max-w-full gap-4 overflow-hidden border-2 border-[#123c2f] bg-white p-3 shadow-[3px_3px_0_#d8cab0] sm:p-4 sm:shadow-[5px_5px_0_#d8cab0] lg:grid-cols-[0.9fr_1.1fr]">
@@ -99,7 +108,7 @@ export function PoolInvitePrepPanel({
               </button>
             </div>
             {posterHref ? (
-              <a href={posterHref} className="flex min-w-0 items-center justify-between gap-3 border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-3 text-[#123c2f] hover:bg-[#eef7ef]">
+              <a href={posterHref} onClick={trackPosterOpened} className="flex min-w-0 items-center justify-between gap-3 border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-3 text-[#123c2f] hover:bg-[#eef7ef]">
                 <div className="min-w-0">
                   <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Signup poster</p>
                   <p className="text-sm font-black text-[#123c2f]">Print a QR poster</p>

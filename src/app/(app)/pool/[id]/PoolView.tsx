@@ -379,6 +379,22 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [])
 
   useEffect(() => {
+    trackGppEvent('pool_viewed', {
+      pool_id: pool.id,
+      tournament: tournament?.name || null,
+      tournament_status: tournament?.status || null,
+      role: isOwner ? 'runner' : myEntry ? 'player' : publicView ? 'public' : 'guest',
+      tab,
+      public_view: publicView,
+      entry_count: initialEntries.filter(entry => !entry.is_removed).length,
+      game_format: pool.game_format || 'standard',
+      picks_locked: Boolean(pool.is_locked),
+      has_my_entry: Boolean(myEntry),
+      my_picks_complete: Boolean(myEntry?.golfer_picks?.length && myEntry.golfer_picks.length >= pool.pick_count),
+    })
+  }, [initialEntries, isOwner, myEntry, pool.game_format, pool.id, pool.is_locked, pool.pick_count, publicView, tab, tournament?.name, tournament?.status])
+
+  useEffect(() => {
     if (window.location.hash === '#make-picks') {
       setTab('my-entry')
       window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
@@ -859,6 +875,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     } catch (error: any) {
       const message = error?.message || 'Payment failed.'
       setPaymentFeedback(message)
+      trackGppEvent('payment_failed', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        entry_count: activeEntries.length,
+        amount_due_cents: finalAmountDueCents,
+        uses_saved_card: useSavedCard,
+        reason: 'checkout_error',
+      })
       showToast(message, 'error')
     } finally {
       setPaymentLoading(false)
@@ -919,12 +943,26 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const message = groupsNeedLock ? 'Groups need to lock before picks can be saved.' : 'Picks are closed for this pool.'
       setStatusMessage(message)
       showToast(message, groupsNeedLock ? 'info' : 'error')
+      trackGppEvent('picks_save_failed', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        reason: groupsNeedLock ? 'groups_pending' : 'picks_locked',
+        pick_count: myPicks.length,
+        required_pick_count: pool.pick_count,
+      })
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
     if (!fieldReady && !(groupedFormat && pickGroups.length > 0)) {
       setStatusMessage('Tournament field is not loaded yet.')
       showToast('Tournament field is not loaded yet.', 'info')
+      trackGppEvent('picks_save_failed', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        reason: 'field_not_loaded',
+        pick_count: myPicks.length,
+        required_pick_count: pool.pick_count,
+      })
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
@@ -940,6 +978,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             : `Pick ${picksPerGroup} from each ${groupName}.`
         setStatusMessage(message)
         showToast(message, 'error')
+        trackGppEvent('picks_save_failed', {
+          pool_id: pool.id,
+          tournament: tournament?.name || null,
+          reason: firstOver ? 'too_many_group_picks' : 'missing_group_picks',
+          pick_count: myPicks.length,
+          required_pick_count: groupedTotalPicks,
+          game_format: pool.game_format || 'standard',
+        })
         setTimeout(() => setStatusMessage(''), 2500)
         return
       }
@@ -950,11 +996,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         setMyPicks(nextPicks)
         setStatusMessage('Field updated. Removed golfers no longer in the tournament.')
         showToast('Field updated. Removed golfers no longer in the tournament.', 'info')
+        trackGppEvent('picks_save_failed', {
+          pool_id: pool.id,
+          tournament: tournament?.name || null,
+          reason: 'invalid_field_picks',
+          pick_count: myPicks.length,
+          required_pick_count: pool.pick_count,
+        })
         setTimeout(() => setStatusMessage(''), 2500)
         return
       }
     }
     setSaving(true)
+    trackGppEvent('picks_save_clicked', {
+      pool_id: pool.id,
+      tournament: tournament?.name || null,
+      pick_count: myPicks.length,
+      required_pick_count: groupedFormat ? groupedTotalPicks : pool.pick_count,
+      game_format: pool.game_format || 'standard',
+    })
     const { error } = await supabase
       .from('gpp_entries')
       .update({ golfer_picks: myPicks })
@@ -966,9 +1026,24 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setStatusMessage('Picks saved.')
       showToast('Picks saved.', 'success')
       setTab('leaderboard')
+      trackGppEvent('picks_saved', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        pick_count: myPicks.length,
+        required_pick_count: groupedFormat ? groupedTotalPicks : pool.pick_count,
+        complete: groupedFormat ? validateGroupedPicks(pickGroups, myPicks, picksPerGroup).valid : myPicks.length >= pool.pick_count,
+        game_format: pool.game_format || 'standard',
+      })
       setTimeout(() => setStatusMessage(''), 2500)
     } else {
       showToast('Could not save picks.', 'error')
+      trackGppEvent('picks_save_failed', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        reason: 'database_error',
+        pick_count: myPicks.length,
+        required_pick_count: groupedFormat ? groupedTotalPicks : pool.pick_count,
+      })
     }
     setSaving(false)
   }
@@ -1207,6 +1282,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     try {
       await navigator.clipboard.writeText(message)
       showToast('Reminder copied.', 'success')
+      trackGppEvent('picks_reminder_copied', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        entry_count: activeEntries.length,
+        entries_needing_picks: entriesNeedingPicks.length,
+      })
     } catch {
       const textarea = document.createElement('textarea')
       textarea.value = message
@@ -1218,6 +1299,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       document.execCommand('copy')
       document.body.removeChild(textarea)
       showToast('Reminder copied.', 'success')
+      trackGppEvent('picks_reminder_copied', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        entry_count: activeEntries.length,
+        entries_needing_picks: entriesNeedingPicks.length,
+      })
     }
   }
 
@@ -1226,6 +1313,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     try {
       await navigator.clipboard.writeText(url)
       showToast('Public leaderboard link copied.', 'success')
+      trackGppEvent('public_leaderboard_link_copied', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        entry_count: activeEntries.length,
+      })
     } catch {
       const textarea = document.createElement('textarea')
       textarea.value = url
@@ -1237,6 +1329,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       document.execCommand('copy')
       document.body.removeChild(textarea)
       showToast('Public leaderboard link copied.', 'success')
+      trackGppEvent('public_leaderboard_link_copied', {
+        pool_id: pool.id,
+        tournament: tournament?.name || null,
+        entry_count: activeEntries.length,
+      })
     }
   }
 
