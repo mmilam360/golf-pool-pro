@@ -143,7 +143,7 @@ function LockGlyph({ locked }: { locked: boolean }) {
 
 function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap border px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] ${statusClass(label)}`}>
+    <span className={`inline-flex items-center gap-1 whitespace-nowrap border px-1.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] sm:gap-1.5 sm:px-2 sm:text-xs sm:tracking-[0.12em] ${statusClass(label)}`}>
       {label === 'Passed' ? null : <LockGlyph locked={locked || label === 'Live'} />}
       {label}
     </span>
@@ -152,10 +152,10 @@ function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
 
 function LivePulseBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#b21e23]">
-      <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+    <span className="inline-flex items-center gap-1 border border-[#b21e23] bg-[#fff1ef] px-1.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#b21e23] sm:gap-1.5 sm:px-2 sm:text-xs sm:tracking-[0.12em]">
+      <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5" aria-hidden="true">
         <span className="absolute inline-flex h-full w-full animate-ping bg-[#b21e23] opacity-70" />
-        <span className="relative inline-flex h-2.5 w-2.5 bg-[#b21e23]" />
+        <span className="relative inline-flex h-full w-full bg-[#b21e23]" />
       </span>
       Live
     </span>
@@ -656,8 +656,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
           <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
             <div className="relative border-b-2 border-[#111] px-3 py-2">
               <p className="mx-auto max-w-[94%] text-[clamp(0.8rem,5vw,1.25rem)] font-black uppercase leading-[0.95] tracking-[clamp(0.025em,1.1vw,0.1em)] text-[#111] [text-wrap:balance] sm:text-2xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
-              <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
-                <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{pool.name}</p>
+              <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{pool.name}</p>
+              <div className="mt-1 flex w-full flex-wrap items-center justify-center gap-1.5">
                 {showJumpToMyEntry ? (
                   <button type="button" onClick={jumpToCurrentEntry} className="inline-flex border-2 border-[#123c2f] bg-white px-2 py-1 text-[9px] font-black uppercase leading-none tracking-[0.08em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] hover:bg-[#fff4cf] sm:px-2.5 sm:text-[10px]">
                     My row
@@ -1138,7 +1138,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
               className={`${useSinglePoolMobileLayout ? 'bg-transparent sm:bg-white' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'} group`}
             >
               <summary className={`${useSinglePoolMobileLayout ? 'hidden sm:block' : 'block'} cursor-pointer list-none px-2.5 py-2 transition-colors hover:bg-[#fff8e8] sm:px-5 sm:py-3 [&::-webkit-details-marker]:hidden`}>
-                <div className="grid min-h-10 min-w-0 grid-cols-[32px_minmax(0,1fr)_72px_112px] items-center gap-2 sm:min-h-11 sm:grid-cols-[40px_minmax(0,1fr)_86px_132px] sm:gap-3">
+                <div className="grid min-h-10 min-w-0 grid-cols-[32px_minmax(0,1fr)_64px_96px] items-center gap-1.5 sm:min-h-11 sm:grid-cols-[40px_minmax(0,1fr)_86px_132px] sm:gap-3">
                   <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center border border-[#123c2f] ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'} sm:h-9 sm:w-9`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
@@ -1183,14 +1183,14 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                     {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
                   </div>
                   {eventBegun ? (
-                    <div className="flex min-h-10 shrink-0 flex-col items-center justify-center border border-[#123c2f] bg-white px-1.5 py-1 text-[13px] font-black uppercase leading-none text-[#111] shadow-[2px_2px_0_#d8cab0] sm:min-h-11 sm:px-2 sm:text-base">
+                    <div className="flex min-h-10 w-full shrink-0 flex-col items-center justify-center border border-[#123c2f] bg-white px-1 py-1 text-[12px] font-black uppercase leading-none text-[#111] shadow-[1px_1px_0_#d8cab0] sm:min-h-11 sm:px-2 sm:text-base sm:shadow-[2px_2px_0_#d8cab0]">
                       <div className="flex items-center gap-1 sm:gap-2">
                         {rankPreview?.rank ? <span className="text-[#123c2f]">#{rankPreview.rank}</span> : <span className="text-[#657168]">—</span>}
                         <span className="text-[#657168]">/</span>
                         <span className={scoreClass(rankPreview?.totalScore ?? null)}>{formatScore(rankPreview?.totalScore ?? null)}</span>
                       </div>
-                      {(typeof rankPreview?.todayScore === 'number' || rankPreview?.movementToday) ? (
-                        <div className="mt-1 flex items-center gap-1 text-[9px] leading-none text-[#657168] sm:text-[10px]">
+                      {!isPoolOpen && (typeof rankPreview?.todayScore === 'number' || rankPreview?.movementToday) ? (
+                        <div className="mt-1 flex items-center gap-1 text-[8px] leading-none text-[#657168] sm:text-[10px]">
                           {typeof rankPreview?.todayScore === 'number' ? <span>Today <span className={scoreClass(rankPreview.todayScore)}>{formatScore(rankPreview.todayScore)}</span></span> : null}
                           {typeof rankPreview?.todayScore === 'number' && rankPreview?.movementToday ? <span>/</span> : null}
                           {rankPreview?.movementToday?.direction === 'up' ? <span className="text-[#1f6b4a]">↑ {rankPreview.movementToday.spots}</span> : null}
