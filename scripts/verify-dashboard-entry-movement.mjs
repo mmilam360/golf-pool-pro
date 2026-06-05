@@ -55,6 +55,20 @@ assert.equal(meNow?.totalScore, -5)
 assert.equal(meNow?.todayScore, -3, 'today score uses the current counting picks only')
 assert.deepEqual(entryMovementSincePriorRank(meNow, prior), { direction: 'down', spots: 3 })
 
+const tiedFirstYesterday = [
+  { ...mePrior, totalScore: -10, rank: 2 },
+  { ...prior.find(entry => entry.entryId === 'second'), totalScore: -10, rank: 1 },
+  { ...prior.find(entry => entry.entryId === 'third'), totalScore: -8, rank: 3 },
+]
+assert.deepEqual(
+  entryMovementSincePriorRank({ ...meNow, rank: 3 }, tiedFirstYesterday),
+  { direction: 'down', spots: 2 },
+  'movement uses the prior total-score rank players saw yesterday, not a tiebreak-only #2 baseline'
+)
+
+const oldTiebreakPriorRank = tiedFirstYesterday.find(entry => entry.entryId === 'me')?.rank
+assert.equal(oldTiebreakPriorRank, 2)
+
 const oldSubtractTodayRank = current
   .map(entry => ({ ...entry, totalScore: entry.totalScore !== null && entry.todayScore !== null ? entry.totalScore - entry.todayScore : null, tiebreakScores: [], rank: null }))
   .sort((a, b) => (a.totalScore ?? 999) - (b.totalScore ?? 999))

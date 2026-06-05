@@ -256,8 +256,14 @@ export function rankEntries(entries: ScoredEntry[]): ScoredEntry[] {
 
 export function entryMovementSincePriorRank(currentEntry: ScoredEntry, priorEntries: ScoredEntry[]): EntryMovement | null {
   if (currentEntry.rank === null) return null
-  const priorRank = priorEntries.find(entry => entry.entryId === currentEntry.entryId)?.rank
-  if (!priorRank) return null
+  const priorEntry = priorEntries.find(entry => entry.entryId === currentEntry.entryId)
+  if (priorEntry?.totalScore === null || priorEntry?.totalScore === undefined) return null
+  const betterPriorTotals = new Set(
+    priorEntries
+      .map(entry => entry.totalScore)
+      .filter((score): score is number => score !== null && score < priorEntry.totalScore!)
+  )
+  const priorRank = betterPriorTotals.size + 1
   const spots = priorRank - currentEntry.rank
   if (spots > 0) return { direction: 'up', spots }
   if (spots < 0) return { direction: 'down', spots: Math.abs(spots) }

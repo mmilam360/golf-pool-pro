@@ -187,7 +187,7 @@ function priorCompletedRoundForMovement(leaderboard: GolfPlayer[]) {
   const incompleteRounds = Array.from(roundNumbers)
     .filter(roundNumber => leaderboard.some(player => player.roundScores?.some(round => round.round === roundNumber && !round.complete)))
     .sort((a, b) => a - b)
-  const currentRound = incompleteRounds[0] ?? Math.max(...completedRounds)
+  const currentRound = incompleteRounds.length ? Math.max(...incompleteRounds) : Math.max(...completedRounds)
   const priorRound = currentRound - 1
   return completedRounds.includes(priorRound) ? priorRound : null
 }
@@ -197,7 +197,7 @@ function MovementArrow({ movement }: { movement: EntryMovement }) {
   const up = movement.direction === 'up'
   return (
     <span className={`inline-flex items-center gap-0.5 ${up ? 'text-[#1f6b4a]' : 'text-[#b21e23]'}`}>
-      <svg aria-hidden="true" viewBox="0 0 14 14" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter">
+      <svg aria-hidden="true" viewBox="0 0 14 14" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square" strokeLinejoin="miter">
         <path d={up ? 'M7 12V2M3 6l4-4 4 4' : 'M7 2v10M3 8l4 4 4-4'} />
       </svg>
       <span>{movement.spots}</span>
@@ -1196,11 +1196,10 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                         <span className={scoreClass(rankPreview?.totalScore ?? null)}>{formatScore(rankPreview?.totalScore ?? null)}</span>
                       </div>
                       {!isPoolOpen && (typeof rankPreview?.todayScore === 'number' || rankPreview?.movementToday) ? (
-                        <div className="mt-1 flex items-center gap-1 text-[8px] leading-none text-[#657168] sm:text-[10px]">
+                        <div className="mt-1 flex items-center gap-1 text-[8px] font-black leading-none text-[#657168] sm:text-[10px]">
                           {typeof rankPreview?.todayScore === 'number' ? <span>Today <span className={scoreClass(rankPreview.todayScore)}>{formatScore(rankPreview.todayScore)}</span></span> : null}
                           {typeof rankPreview?.todayScore === 'number' && rankPreview?.movementToday ? <span>/</span> : null}
-                          {rankPreview?.movementToday?.direction === 'up' ? <span className="text-[#1f6b4a]">↑ {rankPreview.movementToday.spots}</span> : null}
-                          {rankPreview?.movementToday?.direction === 'down' ? <span className="text-[#b21e23]">↓ {rankPreview.movementToday.spots}</span> : null}
+                          {rankPreview?.movementToday ? <MovementArrow movement={rankPreview.movementToday} /> : null}
                         </div>
                       ) : null}
                     </div>
