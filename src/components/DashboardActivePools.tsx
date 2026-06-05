@@ -514,7 +514,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const boardLabel = selectedBoardLabel(leaderboardMode)
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
   const totalScoreSubLabel = leaderboardMode.type === 'current'
-    ? isAfterOpeningRoundDate(tournament) ? 'TODAY' : null
+    ? (availableHistoricalRounds.length > 0 || isAfterOpeningRoundDate(tournament)) ? 'TODAY' : null
     : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
       ? roundScoreLabel(leaderboardMode.round)
       : null
@@ -566,8 +566,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               <>
                 <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
                 <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>{formatScore(currentScoredEntry.totalScore)}</span>
-                <MovementBadge movement={currentMovementToday} />
                 {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
+                <MovementBadge movement={currentMovementToday} />
               </>
             ) : (
               <MyEntryPreTournamentBadges pool={pool} entry={currentEntryRecord} />

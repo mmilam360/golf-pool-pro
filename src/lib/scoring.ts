@@ -131,11 +131,12 @@ export function scoreEntry(
     ...pickScores.filter(p => p.status !== 'active' && !replacedObNames.has(normalizePickName(p.name))),
   ]
   const totalScore = counting.length >= countScores ? counting.reduce((s, p) => s + (p.scoreToPar ?? 0), 0) : null
-  const todayScores = counting.map(p => scoreStringToPar(p.roundScore))
-  const todayScore = counting.length >= countScores && todayScores.every(score => score !== null)
-    ? todayScores.reduce((sum, score) => sum + (score ?? 0), 0)
+  const todayScores = counting.map(p => scoreStringToPar(p.roundScore) ?? 0)
+  const todayScore = counting.length >= countScores
+    ? todayScores.reduce((sum, score) => sum + score, 0)
     : null
   const maxTiebreakLevels = Math.max(0, ...counting.map(p => p.tiebreakScores?.length || 0))
+
   const teamTiebreakScores: number[] = []
   if (counting.length >= countScores) {
     for (let index = 0; index < maxTiebreakLevels; index += 1) {
