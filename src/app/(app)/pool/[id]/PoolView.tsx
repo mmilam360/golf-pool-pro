@@ -1965,7 +1965,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               </div>
                             )}
                           </div>
-                          <div className="text-right">
+                          <div className="flex flex-col items-center justify-center text-center">
                             <div className={`text-2xl font-black leading-none ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
                             {totalScoreSubLabel && entry.todayScore !== null ? (
                               <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div>
