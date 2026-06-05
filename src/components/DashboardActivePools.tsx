@@ -201,15 +201,35 @@ function entryMovementToday(currentEntry: ScoredEntry, scoredEntries: ScoredEntr
   return { direction: 'none', spots: 0 }
 }
 
+function MovementArrow({ movement }: { movement: EntryMovement }) {
+  if (movement.direction === 'none') return null
+  const up = movement.direction === 'up'
+  return (
+    <span className={`inline-flex items-center gap-0.5 ${up ? 'text-[#1f6b4a]' : 'text-[#b21e23]'}`}>
+      <svg aria-hidden="true" viewBox="0 0 14 14" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter">
+        <path d={up ? 'M7 12V2M3 6l4-4 4 4' : 'M7 2v10M3 8l4 4 4-4'} />
+      </svg>
+      <span>{movement.spots}</span>
+    </span>
+  )
+}
+
 function MovementBadge({ movement }: { movement: EntryMovement | null }) {
-  if (!movement) return null
-  if (movement.direction === 'up') {
-    return <span className="border border-[#1f6b4a] bg-[#eef7ef] px-2 py-1 text-[#1f6b4a]">↑ {movement.spots}</span>
-  }
-  if (movement.direction === 'down') {
-    return <span className="border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-[#b21e23]">↓ {movement.spots}</span>
-  }
-  return null
+  if (!movement || movement.direction === 'none') return null
+  const up = movement.direction === 'up'
+  return <span className={`inline-flex items-center border-2 px-2 py-1 text-[11px] font-black leading-none ${up ? 'border-[#1f6b4a] bg-[#eef7ef] text-[#1f6b4a]' : 'border-[#b21e23] bg-[#fff1ef] text-[#b21e23]'}`}><MovementArrow movement={movement} /></span>
+}
+
+function TodayMovementBadge({ label, score, movement }: { label: string | null; score: number | null; movement: EntryMovement | null }) {
+  if (!label || score === null) return <MovementBadge movement={movement} />
+  return (
+    <span className="inline-flex items-center gap-1 border-2 border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[11px] font-black leading-none text-[#111]">
+      <span className="text-[#657168]">{label}</span>
+      <span className={scoreClass(score)}>{formatScore(score)}</span>
+      {movement && movement.direction !== 'none' ? <span className="text-[#657168]">/</span> : null}
+      {movement && movement.direction !== 'none' ? <MovementArrow movement={movement} /> : null}
+    </span>
+  )
 }
 
 function formatScore(score: number | null) {
@@ -605,8 +625,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
             <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
             <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>{formatScore(currentScoredEntry.totalScore)}</span>
-            {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
-            <MovementBadge movement={currentMovementToday} />
+            <TodayMovementBadge label={totalScoreSubLabel} score={currentScoredEntry.todayScore} movement={currentMovementToday} />
           </div>
         </div>
       ) : null}
@@ -619,8 +638,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               <>
                 <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
                 <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>{formatScore(currentScoredEntry.totalScore)}</span>
-                {totalScoreSubLabel && currentScoredEntry.todayScore !== null ? <span className="border border-[#d8cab0] bg-[#fbf7ed] px-2 py-1 text-[#657168]">{totalScoreSubLabel} {formatScore(currentScoredEntry.todayScore)}</span> : null}
-                <MovementBadge movement={currentMovementToday} />
+                <TodayMovementBadge label={totalScoreSubLabel} score={currentScoredEntry.todayScore} movement={currentMovementToday} />
               </>
             ) : (
               <MyEntryPreTournamentBadges pool={pool} entry={currentEntryRecord} />
@@ -638,53 +656,55 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
           <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
             <div className="relative border-b-2 border-[#111] px-3 py-2">
               <p className="mx-auto max-w-[94%] text-[clamp(0.8rem,5vw,1.25rem)] font-black uppercase leading-[0.95] tracking-[clamp(0.025em,1.1vw,0.1em)] text-[#111] [text-wrap:balance] sm:text-2xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
-              <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{pool.name}</p>
-              {showJumpToMyEntry ? (
-                <button type="button" onClick={jumpToCurrentEntry} className="mx-auto mt-2 inline-flex border border-[#123c2f] bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] hover:bg-[#fff4cf] sm:px-3 sm:text-[10px]">
-                  Jump to my row
-                </button>
-              ) : null}
-              {scoreFreshness ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{scoreFreshness}</p> : null}
-              {availableHistoricalRounds.length > 0 && (
-                <details
-                  className="relative z-50 mx-auto mt-2 w-fit text-left"
-                  open={leaderboardMenuOpen}
-                  onToggle={event => setLeaderboardMenuOpen(event.currentTarget.open)}
-                >
-                  <summary className="list-none border-2 border-[#123c2f] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] marker:hidden [&::-webkit-details-marker]:hidden">
-                    <span className="mr-2 text-[#657168]">View</span>{boardLabel}
-                    <span className="ml-2 inline-block text-[#123c2f]">▾</span>
-                  </summary>
-                  <div className="absolute left-1/2 top-[calc(100%+6px)] z-[220] w-44 -translate-x-1/2 border-2 border-[#123c2f] bg-[#fffdf8] p-2 text-[11px] font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[5px_5px_0_#d8cab0]">
-                    <button
-                      type="button"
-                      onClick={() => { setLeaderboardMode({ type: 'current' }); setLeaderboardMenuOpen(false) }}
-                      className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'current' ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : 'border-b border-[#d8cab0]'}`}
-                    >
-                      Current
-                    </button>
-                    {availableHistoricalRounds.map(round => (
-                      <div key={round} className="border-b border-[#d8cab0] py-1 last:border-b-0">
-                        <div className="px-3 pb-1 pt-2 text-[9px] text-[#657168]">{roundMenuLabel(round)}</div>
-                        <button
-                          type="button"
-                          onClick={() => { setLeaderboardMode({ type: 'thru', round }); setLeaderboardMenuOpen(false) }}
-                          className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'thru' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
-                        >
-                          Scores Through
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
-                          className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
-                        >
-                          Daily Winner
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              )}
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+                <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{pool.name}</p>
+                {showJumpToMyEntry ? (
+                  <button type="button" onClick={jumpToCurrentEntry} className="inline-flex border-2 border-[#123c2f] bg-white px-2 py-1 text-[9px] font-black uppercase leading-none tracking-[0.08em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] hover:bg-[#fff4cf] sm:px-2.5 sm:text-[10px]">
+                    My row
+                  </button>
+                ) : null}
+                {availableHistoricalRounds.length > 0 && (
+                  <details
+                    className="relative z-50 text-left"
+                    open={leaderboardMenuOpen}
+                    onToggle={event => setLeaderboardMenuOpen(event.currentTarget.open)}
+                  >
+                    <summary className="list-none border-2 border-[#123c2f] bg-white px-2 py-1 text-[9px] font-black uppercase leading-none tracking-[0.08em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] marker:hidden sm:px-2.5 sm:text-[10px] [&::-webkit-details-marker]:hidden">
+                      <span className="text-[#657168]">View</span> {boardLabel}
+                      <span className="ml-1 inline-block text-[#123c2f]">▾</span>
+                    </summary>
+                    <div className="absolute left-1/2 top-[calc(100%+6px)] z-[220] w-44 -translate-x-1/2 border-2 border-[#123c2f] bg-[#fffdf8] p-2 text-[11px] font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[5px_5px_0_#d8cab0]">
+                      <button
+                        type="button"
+                        onClick={() => { setLeaderboardMode({ type: 'current' }); setLeaderboardMenuOpen(false) }}
+                        className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'current' ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : 'border-b border-[#d8cab0]'}`}
+                      >
+                        Current
+                      </button>
+                      {availableHistoricalRounds.map(round => (
+                        <div key={round} className="border-b border-[#d8cab0] py-1 last:border-b-0">
+                          <div className="px-3 pb-1 pt-2 text-[9px] text-[#657168]">{roundMenuLabel(round)}</div>
+                          <button
+                            type="button"
+                            onClick={() => { setLeaderboardMode({ type: 'thru', round }); setLeaderboardMenuOpen(false) }}
+                            className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'thru' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                          >
+                            Scores Through
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
+                            className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                          >
+                            Daily Winner
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+                {scoreFreshness ? <span className="hidden text-[9px] font-black uppercase leading-none tracking-[0.08em] text-[#657168] sm:inline">{scoreFreshness}</span> : null}
+              </div>
               {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{leaderboardMode.type === 'day' ? `${boardLabel} daily scores only` : `Standings through ${boardLabel.replace('Thru ', '')}`}</p> : null}
             </div>
             <div className="bg-[#f7f7f2] lg:hidden">
