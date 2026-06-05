@@ -591,6 +591,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     : fixedMyEntryBarState === 'after'
       ? 'translate-y-0 opacity-0 pointer-events-none'
       : '-translate-y-[calc(100%+1rem)] opacity-0 pointer-events-none'
+  const inlineMyEntryBarClass = fixedMyEntryBarState === 'shown' ? 'opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto' : 'opacity-100'
 
   const jumpToCurrentEntry = () => {
     if (!currentEntryId) return
@@ -628,7 +629,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
       ) : null}
       <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
       {showMyEntryBar && currentScoredEntry ? (
-        <div className="mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:px-3">
+        <div className={`mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] transition-opacity duration-150 sm:px-3 ${inlineMyEntryBarClass}`}>
           <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
             <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             {scoringIsLive ? (
