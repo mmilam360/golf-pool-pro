@@ -197,7 +197,7 @@ function MovementArrow({ movement }: { movement: EntryMovement }) {
   const up = movement.direction === 'up'
   return (
     <span className={`inline-flex items-center gap-0.5 ${up ? 'text-[#1f6b4a]' : 'text-[#b21e23]'}`}>
-      <svg aria-hidden="true" viewBox="0 0 14 14" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square" strokeLinejoin="miter">
+      <svg aria-hidden="true" viewBox="0 0 14 14" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter">
         <path d={up ? 'M7 12V2M3 6l4-4 4 4' : 'M7 2v10M3 8l4 4 4-4'} />
       </svg>
       <span>{movement.spots}</span>
