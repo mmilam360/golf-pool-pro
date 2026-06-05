@@ -1968,7 +1968,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           <div className="text-right">
                             <div className={`text-2xl font-black leading-none ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
                             {totalScoreSubLabel && entry.todayScore !== null ? (
-                              <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div>
+                              <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div>
                             ) : null}
                           </div>
                           <div className="flex items-center justify-center text-[#111]" aria-label={isEntryOpen ? 'Collapse entry' : 'Expand entry'}>
@@ -2062,7 +2062,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               <td className={`border-b border-[#d8cab0] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle ${scoreClass(entry.totalScore)}`}>
                                 <div className="text-3xl font-black leading-none">{formatScore(entry.totalScore)}</div>
                                 {totalScoreSubLabel && entry.todayScore !== null ? (
-                                  <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div>
+                                  <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div>
                                 ) : null}
                               </td>
                             </tr>

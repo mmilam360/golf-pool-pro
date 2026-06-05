@@ -72,6 +72,7 @@ type LiveTournamentPayload = {
 type RankPreview = {
   rank: number | null
   totalScore: number | null
+  todayScore: number | null
   movementToday: EntryMovement | null
 }
 
@@ -660,7 +661,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                       </div>
                       <div className={`text-right text-2xl font-black ${scoreClass(entry.totalScore)}`}>
                         <div>{formatScore(entry.totalScore)}</div>
-                        {totalScoreSubLabel && entry.todayScore !== null ? <div className="text-[8px] font-black uppercase tracking-[0.08em] text-[#657168]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div> : null}
+                        {totalScoreSubLabel && entry.todayScore !== null ? <div className="text-[8px] font-black uppercase tracking-[0.08em] text-[#657168]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div> : null}
                       </div>
                       <div className="flex items-center justify-center text-[#111]" aria-label={isOpen ? 'Collapse entry' : 'Expand entry'}>
                         <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
@@ -740,7 +741,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                           })}
                           <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>
                             <div>{formatScore(entry.totalScore)}</div>
-                            {totalScoreSubLabel && entry.todayScore !== null ? <div className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.08em] text-[#657168]">{totalScoreSubLabel}: {formatScore(entry.todayScore)}</div> : null}
+                            {totalScoreSubLabel && entry.todayScore !== null ? <div className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.08em] text-[#657168]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div> : null}
                           </td>
                         </tr>
                         {outOfBoundsPicks.length > 0 && (
@@ -783,7 +784,7 @@ function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: Entr
   const scored = buildScoredEntries(pool, allEntries)
   const current = scored.find(scoredEntry => scoredEntry.entryId === entry.id)
   if (!current) return null
-  return { rank: current.rank, totalScore: current.totalScore, movementToday: entryMovementToday(current, scored) }
+  return { rank: current.rank, totalScore: current.totalScore, todayScore: current.todayScore, movementToday: entryMovementToday(current, scored) }
 }
 
 function entryPicks(entry?: EntryRecord | null) {
@@ -1064,7 +1065,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
               className={`${useSinglePoolMobileLayout ? 'bg-transparent sm:bg-white' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'} group`}
             >
               <summary className={`${useSinglePoolMobileLayout ? 'hidden sm:block' : 'block'} cursor-pointer list-none px-2.5 py-2 transition-colors hover:bg-[#fff8e8] sm:px-5 sm:py-3 [&::-webkit-details-marker]:hidden`}>
-                <div className="grid min-h-10 min-w-0 grid-cols-[32px_minmax(0,1fr)_72px_72px] items-center gap-2 sm:min-h-11 sm:grid-cols-[40px_minmax(0,1fr)_86px_86px] sm:gap-3">
+                <div className="grid min-h-10 min-w-0 grid-cols-[32px_minmax(0,1fr)_72px_112px] items-center gap-2 sm:min-h-11 sm:grid-cols-[40px_minmax(0,1fr)_86px_132px] sm:gap-3">
                   <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center border border-[#123c2f] ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'} sm:h-9 sm:w-9`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
@@ -1109,10 +1110,20 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                     {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
                   </div>
                   {eventBegun ? (
-                    <div className="flex h-8 shrink-0 items-center justify-center gap-1 border border-[#123c2f] bg-white px-1.5 text-[13px] font-black uppercase leading-none text-[#111] shadow-[2px_2px_0_#d8cab0] sm:h-9 sm:gap-2 sm:px-2 sm:text-base">
-                      {rankPreview?.rank ? <span className="text-[#123c2f]">#{rankPreview.rank}</span> : <span className="text-[#657168]">—</span>}
-                      <span className="text-[#657168]">/</span>
-                      <span className={scoreClass(rankPreview?.totalScore ?? null)}>{formatScore(rankPreview?.totalScore ?? null)}</span>
+                    <div className="flex min-h-10 shrink-0 flex-col items-center justify-center border border-[#123c2f] bg-white px-1.5 py-1 text-[13px] font-black uppercase leading-none text-[#111] shadow-[2px_2px_0_#d8cab0] sm:min-h-11 sm:px-2 sm:text-base">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        {rankPreview?.rank ? <span className="text-[#123c2f]">#{rankPreview.rank}</span> : <span className="text-[#657168]">—</span>}
+                        <span className="text-[#657168]">/</span>
+                        <span className={scoreClass(rankPreview?.totalScore ?? null)}>{formatScore(rankPreview?.totalScore ?? null)}</span>
+                      </div>
+                      {(typeof rankPreview?.todayScore === 'number' || rankPreview?.movementToday) ? (
+                        <div className="mt-1 flex items-center gap-1 text-[9px] leading-none text-[#657168] sm:text-[10px]">
+                          {typeof rankPreview?.todayScore === 'number' ? <span>Today <span className={scoreClass(rankPreview.todayScore)}>{formatScore(rankPreview.todayScore)}</span></span> : null}
+                          {typeof rankPreview?.todayScore === 'number' && rankPreview?.movementToday ? <span>/</span> : null}
+                          {rankPreview?.movementToday?.direction === 'up' ? <span className="text-[#1f6b4a]">↑ {rankPreview.movementToday.spots}</span> : null}
+                          {rankPreview?.movementToday?.direction === 'down' ? <span className="text-[#b21e23]">↓ {rankPreview.movementToday.spots}</span> : null}
+                        </div>
+                      ) : null}
                     </div>
                   ) : <div />}
                 </div>
