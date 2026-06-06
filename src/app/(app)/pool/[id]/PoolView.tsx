@@ -961,6 +961,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const rows = activeEntries.map(entry => {
       const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
       return [
+        '',
         entry.display_name || 'Player',
         entry.has_paid ? 'Confirmed' : 'Open',
         picks.length,
@@ -969,7 +970,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ]
     })
     const csv = [
-      ['Entry', 'Status', 'Picks made', 'Picks needed', 'Golfers'],
+      ['', 'Entry', 'Status', 'Picks made', 'Picks needed', 'Golfers'],
       ...rows,
     ].map(row => row.map(csvCell).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
@@ -2711,40 +2712,36 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               const picksComplete = pickCount >= pool.pick_count
               const entryConfirmed = Boolean(entry.has_paid)
               return (
-                <div key={entry.id} className={`px-5 py-3 border-b border-stone-100 flex items-center justify-between gap-3 ${entry.is_removed ? 'opacity-40' : ''}`}>
-                  <div className="min-w-0">
-                    <p className="font-medium text-stone-900">{entry.display_name}</p>
-                    <p className="text-stone-500 text-xs">
-                      {pickCount}/{pool.pick_count} Picks
-                      {!entry.is_removed && <span className="ml-2">{entryConfirmed ? 'Confirmed' : 'Open'}</span>}
-                      {entry.is_removed && <span className="text-red-700 ml-2">Removed: {entry.removed_reason}</span>}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                    {!entry.is_removed && (
-                      <span className={`border px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${entryConfirmed ? 'border-[#b58a3a] bg-[#fff4cf] text-[#7a5a19]' : 'border-stone-300 bg-white text-stone-700'}`}>
-                        {entryConfirmed ? 'Confirmed' : 'Open'}
-                      </span>
-                    )}
-                    {!entry.is_removed && (
-                      <span className={`border px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${picksComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-                        {picksComplete ? 'Finalized' : `Needs ${pool.pick_count - pickCount}`}
-                      </span>
-                    )}
-                    {!entry.is_removed && (
+                <div key={entry.id} className={`border-b border-stone-100 px-5 py-3 ${entry.is_removed ? 'opacity-40' : ''}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words font-medium text-stone-900">{entry.display_name}</p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        {pickCount}/{pool.pick_count} picks · {picksComplete ? 'Finalized' : `Needs ${pool.pick_count - pickCount}`}
+                        {entry.is_removed && <span className="ml-2 text-red-700">Removed: {entry.removed_reason}</span>}
+                      </p>
+                    </div>
+                    {!entry.is_removed && entry.user_id !== userId && (
                       <button
                         type="button"
-                        onClick={() => toggleEntryConfirmation(entry.id, !entryConfirmed)}
-                        className="border border-stone-300 px-2 py-1 text-xs font-bold text-stone-700 hover:border-[#123c2f] hover:text-[#123c2f]"
+                        onClick={() => setRemoveTarget(entry.id)}
+                        className="shrink-0 text-xs text-red-700 hover:text-red-800"
                       >
-                        {entryConfirmed ? 'Mark open' : 'Mark confirmed'}
+                        Remove
                       </button>
                     )}
-                    {!entry.is_removed && entry.user_id !== userId && (
-                      <button onClick={() => setRemoveTarget(entry.id)}
-                        className="text-xs text-red-700 hover:text-red-800 px-2">Remove</button>
-                    )}
                   </div>
+                  {!entry.is_removed && (
+                    <label className="mt-3 flex w-fit items-center gap-2 text-sm font-semibold text-stone-700">
+                      <input
+                        type="checkbox"
+                        checked={entryConfirmed}
+                        onChange={event => toggleEntryConfirmation(entry.id, event.target.checked)}
+                        className="h-4 w-4 rounded-none border-stone-400 accent-[#123c2f]"
+                      />
+                      Confirmed
+                    </label>
+                  )}
                 </div>
               )
             })}
