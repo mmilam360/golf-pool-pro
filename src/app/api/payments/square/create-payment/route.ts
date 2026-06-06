@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -8,6 +9,12 @@ export const runtime = 'nodejs'
 
 function normalizePromoCode(value: unknown) {
   return typeof value === 'string' ? value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '') : ''
+}
+
+function squarePaymentAttemptKey(poolId: string, activeEntryCount: number, amountDueCents: number, paymentSourceId: string) {
+  const compactPoolId = poolId.replace(/-/g, '').slice(0, 16)
+  const sourceHash = createHash('sha256').update(paymentSourceId).digest('hex').slice(0, 10)
+  return `gpp_${compactPoolId}_${activeEntryCount}_${amountDueCents}_${sourceHash}`
 }
 
 export async function POST(request: Request) {
@@ -165,8 +172,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Payment opens after picks lock.' }, { status: 409 })
     }
 
-    const compactPoolId = poolId.replace(/-/g, '')
-    const idempotencyKey = `gpp_${compactPoolId}_${activeEntryCount}_${finalAmountDueCents}`
     let paymentSourceId = sourceId
     let squareCustomerId: string | null = null
     let savedCardForResponse: any = null
@@ -238,6 +243,8 @@ export async function POST(request: Request) {
       } as any, { onConflict: 'square_card_id' }).select('id, brand, last_4, exp_month, exp_year').maybeSingle()
       savedCardForResponse = savedCard || null
     }
+
+    const idempotencyKey = squarePaymentAttemptKey(poolId, activeEntryCount, finalAmountDueCents, paymentSourceId)
 
     const payment = await createSquarePayment({
       sourceId: paymentSourceId,
