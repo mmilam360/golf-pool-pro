@@ -357,7 +357,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [promoLoading, setPromoLoading] = useState(false)
   const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null)
   const [selectedSavedCardId, setSelectedSavedCardId] = useState('')
-  const [saveCard, setSaveCard] = useState(false)
   const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(initialHighlightedEntryId)
   const [forceOpenEntryId, setForceOpenEntryId] = useState<string | null>(null)
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
@@ -850,7 +849,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           poolId: pool.id,
           sourceId,
           promoCode: appliedPromo?.code || null,
-          saveCard: amountDue > 0 && !useSavedCard && saveCard,
+          saveCard: false,
           savedCardId: useSavedCard ? selectedSavedCardId : null,
         }),
       })
@@ -2501,15 +2500,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             {!paymentCardReady && (
                               <p className="text-xs font-semibold text-stone-600">Card form is loading.</p>
                             )}
-                            <label className="flex cursor-pointer items-start gap-2 border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-800">
-                              <input
-                                type="checkbox"
-                                checked={saveCard}
-                                onChange={event => setSaveCard(event.target.checked)}
-                                className="mt-0.5 h-4 w-4 shrink-0 accent-[#123c2f]"
-                              />
-                              <span>Save this card for faster pool payments. No auto-pay.</span>
-                            </label>
                           </>
                         )}
                         {useSavedCard && selectedSavedCard && (
