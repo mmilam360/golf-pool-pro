@@ -350,6 +350,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentCardReady, setPaymentCardReady] = useState(false)
   const [paymentFeedback, setPaymentFeedback] = useState('')
+  const [saveCardPaymentId, setSaveCardPaymentId] = useState('')
+  const [saveCardLoading, setSaveCardLoading] = useState(false)
+  const [saveCardFeedback, setSaveCardFeedback] = useState('')
   const [promoOpen, setPromoOpen] = useState(false)
   const [obRulesOpen, setObRulesOpen] = useState(false)
   const [openEntryIds, setOpenEntryIds] = useState<Set<string>>(() => new Set())
@@ -869,6 +872,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       })
       setPaymentFeedback(successMessage)
       setStatusMessage(successMessage)
+      if (data.paymentId && amountDue > 0 && !useSavedCard) {
+        setSaveCardPaymentId(data.paymentId)
+        setSaveCardFeedback('')
+      }
       showToast(successMessage, 'success')
       await refreshPaymentQuote()
     } catch (error: any) {
@@ -885,6 +892,37 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       showToast(message, 'error')
     } finally {
       setPaymentLoading(false)
+    }
+  }
+
+  async function saveCardAfterPayment() {
+    if (!saveCardPaymentId) return
+
+    setSaveCardLoading(true)
+    setSaveCardFeedback('Saving card...')
+    try {
+      const res = await fetch('/api/payments/square/save-card', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poolId: pool.id, paymentId: saveCardPaymentId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Card could not be saved.')
+
+      const card = data.savedCard
+      const message = card?.last_4
+        ? `${card.brand || 'Card'} ending ${card.last_4} saved for next time.`
+        : 'Card saved for next time.'
+      setSaveCardPaymentId('')
+      setSaveCardFeedback(message)
+      showToast(message, 'success')
+      await refreshPaymentQuote()
+    } catch (error: any) {
+      const message = error?.message || 'Card could not be saved.'
+      setSaveCardFeedback(message)
+      showToast(message, 'error')
+    } finally {
+      setSaveCardLoading(false)
     }
   }
 
@@ -2412,6 +2450,45 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
               <span className={`inline-flex w-fit border px-3 py-1 text-xs font-black uppercase tracking-[0.08em] ${feeStatusClass}`}>{feeStatusLabel}</span>
             </div>
+
+            {paymentStatus === 'active' && (saveCardPaymentId || saveCardFeedback) && (
+              <div className="mt-4 border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-900">
+                {saveCardPaymentId ? (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-black uppercase tracking-[0.08em]">Save this card?</p>
+                      <p className="mt-1 text-xs leading-5 text-emerald-800">Use it for faster pool fees next time. No auto-pay.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={saveCardAfterPayment}
+                        disabled={saveCardLoading}
+                        className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {saveCardLoading ? 'Saving...' : 'Save card'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSaveCardPaymentId('')
+                          setSaveCardFeedback('')
+                        }}
+                        disabled={saveCardLoading}
+                        className="border-2 border-emerald-800 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-emerald-900 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Not now
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p>{saveCardFeedback}</p>
+                )}
+                {saveCardPaymentId && saveCardFeedback && (
+                  <p className="mt-2 border border-emerald-300 bg-white px-3 py-2 text-xs text-emerald-900">{saveCardFeedback}</p>
+                )}
+              </div>
+            )}
 
             {paymentStatus !== 'active' && paymentQuote?.requiresCustomQuote && (
               <p className="mt-4 border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">This pool needs manual pricing.</p>
