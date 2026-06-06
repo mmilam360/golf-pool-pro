@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing payment details' }, { status: 400 })
     }
 
-    if (savedCardId !== undefined && typeof savedCardId !== 'string') {
+    if (savedCardId != null && typeof savedCardId !== 'string') {
       return NextResponse.json({ error: 'Saved card is invalid' }, { status: 400 })
     }
 

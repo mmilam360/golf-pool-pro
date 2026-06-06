@@ -926,6 +926,64 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
   }
 
+  async function toggleEntryConfirmation(entryId: string, confirmed: boolean) {
+    const previousEntries = entries
+    setEntries(current => current.map(entry => entry.id === entryId ? {
+      ...entry,
+      has_paid: confirmed,
+    } : entry))
+
+    try {
+      const res = await fetch('/api/pools/entry-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poolId: pool.id, entryId, confirmed }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Entry could not be updated.')
+      setEntries(current => current.map(entry => entry.id === entryId ? {
+        ...entry,
+        has_paid: Boolean(data.entry?.has_paid),
+      } : entry))
+      showToast(confirmed ? 'Entry marked confirmed.' : 'Entry marked open.', 'success')
+    } catch (error: any) {
+      setEntries(previousEntries)
+      showToast(error?.message || 'Entry could not be updated.', 'error')
+    }
+  }
+
+  function csvCell(value: unknown) {
+    const text = value == null ? '' : String(value)
+    return `"${text.replace(/"/g, '""')}"`
+  }
+
+  function exportEntriesCsv() {
+    const rows = activeEntries.map(entry => {
+      const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
+      return [
+        entry.display_name || 'Player',
+        entry.has_paid ? 'Confirmed' : 'Open',
+        picks.length,
+        pool.pick_count,
+        picks.join('; '),
+      ]
+    })
+    const csv = [
+      ['Entry', 'Status', 'Picks made', 'Picks needed', 'Golfers'],
+      ...rows,
+    ].map(row => row.map(csvCell).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const safePoolName = (poolName || 'pool').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'pool'
+    link.href = url
+    link.download = `${safePoolName}-entries.csv`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
+
   // Fetch live leaderboard. Never refresh completed tournaments from ESPN here:
   // ESPN's old-event payload can degrade to anonymous/partial rows, which would
   // overwrite the stored final board in the browser and make finished pools look broken.
@@ -2635,26 +2693,52 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           )}
           {/* Entries management */}
           <div className="bg-white rounded-none border border-stone-200 overflow-hidden shadow-[5px_5px_0_#d8cab0]">
-            <div className="px-5 py-4 border-b border-stone-200 bg-stone-50">
-              <h3 className="text-lg font-semibold text-emerald-950">Manage entries ({activeEntries.length})</h3>
+            <div className="flex flex-col gap-3 border-b border-stone-200 bg-stone-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-emerald-950">Manage entries ({activeEntries.length})</h3>
+                <p className="mt-1 text-xs font-semibold text-stone-600">Track which entries are confirmed. This is private to the pool runner.</p>
+              </div>
+              <button
+                type="button"
+                onClick={exportEntriesCsv}
+                className="w-fit border-2 border-[#123c2f] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f] transition-colors hover:bg-[#eef7ef]"
+              >
+                Export CSV
+              </button>
             </div>
             {entries.map(entry => {
               const pickCount = entry.submitted_pick_count ?? ((entry.golfer_picks as string[]) || []).length
               const picksComplete = pickCount >= pool.pick_count
+              const entryConfirmed = Boolean(entry.has_paid)
               return (
                 <div key={entry.id} className={`px-5 py-3 border-b border-stone-100 flex items-center justify-between gap-3 ${entry.is_removed ? 'opacity-40' : ''}`}>
                   <div className="min-w-0">
                     <p className="font-medium text-stone-900">{entry.display_name}</p>
                     <p className="text-stone-500 text-xs">
                       {pickCount}/{pool.pick_count} Picks
+                      {!entry.is_removed && <span className="ml-2">{entryConfirmed ? 'Confirmed' : 'Open'}</span>}
                       {entry.is_removed && <span className="text-red-700 ml-2">Removed: {entry.removed_reason}</span>}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    {!entry.is_removed && (
+                      <span className={`border px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${entryConfirmed ? 'border-[#b58a3a] bg-[#fff4cf] text-[#7a5a19]' : 'border-stone-300 bg-white text-stone-700'}`}>
+                        {entryConfirmed ? 'Confirmed' : 'Open'}
+                      </span>
+                    )}
                     {!entry.is_removed && (
                       <span className={`border px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${picksComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
                         {picksComplete ? 'Finalized' : `Needs ${pool.pick_count - pickCount}`}
                       </span>
+                    )}
+                    {!entry.is_removed && (
+                      <button
+                        type="button"
+                        onClick={() => toggleEntryConfirmation(entry.id, !entryConfirmed)}
+                        className="border border-stone-300 px-2 py-1 text-xs font-bold text-stone-700 hover:border-[#123c2f] hover:text-[#123c2f]"
+                      >
+                        {entryConfirmed ? 'Mark open' : 'Mark confirmed'}
+                      </button>
                     )}
                     {!entry.is_removed && entry.user_id !== userId && (
                       <button onClick={() => setRemoveTarget(entry.id)}
