@@ -970,7 +970,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ]
     })
     const csv = [
-      ['', 'Entry', 'Status', 'Picks made', 'Picks needed', 'Golfers'],
+      ['Confirmed', 'Entry', 'Status', 'Picks made', 'Picks needed', 'Golfers'],
       ...rows,
     ].map(row => row.map(csvCell).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
