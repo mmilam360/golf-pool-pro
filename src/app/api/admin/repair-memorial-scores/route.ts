@@ -103,7 +103,7 @@ export async function POST(request: Request) {
       notificationCandidates += 1
       const title = 'Scores corrected'
       const body = `${pool.name}: final standings have been recalculated.`
-      const dedupeKey = `corrected_scores:${pool.id}:${MEMORIAL_EXTERNAL_ID}:${userId}:v1`
+      const dedupeKey = `corrected_scores:${pool.id}:${MEMORIAL_EXTERNAL_ID}:${userId}:v2`
       const inserted = await recordNotificationEvent({
         userId,
         poolId: pool.id,
