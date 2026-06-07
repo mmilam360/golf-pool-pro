@@ -66,6 +66,7 @@ const weekendPlayerOverCutLine = mapCompetitorToPlayer({
 })
 const missedCutPlayer = mapCompetitorToPlayer({
   id: 'missed-cut',
+  order: 54,
   athlete: { displayName: 'Missed Cut' },
   score: '+7',
   linescores: [
@@ -73,9 +74,20 @@ const missedCutPlayer = mapCompetitorToPlayer({
     { period: 2, displayValue: '+4', linescores: Array.from({ length: 18 }, (_, index) => ({ period: index + 1, value: 4 })) },
   ],
 })
-const officialCutApplied = applyOfficialCutStatus([weekendPlayerOverCutLine, missedCutPlayer], { score: '+5', scoreToPar: 5, count: 53, projected: false })
+const insideCutCountPlayer = mapCompetitorToPlayer({
+  id: 'inside-cut-count',
+  order: 20,
+  athlete: { displayName: 'Inside Cut Count' },
+  score: '+4',
+  linescores: [
+    { period: 1, displayValue: '+2', linescores: Array.from({ length: 18 }, (_, index) => ({ period: index + 1, value: 4 })) },
+    { period: 2, displayValue: '+2', linescores: Array.from({ length: 18 }, (_, index) => ({ period: index + 1, value: 4 })) },
+  ],
+})
+const officialCutApplied = applyOfficialCutStatus([weekendPlayerOverCutLine, missedCutPlayer, insideCutCountPlayer], { score: '+5', scoreToPar: 5, count: 53, projected: false })
 assert(officialCutApplied[0].status === 'active', 'keeps players active when they have weekend-round evidence')
 assert(officialCutApplied[1].status === 'cut', 'still marks players cut when they missed the official cut')
+assert(officialCutApplied[2].status === 'active', 'does not mark players cut when they are inside the official cut count')
 
 const golfApi = readFileSync(new URL('../src/lib/golf-api.ts', import.meta.url), 'utf8')
 const tournamentSync = readFileSync(new URL('../src/lib/tournament-sync.ts', import.meta.url), 'utf8')

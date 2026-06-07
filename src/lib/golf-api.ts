@@ -273,16 +273,20 @@ export async function enrichPlayersWithFirstRoundTeeTimes(eventId: string, compe
 }
 
 export function applyOfficialCutStatus(players: GolfPlayer[], cutLine?: GolfCutLine | null) {
-  if (!cutLine || cutLine.projected || !Number.isFinite(cutLine.scoreToPar)) return players
+  if (!cutLine || cutLine.projected) return players
   return players.map(player => {
     if (player.status !== 'active') return player
-    if (player.scoreToPar <= cutLine.scoreToPar) return player
     if (hasWeekendRoundEvidence(player)) return player
-    // ESPN keeps missed-cut golfers in the scoreboard with their Friday round line as
-    // roundScore/thru. If there is no tee time/current-round line for today after the
-    // official cut, treat them as cut so pool scoring and display stop ranking them
-    // above worse-scoring golfers who actually made the weekend.
     if (player.teeTime) return player
+
+    const position = Number(player.position)
+    const outsideCutCount = Number.isFinite(cutLine.count) && Number.isFinite(position) && position > Number(cutLine.count)
+    const outsideCutScore = Number.isFinite(cutLine.scoreToPar) && player.scoreToPar > cutLine.scoreToPar
+    if (!outsideCutCount && !outsideCutScore) return player
+
+    // ESPN's explicit cut status is not always present in the site API. When it is
+    // absent, use the scoreboard shape: made-cut players have weekend round lines;
+    // missed-cut players stop after Friday and sit outside the official cut count.
     return { ...player, status: 'cut' as const, thru: '', roundScore: '', position: 'CUT' }
   })
 }
