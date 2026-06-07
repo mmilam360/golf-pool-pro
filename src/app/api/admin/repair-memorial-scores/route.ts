@@ -22,7 +22,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: 'Could not fetch Memorial leaderboard' }, { status: 502 })
   }
 
-  const weekendCutErrors = leaderboard.leaderboard.filter(player =>
+  const repairedLeaderboard = leaderboard.leaderboard.map(player => {
+    const hasWeekendScores = (player.roundScores || []).some(round => Number(round.round) >= 3 && (round.complete || (round.holes || []).length > 0))
+    if (player.status === 'cut' && hasWeekendScores) {
+      return { ...player, status: 'active' as const, position: player.position === 'CUT' ? '' : player.position }
+    }
+    return player
+  })
+
+  const weekendCutErrors = repairedLeaderboard.filter(player =>
     player.status === 'cut'
     && (player.roundScores || []).some(round => Number(round.round) >= 3 && (round.complete || (round.holes || []).length > 0))
   )
@@ -35,15 +43,15 @@ export async function POST(request: Request) {
     }, { status: 409 })
   }
 
-  const completed = finalRoundLooksComplete(leaderboard.leaderboard, leaderboard.round)
+  const completed = finalRoundLooksComplete(repairedLeaderboard, leaderboard.round)
   const status = completed ? 'completed' : leaderboard.status
 
   const { data: tournament, error: tournamentError } = await supabase
     .from('gpp_tournaments')
     .update({
       status,
-      leaderboard_json: leaderboard.leaderboard,
-      field_json: leaderboard.leaderboard,
+      leaderboard_json: repairedLeaderboard,
+      field_json: repairedLeaderboard,
       last_scores_fetch: new Date().toISOString(),
     })
     .eq('external_id', MEMORIAL_EXTERNAL_ID)
@@ -101,9 +109,9 @@ export async function POST(request: Request) {
     ok: true,
     tournament: { id: tournament.id, name: tournament.name, status },
     leaderboard: {
-      players: leaderboard.leaderboard.length,
-      active: leaderboard.leaderboard.filter(player => player.status === 'active').length,
-      cut: leaderboard.leaderboard.filter(player => player.status === 'cut').length,
+      players: repairedLeaderboard.length,
+      active: repairedLeaderboard.filter(player => player.status === 'active').length,
+      cut: repairedLeaderboard.filter(player => player.status === 'cut').length,
       round: leaderboard.round,
       completed,
     },
