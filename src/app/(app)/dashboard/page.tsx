@@ -12,7 +12,8 @@ import { dismissFinalResultAnnouncement } from '@/app/(app)/dashboard/final-resu
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import { selectFinalResultAnnouncement, type FinalResultAnnouncementCandidate } from '@/lib/final-result-announcements'
 import { hasOnCourseScores } from '@/lib/golf-live'
-import { getLeaderboard, type GolfCutLine, type GolfPlayer } from '@/lib/golf-api'
+import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
+import { hydrateFinalLeaderboards } from '@/lib/fresh-final-leaderboard'
 
 type Tournament = {
   id?: string | null
@@ -100,24 +101,6 @@ function uniqueTournamentIds(pools: PoolRecord[], predicate: (pool: PoolRecord, 
       .map(pool => tournamentId(pool))
       .filter((id): id is string => Boolean(id))
   ))
-}
-
-async function hydrateCompletedLeaderboards(tournaments: Partial<Tournament>[]) {
-  return Promise.all(tournaments.map(async tournament => {
-    if (!tournament.external_id) return tournament
-    try {
-      const fresh = await getLeaderboard(tournament.external_id)
-      if (fresh?.leaderboard?.length) {
-        return {
-          ...tournament,
-          leaderboard_json: fresh.leaderboard,
-        }
-      }
-    } catch {
-      // Keep the stored board if the fresh source is temporarily unavailable.
-    }
-    return tournament
-  }))
 }
 
 function tournamentSortDate(pool?: PoolRecord | null) {
@@ -414,7 +397,7 @@ export default async function DashboardPage() {
         .in('id', completedTournamentIds)
       : Promise.resolve({ data: [] }),
   ])
-  const completedTournamentJson = await hydrateCompletedLeaderboards((completedTournamentJsonResult.data ?? []) as Partial<Tournament>[])
+  const completedTournamentJson = await hydrateFinalLeaderboards((completedTournamentJsonResult.data ?? []) as Partial<Tournament>[])
   const tournamentJsonById = new Map<string, Partial<Tournament>>(
     [
       ...((activeTournamentJsonResult.data ?? []) as Partial<Tournament>[]),

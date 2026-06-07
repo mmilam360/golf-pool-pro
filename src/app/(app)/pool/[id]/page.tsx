@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import PoolView from './PoolView'
 import { buildPreviousPlayerCandidates, summarizeInviteStatuses } from '@/lib/pool-invite-logic'
+import { hydrateFinalLeaderboard } from '@/lib/fresh-final-leaderboard'
 
 export default async function PoolPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ inviteFrom?: string; tab?: string; error?: string }> }) {
   const { id } = await params
@@ -31,7 +32,8 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
 
   if (!pool) redirect('/dashboard')
 
-  const tournament = pool.gpp_tournaments as any
+  const tournament = await hydrateFinalLeaderboard(pool.gpp_tournaments as any)
+  pool.gpp_tournaments = tournament
   const isOwner = pool.owner_id === user.id
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
   const picksAreVisible = pool.is_locked || scoringIsLive

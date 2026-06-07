@@ -10,6 +10,7 @@ import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import ClaimedPromoBanner from '@/components/ClaimedPromoBanner'
 import { displayTournamentName } from '@/lib/tournament-name'
 import type { GolfPlayer } from '@/lib/golf-api'
+import { hydrateFinalLeaderboard } from '@/lib/fresh-final-leaderboard'
 
 type Tournament = {
   id?: string | null
@@ -342,6 +343,12 @@ export default async function ManagePoolsPage() {
     .order('start_date', { ascending: true })
 
   const owned = (ownedPools ?? []) as PoolRecord[]
+  await Promise.all(owned.map(async pool => {
+    const tournament = getTournament(pool)
+    if (!tournament) return
+    const freshTournament = await hydrateFinalLeaderboard(tournament)
+    if (freshTournament) Object.assign(tournament, freshTournament)
+  }))
   const nextOpenTournament = selectNextRunItBackTournament((upcomingTournaments ?? []) as Tournament[])
   const ownedPoolIds = owned.map(pool => pool.id)
   const { data: ownedPoolEntries } = ownedPoolIds.length
@@ -364,7 +371,7 @@ export default async function ManagePoolsPage() {
   const finalPools = owned.filter(pool => {
     const tournament = getTournament(pool)
     return Boolean(pool.is_completed || tournament?.status === 'completed')
-  })
+  }).sort((a, b) => String(getTournament(b)?.start_date || getTournament(b)?.end_date || '').localeCompare(String(getTournament(a)?.start_date || getTournament(a)?.end_date || '')))
 
   return (
     <div className="space-y-8">

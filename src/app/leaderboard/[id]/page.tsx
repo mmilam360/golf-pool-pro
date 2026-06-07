@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import PoolView from '@/app/(app)/pool/[id]/PoolView'
 import { hasOnCourseScores } from '@/lib/golf-live'
+import { hydrateFinalLeaderboard } from '@/lib/fresh-final-leaderboard'
 
 export default async function PublicLeaderboardPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ entry?: string }> }) {
   const { id } = await params
@@ -20,7 +21,8 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
 
   if (!pool) notFound()
 
-  const tournament = pool.gpp_tournaments as any
+  const tournament = await hydrateFinalLeaderboard(pool.gpp_tournaments as any)
+  pool.gpp_tournaments = tournament
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
   const picksAreVisible = pool.is_locked || scoringIsLive
