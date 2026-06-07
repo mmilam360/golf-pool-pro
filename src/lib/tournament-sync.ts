@@ -48,9 +48,23 @@ function extractPlayers(event: any) {
 export function finalRoundLooksComplete(players: any[], round?: number | null) {
   const reportedRound = Number(round || 0)
   if (reportedRound < 4) return false
-  const scoringRound = Math.min(reportedRound, 4)
   const activePlayers = players.filter(player => player?.status === 'active')
   if (activePlayers.length === 0) return false
+
+  const activeRounds = activePlayers.flatMap(player =>
+    (Array.isArray(player?.roundScores) ? player.roundScores : [])
+      .map((score: any) => Number(score?.round))
+      .filter(Number.isFinite)
+  )
+  const latestScorecardRound = Math.max(0, ...activeRounds)
+  const scoringRound = activePlayers.some(player =>
+    (Array.isArray(player?.roundScores) ? player.roundScores : []).some((score: any) => Number(score?.round) === reportedRound)
+  )
+    ? reportedRound
+    : latestScorecardRound
+
+  if (scoringRound < 4) return false
+
   return activePlayers.every(player => {
     if (String(player?.thru || '').toUpperCase() === 'F') return true
     const finalRound = Array.isArray(player?.roundScores)
