@@ -15,9 +15,22 @@ type CachedDashboard = {
 
 const CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000
 
-function cachedCardHasLiveScores(card: DashboardActivePoolsProps['cards'][number]) {
+function leaderboardHasWeekendCutStatusErrors(leaderboard: unknown) {
+  if (!Array.isArray(leaderboard)) return false
+  return leaderboard.some((player: any) => {
+    if (String(player?.status || '').toLowerCase() !== 'cut') return false
+    const rounds = Array.isArray(player?.roundScores) ? player.roundScores : []
+    return rounds.some((round: any) =>
+      Number(round?.round) >= 3 && (Boolean(round?.complete) || (Array.isArray(round?.holes) && round.holes.length > 0))
+    )
+  })
+}
+
+function cachedCardHasLiveOrBadScores(card: DashboardActivePoolsProps['cards'][number]) {
   const tournament = card.tournament
-  return tournament?.status === 'live' || hasOnCourseScores(tournament?.leaderboard_json)
+  return tournament?.status === 'live'
+    || hasOnCourseScores(tournament?.leaderboard_json)
+    || leaderboardHasWeekendCutStatusErrors(tournament?.leaderboard_json)
 }
 
 function readCachedDashboard(): CachedDashboard | null {
@@ -41,7 +54,7 @@ export default function DashboardCachedActivePools() {
     setCached(readCachedDashboard())
   }, [])
 
-  if (!cached?.cards?.length || !cached.entriesByPool || cached.cards.some(cachedCardHasLiveScores)) {
+  if (!cached?.cards?.length || !cached.entriesByPool || cached.cards.some(cachedCardHasLiveOrBadScores)) {
     return (
       <section className="border-2 border-[#123c2f] bg-white p-5 shadow-[7px_7px_0_#d8cab0] sm:p-7">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Loading dashboard</p>
