@@ -12,7 +12,7 @@ import { dismissFinalResultAnnouncement } from '@/app/(app)/dashboard/final-resu
 import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
 import { selectFinalResultAnnouncement, type FinalResultAnnouncementCandidate } from '@/lib/final-result-announcements'
 import { hasOnCourseScores } from '@/lib/golf-live'
-import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
+import { getLeaderboard, type GolfCutLine, type GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
   id?: string | null
@@ -100,6 +100,29 @@ function uniqueTournamentIds(pools: PoolRecord[], predicate: (pool: PoolRecord, 
       .map(pool => tournamentId(pool))
       .filter((id): id is string => Boolean(id))
   ))
+}
+
+async function hydrateCompletedLeaderboards(tournaments: Partial<Tournament>[]) {
+  return Promise.all(tournaments.map(async tournament => {
+    if (!tournament.external_id) return tournament
+    try {
+      const fresh = await getLeaderboard(tournament.external_id)
+      if (fresh?.leaderboard?.length) {
+        return {
+          ...tournament,
+          leaderboard_json: fresh.leaderboard,
+        }
+      }
+    } catch {
+      // Keep the stored board if the fresh source is temporarily unavailable.
+    }
+    return tournament
+  }))
+}
+
+function tournamentSortDate(pool?: PoolRecord | null) {
+  const tournament = getTournament(pool)
+  return tournament?.start_date || tournament?.end_date || ''
 }
 
 
@@ -387,14 +410,15 @@ export default async function DashboardPage() {
     completedTournamentIds.length
       ? supabase
         .from('gpp_tournaments')
-        .select('id, leaderboard_json')
+        .select('id, external_id, leaderboard_json')
         .in('id', completedTournamentIds)
       : Promise.resolve({ data: [] }),
   ])
+  const completedTournamentJson = await hydrateCompletedLeaderboards((completedTournamentJsonResult.data ?? []) as Partial<Tournament>[])
   const tournamentJsonById = new Map<string, Partial<Tournament>>(
     [
       ...((activeTournamentJsonResult.data ?? []) as Partial<Tournament>[]),
-      ...((completedTournamentJsonResult.data ?? []) as Partial<Tournament>[]),
+      ...completedTournamentJson,
     ]
       .filter(row => row.id)
       .map(row => [String(row.id), row])
@@ -431,7 +455,7 @@ export default async function DashboardPage() {
     const pool = getPool(entry)
     const tournament = getTournament(pool)
     return Boolean(pool && !isActivePool(pool, tournament))
-  })
+  }).sort((a, b) => tournamentSortDate(getPool(b)).localeCompare(tournamentSortDate(getPool(a))))
   const dismissedPoolIds = new Set((dismissedFinalResults ?? []).map(row => String(row.pool_id)).filter(Boolean))
   const nextOpenTournament = selectNextRunItBackTournament((upcomingTournaments ?? []) as Tournament[])
   const finalResultCandidates: FinalResultAnnouncementCandidate[] = pastEntries.flatMap(entry => {
