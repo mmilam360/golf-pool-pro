@@ -277,6 +277,7 @@ export function applyOfficialCutStatus(players: GolfPlayer[], cutLine?: GolfCutL
   return players.map(player => {
     if (player.status !== 'active') return player
     if (player.scoreToPar <= cutLine.scoreToPar) return player
+    if (hasWeekendRoundEvidence(player)) return player
     // ESPN keeps missed-cut golfers in the scoreboard with their Friday round line as
     // roundScore/thru. If there is no tee time/current-round line for today after the
     // official cut, treat them as cut so pool scoring and display stop ranking them
@@ -284,6 +285,12 @@ export function applyOfficialCutStatus(players: GolfPlayer[], cutLine?: GolfCutL
     if (player.teeTime) return player
     return { ...player, status: 'cut' as const, thru: '', roundScore: '', position: 'CUT' }
   })
+}
+
+function hasWeekendRoundEvidence(player: GolfPlayer) {
+  return (player.roundScores || []).some(round =>
+    Number(round.round) >= 3 && (round.complete || (Array.isArray(round.holes) && round.holes.length > 0))
+  )
 }
 
 export function inferInactiveStatusesFromRounds(players: GolfPlayer[], round?: number | null) {

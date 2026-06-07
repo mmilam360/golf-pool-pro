@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { mapCompetitorToPlayer, parseProjectedCutLineFromHtml } from '../src/lib/golf-api.ts'
+import { applyOfficialCutStatus, mapCompetitorToPlayer, parseProjectedCutLineFromHtml } from '../src/lib/golf-api.ts'
 
 function assert(condition, message) {
   if (!condition) throw new Error(message)
@@ -52,6 +52,30 @@ assert(cutLine?.score === '+3', 'parses ESPN projected cut score')
 assert(cutLine?.scoreToPar === 3, `parses projected cut to par, got ${cutLine?.scoreToPar}`)
 assert(cutLine?.count === 72, `parses projected cut count, got ${cutLine?.count}`)
 assert(cutLine?.projected === true, 'parses projected cut flag')
+
+const weekendPlayerOverCutLine = mapCompetitorToPlayer({
+  id: 'weekend-over-cut-line',
+  athlete: { displayName: 'Weekend Player' },
+  score: '+7',
+  linescores: [
+    { period: 1, displayValue: '+2', linescores: Array.from({ length: 18 }, (_, index) => ({ period: index + 1, value: 4 })) },
+    { period: 2, displayValue: '+3', linescores: Array.from({ length: 18 }, (_, index) => ({ period: index + 1, value: 4 })) },
+    { period: 3, displayValue: '+1', linescores: Array.from({ length: 18 }, (_, index) => ({ period: index + 1, value: 4 })) },
+    { period: 4, displayValue: '+1', linescores: Array.from({ length: 18 }, (_, index) => ({ period: index + 1, value: 4 })) },
+  ],
+})
+const missedCutPlayer = mapCompetitorToPlayer({
+  id: 'missed-cut',
+  athlete: { displayName: 'Missed Cut' },
+  score: '+7',
+  linescores: [
+    { period: 1, displayValue: '+3', linescores: Array.from({ length: 18 }, (_, index) => ({ period: index + 1, value: 4 })) },
+    { period: 2, displayValue: '+4', linescores: Array.from({ length: 18 }, (_, index) => ({ period: index + 1, value: 4 })) },
+  ],
+})
+const officialCutApplied = applyOfficialCutStatus([weekendPlayerOverCutLine, missedCutPlayer], { score: '+5', scoreToPar: 5, count: 53, projected: false })
+assert(officialCutApplied[0].status === 'active', 'keeps players active when they have weekend-round evidence')
+assert(officialCutApplied[1].status === 'cut', 'still marks players cut when they missed the official cut')
 
 const golfApi = readFileSync(new URL('../src/lib/golf-api.ts', import.meta.url), 'utf8')
 const tournamentSync = readFileSync(new URL('../src/lib/tournament-sync.ts', import.meta.url), 'utf8')
