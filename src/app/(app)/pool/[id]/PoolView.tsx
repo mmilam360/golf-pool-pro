@@ -8,7 +8,7 @@ import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
-import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
+import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
@@ -499,10 +499,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
   const canShareBoardImage = (pool.is_completed || tournament?.status === 'completed') || (isOwner && selectedBoardIsHistorical)
   const shareBoardImageLabel = selectedBoardIsHistorical ? 'Share board image' : 'Share final results'
-  const currentRoundNumber = leaderboardModeIsCurrent ? currentLeaderboardRound(leaderboard) : null
-  const currentRoundLabel = currentRoundNumber ? roundScoreLabel(currentRoundNumber) : null
   const totalScoreSubLabel = leaderboardMode.type === 'current'
-    ? currentRoundLabel
+    ? 'TODAY'
     : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
       ? roundScoreLabel(leaderboardMode.round)
       : null
