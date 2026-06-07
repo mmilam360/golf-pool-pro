@@ -288,10 +288,13 @@ export function applyOfficialCutStatus(players: GolfPlayer[], cutLine?: GolfCutL
 
 export function inferInactiveStatusesFromRounds(players: GolfPlayer[], round?: number | null) {
   const currentRound = Number(round || 0)
-  if (currentRound < 3) return players
+  if (currentRound < 4) return players
   return players.map(player => {
     if (player.status !== 'active') return player
-    const completedRounds = (player.roundScores || [])
+    const playerRounds = player.roundScores || []
+    const hasCurrentRoundScore = playerRounds.some(item => Number(item.round) === currentRound)
+    if (hasCurrentRoundScore) return player
+    const completedRounds = playerRounds
       .filter(item => item.complete)
       .map(item => Number(item.round))
       .filter(Number.isFinite)

@@ -71,6 +71,13 @@ function inactiveStatusLabel(status: string) {
   return status === 'wd' ? 'WD' : status === 'dnq' ? 'DNQ' : 'CUT'
 }
 
+function hasPostCutRoundEvidence(player: any) {
+  const rounds = Array.isArray(player?.roundScores) ? player.roundScores : []
+  return rounds.some((round: any) => Number(round?.round) >= 3)
+    || Boolean(String(player?.thru || '').trim())
+    || Boolean(String(player?.roundScore || '').trim())
+}
+
 function preserveStoredInactiveStatuses(newPlayers: any[], oldPlayers: any[] | null | undefined) {
   if (!Array.isArray(newPlayers) || !Array.isArray(oldPlayers) || oldPlayers.length === 0) return newPlayers
   const oldByKey = new Map<string, any>()
@@ -82,6 +89,7 @@ function preserveStoredInactiveStatuses(newPlayers: any[], oldPlayers: any[] | n
     const oldPlayer = oldByKey.get(normalizePlayerKey(player))
     const oldStatus = String(oldPlayer?.status || '').toLowerCase()
     const newStatus = String(player?.status || '').toLowerCase()
+    if (oldStatus === 'cut' && newStatus === 'active' && hasPostCutRoundEvidence(player)) return player
     if (!['cut', 'wd', 'dnq'].includes(oldStatus) || newStatus !== 'active') return player
     const label = inactiveStatusLabel(oldStatus)
     return {
