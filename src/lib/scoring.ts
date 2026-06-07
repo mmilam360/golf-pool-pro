@@ -153,6 +153,25 @@ export function scoreEntry(
   return { entryId: '', displayName: '', picks, pickScores: allScored, totalScore, todayScore, finalNineScore: teamTiebreakScores[0] ?? null, tiebreakScores: teamTiebreakScores, rank: null, obStandIns }
 }
 
+export function currentLeaderboardRound(leaderboard: GolfPlayer[]) {
+  const players = Array.isArray(leaderboard) ? leaderboard : []
+  const incompleteRounds = new Set<number>()
+  const completedRounds = new Set<number>()
+
+  for (const player of players) {
+    if (player.status !== 'active') continue
+    for (const round of player.roundScores || []) {
+      if (!Number.isFinite(round.round)) continue
+      if (round.complete) completedRounds.add(round.round)
+      else incompleteRounds.add(round.round)
+    }
+  }
+
+  if (incompleteRounds.size > 0) return Math.max(...incompleteRounds)
+  if (completedRounds.size > 0) return Math.max(...completedRounds)
+  return null
+}
+
 export function availableCompletedRounds(leaderboard: GolfPlayer[]) {
   const players = Array.isArray(leaderboard) ? leaderboard : []
   const rounds = new Set<number>()
