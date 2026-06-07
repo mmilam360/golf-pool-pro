@@ -6,6 +6,7 @@ type GolferStatusFields = {
   status?: string | null
   scoreToPar?: number | null
   isObStandIn?: boolean | null
+  roundScores?: Array<{ round: number; complete?: boolean | null }> | null
 }
 
 function localDateKey(date: Date, timeZone: string) {
@@ -92,11 +93,21 @@ export function leaderboardBackedPickStatusLabel(pick: GolferStatusFields, leade
   return (leaderboardPlayer ? teeTimeLabel(leaderboardPlayer, timeZone, now) : '') || pickStatusLabel(leaderboardPlayer ?? pick, timeZone, now)
 }
 
+function currentRoundStatusLabel(player: GolferStatusFields) {
+  const rounds = Array.isArray(player.roundScores) ? player.roundScores : []
+  const roundNumber = rounds.length
+    ? Math.max(...rounds.map(round => Number(round.round)).filter(Number.isFinite))
+    : null
+  if (!roundNumber) return 'F'
+  const labels: Record<number, string> = { 1: 'THU', 2: 'FRI', 3: 'SAT', 4: 'SUN' }
+  return `${labels[roundNumber] || `R${roundNumber}`} F`
+}
+
 export function pickProgressLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
   const status = pickStatusLabel(player, timeZone, now)
   const roundScore = String(player.roundScore ?? '').trim()
-  if (!roundScore || status === 'OB' || status === 'CUT' || status === 'WD' || status === 'DNQ' || status === '—' || status.includes(':')) return status
-  return `${roundScore} ${status}`
+  if (!roundScore || status === 'OB' || status === 'CUT' || status === 'WD' || status === 'DNQ' || status === '—' || status.includes(':')) return status === 'F' ? currentRoundStatusLabel(player) : status
+  return `${roundScore} ${status === 'F' ? currentRoundStatusLabel(player) : status}`
 }
 
 export function leaderboardBackedPickProgressLabel(pick: GolferStatusFields, leaderboardPlayer: GolferStatusFields | undefined, timeZone: string, now = new Date()) {
@@ -115,6 +126,6 @@ export function tournamentThruLabel(player: GolferStatusFields, timeZone: string
   if (isWdStatus(player)) return 'WD'
   if (isDnqStatus(player)) return 'DNQ'
   if (teeTimeLabel(player, timeZone, now)) return '—'
-  if (shouldHoldFinishedStatus(player, timeZone, now)) return 'F'
-  return thruLabel(player.thru, false)
+  if (shouldHoldFinishedStatus(player, timeZone, now)) return currentRoundStatusLabel(player)
+  return thruLabel(player.thru, false) === 'F' ? currentRoundStatusLabel(player) : thruLabel(player.thru, false)
 }
