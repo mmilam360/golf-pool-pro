@@ -94,6 +94,11 @@ function hasPostCutRoundEvidence(player: any) {
     || Boolean(String(player?.roundScore || '').trim())
 }
 
+function hasStoredWeekendCutErrors(players: any[] | null | undefined) {
+  if (!Array.isArray(players) || players.length === 0) return false
+  return players.some(player => String(player?.status || '').toLowerCase() === 'cut' && hasPostCutRoundEvidence(player))
+}
+
 function preserveStoredInactiveStatuses(newPlayers: any[], oldPlayers: any[] | null | undefined) {
   if (!Array.isArray(newPlayers) || !Array.isArray(oldPlayers) || oldPlayers.length === 0) return newPlayers
   const oldByKey = new Map<string, any>()
@@ -566,6 +571,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
         && effectiveStatus === 'completed'
         && Array.isArray(existing.leaderboard_json)
         && existing.leaderboard_json.length > 0
+        && !hasStoredWeekendCutErrors(existing.leaderboard_json)
 
       if (hasStoredFinalBoard) {
         delete row.leaderboard_json
@@ -769,6 +775,7 @@ export async function syncTournaments({
         && effectiveStatus === 'completed'
         && Array.isArray(existing.leaderboard_json)
         && existing.leaderboard_json.length > 0
+        && !hasStoredWeekendCutErrors(existing.leaderboard_json)
 
       if (hasStoredFinalBoard) {
         delete row.leaderboard_json
