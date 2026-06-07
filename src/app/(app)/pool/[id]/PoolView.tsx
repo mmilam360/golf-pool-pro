@@ -222,6 +222,15 @@ function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<strin
 function playerNameKey(player: GolfPlayer) {
   return normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
 }
+function hasWeekendCutStatusErrors(players: GolfPlayer[]) {
+  return players.some(player => {
+    if (String(player.status || '').toLowerCase() !== 'cut') return false
+    return (player.roundScores || []).some(round =>
+      Number(round.round) >= 3 && (Boolean(round.complete) || (Array.isArray(round.holes) && round.holes.length > 0))
+    )
+  })
+}
+
 
 function playerStatusByName(scoringRows: GolfPlayer[], fieldRows: GolfPlayer[]) {
   const byName = new Map<string, GolfPlayer>()
@@ -989,7 +998,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   // ESPN's old-event payload can degrade to anonymous/partial rows, which would
   // overwrite the stored final board in the browser and make finished pools look broken.
   const fetchScores = useCallback(async () => {
-    if (!tournament?.external_id || tournament?.status === 'completed') return
+    if (!tournament?.external_id) return
+    const storedBoardHasBadCuts = hasWeekendCutStatusErrors(leaderboard)
+    if (tournament?.status === 'completed' && !storedBoardHasBadCuts) return
     try {
       const res = await fetch(`/api/tournaments/leaderboard?id=${tournament.external_id}`, { cache: 'no-store' })
       if (res.ok) {
@@ -997,10 +1008,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         const liveLeaderboard = data.leaderboard || []
         if (liveLeaderboard.length > 0) {
           setLeaderboard(liveLeaderboard)
-          // Only overwrite field state when tournament is live, not upcoming.
-          // For upcoming events, field comes from server-rendered field_json and
-          // should not be replaced by empty or placeholder leaderboard data.
-          if (tournament?.status === 'live') {
+          // Only overwrite field state when tournament is live, or when a completed
+          // board was already rendered with impossible weekend CUT statuses.
+          if (tournament?.status === 'live' || storedBoardHasBadCuts) {
             setField(liveLeaderboard)
           }
           setLeaderboardLastUpdated(new Date().toISOString())
@@ -1010,7 +1020,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       await refreshPoolEntries()
     } catch {}
     setRefreshCountdown(REFRESH_SECONDS)
-  }, [refreshPoolEntries, tournament?.external_id, tournament?.status])
+  }, [leaderboard, refreshPoolEntries, tournament?.external_id, tournament?.status])
 
   useEffect(() => {
     // Load field from tournament data if available
