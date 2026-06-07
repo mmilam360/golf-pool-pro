@@ -1115,9 +1115,12 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
       <div className={useSinglePoolMobileLayout ? 'sm:divide-y sm:divide-[#eadfca]' : 'divide-y divide-[#eadfca]'}>
         {orderedCards.map(({ pool, tournament, role, entry }, index) => {
           const livePayload = tournament?.external_id ? liveLeaderboardsByExternalId[tournament.external_id] : null
+          const waitingForLiveScores = !snapshot && hasEventBegun(tournament) && Boolean(tournament?.external_id) && !livePayload?.leaderboard?.length
           const effectiveTournament = tournament && livePayload?.leaderboard?.length
             ? { ...tournament, leaderboard_json: livePayload.leaderboard, cutLine: livePayload.cutLine ?? tournament.cutLine ?? null }
-            : tournament
+            : waitingForLiveScores
+              ? { ...tournament, leaderboard_json: [] }
+              : tournament
           const effectivePool = effectiveTournament ? { ...pool, gpp_tournaments: effectiveTournament } : pool
           const label = statusLabel(effectivePool, effectiveTournament)
           const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
@@ -1189,18 +1192,24 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   </div>
                   {eventBegun ? (
                     <div className="flex min-h-10 w-full shrink-0 flex-col items-center justify-center border border-[#123c2f] bg-white px-1 py-1 text-[12px] font-black uppercase leading-none text-[#111] shadow-[1px_1px_0_#d8cab0] sm:min-h-11 sm:px-2 sm:text-base sm:shadow-[2px_2px_0_#d8cab0]">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        {rankPreview?.rank ? <span className="text-[#123c2f]">#{rankPreview.rank}</span> : <span className="text-[#657168]">—</span>}
-                        <span className="text-[#657168]">/</span>
-                        <span className={scoreClass(rankPreview?.totalScore ?? null)}>{formatScore(rankPreview?.totalScore ?? null)}</span>
-                      </div>
-                      {!isPoolOpen && (typeof rankPreview?.todayScore === 'number' || rankPreview?.movementToday) ? (
-                        <div className="mt-1 flex items-center gap-1 text-[8px] font-black leading-none text-[#657168] sm:text-[10px]">
-                          {typeof rankPreview?.todayScore === 'number' ? <span>Today <span className={scoreClass(rankPreview.todayScore)}>{formatScore(rankPreview.todayScore)}</span></span> : null}
-                          {typeof rankPreview?.todayScore === 'number' && rankPreview?.movementToday ? <span>/</span> : null}
-                          {rankPreview?.movementToday ? <MovementArrow movement={rankPreview.movementToday} /> : null}
-                        </div>
-                      ) : null}
+                      {waitingForLiveScores ? (
+                        <span className="text-[9px] tracking-[0.08em] text-[#657168] sm:text-[10px]">Syncing</span>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            {rankPreview?.rank ? <span className="text-[#123c2f]">#{rankPreview.rank}</span> : <span className="text-[#657168]">—</span>}
+                            <span className="text-[#657168]">/</span>
+                            <span className={scoreClass(rankPreview?.totalScore ?? null)}>{formatScore(rankPreview?.totalScore ?? null)}</span>
+                          </div>
+                          {!isPoolOpen && (typeof rankPreview?.todayScore === 'number' || rankPreview?.movementToday) ? (
+                            <div className="mt-1 flex items-center gap-1 text-[8px] font-black leading-none text-[#657168] sm:text-[10px]">
+                              {typeof rankPreview?.todayScore === 'number' ? <span>Today <span className={scoreClass(rankPreview.todayScore)}>{formatScore(rankPreview.todayScore)}</span></span> : null}
+                              {typeof rankPreview?.todayScore === 'number' && rankPreview?.movementToday ? <span>/</span> : null}
+                              {rankPreview?.movementToday ? <MovementArrow movement={rankPreview.movementToday} /> : null}
+                            </div>
+                          ) : null}
+                        </>
+                      )}
                     </div>
                   ) : <div />}
                 </div>
@@ -1212,36 +1221,43 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                 </div>
               </summary>
               {isPoolOpen ? (
-                <>
-                  <InlineLeaderboard
-                    pool={effectivePool}
-                    entries={poolEntries}
-                    currentEntryId={entry?.id}
-                    openEntryIds={openEntryIds}
-                    onEntryToggle={(entryId, open) => {
-                      setExpandedEntryIds(current => {
-                        const next = { ...current }
-                        const entrySet = new Set(next[pool.id] ?? [])
-                        if (open) entrySet.add(entryId)
-                        else entrySet.delete(entryId)
-                        next[pool.id] = entrySet
-                        return next
-                      })
-                    }}
-                    mode={mode}
-                    teeTimeZone={teeTimeZone}
-                  />
-                  <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
-                    <TournamentLeaderboard
-                      leaderboard={effectiveTournament?.leaderboard_json?.length ? effectiveTournament.leaderboard_json : effectiveTournament?.field_json}
-                      tournamentName={tournamentDisplayName}
-                      lastUpdated={effectiveTournament?.last_scores_fetch}
-                      defaultOpen
-                      pickedGolfers={entryPicks(entry)}
-                      cutLine={effectiveTournament?.cutLine}
-                    />
+                waitingForLiveScores ? (
+                  <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-5 text-center sm:px-5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Syncing live scores</p>
+                    <p className="mt-1 text-sm font-semibold text-[#657168]">Loading the latest board before showing standings.</p>
                   </div>
-                </>
+                ) : (
+                  <>
+                    <InlineLeaderboard
+                      pool={effectivePool}
+                      entries={poolEntries}
+                      currentEntryId={entry?.id}
+                      openEntryIds={openEntryIds}
+                      onEntryToggle={(entryId, open) => {
+                        setExpandedEntryIds(current => {
+                          const next = { ...current }
+                          const entrySet = new Set(next[pool.id] ?? [])
+                          if (open) entrySet.add(entryId)
+                          else entrySet.delete(entryId)
+                          next[pool.id] = entrySet
+                          return next
+                        })
+                      }}
+                      mode={mode}
+                      teeTimeZone={teeTimeZone}
+                    />
+                    <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
+                      <TournamentLeaderboard
+                        leaderboard={effectiveTournament?.leaderboard_json?.length ? effectiveTournament.leaderboard_json : effectiveTournament?.field_json}
+                        tournamentName={tournamentDisplayName}
+                        lastUpdated={effectiveTournament?.last_scores_fetch}
+                        defaultOpen
+                        pickedGolfers={entryPicks(entry)}
+                        cutLine={effectiveTournament?.cutLine}
+                      />
+                    </div>
+                  </>
+                )
               ) : null}
             </details>
           )

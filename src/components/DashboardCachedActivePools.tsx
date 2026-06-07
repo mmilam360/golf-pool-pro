@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import DashboardActivePools, { DASHBOARD_ACTIVE_POOLS_CACHE_KEY } from '@/components/DashboardActivePools'
+import { hasOnCourseScores } from '@/lib/golf-live'
 
 type DashboardActivePoolsProps = Parameters<typeof DashboardActivePools>[0]
 
@@ -13,6 +14,11 @@ type CachedDashboard = {
 }
 
 const CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000
+
+function cachedCardHasLiveScores(card: DashboardActivePoolsProps['cards'][number]) {
+  const tournament = card.tournament
+  return tournament?.status === 'live' || hasOnCourseScores(tournament?.leaderboard_json)
+}
 
 function readCachedDashboard(): CachedDashboard | null {
   try {
@@ -35,7 +41,7 @@ export default function DashboardCachedActivePools() {
     setCached(readCachedDashboard())
   }, [])
 
-  if (!cached?.cards?.length || !cached.entriesByPool) {
+  if (!cached?.cards?.length || !cached.entriesByPool || cached.cards.some(cachedCardHasLiveScores)) {
     return (
       <section className="border-2 border-[#123c2f] bg-white p-5 shadow-[7px_7px_0_#d8cab0] sm:p-7">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Loading dashboard</p>
