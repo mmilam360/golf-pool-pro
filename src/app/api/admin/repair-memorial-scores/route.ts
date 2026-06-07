@@ -17,17 +17,35 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServiceClient() as any
+  const { data: existingTournament, error: existingTournamentError } = await supabase
+    .from('gpp_tournaments')
+    .select('id, leaderboard_json')
+    .eq('external_id', MEMORIAL_EXTERNAL_ID)
+    .single()
+  if (existingTournamentError) throw existingTournamentError
+
   const leaderboard = await getLeaderboard(MEMORIAL_EXTERNAL_ID)
   if (!leaderboard?.leaderboard?.length) {
     return NextResponse.json({ ok: false, error: 'Could not fetch Memorial leaderboard' }, { status: 502 })
   }
 
+  const storedByName = new Map(
+    (Array.isArray(existingTournament?.leaderboard_json) ? existingTournament.leaderboard_json : [])
+      .map((player: any) => [String(player?.name || '').toLowerCase(), player])
+      .filter(([name]: [string, any]) => Boolean(name))
+  )
+
+  let repairedStatuses = 0
   const repairedLeaderboard = leaderboard.leaderboard.map(player => {
-    const hasWeekendScores = (player.roundScores || []).some(round => Number(round.round) >= 3 && (round.complete || (round.holes || []).length > 0))
-    if (player.status === 'cut' && hasWeekendScores) {
-      return { ...player, status: 'active' as const, position: player.position === 'CUT' ? '' : player.position }
+    const storedPlayer = storedByName.get(String(player.name || '').toLowerCase()) as any
+    const roundScores = (player.roundScores && player.roundScores.length > 0) ? player.roundScores : storedPlayer?.roundScores
+    const hasWeekendScores = (roundScores || []).some((round: any) => Number(round.round) >= 3 && (round.complete || (round.holes || []).length > 0))
+    const mergedPlayer = { ...storedPlayer, ...player, roundScores }
+    if ((player.status === 'cut' || storedPlayer?.status === 'cut') && hasWeekendScores) {
+      repairedStatuses += 1
+      return { ...mergedPlayer, status: 'active' as const, position: player.position === 'CUT' || storedPlayer?.position === 'CUT' ? '' : player.position }
     }
-    return player
+    return mergedPlayer
   })
 
   const weekendCutErrors = repairedLeaderboard.filter(player =>
@@ -114,6 +132,7 @@ export async function POST(request: Request) {
       cut: repairedLeaderboard.filter(player => player.status === 'cut').length,
       round: leaderboard.round,
       completed,
+      repairedStatuses,
     },
     pools: (pools || []).map((pool: any) => ({ id: pool.id, name: pool.name })),
     notifications: { candidates: notificationCandidates, events: notificationEvents, pushSent },
