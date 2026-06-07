@@ -45,14 +45,16 @@ function extractPlayers(event: any) {
   return inferInactiveStatusesFromRounds(competitors.map(mapCompetitorToPlayer), round).filter((player: any) => player.name && player.name !== 'Unknown')
 }
 
-function finalRoundLooksComplete(players: any[], round?: number | null) {
-  if (Number(round || 0) < 4) return false
+export function finalRoundLooksComplete(players: any[], round?: number | null) {
+  const reportedRound = Number(round || 0)
+  if (reportedRound < 4) return false
+  const scoringRound = Math.min(reportedRound, 4)
   const activePlayers = players.filter(player => player?.status === 'active')
   if (activePlayers.length === 0) return false
   return activePlayers.every(player => {
     if (String(player?.thru || '').toUpperCase() === 'F') return true
     const finalRound = Array.isArray(player?.roundScores)
-      ? player.roundScores.find((score: any) => Number(score?.round) === Number(round))
+      ? player.roundScores.find((score: any) => Number(score?.round) === scoringRound)
       : null
     return Boolean(finalRound?.complete)
   })
