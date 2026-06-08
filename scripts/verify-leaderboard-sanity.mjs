@@ -1,0 +1,99 @@
+import {
+  completedScoringRound,
+  finalBoardHasEnoughEvidence,
+  finalBoardLooksComplete,
+  hasPostCutRoundEvidence,
+  hasWeekendCutStatusErrors,
+  latestScorecardRound,
+  weekendCutStatusErrorNames,
+} from '../src/lib/leaderboard-sanity.ts'
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message)
+}
+
+const round = (round, complete = true, holes = 18) => ({
+  round,
+  complete,
+  holes: Array.from({ length: holes }, (_, index) => ({ hole: index + 1, score: 4, par: 4, scoreToPar: 0 })),
+})
+
+const weekendPlayerMarkedCut = {
+  id: 'weekend-cut-error',
+  name: 'Weekend Cut Error',
+  firstName: 'Weekend',
+  lastName: 'Error',
+  status: 'cut',
+  score: '+7',
+  scoreToPar: 7,
+  strokes: 295,
+  thru: 'F',
+  roundScore: '+1',
+  position: 'CUT',
+  country: 'USA',
+  roundScores: [round(1), round(2), round(3), round(4)],
+}
+
+const trueMissedCut = {
+  ...weekendPlayerMarkedCut,
+  id: 'true-cut',
+  name: 'True Missed Cut',
+  thru: '',
+  roundScore: '',
+  roundScores: [round(1), round(2)],
+}
+
+const activeFinalPlayer = {
+  ...weekendPlayerMarkedCut,
+  id: 'active-final',
+  name: 'Active Final',
+  status: 'active',
+  score: '-4',
+  scoreToPar: -4,
+  position: '15',
+  roundScores: [round(1), round(2), round(3), round(4)],
+}
+
+const wdAfterWeekend = {
+  ...weekendPlayerMarkedCut,
+  id: 'wd-weekend',
+  name: 'Weekend WD',
+  status: 'wd',
+  score: 'WD',
+  scoreToPar: 3,
+  position: 'WD',
+  roundScores: [round(1), round(2), round(3, false, 5)],
+}
+
+const delayedSundayBoard = [
+  { ...activeFinalPlayer, name: 'Finished One', thru: 'F', roundScores: [round(1), round(2), round(3), round(4)] },
+  { ...activeFinalPlayer, name: 'Finished Two', thru: '', roundScores: [round(1), round(2), round(3), round(4)] },
+  trueMissedCut,
+]
+
+const playoffBoard = [
+  { ...activeFinalPlayer, name: 'Playoff One', thru: '', roundScores: [round(1), round(2), round(3), round(4), round(5)] },
+  { ...activeFinalPlayer, name: 'Playoff Two', thru: '', roundScores: [round(1), round(2), round(3), round(4), round(5)] },
+]
+
+const incompleteMondayBoard = [
+  { ...activeFinalPlayer, name: 'Still Playing', thru: '12', roundScores: [round(1), round(2), round(3), round(4, false, 12)] },
+  trueMissedCut,
+]
+
+assert(hasPostCutRoundEvidence(weekendPlayerMarkedCut), 'detects weekend evidence from roundScores/thru/roundScore')
+assert(!hasPostCutRoundEvidence(trueMissedCut), 'does not treat normal two-round missed cut as weekend evidence')
+assert(hasWeekendCutStatusErrors([weekendPlayerMarkedCut]), 'flags weekend player marked cut')
+assert(!hasWeekendCutStatusErrors([trueMissedCut]), 'allows true missed-cut players')
+assert(!hasWeekendCutStatusErrors([wdAfterWeekend]), 'does not collapse WD/DQ-style statuses into cut errors')
+assert(weekendCutStatusErrorNames([weekendPlayerMarkedCut, trueMissedCut]).join(',') === 'Weekend Cut Error', 'returns only bad weekend-cut names')
+assert(latestScorecardRound(playoffBoard) === 5, 'finds actual playoff scorecard round')
+assert(completedScoringRound(delayedSundayBoard, 5) === 4, 'falls back to round 4 when ESPN reports empty round 5')
+assert(completedScoringRound(playoffBoard, 5) === 5, 'uses round 5 when actual playoff scorecards exist')
+assert(finalBoardLooksComplete(delayedSundayBoard, 5), 'delayed/playoff-period final board can complete from round 4 evidence')
+assert(finalBoardLooksComplete(playoffBoard, 5), 'playoff board is complete when playoff scorecards complete')
+assert(!finalBoardLooksComplete(incompleteMondayBoard, 4), 'suspended/incomplete final round is not final')
+assert(!finalBoardHasEnoughEvidence([weekendPlayerMarkedCut, activeFinalPlayer], 4), 'bad weekend CUT final board fails evidence gate')
+assert(finalBoardHasEnoughEvidence(delayedSundayBoard, 5), 'clean final board passes evidence gate')
+
+console.log('Leaderboard sanity verification passed')

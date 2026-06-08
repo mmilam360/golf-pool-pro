@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import DashboardActivePools, { DASHBOARD_ACTIVE_POOLS_CACHE_KEY } from '@/components/DashboardActivePools'
 import { hasOnCourseScores } from '@/lib/golf-live'
+import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
 
 type DashboardActivePoolsProps = Parameters<typeof DashboardActivePools>[0]
 
@@ -15,22 +16,11 @@ type CachedDashboard = {
 
 const CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000
 
-function leaderboardHasWeekendCutStatusErrors(leaderboard: unknown) {
-  if (!Array.isArray(leaderboard)) return false
-  return leaderboard.some((player: any) => {
-    if (String(player?.status || '').toLowerCase() !== 'cut') return false
-    const rounds = Array.isArray(player?.roundScores) ? player.roundScores : []
-    return rounds.some((round: any) =>
-      Number(round?.round) >= 3 && (Boolean(round?.complete) || (Array.isArray(round?.holes) && round.holes.length > 0))
-    )
-  })
-}
-
 function cachedCardHasLiveOrBadScores(card: DashboardActivePoolsProps['cards'][number]) {
   const tournament = card.tournament
   return tournament?.status === 'live'
     || hasOnCourseScores(tournament?.leaderboard_json)
-    || leaderboardHasWeekendCutStatusErrors(tournament?.leaderboard_json)
+    || hasWeekendCutStatusErrors(tournament?.leaderboard_json)
 }
 
 function readCachedDashboard(): CachedDashboard | null {

@@ -1,20 +1,11 @@
 import { getLeaderboard, type GolfPlayer } from '@/lib/golf-api'
+import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
 
 export type TournamentWithLeaderboard = {
   external_id?: string | null
   status?: string | null
   leaderboard_json?: GolfPlayer[] | null
   field_json?: GolfPlayer[] | null
-}
-
-function hasWeekendCutStatusErrors(players: GolfPlayer[] | null | undefined) {
-  if (!Array.isArray(players)) return false
-  return players.some(player => {
-    if (String(player.status || '').toLowerCase() !== 'cut') return false
-    return (player.roundScores || []).some(round =>
-      Number(round.round) >= 3 && (Boolean(round.complete) || (Array.isArray(round.holes) && round.holes.length > 0))
-    )
-  })
 }
 
 export async function hydrateFinalLeaderboard<T extends TournamentWithLeaderboard | null | undefined>(tournament: T): Promise<T> {

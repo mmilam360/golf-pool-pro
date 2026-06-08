@@ -18,6 +18,7 @@ import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, t
 import { DUPLICATE_ENTRY_NAME_MESSAGE, isDuplicateEntryNameError, normalizeEntryName } from '@/lib/entry-name'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 import { compareGolfersByListName, golferListName } from '@/lib/golfer-display'
+import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
 
 
 type PaymentQuote = {
@@ -222,15 +223,6 @@ function activePoolPickStatusLabel(pick: PickScore, leaderboardByName: Map<strin
 function playerNameKey(player: GolfPlayer) {
   return normalizePickName(player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
 }
-function hasWeekendCutStatusErrors(players: GolfPlayer[]) {
-  return players.some(player => {
-    if (String(player.status || '').toLowerCase() !== 'cut') return false
-    return (player.roundScores || []).some(round =>
-      Number(round.round) >= 3 && (Boolean(round.complete) || (Array.isArray(round.holes) && round.holes.length > 0))
-    )
-  })
-}
-
 
 function playerStatusByName(scoringRows: GolfPlayer[], fieldRows: GolfPlayer[]) {
   const byName = new Map<string, GolfPlayer>()

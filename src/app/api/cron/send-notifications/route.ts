@@ -5,6 +5,7 @@ import { hasOnCourseScores } from '@/lib/golf-live'
 import { notificationPrefsAllow, recordNotificationEvent, sendPushToUser } from '@/lib/notifications/push'
 import { requireCronAuth } from '@/lib/cron-auth'
 import type { GolfPlayer } from '@/lib/golf-api'
+import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
 
 export const runtime = 'nodejs'
 
@@ -24,6 +25,7 @@ function hoursUntil(value?: string | null) {
 function hasRecentScores(tournament: any) {
   if (tournament?.status !== 'live' || !tournament.last_scores_fetch) return false
   if (!hasOnCourseScores(Array.isArray(tournament.leaderboard_json) ? tournament.leaderboard_json : [])) return false
+  if (hasWeekendCutStatusErrors(Array.isArray(tournament.leaderboard_json) ? tournament.leaderboard_json : [])) return false
   const lastFetchMs = new Date(tournament.last_scores_fetch).getTime()
   return Number.isFinite(lastFetchMs) && Date.now() - lastFetchMs <= 10 * 60 * 1000
 }
@@ -159,7 +161,7 @@ async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Pref
   for (const pool of pools || []) {
     const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
     const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : []
-    if (tournament?.status !== 'live' || leaderboard.length === 0) continue
+    if (tournament?.status !== 'live' || leaderboard.length === 0 || hasWeekendCutStatusErrors(leaderboard)) continue
     const { data: entries } = await supabase
       .from('gpp_entries')
       .select('id, user_id, display_name, golfer_picks, is_removed')

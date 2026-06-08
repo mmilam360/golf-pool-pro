@@ -5,6 +5,7 @@ import { autoLockPools, tournamentIsDueToLock, tournamentIsInLiveActivationWindo
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
 import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
 import { recordNotificationEvent, sendPushToUser } from './notifications/push'
+import { hasPostCutRoundEvidence, hasWeekendCutStatusErrors } from './leaderboard-sanity'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 const ESPN_EVENT_URL = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${eventId}`
@@ -85,18 +86,6 @@ function normalizePlayerKey(player: any) {
 
 function inactiveStatusLabel(status: string) {
   return status === 'wd' ? 'WD' : status === 'dnq' ? 'DNQ' : 'CUT'
-}
-
-function hasPostCutRoundEvidence(player: any) {
-  const rounds = Array.isArray(player?.roundScores) ? player.roundScores : []
-  return rounds.some((round: any) => Number(round?.round) >= 3)
-    || Boolean(String(player?.thru || '').trim())
-    || Boolean(String(player?.roundScore || '').trim())
-}
-
-function hasStoredWeekendCutErrors(players: any[] | null | undefined) {
-  if (!Array.isArray(players) || players.length === 0) return false
-  return players.some(player => String(player?.status || '').toLowerCase() === 'cut' && hasPostCutRoundEvidence(player))
 }
 
 function preserveStoredInactiveStatuses(newPlayers: any[], oldPlayers: any[] | null | undefined) {
@@ -571,7 +560,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
         && effectiveStatus === 'completed'
         && Array.isArray(existing.leaderboard_json)
         && existing.leaderboard_json.length > 0
-        && !hasStoredWeekendCutErrors(existing.leaderboard_json)
+        && !hasWeekendCutStatusErrors(existing.leaderboard_json)
 
       if (hasStoredFinalBoard) {
         delete row.leaderboard_json
@@ -775,7 +764,7 @@ export async function syncTournaments({
         && effectiveStatus === 'completed'
         && Array.isArray(existing.leaderboard_json)
         && existing.leaderboard_json.length > 0
-        && !hasStoredWeekendCutErrors(existing.leaderboard_json)
+        && !hasWeekendCutStatusErrors(existing.leaderboard_json)
 
       if (hasStoredFinalBoard) {
         delete row.leaderboard_json
