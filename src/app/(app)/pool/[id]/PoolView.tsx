@@ -19,6 +19,7 @@ import { DUPLICATE_ENTRY_NAME_MESSAGE, isDuplicateEntryNameError, normalizeEntry
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 import { compareGolfersByListName, golferListName } from '@/lib/golfer-display'
 import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
+import { displayTournamentName } from '@/lib/tournament-name'
 
 
 type PaymentQuote = {
@@ -329,6 +330,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [entries, setEntries] = useState(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [poolName, setPoolName] = useState(pool.name)
+  const tournamentDisplayName = displayTournamentName(tournament?.name) || 'Tournament'
   const [poolLocked, setPoolLocked] = useState(pool.is_locked)
   const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>(() => Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [])
   const [leaderboardLastUpdated, setLeaderboardLastUpdated] = useState<string | null>(() => tournament?.last_scores_fetch || null)
@@ -1376,7 +1378,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
     const names = entriesNeedingPicks.map(entry => entry.display_name || 'Player').join('\n')
     const lockDay = formatDateOnlyWeekday(tournament?.start_date) || 'tournament day'
-    const message = `Still need picks:\n\n${names}\n\nDon't forget to make your picks before the first tee time ${lockDay} for ${poolName} — ${tournament?.name || 'the tournament'}.${inviteUrl ? `\n\n${inviteUrl}` : ''}`
+    const message = `Still need picks:\n\n${names}\n\nDon't forget to make your picks before the first tee time ${lockDay} for ${poolName} — ${tournamentDisplayName.toLowerCase() === 'tournament' ? 'the tournament' : tournamentDisplayName}.${inviteUrl ? `\n\n${inviteUrl}` : ''}`
     try {
       await navigator.clipboard.writeText(message)
       showToast('Reminder copied.', 'success')
@@ -1593,7 +1595,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     ctx.lineTo(tableX + tableW, tableY + headH)
     ctx.stroke()
     fitText(poolName || 'Golf Pool', width / 2, tableY + 82, tableW - 78, '600 60px Arial', '#111111', 'center')
-    fitText(tournament?.name || 'Tournament', width / 2, tableY + 132, tableW - 78, '700 31px Arial', '#005b3c', 'center')
+    fitText(tournamentDisplayName, width / 2, tableY + 132, tableW - 78, '700 31px Arial', '#005b3c', 'center')
     fitText(boardModeLine, width / 2, tableY + 168, tableW - 78, '700 24px Arial', '#657168', 'center')
 
     const labelY = tableY + headH
@@ -1683,7 +1685,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="break-words text-3xl font-bold">{poolName}</h1>
-            <p className="mt-1 break-words text-stone-600">{tournament?.name || 'Tournament'} at {tournament?.course || 'TBD'}</p>
+            <p className="mt-1 break-words text-stone-600">{tournamentDisplayName} at {tournament?.course || 'TBD'}</p>
           </div>
           {showLivePulse && <LivePulseBadge />}
         </div>
@@ -1870,7 +1872,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         <div className="mb-6">
           <PoolInvitePrepPanel
             poolName={poolName}
-            tournamentName={tournament?.name || 'Tournament'}
+            tournamentName={tournamentDisplayName}
             startDateLabel={formatShortDate(tournament?.start_date) || 'Date TBA'}
             entryCount={activeEntries.length}
             submittedPickCount={submittedPickCount}
@@ -1973,7 +1975,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[16px]">
               <div className="gpp-score-face border-2 border-[#d8b45d] bg-[#f7f7f2] text-center">
                 <div className="relative border-b-2 border-[#d8cab0] px-3 py-2">
-                  <p className="mx-auto max-w-[90%] text-[clamp(0.78rem,4.8vw,1.25rem)] font-black uppercase leading-[0.95] tracking-[clamp(0.02em,1vw,0.1em)] text-[#111] [text-wrap:balance] sm:max-w-[90%] sm:text-3xl sm:tracking-[0.16em]" title={tournament?.name || 'Leaderboard'}>{tournament?.name || 'Leaderboard'}</p>
+                  <p className="mx-auto max-w-[90%] text-[clamp(0.78rem,4.8vw,1.25rem)] font-black uppercase leading-[0.95] tracking-[clamp(0.02em,1vw,0.1em)] text-[#111] [text-wrap:balance] sm:max-w-[90%] sm:text-3xl sm:tracking-[0.16em]" title={tournamentDisplayName}>{tournamentDisplayName}</p>
                   <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{poolName}</p>
                   {availableHistoricalRounds.length > 0 && (
                     <details
@@ -2202,7 +2204,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             <div>
               <TournamentLeaderboard
                 leaderboard={leaderboard}
-                tournamentName={tournament?.name}
+                tournamentName={tournamentDisplayName}
                 lastUpdated={leaderboardLastUpdated}
                 pickedGolfers={myPicks}
                 cutLine={cutLine}

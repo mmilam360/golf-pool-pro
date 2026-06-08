@@ -14,6 +14,7 @@ import { selectFinalResultAnnouncement, type FinalResultAnnouncementCandidate } 
 import { hasOnCourseScores } from '@/lib/golf-live'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { hydrateFinalLeaderboards } from '@/lib/fresh-final-leaderboard'
+import { displayTournamentName } from '@/lib/tournament-name'
 
 type Tournament = {
   id?: string | null
@@ -198,7 +199,7 @@ function PendingInvites({ invites }: { invites: PendingInviteRecord[] }) {
             <div key={invite.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
               <div>
                 <p className="font-display text-xl font-bold text-[#0f2f25]">{pool.name}</p>
-                <p className="mt-1 text-sm font-semibold text-[#657168]">{tournament?.name || 'Tournament'} · {formatDate(tournament?.start_date)}</p>
+                <p className="mt-1 text-sm font-semibold text-[#657168]">{displayTournamentName(tournament?.name) || 'Tournament'} · {formatDate(tournament?.start_date)}</p>
               </div>
               <div className="flex gap-2">
                 <form action={acceptPoolInvite}>
@@ -453,10 +454,10 @@ export default async function DashboardPage() {
       entryId: entry.id,
       poolId: pool.id,
       poolName: pool.name,
-      tournamentName: tournament?.name || 'Tournament',
+      tournamentName: displayTournamentName(tournament?.name) || 'Tournament',
       isOwner: ownedPoolIds.includes(pool.id),
       runItBackHref: nextOpenTournament?.id ? `/pool/create?clone=${pool.id}&tournament=${nextOpenTournament.id}` : undefined,
-      runItBackTournamentName: nextOpenTournament?.name || undefined,
+      runItBackTournamentName: displayTournamentName(nextOpenTournament?.name) || undefined,
       rank: current.rank,
       totalScore: current.totalScore,
       fieldSize: scoredEntries.length,
@@ -543,7 +544,7 @@ export default async function DashboardPage() {
                     {isUpcoming ? <UpcomingBadge compact /> : <CompactResultBadge rank={rankText} score={scoreText} />}
                   </span>
                   <span className="mt-3 block border-t border-[#eadfca] pt-3 text-xs leading-5 text-[#657168]">
-                    <span className="font-semibold text-[#1f2a24]">{tournament?.name || 'Tournament'}</span>
+                    <span className="font-semibold text-[#1f2a24]">{displayTournamentName(tournament?.name) || 'Tournament'}</span>
                     <span className="mx-1.5 text-[#b58a3a]">/</span>
                     <span className="font-mono">{dateRange}</span>
                   </span>

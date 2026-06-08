@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toJpeg, toPng } from 'html-to-image'
+import { displayTournamentName } from '@/lib/tournament-name'
 
 type PosterPool = {
   id: string
@@ -55,15 +56,7 @@ function tournamentDateRange(tournament: PosterTournament | null) {
 }
 
 function cleanTournamentName(name?: string | null) {
-  const cleaned = String(name || '')
-    .replace(/\s+(presented|pres\.)\s+by\s+.+$/i, '')
-    .replace(/\s+(sponsored|hosted)\s+by\s+.+$/i, '')
-    .replace(/\s+benefiting\s+.+$/i, '')
-    .replace(/\s+-\s+.+$/i, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-
-  return cleaned || 'PGA tournament'
+  return displayTournamentName(name) || 'PGA tournament'
 }
 
 function obRuleExplainer(pool: PosterPool) {

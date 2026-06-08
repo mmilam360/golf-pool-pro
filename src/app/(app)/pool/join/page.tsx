@@ -7,6 +7,7 @@ import { trackGppEvent } from '@/lib/posthog-events'
 import { useRouter } from 'next/navigation'
 import { compareGolfersByListName, golferFullName, golferListNameFromParts } from '@/lib/golfer-display'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, isDuplicateEntryNameError } from '@/lib/entry-name'
+import { displayTournamentName } from '@/lib/tournament-name'
 
 type JoinStep = 'code' | 'name' | 'picks' | 'saved'
 
@@ -393,7 +394,7 @@ export default function JoinPoolPage() {
       {step === 'name' && payload && (
         <form onSubmit={handleNameSubmit} className="space-y-5 rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
           <div className="border-b border-stone-200 pb-4">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">{tournament?.name}</p>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">{displayTournamentName(tournament?.name) || tournament?.name}</p>
             <h2 className="mt-1 text-2xl font-black text-[#0f2f25]">{pool?.name}</h2>
             <p className="mt-2 text-sm text-stone-600">{requiredPickCount} picks. Top {pool?.count_scores} count.</p>
           </div>

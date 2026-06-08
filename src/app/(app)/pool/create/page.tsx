@@ -8,6 +8,7 @@ import ShortUniqueId from 'short-unique-id'
 import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
 import { buildRunItBackDefaults, selectNextRunItBackTournament } from '@/lib/run-it-back'
 import type { PoolGameFormat } from '@/lib/pool-formats'
+import { displayTournamentName } from '@/lib/tournament-name'
 
 interface Tournament {
   id: string; name: string; start_date: string; end_date: string; course: string; status: string; field_json?: any[] | null; leaderboard_json?: any[] | null
@@ -37,9 +38,10 @@ function hasTournamentStarted(tournament: Tournament, now = new Date()) {
 }
 
 function eventClosedMessage(name?: string | null) {
+  const displayName = displayTournamentName(name) || 'this tournament'
   return name
-    ? `Event closed: ${name} has already started, so new pools can’t be created for it.`
-    : 'Event closed: this tournament has already started, so new pools can’t be created for it.'
+    ? `${displayName} is already underway, so new pools are closed.`
+    : 'This tournament is already underway, so new pools are closed.'
 }
 
 function NumberStepper({
@@ -357,13 +359,13 @@ export default function CreatePoolPage() {
               <option value="">Select a tournament...</option>
               {tournaments.map(t => (
                 <option key={t.id} value={t.id}>
-                  {t.name} - {t.course || 'TBD'} ({formatDateOnly(t.start_date)})
+                  {displayTournamentName(t.name) || t.name} - {t.course || 'TBD'} ({formatDateOnly(t.start_date)})
                 </option>
               ))}
             </select>
             {tournament ? (
               <div className="mt-3 border border-[#d8cab0] bg-[#fbf7ed] px-3 py-3 text-sm text-[#1f2a24]">
-                <p className="font-black uppercase tracking-[0.08em] text-[#123c2f]">{tournament.name}</p>
+                <p className="font-black uppercase tracking-[0.08em] text-[#123c2f]">{displayTournamentName(tournament.name) || tournament.name}</p>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#657168]">{tournament.course || 'Course TBA'} · {formatDateOnly(tournament.start_date)}</p>
                 <p className="mt-2 text-xs font-bold text-[#123c2f]">Entries lock automatically before the first tee time Thursday.</p>
               </div>
@@ -488,7 +490,7 @@ export default function CreatePoolPage() {
               <h2 className="mt-1 text-lg font-black text-[#123c2f]">Ready to create?</h2>
             </div>
             <div className="grid gap-3 p-4 text-sm font-semibold leading-6 text-[#1f2a24] sm:grid-cols-2">
-              <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Tournament</span>{tournament ? `${tournament.name} · ${formatDateOnly(tournament.start_date)}` : 'Choose a tournament'}</p>
+              <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Tournament</span>{tournament ? `${displayTournamentName(tournament.name) || tournament.name} · ${formatDateOnly(tournament.start_date)}` : 'Choose a tournament'}</p>
               <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Format</span>{gameFormat === 'standard' ? 'Open Picks' : gameFormat === 'ranked_groups' ? 'Tiered Picks' : 'Clubhouse Chaos'}</p>
               <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Picks</span>{gameFormat === 'standard' ? `${toNumber(pickCount, 12)} picks · best ${toNumber(countScores, 8)} count` : `${toNumber(groupCount, 6)} ${gameFormat === 'ranked_groups' ? 'tiers' : 'groups'} × ${toNumber(picksPerGroup, 2)} picks · best ${toNumber(countScores, 8)} count`}</p>
               <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">OB rule</span>{obEnabled ? `On · ${toNumber(obPenalty, 2)} penalty strokes` : 'Off · only made-cut scores count'}</p>
