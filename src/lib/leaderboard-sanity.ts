@@ -12,6 +12,15 @@ export function hasWeekendCutStatusErrors(players: GolfPlayer[] | null | undefin
   return players.some(player => String(player?.status || '').toLowerCase() === 'cut' && hasPostCutRoundEvidence(player))
 }
 
+export function repairWeekendCutStatuses<T extends Record<string, any>>(players: T[] | null | undefined): T[] {
+  if (!Array.isArray(players)) return []
+  return players.map(player => {
+    if (String(player?.status || '').toLowerCase() !== 'cut') return player
+    if (!hasPostCutRoundEvidence(player)) return player
+    return { ...player, status: 'active' }
+  })
+}
+
 export function weekendCutStatusErrorNames(players: GolfPlayer[] | null | undefined) {
   if (!Array.isArray(players)) return []
   return players

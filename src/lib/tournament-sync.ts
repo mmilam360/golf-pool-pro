@@ -5,7 +5,7 @@ import { autoLockPools, tournamentIsDueToLock, tournamentIsInLiveActivationWindo
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
 import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
 import { recordNotificationEvent, sendPushToUser } from './notifications/push'
-import { hasPostCutRoundEvidence, hasWeekendCutStatusErrors } from './leaderboard-sanity'
+import { hasPostCutRoundEvidence, hasWeekendCutStatusErrors, repairWeekendCutStatuses } from './leaderboard-sanity'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 const ESPN_EVENT_URL = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${eventId}`
@@ -43,7 +43,8 @@ function getStatus(event: any) {
 function extractPlayers(event: any) {
   const competitors = event.competitions?.[0]?.competitors || []
   const round = event.status?.period || event.competitions?.[0]?.status?.period
-  return inferInactiveStatusesFromRounds(competitors.map(mapCompetitorToPlayer), round).filter((player: any) => player.name && player.name !== 'Unknown')
+  return repairWeekendCutStatuses(inferInactiveStatusesFromRounds(competitors.map(mapCompetitorToPlayer), round))
+    .filter((player: any) => player.name && player.name !== 'Unknown')
 }
 
 export function finalRoundLooksComplete(players: any[], round?: number | null) {
@@ -111,6 +112,28 @@ function preserveStoredInactiveStatuses(newPlayers: any[], oldPlayers: any[] | n
       score: oldStatus === 'cut' ? player.score : label,
     }
   })
+}
+
+async function clearCorruptStoredTournamentJsonIfNeeded(supabase: any, existing: any, row: Record<string, any>) {
+  if (!existing?.id) return
+  const willWriteLeaderboard = Array.isArray(row.leaderboard_json)
+  const willWriteField = Array.isArray(row.field_json)
+  if (!willWriteLeaderboard && !willWriteField) return
+  const storedHasWeekendCutErrors = hasWeekendCutStatusErrors(existing.leaderboard_json)
+    || hasWeekendCutStatusErrors(existing.field_json)
+  if (!storedHasWeekendCutErrors) return
+
+  // Production has a DB trigger that preserves enriched JSON fields across
+  // tournament updates. If the stored board is already corrupt, a direct JSON
+  // update can re-merge the old CUT status back into the fresh board. Null the
+  // stored JSON first, then write the fresh repaired board in the caller.
+  const { error } = await supabase
+    .from('gpp_tournaments')
+    .update({ leaderboard_json: null, field_json: null })
+    .eq('id', existing.id)
+  if (error) throw error
+  existing.leaderboard_json = null
+  existing.field_json = null
 }
 
 async function fetchScoreboardEvents() {
@@ -483,8 +506,8 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       status = 'live'
       row.status = 'live'
     }
-    const liveLeaderboard = status === 'live' ? await getLeaderboard(row.external_id).catch(() => null) : null
-    let playersForStorage = liveLeaderboard?.leaderboard?.length ? liveLeaderboard.leaderboard : players
+    const liveLeaderboard = (status === 'live' || status === 'completed') ? await getLeaderboard(row.external_id).catch(() => null) : null
+    let playersForStorage = repairWeekendCutStatuses(liveLeaderboard?.leaderboard?.length ? liveLeaderboard.leaderboard : players)
 
     // ESPN general scoreboard often returns zero competitors for pre events.
     // Try the event-specific endpoint before falling back to PGA Tour.
@@ -577,6 +600,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       if (!hasStoredFinalBoard && Array.isArray(row.leaderboard_json)) {
         row.leaderboard_json = preserveStoredInactiveStatuses(row.leaderboard_json, existing.leaderboard_json)
       }
+      await clearCorruptStoredTournamentJsonIfNeeded(supabase, existing, row)
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
       if (Array.isArray(row.field_json)) {
@@ -741,12 +765,12 @@ export async function syncTournaments({
 
     let leaderboardPlayers: any[] | null = null
     let leaderboardRound: number | null = null
-    if (doLive && status === 'live') {
+    if ((doLive && (status === 'live' || status === 'completed')) || (status === 'completed' && hasWeekendCutStatusErrors(existing?.leaderboard_json))) {
       const leaderboard = await getLeaderboard(externalId).catch(() => null)
       if (leaderboard?.leaderboard?.length) {
-        leaderboardPlayers = leaderboard.leaderboard
+        leaderboardPlayers = repairWeekendCutStatuses(leaderboard.leaderboard)
         leaderboardRound = leaderboard.round
-        row.leaderboard_json = leaderboard.leaderboard
+        row.leaderboard_json = leaderboardPlayers
         row.last_scores_fetch = new Date().toISOString()
         result.leaderboardsUpdated++
       }
@@ -781,6 +805,7 @@ export async function syncTournaments({
       if (!hasStoredFinalBoard && Array.isArray(row.leaderboard_json)) {
         row.leaderboard_json = preserveStoredInactiveStatuses(row.leaderboard_json, existing.leaderboard_json)
       }
+      await clearCorruptStoredTournamentJsonIfNeeded(supabase, existing, row)
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
       if (Array.isArray(row.field_json)) {

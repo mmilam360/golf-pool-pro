@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { applyOfficialCutStatus, mapCompetitorToPlayer, parseProjectedCutLineFromHtml } from '../src/lib/golf-api.ts'
+import { repairWeekendCutStatuses } from '../src/lib/leaderboard-sanity.ts'
 
 function assert(condition, message) {
   if (!condition) throw new Error(message)
@@ -88,6 +89,11 @@ const officialCutApplied = applyOfficialCutStatus([weekendPlayerOverCutLine, mis
 assert(officialCutApplied[0].status === 'active', 'keeps players active when they have weekend-round evidence')
 assert(officialCutApplied[1].status === 'cut', 'still marks players cut when they missed the official cut')
 assert(officialCutApplied[2].status === 'active', 'does not mark players cut when they are inside the official cut count')
+
+const explicitCutWithWeekendEvidence = { ...weekendPlayerOverCutLine, status: 'cut', position: 'CUT' }
+const repairedCutStatus = repairWeekendCutStatuses([explicitCutWithWeekendEvidence])
+assert(repairedCutStatus[0].status === 'active', 'repairs ESPN/stored CUT status when weekend round evidence exists')
+assert(repairedCutStatus[0].position === 'CUT', 'repair does not invent rank data when only stored CUT position exists')
 
 const golfApi = readFileSync(new URL('../src/lib/golf-api.ts', import.meta.url), 'utf8')
 const tournamentSync = readFileSync(new URL('../src/lib/tournament-sync.ts', import.meta.url), 'utf8')
