@@ -686,40 +686,34 @@ export async function syncTournaments({
       || bestEvent.venue?.address?.city
       || null
     const status = getStatus(bestEvent)
-    let players = extractPlayers(bestEvent)
+    const espnPlayers = extractPlayers(bestEvent)
+    let players = status === 'upcoming' ? [] : espnPlayers
     let pgaMeta: { players: any[]; lastUpdated: string | null } = { players: [], lastUpdated: null }
+    let hasPgaTourMatch = false
 
-    // Prefer PGA Tour field data for upcoming tournaments — it includes OWGR
-    // and is available earlier/more completely than ESPN's pre-event field.
+    // For upcoming tournaments, PGA Tour is the canonical field source. ESPN
+    // frequently returns future-event placeholders; if a PGA Tour match exists
+    // but the fetch is empty/transiently unavailable, preserve the stored field
+    // instead of falling back to ESPN and poisoning Supabase.
     if (status === 'upcoming') {
       const pgaTourTournament = findPgaTourTournament({
         pgaSchedule: pgaTourSchedule,
         eventName: bestEvent.name || event.name,
         startDate,
       })
+      hasPgaTourMatch = Boolean(pgaTourTournament?.tournamentId)
       if (pgaTourTournament?.tournamentId) {
         pgaMeta = await getPgaTourFieldWithMeta(pgaTourTournament.tournamentId).catch(() => ({ players: [], lastUpdated: null }))
         if (pgaMeta.players.length > 0) players = pgaMeta.players
       }
     }
 
-    // If general scoreboard has no competitors, try event-specific endpoint first.
-    if (players.length === 0 && status === 'upcoming') {
+    // Only use ESPN as an upcoming-field fallback when PGA Tour cannot match
+    // the event at all. A matched-but-empty PGA Tour fetch is a failure to
+    // alert/preserve through, not permission to use ESPN placeholders.
+    if (players.length === 0 && status === 'upcoming' && !hasPgaTourMatch) {
       const eventSpecificPlayers = await fetchEventSpecificField(externalId)
-      if (eventSpecificPlayers.length > 0) {
-        players = eventSpecificPlayers
-      } else {
-        // Fallback to PGA Tour GraphQL
-        const pgaTourTournament = findPgaTourTournament({
-          pgaSchedule: pgaTourSchedule,
-          eventName: bestEvent.name || event.name,
-          startDate,
-        })
-        if (pgaTourTournament?.tournamentId) {
-          pgaMeta = await getPgaTourFieldWithMeta(pgaTourTournament.tournamentId).catch(() => ({ players: [], lastUpdated: null }))
-          if (pgaMeta.players.length > 0) players = pgaMeta.players
-        }
-      }
+      players = eventSpecificPlayers.length > 0 ? eventSpecificPlayers : espnPlayers
     }
 
     if (!startDate || !endDate) continue
