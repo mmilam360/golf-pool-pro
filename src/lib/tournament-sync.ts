@@ -539,7 +539,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
     const { data: existing, error: existingError } = await supabase
       .from('gpp_tournaments')
-      .select('id, status, leaderboard_json, field_json, field_fingerprint')
+      .select('id, status, leaderboard_json, field_json, field_fingerprint, field_source, last_field_fetch')
       .eq('external_id', row.external_id)
       .maybeSingle()
 
@@ -553,13 +553,20 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       existing?.id || row.external_id,
     )
 
-    if (fieldCheck.ok) {
+    const wouldDowngradeOfficialField = existing?.field_source === 'pga_tour'
+      && fieldSource !== 'pga_tour'
+      && status === 'upcoming'
+
+    if (fieldCheck.ok && !wouldDowngradeOfficialField) {
       row.field_json = playersForStorage
       row.field_fingerprint = fieldCheck.fingerprint
       row.field_source = fieldSource
       row.last_field_fetch = new Date().toISOString()
       result.fieldsUpdated++
     } else if (playersForStorage.length > 0) {
+      if (wouldDowngradeOfficialField) {
+        console.warn(`[sync] Preserved PGA Tour field for ${existing?.id || row.external_id}; rejected ${fieldSource} downgrade`)
+      }
       result.fieldsRejected++
     }
 
@@ -719,7 +726,7 @@ export async function syncTournaments({
 
     const { data: existing, error: existingError } = await supabase
       .from('gpp_tournaments')
-      .select('id, status, leaderboard_json, field_json, field_fingerprint')
+      .select('id, status, leaderboard_json, field_json, field_fingerprint, field_source, last_field_fetch')
       .eq('external_id', externalId)
       .maybeSingle()
 
@@ -753,13 +760,20 @@ export async function syncTournaments({
       existing?.id || row.external_id,
     )
 
-    if (fieldCheck.ok) {
+    const wouldDowngradeOfficialField = existing?.field_source === 'pga_tour'
+      && fieldSource !== 'pga_tour'
+      && status === 'upcoming'
+
+    if (fieldCheck.ok && !wouldDowngradeOfficialField) {
       row.field_json = players
       row.field_fingerprint = fieldCheck.fingerprint
       row.field_source = fieldSource
       row.last_field_fetch = lastUpdated || new Date().toISOString()
       result.fieldsUpdated++
     } else if (players.length > 0) {
+      if (wouldDowngradeOfficialField) {
+        console.warn(`[sync] Preserved PGA Tour field for ${existing?.id || row.external_id}; rejected ${fieldSource} downgrade`)
+      }
       result.fieldsRejected++
     }
 
