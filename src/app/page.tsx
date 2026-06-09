@@ -77,9 +77,9 @@ const leaderboardRows = [
 ]
 
 const setupSteps = [
-  ['01', 'Create the pool', 'Pick the tournament, set the rules, and share the join link.'],
-  ['02', 'Collect picks', 'Players enter their own teams. Entries lock automatically before the first tee time Thursday.'],
-  ['03', 'Follow the leaderboard', 'Watch scores update and settle arguments from one board.'],
+  ['01', 'Create the pool', 'Pick the tournament, choose the format, and share the join link.'],
+  ['02', 'Players pick themselves', 'No spreadsheet chasing. Entries lock automatically before the first tee time Thursday.'],
+  ['03', 'Watch the board move', 'Follow live scoring, cut drama, and the Sunday chase from one leaderboard.'],
 ]
 
 const pricingRows = [
@@ -89,27 +89,34 @@ const pricingRows = [
 ]
 
 const featureRows = [
-  ['Live standings', 'Watch the full pool leaderboard from the dashboard once scores start moving.'],
+  ['Live standings', 'Give everyone a board worth checking from Thursday morning through Sunday afternoon.'],
+  ['Who to root for', 'See which golfers are carrying each entry and which picks can flip the board.'],
+  ['Cut and OB drama', 'Missed cuts and OB stand-ins are handled by the pool rules instead of spreadsheet math.'],
   ['Tournament board feel', 'A golf pool should feel like major week, not a stale office admin screen.'],
   ['Smart alerts', 'Players can get notified when scoring starts, picks are due, or they jump into first.'],
-  ['Cut and OB scoring', 'Missed cuts and OB stand-ins are handled by the pool rules instead of spreadsheet math.'],
   ['Fast invites', 'Invite by link, passcode, or previous-player list when you run the next pool.'],
-  ['Pool posters', 'Generate a QR poster for the clubhouse, group chat, or tournament email.'],
   ['Run it back', 'Reuse the same group for the next tournament instead of starting from scratch.'],
-  ['Capped host fee', 'Players join free. The host pays one capped pool fee after picks lock.'],
+  ['Players join free', 'Players never hit a payment screen. The host settles the software fee after picks lock.'],
+  ['Final board recap', 'Share the final standings when the last putt drops.'],
 ]
 
 const formatRows = [
-  ['Open Picks', 'Pick from the full field. Simple, familiar, and easy for first-time players.'],
-  ['Tiered Picks', 'Field is sorted into WGR tiers. Players pick from each tier.'],
-  ['Clubhouse Chaos', 'Field is randomly shuffled, then divided into groups. Same groups for everyone.'],
+  ['Open Picks', 'Pick anyone in the field. No tiers, no tricks. Pure conviction.'],
+  ['Tiered Picks', "WGR tiers stop every entry from loading up on the same favorites."],
+  ['Clubhouse Chaos', "Random groups. Same chaos for everyone. Suddenly one dark horse can move the whole pool."],
 ]
 
 const runnerTools = [
   ['Invite link and passcode', 'Send one link or code. Players enter their own picks.'],
   ['Previous-player invites', "Bring last week's group back without rebuilding the list."],
-  ['Poster generator', 'Make a printable QR poster so people can join from the bar, clubhouse, or office.'],
+  ['Runner reminders', 'See who still needs picks and copy one clean reminder for the group chat.'],
   ['Run it back', 'Copy the pool setup for the next tournament and move faster.'],
+]
+
+const builtForRows = [
+  ['Office pools', 'One link for the group, one board for standings, no Sunday spreadsheet cleanup.'],
+  ['Bar leagues', 'Print the QR poster, tape it up, and let players join from their phones.'],
+  ['Weekend groups', 'Fast setup for every major without rebuilding the same pool from scratch.'],
 ]
 
 const faqItems = [
@@ -168,7 +175,7 @@ const softwareSchema = {
   applicationCategory: 'SportsApplication',
   operatingSystem: 'Web',
   url: 'https://www.golfpoolspro.com',
-  description: 'Online golf pool manager with private join links, pick tracking, automatic scoring, OB rules, and live leaderboards.',
+  description: 'Run your golf pool online with live leaderboards, automatic scoring, private join links, and no spreadsheet cleanup.',
   offers: {
     '@type': 'Offer',
     price: '0',
@@ -238,15 +245,22 @@ export default function Home() {
         <section className="mx-auto max-w-7xl px-4 pb-0 pt-8 sm:px-5 md:px-8 lg:pt-10">
           <div className="mx-auto max-w-4xl pb-6 text-center">
             <p className="mx-auto mb-4 w-fit max-w-full border-y border-[#b58a3a] py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a6724] sm:text-xs sm:tracking-[0.28em]">
-              Golf pool manager
+              Built for major week
             </p>
             <h1 className="max-w-full font-display text-[2.05rem] font-bold leading-[1.02] tracking-[-0.035em] text-[#0f2f25] sm:text-[3rem] md:text-[4.1rem] xl:text-[4.55rem]">
               <span className="block">Golf pools people</span>
               <span className="block">actually want to check.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#4f5b52] sm:text-lg sm:leading-8">
-              Create the pool, send one link, collect picks, and give everyone a live leaderboard worth refreshing from Thursday through Sunday.
+              Create the pool in minutes. Send one link. Players pick themselves. Then spend Thursday through Sunday watching the board do its thing.
             </p>
+            <div className="mx-auto mt-6 grid max-w-2xl gap-2 text-left sm:grid-cols-3">
+              {['Players join free', '13 entries costs $8', 'Live board all week'].map(item => (
+                <div key={item} className="border-2 border-[#123c2f] bg-white px-3 py-2 text-center text-[11px] font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[4px_4px_0_#d8cab0]">
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="relative mx-auto flex max-w-5xl flex-col justify-start pt-1" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>
@@ -331,6 +345,23 @@ export default function Home() {
 
         </section>
 
+        <section className="mx-auto max-w-7xl px-5 pb-12 pt-6 md:px-8 md:pb-16">
+          <div className="grid border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0] md:grid-cols-[0.55fr_1.45fr]">
+            <div className="border-b-2 border-[#123c2f] bg-[#fbf7ed] p-5 md:border-b-0 md:border-r-2">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Built for</p>
+              <h2 className="mt-3 font-display text-2xl font-bold leading-tight text-[#0f2f25] md:text-3xl">The person everyone expects to run the pool.</h2>
+            </div>
+            <div className="grid md:grid-cols-3">
+              {builtForRows.map(([title, body]) => (
+                <div key={title} className="border-b-2 border-[#123c2f] p-5 last:border-b-0 md:border-b-0 md:border-r-2 md:last:border-r-0">
+                  <h3 className="font-black uppercase tracking-[0.06em] text-[#123c2f]">{title}</h3>
+                  <p className="mt-3 leading-7 text-[#4f5b52]">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="border-y border-[#d8cab0] bg-[#123c2f] text-white">
           <div className="mx-auto grid max-w-7xl gap-0 px-5 md:grid-cols-3 md:px-8">
             {setupSteps.map(step => (
@@ -348,7 +379,7 @@ export default function Home() {
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Game formats</p>
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Play the normal pool or mix it up.</h2>
             <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
-              Run a straight pick-anyone pool, split the field by ranking, or shuffle the field into groups for a different kind of draft.
+              Not every group wants the same pool. Keep it familiar, balance the favorites, or make the room sweat a random draw.
             </p>
           </div>
           <div className="grid border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0] md:grid-cols-3">
@@ -367,7 +398,7 @@ export default function Home() {
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Pool runner tools</p>
               <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Invites, posters, and run-it-back built in.</h2>
               <p className="mt-4 max-w-xl leading-7 text-[#657168]">
-                Create the pool once, then make it easy for people to join. Use the link, passcode, previous-player list, or QR poster instead of chasing entries in a group text.
+                The group text worked fine until someone asked who still owes picks. Golf Pools Pro keeps setup, invites, reminders, and the next pool in one place.
               </p>
             </div>
             <div className="grid border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0] sm:grid-cols-2">
@@ -382,11 +413,36 @@ export default function Home() {
         </section>
 
         <section className="mx-auto max-w-7xl px-5 py-14 md:px-8 md:py-20">
+          <div className="grid gap-8 border-2 border-[#123c2f] bg-white p-6 shadow-[7px_7px_0_#d8cab0] md:grid-cols-[0.95fr_1.05fr] md:items-center md:p-8">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">QR signup posters</p>
+              <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Print it, tape it up, and let the QR code do the chasing.</h2>
+              <p className="mt-4 max-w-xl leading-7 text-[#657168]">
+                Built for bars, clubs, offices, and weekend groups. Make a tournament poster with the join code, QR code, format, rules, and your own note.
+              </p>
+            </div>
+            <div className="border-2 border-[#123c2f] bg-[#fbf7ed] p-5">
+              <div className="border-2 border-[#123c2f] bg-white p-5 text-center shadow-[5px_5px_0_#d8cab0]">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a6724]">Scan to join</p>
+                <div className="mx-auto mt-4 grid h-36 w-36 grid-cols-5 gap-1 border-2 border-[#123c2f] bg-white p-2" aria-hidden="true">
+                  {Array.from({ length: 25 }).map((_, index) => (
+                    <span key={index} className={(index % 2 === 0 || [6, 8, 16, 18].includes(index)) ? 'bg-[#123c2f]' : 'bg-[#fbf7ed]'} />
+                  ))}
+                </div>
+                <p className="mx-auto mt-4 max-w-xs text-sm font-semibold leading-6 text-[#4f5b52]">
+                  Add the poster to the bar, clubhouse counter, office wall, or group email.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-5 py-14 md:px-8 md:py-20">
           <div className="mb-8 max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">What runs the pool</p>
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">A golf pool app that does not feel like office software.</h2>
             <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
-              Golf Pools Pro keeps picks, invites, scoring, alerts, and the live board your group actually checks in one place.
+              The spreadsheet can track names. Golf Pools Pro gives your group the live board, rooting angles, and tournament-week energy people come back for.
             </p>
           </div>
           <div className="grid border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0] md:grid-cols-2 lg:grid-cols-3">
@@ -400,65 +456,36 @@ export default function Home() {
         </section>
 
         <section className="border-y border-[#d8cab0] bg-[#0f2f25] px-5 py-14 text-white md:px-8 md:py-20">
-          <div className="mx-auto max-w-4xl text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f3df9c]">After the final putt</p>
-            <h2 className="mt-3 font-display text-3xl font-bold leading-tight md:text-5xl">Share the final board.</h2>
-          </div>
-
-          <div className="mx-auto mt-9 w-full max-w-[300px] sm:max-w-[340px]">
-            <div className="relative aspect-[1350/2760] w-full drop-shadow-[12px_14px_0_#001f17]">
-              <div
-                className="absolute overflow-hidden bg-[#f3ead7]"
-                style={{ left: '5.35%', top: '2.35%', width: '89.35%', height: '95.15%', borderRadius: '12.4% / 5.9%' }}
-              >
-                <div className="absolute inset-0 bg-[#f3ead7] bg-[linear-gradient(rgba(60,45,25,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(60,45,25,.08)_1px,transparent_1px)] bg-[length:18px_18px]" aria-hidden="true" />
-                <div className="absolute left-[7%] right-[7%] top-[14%] bottom-[10.5%] overflow-hidden border border-[#123c2f]/25 bg-[#f3ead7] shadow-[5px_6px_0_rgba(0,31,23,0.22)]">
-                  <Image
-                    unoptimized
-                    src="/share/final-result-preview.png"
-                    alt="Golf Pools Pro final result share image shown inside a story-style phone preview"
-                    width={1080}
-                    height={1920}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="absolute left-[6%] right-[6%] top-[7%] z-10 grid grid-cols-4 gap-[3px]" aria-hidden="true">
-                  <span className="h-[2px] rounded-full bg-[#123c2f]" />
-                  <span className="h-[2px] rounded-full bg-[#123c2f]/35" />
-                  <span className="h-[2px] rounded-full bg-[#123c2f]/35" />
-                  <span className="h-[2px] rounded-full bg-[#123c2f]/35" />
-                </div>
-                <div className="absolute left-[6%] right-[6%] top-[8.8%] z-10 flex items-center gap-2 text-[10px] font-black text-[#123c2f] sm:text-xs" aria-hidden="true">
-                  <div className="h-7 w-7 rounded-full border-2 border-[#123c2f] bg-[#fbf7ed] bg-[url('/avatars/lonnie72-golfer-avatar.png')] bg-[length:138%] bg-center" />
-                  <strong>lonnie72</strong>
-                  <span className="font-extrabold text-[#123c2f]/70">22h</span>
-                  <span className="ml-auto text-lg leading-none tracking-[0.18em]">⋮</span>
-                </div>
-                <div className="absolute bottom-[3.2%] left-[6%] right-[6%] z-10 flex items-center gap-3 text-[#123c2f]" aria-hidden="true">
-                  <div className="flex-1 rounded-full border border-[#123c2f]/70 bg-[#fbf7ed]/55 px-4 py-2 text-[11px] font-extrabold text-[#123c2f]/85">Send message</div>
-                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" stroke="currentColor" strokeWidth="1.8" /></svg>
-                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M4 5l16 7-16 7 4-7-4-7Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
-                </div>
+          <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f3df9c]">After the final putt</p>
+              <h2 className="mt-3 font-display text-3xl font-bold leading-tight md:text-5xl">Share the final board.</h2>
+              <p className="mt-4 max-w-xl leading-7 text-[#d8e3dc]">
+                When the tournament ends, the standings are ready to send back to the group. No rebuilding a recap from screenshots and scorecards.
+              </p>
+            </div>
+            <div className="mx-auto w-full max-w-[430px]">
+              <div className="border-2 border-[#f3df9c] bg-[#fbf7ed] p-3 shadow-[10px_10px_0_#001f17]">
+                <Image
+                  unoptimized
+                  loading="eager"
+                  src="/share/final-result-preview.png"
+                  alt="Golf Pools Pro final board share preview"
+                  width={1080}
+                  height={1920}
+                  className="h-auto w-full"
+                />
               </div>
-              <Image
-                unoptimized
-                src="/device-frames/iphone-17-pro-deep-blue-portrait.png"
-                alt="iPhone 17 Pro frame showing a Golf Pools Pro final board story preview"
-                width={1350}
-                height={2760}
-                className="pointer-events-none absolute inset-0 z-20 h-full w-full select-none"
-              />
             </div>
           </div>
         </section>
-
 
         <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 md:grid-cols-[0.85fr_1.15fr] md:items-start md:px-8 md:py-20">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Simple pricing</p>
             <h2 className="mt-3 font-display text-3xl font-bold leading-none text-[#0f2f25] md:text-5xl">Free for small pools. Capped for bigger ones.</h2>
             <p className="mt-4 max-w-xl leading-7 text-[#657168]">
-              The host pays only after entries lock. Players can join, make picks, and follow the board without hitting a payment screen.
+              Players never see a payment screen. The host pays once after picks lock, and small pools can run free.
             </p>
           </div>
           <div className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
@@ -519,7 +546,7 @@ export default function Home() {
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Golf pool manager</p>
               <h2 className="mt-3 font-display text-3xl font-bold text-[#0f2f25] md:text-4xl">Set up your next pool before the first tee time.</h2>
               <p className="mt-4 max-w-2xl leading-7 text-[#657168]">
-                Skip the spreadsheet cleanup and group-text standings. Players enter their picks, then the live board takes over once scoring starts.
+                You should not be running a spreadsheet on Sunday. Set up the pool, share the link, and let the leaderboard handle the rest.
               </p>
             </div>
             <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-6 py-3 text-center font-extrabold text-white transition-colors hover:bg-[#0f2f25]">
