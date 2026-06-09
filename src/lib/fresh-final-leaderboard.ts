@@ -1,5 +1,5 @@
 import { getLeaderboard, type GolfPlayer } from '@/lib/golf-api'
-import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
+import { hasWeekendCutStatusErrors, repairWeekendCutStatuses } from '@/lib/leaderboard-sanity'
 
 export type TournamentWithLeaderboard = {
   external_id?: string | null
@@ -15,10 +15,11 @@ export async function hydrateFinalLeaderboard<T extends TournamentWithLeaderboar
   try {
     const fresh = await getLeaderboard(tournament.external_id)
     if (!fresh?.leaderboard?.length) return tournament
+    const leaderboard = repairWeekendCutStatuses(fresh.leaderboard)
     return {
       ...tournament,
-      leaderboard_json: fresh.leaderboard,
-      field_json: Array.isArray(tournament.field_json) && tournament.field_json.length > 0 ? tournament.field_json : fresh.leaderboard,
+      leaderboard_json: leaderboard,
+      field_json: Array.isArray(tournament.field_json) && tournament.field_json.length > 0 ? tournament.field_json : leaderboard,
     }
   } catch {
     return tournament

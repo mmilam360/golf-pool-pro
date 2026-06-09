@@ -1,3 +1,5 @@
+import { repairWeekendCutStatuses } from './leaderboard-sanity'
+
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/golf'
 const ESPN_CORE_EVENTS = 'https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events'
 const ESPN_SCOREBOARD = `${ESPN_BASE}/pga/scoreboard`
@@ -406,7 +408,7 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
         ? await enrichPlayersWithFirstRoundTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
         : await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
       const cutLine = await cutLinePromise
-      const players = inferInactiveStatusesFromRounds(applyOfficialCutStatus(rawPlayers, cutLine), event.status?.period || competition?.status?.period)
+      const players = repairWeekendCutStatuses(inferInactiveStatusesFromRounds(applyOfficialCutStatus(rawPlayers, cutLine), event.status?.period || competition?.status?.period))
       const course = event.courses?.find?.((candidate: any) => candidate.host)?.name
         || event.courses?.[0]?.name
         || event.venue?.fullName
@@ -438,7 +440,7 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     ? await enrichPlayersWithFirstRoundTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
     : await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
   const cutLine = await cutLinePromise
-  const players = inferInactiveStatusesFromRounds(applyOfficialCutStatus(rawPlayers, cutLine), event.status?.period || competition?.status?.period)
+  const players = repairWeekendCutStatuses(inferInactiveStatusesFromRounds(applyOfficialCutStatus(rawPlayers, cutLine), event.status?.period || competition?.status?.period))
 
   return {
     id: event.id,

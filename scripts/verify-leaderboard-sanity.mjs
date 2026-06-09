@@ -5,8 +5,10 @@ import {
   hasPostCutRoundEvidence,
   hasWeekendCutStatusErrors,
   latestScorecardRound,
+  repairWeekendCutStatuses,
   weekendCutStatusErrorNames,
 } from '../src/lib/leaderboard-sanity.ts'
+import { scoreEntry, scoreEntriesForLeaderboard } from '../src/lib/scoring.ts'
 
 function assert(condition, message) {
   if (!condition) throw new Error(message)
@@ -95,5 +97,27 @@ assert(finalBoardLooksComplete(playoffBoard, 5), 'playoff board is complete when
 assert(!finalBoardLooksComplete(incompleteMondayBoard, 4), 'suspended/incomplete final round is not final')
 assert(!finalBoardHasEnoughEvidence([weekendPlayerMarkedCut, activeFinalPlayer], 4), 'bad weekend CUT final board fails evidence gate')
 assert(finalBoardHasEnoughEvidence(delayedSundayBoard, 5), 'clean final board passes evidence gate')
+
+const repairedBoard = repairWeekendCutStatuses([weekendPlayerMarkedCut, trueMissedCut, activeFinalPlayer])
+assert(repairedBoard[0].status === 'active', 'repairs a made-cut weekend player from CUT to active')
+assert(repairedBoard[1].status === 'cut', 'does not repair a true two-round missed cut')
+assert(!hasWeekendCutStatusErrors(repairedBoard), 'repaired board has no weekend-cut errors')
+
+const corruptedScoringBoard = [
+  { ...weekendPlayerMarkedCut, name: 'Made Cut Bad Status', scoreToPar: -8, score: '-8' },
+  { ...activeFinalPlayer, name: 'Worst Active', scoreToPar: 20, score: '+20' },
+  { ...trueMissedCut, name: 'True Cut Pick', scoreToPar: 9, score: '+9' },
+]
+const scored = scoreEntry(['Made Cut Bad Status', 'True Cut Pick'], corruptedScoringBoard, {
+  countScores: 2,
+  obRuleEnabled: true,
+  obPenaltyStrokes: 2,
+})
+assert(scored.obStandIns === 1, 'scoring repairs made-cut bad status before assigning OB stand-ins')
+assert(scored.totalScore === 14, `scoring counts repaired made-cut player plus one true OB stand-in, got ${scored.totalScore}`)
+const ranked = scoreEntriesForLeaderboard([
+  { id: 'entry-1', display_name: 'Entry 1', golfer_picks: ['Made Cut Bad Status', 'True Cut Pick'] },
+], corruptedScoringBoard, { countScores: 2, obRuleEnabled: true, obPenaltyStrokes: 2 })
+assert(ranked[0].obStandIns === 1, 'scoreEntriesForLeaderboard uses the same repair invariant')
 
 console.log('Leaderboard sanity verification passed')

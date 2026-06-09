@@ -1,4 +1,5 @@
 import type { GolfPlayer } from './golf-api'
+import { repairWeekendCutStatuses } from './leaderboard-sanity'
 
 type EntryLike = { id: string; display_name: string | null; golfer_picks: unknown; is_removed?: boolean | null }
 
@@ -83,8 +84,9 @@ export function scoreEntry(
   options: { countScores: number; obRuleEnabled: boolean; obPenaltyStrokes: number }
 ): ScoredEntry {
   const { countScores, obRuleEnabled, obPenaltyStrokes } = options
+  const safeLeaderboard = repairWeekendCutStatuses(leaderboard)
   const pickScores: PickScore[] = picks.map(name => {
-    const player = leaderboard.find(p =>
+    const player = safeLeaderboard.find(p =>
       p.name.toLowerCase() === name.toLowerCase() ||
       `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase()
     )
@@ -104,8 +106,8 @@ export function scoreEntry(
     const needed = countScores - active.length
     const obEligiblePicks = pickScores.filter(p => p.status !== 'active')
     const standInsNeeded = Math.min(needed, obEligiblePicks.length)
-    if (standInsNeeded > 0 && leaderboard.length > 0) {
-      const scoredPlayers = leaderboard.filter(p => p.status === 'active' && p.scoreToPar !== null)
+    if (standInsNeeded > 0 && safeLeaderboard.length > 0) {
+      const scoredPlayers = safeLeaderboard.filter(p => p.status === 'active' && p.scoreToPar !== null)
       scoredPlayers.sort((a, b) => (b.scoreToPar ?? -999) - (a.scoreToPar ?? -999))
       const worstScore = scoredPlayers.length > 0 ? (scoredPlayers[0].scoreToPar ?? 0) : 0
       const standInPenalty = obRuleEnabled ? obPenaltyStrokes : 0
@@ -154,7 +156,7 @@ export function scoreEntry(
 }
 
 export function currentLeaderboardRound(leaderboard: GolfPlayer[]) {
-  const players = Array.isArray(leaderboard) ? leaderboard : []
+  const players = repairWeekendCutStatuses(Array.isArray(leaderboard) ? leaderboard : [])
   const incompleteRounds = new Set<number>()
   const completedRounds = new Set<number>()
 
@@ -173,7 +175,7 @@ export function currentLeaderboardRound(leaderboard: GolfPlayer[]) {
 }
 
 export function availableCompletedRounds(leaderboard: GolfPlayer[]) {
-  const players = Array.isArray(leaderboard) ? leaderboard : []
+  const players = repairWeekendCutStatuses(Array.isArray(leaderboard) ? leaderboard : [])
   const rounds = new Set<number>()
   for (const player of players) {
     for (const round of player.roundScores || []) {
@@ -202,7 +204,7 @@ function inactiveRoundPlayer(player: GolfPlayer): GolfPlayer {
 }
 
 export function leaderboardForCompletedRound(leaderboard: GolfPlayer[], roundNumber: number): GolfPlayer[] {
-  return (Array.isArray(leaderboard) ? leaderboard : [])
+  return repairWeekendCutStatuses(Array.isArray(leaderboard) ? leaderboard : [])
     .map(player => {
       const round = player.roundScores?.find(item => item.round === roundNumber)
       if (!round?.complete) return inactiveRoundPlayer(player)
@@ -219,7 +221,7 @@ export function leaderboardForCompletedRound(leaderboard: GolfPlayer[], roundNum
 }
 
 export function leaderboardForRoundOnly(leaderboard: GolfPlayer[], roundNumber: number): GolfPlayer[] {
-  return (Array.isArray(leaderboard) ? leaderboard : [])
+  return repairWeekendCutStatuses(Array.isArray(leaderboard) ? leaderboard : [])
     .map(player => {
       const round = player.roundScores?.find(item => item.round === roundNumber)
       if (!round?.complete) return inactiveRoundPlayer(player)
