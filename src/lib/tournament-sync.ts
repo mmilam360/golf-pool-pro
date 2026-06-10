@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompetitorToPlayer, enrichPlayersWithTeeTimes, enrichPlayersWithFirstRoundTeeTimes } from './golf-api'
 import { autoFinalizeGroupedPools } from './grouped-pool-auto-lock'
-import { autoLockPools, tournamentIsDueToLock, tournamentIsInLiveActivationWindow } from './pool-auto-lock'
+import { autoLockPools } from './pool-auto-lock'
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
 import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
 import { recordNotificationEvent, sendPushToUser } from './notifications/push'
@@ -438,7 +438,7 @@ export async function refreshPgaTourFields(supabase: any, season: number): Promi
 async function liveSyncActivationState(supabase: any, now: Date) {
   const { data: tournaments, error } = await supabase
     .from('gpp_tournaments')
-    .select('id, external_id, start_date, status, field_json')
+    .select('id, external_id, start_date, status')
     .in('status', ['upcoming', 'live'])
 
   if (error) throw error
@@ -454,11 +454,19 @@ async function liveSyncActivationState(supabase: any, now: Date) {
   let hasDateFallbackDue = false
   for (const tournament of tournaments || []) {
     const status = String(tournament.status || '').toLowerCase()
-    if (status === 'live') hasLiveTournament = true
-    if (tournamentIsInLiveActivationWindow(tournament, now) && tournament.external_id) {
-      activatedExternalIds.add(String(tournament.external_id))
-    } else if (status === 'upcoming' && tournamentIsDueToLock(tournament, today, now)) {
+    if (status === 'live') {
+      hasLiveTournament = true
+      if (tournament.external_id) activatedExternalIds.add(String(tournament.external_id))
+      continue
+    }
+
+    // This function runs from the every-minute cron. Do not select field_json
+    // here: it is a large JSON blob and there can be dozens of upcoming events.
+    // First-tee precision is handled in autoLockPools(), which only runs after
+    // this cheap date/status gate opens.
+    if (status === 'upcoming' && tournament.start_date && tournament.start_date <= today) {
       hasDateFallbackDue = true
+      if (tournament.external_id) activatedExternalIds.add(String(tournament.external_id))
     }
   }
 
