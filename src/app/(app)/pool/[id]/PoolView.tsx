@@ -134,6 +134,26 @@ function scoreClass(score: number | null) {
   return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
 }
 
+function buildFrozenResultEntry(entry: any): ScoredEntry {
+  const storedPickScores = Array.isArray(entry.counting_scores) ? entry.counting_scores : []
+  return {
+    entryId: entry.id,
+    displayName: entry.display_name || 'Player',
+    picks: ((entry.golfer_picks as string[]) || []),
+    pickScores: storedPickScores,
+    totalScore: entry.total_score ?? null,
+    todayScore: null,
+    finalNineScore: null,
+    tiebreakScores: [],
+    rank: entry.rank ?? null,
+    obStandIns: storedPickScores.filter((pick: PickScore) => pick.isObStandIn).length,
+  }
+}
+
+function hasFrozenResult(entry: any) {
+  return entry.total_score !== null && entry.total_score !== undefined && entry.rank !== null && entry.rank !== undefined && Array.isArray(entry.counting_scores)
+}
+
 function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
   if (entry.picks_hidden) {
     return {
@@ -1326,13 +1346,19 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }
 
   // Compute scored entries
-  const scoredEntries: ScoredEntry[] = selectedScoringIsLive
-    ? scoreEntriesForLeaderboard(
-        visibleEntries,
-        selectedLeaderboard,
-        { countScores: pool.count_scores, obRuleEnabled: pool.ob_rule_enabled, obPenaltyStrokes: pool.ob_penalty_strokes }
-      )
-    : visibleEntries.map(entry => buildPreScoringEntry(entry, pool.count_scores))
+  const useFrozenResults = leaderboardModeIsCurrent && (pool.is_completed || tournament?.status === 'completed') && visibleEntries.some(hasFrozenResult)
+  const scoredEntries: ScoredEntry[] = useFrozenResults
+    ? visibleEntries
+        .filter(entry => !entry.is_removed)
+        .map(buildFrozenResultEntry)
+        .sort((a, b) => (a.rank ?? 999999) - (b.rank ?? 999999) || (a.totalScore ?? 999999) - (b.totalScore ?? 999999) || a.displayName.localeCompare(b.displayName))
+    : selectedScoringIsLive
+      ? scoreEntriesForLeaderboard(
+          visibleEntries,
+          selectedLeaderboard,
+          { countScores: pool.count_scores, obRuleEnabled: pool.ob_rule_enabled, obPenaltyStrokes: pool.ob_penalty_strokes }
+        )
+      : visibleEntries.map(entry => buildPreScoringEntry(entry, pool.count_scores))
   function orderPicksForDisplay(picks: PickScore[]) {
     if (!groupedFormat || pickGroups.length === 0) return picks
     const order = new Map<string, number>()
