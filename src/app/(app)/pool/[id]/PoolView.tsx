@@ -1013,8 +1013,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   // overwrite the stored final board in the browser and make finished pools look broken.
   const fetchScores = useCallback(async () => {
     if (!tournament?.external_id) return
+    if (tournament?.status === 'completed') return
     const storedBoardHasBadCuts = hasWeekendCutStatusErrors(leaderboard)
-    if (tournament?.status === 'completed' && !storedBoardHasBadCuts) return
     try {
       const res = await fetch(`/api/tournaments/leaderboard?id=${tournament.external_id}`, { cache: 'no-store' })
       if (res.ok) {
@@ -1389,6 +1389,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [defaultOpenedEntryId, scoredEntries])
   const leaderboardRows = selectedLeaderboard.length ? selectedLeaderboard : field
   const leaderboardByName = playerStatusByName(leaderboardRows, field)
+  const pickStatusByName = useFrozenResults ? new Map<string, GolfPlayer>() : leaderboardByName
   const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
@@ -2114,7 +2115,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 <div className={`mt-1 truncate text-[clamp(8px,2.2vw,10px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
                                   {pick ? shortName(pick.name, allPickNames) : '—'}
                                 </div>
-                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : '—'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, pickStatusByName, teeTimeZone)].filter(Boolean).join(' · ') : '—'}</div>
                               </div>
                             )
                           })}
@@ -2128,7 +2129,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   {pick.isObStandIn ? <ObMarker /> : null}
                                   {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                   {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                                  <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
+                                  <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, pickStatusByName, teeTimeZone)}</span></span>
                                 </span>
                               ))}
                             </div>
@@ -2181,7 +2182,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                     <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                                     <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                     <div className={`mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : '—'}</div>
+                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, pickStatusByName, teeTimeZone)].filter(Boolean).join(' · ') : '—'}</div>
                                   </td>
                                 )
                               })}
@@ -2203,7 +2204,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                         {pick.isObStandIn ? <ObMarker /> : null}
                                         {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                         {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                                        <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
+                                        <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, pickStatusByName, teeTimeZone)}</span></span>
                                       </span>
                                     ))}
                                   </div>

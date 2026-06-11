@@ -36,8 +36,9 @@ function getStatus(event: any) {
   if (state === 'in' || name === 'STATUS_IN_PROGRESS') return 'live'
   if (state === 'post' || name === 'STATUS_FINAL') return 'completed'
 
-  const endDate = new Date(event.endDate || event.date)
-  return endDate < new Date() ? 'completed' : 'upcoming'
+  // Never mark a tournament completed from calendar time alone. Rain delays,
+  // Monday finishes, playoffs, and stale API payloads make endDate unsafe.
+  return 'upcoming'
 }
 
 function extractPlayers(event: any) {

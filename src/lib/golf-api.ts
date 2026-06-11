@@ -351,8 +351,6 @@ function eventStatus(event: any): 'upcoming' | 'live' | 'completed' {
   if (state === 'in' || name === 'STATUS_IN_PROGRESS') return 'live'
   if (state === 'post' || name === 'STATUS_FINAL') return 'completed'
 
-  const end = new Date(event.endDate || event.date)
-  if (Number.isFinite(end.getTime()) && end < new Date()) return 'completed'
   return 'upcoming'
 }
 
