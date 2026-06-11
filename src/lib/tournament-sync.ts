@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompetitorToPlayer, enrichPlayersWithTeeTimes, enrichPlayersWithFirstRoundTeeTimes } from './golf-api'
 import { autoFinalizeGroupedPools } from './grouped-pool-auto-lock'
+import { finalizeCompletedPoolResults, type FinalizeResult } from './finalize-pool-results'
 import { autoLockPools } from './pool-auto-lock'
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
 import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
@@ -20,6 +21,7 @@ export interface TournamentSyncResult {
   leaderboardsUpdated: number
   poolsAutoLocked: number
   groupedPoolsAutoFinalized: number
+  finalResults?: FinalizeResult
   skipped?: boolean
   reason?: string
 }
@@ -542,7 +544,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     row.status = effectiveStatus
 
     // Decide source label used for validation
-    const fieldSource = playersForStorage.length > 0 && playersForStorage === players
+    const fieldSource: 'espn_scoreboard' | 'espn_event' | 'pga_tour' = playersForStorage.length > 0 && playersForStorage === players
       ? 'espn_scoreboard'
       : 'espn_event'
 
@@ -639,6 +641,8 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
   const groupFinalization = await autoFinalizeGroupedPools(supabase)
   result.groupedPoolsAutoFinalized = groupFinalization.finalized
+
+  result.finalResults = await finalizeCompletedPoolResults(supabase)
 
   return result
 }
@@ -854,6 +858,8 @@ export async function syncTournaments({
 
   const groupFinalization = await autoFinalizeGroupedPools(supabase)
   result.groupedPoolsAutoFinalized = groupFinalization.finalized
+
+  result.finalResults = await finalizeCompletedPoolResults(supabase)
 
   return result
 }

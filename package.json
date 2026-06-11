@@ -29,6 +29,7 @@
     "test:guest-join-flow": "node scripts/verify-guest-join-flow.mjs",
     "smoke:deployment": "node scripts/smoke-deployment.mjs",
     "test:leaderboard-sanity": "npx tsx scripts/verify-leaderboard-sanity.mjs",
+    "test:final-result-freeze": "npx tsx scripts/verify-final-result-freeze.mjs",
     "test:tournament-names": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-tournament-names.mjs"
   },
   "dependencies": {
