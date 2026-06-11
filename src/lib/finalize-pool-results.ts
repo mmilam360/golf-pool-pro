@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { GolfPlayer } from './golf-api'
 import { scoreEntriesForLeaderboard } from './scoring'
+import { finalBoardHasEnoughEvidence } from './leaderboard-sanity'
 
 export type FinalizeResult = {
   tournamentsChecked: number
@@ -24,6 +25,7 @@ type PoolRow = {
   ob_rule_enabled: boolean | null
   ob_penalty_strokes: number | null
   results_finalized_at?: string | null
+  results_finalized_source?: string | null
 }
 
 type EntryRow = {
@@ -34,28 +36,13 @@ type EntryRow = {
 }
 
 function hasFrozenResults(pool: PoolRow) {
-  return Boolean(pool.results_finalized_at)
+  return Boolean(pool.results_finalized_at) || String(pool.results_finalized_source || '').startsWith('finalizing:')
 }
 
 function usableLeaderboard(leaderboard: unknown): leaderboard is GolfPlayer[] {
   return Array.isArray(leaderboard) && leaderboard.some(player =>
     player && typeof player === 'object' && typeof (player as GolfPlayer).name === 'string'
   )
-}
-
-function finalLeaderboardIsComplete(leaderboard: GolfPlayer[]) {
-  const activePlayers = leaderboard.filter(player => player?.status === 'active')
-  if (activePlayers.length === 0) return false
-
-  return activePlayers.every(player => {
-    if (String(player?.thru || '').toUpperCase() === 'F') return true
-    const rounds = Array.isArray(player?.roundScores) ? player.roundScores : []
-    const latestRound = [...rounds]
-      .filter(round => Number.isFinite(Number(round?.round)))
-      .sort((a, b) => Number(b.round) - Number(a.round))[0]
-
-    return Number(latestRound?.round) >= 4 && Boolean(latestRound?.complete)
-  })
 }
 
 export async function finalizeCompletedPoolResults(
@@ -84,14 +71,14 @@ export async function finalizeCompletedPoolResults(
 
   for (const tournament of (tournaments || []) as TournamentRow[]) {
     result.tournamentsChecked++
-    if (!usableLeaderboard(tournament.leaderboard_json) || !finalLeaderboardIsComplete(tournament.leaderboard_json)) {
+    if (!usableLeaderboard(tournament.leaderboard_json) || !finalBoardHasEnoughEvidence(tournament.leaderboard_json, 4)) {
       result.skipped++
       continue
     }
 
     const { data: pools, error: poolsError } = await supabase
       .from('gpp_pools')
-      .select('id, tournament_id, count_scores, ob_rule_enabled, ob_penalty_strokes, results_finalized_at')
+      .select('id, tournament_id, count_scores, ob_rule_enabled, ob_penalty_strokes, results_finalized_at, results_finalized_source')
       .eq('tournament_id', tournament.id)
 
     if (poolsError) throw poolsError
@@ -99,6 +86,21 @@ export async function finalizeCompletedPoolResults(
     for (const pool of (pools || []) as PoolRow[]) {
       result.poolsChecked++
       if (hasFrozenResults(pool)) {
+        result.skipped++
+        continue
+      }
+
+      const lockToken = `finalizing:${now}`
+      const { data: claimedPools, error: claimError } = await supabase
+        .from('gpp_pools')
+        .update({ results_finalized_source: lockToken })
+        .eq('id', pool.id)
+        .is('results_finalized_at', null)
+        .is('results_finalized_source', null)
+        .select('id')
+
+      if (claimError) throw claimError
+      if (!claimedPools?.length) {
         result.skipped++
         continue
       }
@@ -143,7 +145,7 @@ export async function finalizeCompletedPoolResults(
           results_finalized_source: 'cron_finalizer',
         })
         .eq('id', pool.id)
-        .is('results_finalized_at', null)
+        .eq('results_finalized_source', lockToken)
 
       if (poolUpdateError) throw poolUpdateError
 
