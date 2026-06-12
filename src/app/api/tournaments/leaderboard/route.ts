@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     if (!hasUsableLeaderboard(tournament.leaderboard)) {
       return NextResponse.json({ error: 'Leaderboard unavailable' }, { status: 502 })
     }
-    return NextResponse.json(tournament, { headers: { 'Cache-Control': 'no-store, max-age=0' } })
+    return NextResponse.json(tournament, { headers: { 'Cache-Control': 'public, s-maxage=45, stale-while-revalidate=90' } })
   } catch {
     return NextResponse.json({ error: 'Leaderboard unavailable' }, { status: 502 })
   }

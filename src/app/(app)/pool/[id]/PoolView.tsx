@@ -841,7 +841,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const fetchScores = useCallback(async () => {
     if (!tournament?.external_id || tournament?.status === 'completed') return
     try {
-      const res = await fetch(`/api/tournaments/leaderboard?id=${tournament.external_id}`, { cache: 'no-store' })
+      const res = await fetch(`/api/tournaments/leaderboard?id=${tournament.external_id}`)
       if (res.ok) {
         const data = await res.json()
         const liveLeaderboard = data.leaderboard || []
