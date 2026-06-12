@@ -14,13 +14,8 @@ import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
-import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup, type PoolGameFormat } from '@/lib/pool-formats'
-import { DUPLICATE_ENTRY_NAME_MESSAGE, isDuplicateEntryNameError, normalizeEntryName } from '@/lib/entry-name'
+import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup } from '@/lib/pool-formats'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
-import { compareGolfersByListName, golferListName } from '@/lib/golfer-display'
-import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
-import { displayTournamentName } from '@/lib/tournament-name'
-
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -76,10 +71,8 @@ interface Props {
   userId: string
   previousPlayerCandidates: { userId: string; displayName: string }[]
   inviteSummary: { pending: number; accepted: number; declined: number }
-  initialTab?: Tab
-  initialHighlightedEntryId?: string | null
-  initialError?: string
   publicView?: boolean
+  guestEntryToken?: string
 }
 
 type Tab = 'leaderboard' | 'my-entry' | 'pool-settings'
@@ -159,16 +152,8 @@ function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
     return {
       entryId: entry.id,
       displayName: entry.display_name,
-      picks: ['__hidden__'],
-      pickScores: Array.from({ length: countScores }, () => ({
-        name: 'Picks hidden',
-        scoreToPar: null,
-        strokes: null,
-        thru: '',
-        status: 'active' as const,
-        counted: true,
-        isObStandIn: false,
-      })),
+      picks: [],
+      pickScores: [],
       totalScore: null,
       todayScore: null,
       finalNineScore: null,
@@ -265,16 +250,6 @@ function playerStatusByName(scoringRows: GolfPlayer[], fieldRows: GolfPlayer[]) 
   return byName
 }
 
-function pickGridColumnCount(count: number) {
-  if (count <= 3) return Math.max(1, count)
-  if (count === 6) return 3
-  if (count === 12) return 4
-  if (count % 5 === 0) return 5
-  if (count % 4 === 0) return 4
-  if (count % 3 === 0) return 3
-  return Math.min(4, count)
-}
-
 function LivePulseBadge() {
   return (
     <span className="inline-flex items-center gap-1.5 border border-[#b21e23] bg-[#fff1ef] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#b21e23]">
@@ -293,6 +268,16 @@ function hasRecentOnCourseScores(tournament: any, leaderboard: GolfPlayer[]) {
   const lastFetchMs = new Date(tournament.last_scores_fetch).getTime()
   if (!Number.isFinite(lastFetchMs)) return false
   return Date.now() - lastFetchMs <= 5 * 60 * 1000
+}
+
+function golferListName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length < 2) return name
+  const suffixes = new Set(['Jr.', 'Jr', 'Sr.', 'Sr', 'II', 'III', 'IV', 'V'])
+  const suffix = suffixes.has(parts[parts.length - 1]) ? parts.pop() : null
+  const lastName = parts.pop()
+  const firstNames = parts.join(' ')
+  return `${lastName}, ${firstNames}${suffix ? ` ${suffix}` : ''}`
 }
 
 function TrustCheckIcon() {
@@ -321,20 +306,6 @@ const ROUND_SCORE_LABELS: Record<number, string> = { 1: 'THU', 2: 'FRI', 3: 'SAT
 
 type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
 
-type FieldUpdateAlert = {
-  id: string
-  payload: {
-    role?: 'entrant' | 'host'
-    entryName?: string
-    removedPicks?: string[]
-    removedCount?: number
-    affectedEntries?: Array<{ displayName: string; removed: string[] }>
-    affectedCount?: number
-    poolName?: string
-    tournamentName?: string | null
-  }
-}
-
 function roundMenuLabel(round: number) {
   return ROUND_MENU_LABELS[round] || `ROUND ${round}`
 }
@@ -343,14 +314,12 @@ function roundScoreLabel(round: number) {
   return ROUND_SCORE_LABELS[round] || `R${round}`
 }
 
-export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, initialTab, initialHighlightedEntryId = null, initialError = '' }: Props) {
+export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, guestEntryToken = '' }: Props) {
   const router = useRouter()
-  const defaultTab: Tab = publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry'
-  const [tab, setTab] = useState<Tab>(initialTab || defaultTab)
+  const [tab, setTab] = useState<Tab>(publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry')
   const [entries, setEntries] = useState(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [poolName, setPoolName] = useState(pool.name)
-  const tournamentDisplayName = displayTournamentName(tournament?.name) || 'Tournament'
   const [poolLocked, setPoolLocked] = useState(pool.is_locked)
   const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>(() => Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [])
   const [leaderboardLastUpdated, setLeaderboardLastUpdated] = useState<string | null>(() => tournament?.last_scores_fetch || null)
@@ -358,10 +327,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [field, setField] = useState<GolfPlayer[]>(() => Array.isArray(tournament?.field_json) ? tournament.field_json as GolfPlayer[] : Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [])
   const [myPicks, setMyPicks] = useState<string[]>(initialMyEntry?.golfer_picks || [])
   const [entryNameValue, setEntryNameValue] = useState(initialMyEntry?.display_name || '')
+  const [notificationEmailValue, setNotificationEmailValue] = useState(initialMyEntry?.notification_email || '')
   const [entryNameSaving, setEntryNameSaving] = useState(false)
   const [refreshCountdown, setRefreshCountdown] = useState(REFRESH_SECONDS)
   const [saving, setSaving] = useState(false)
-  const [statusMessage, setStatusMessage] = useState(initialError)
+  const [statusMessage, setStatusMessage] = useState('')
   const [inviteUrl, setInviteUrl] = useState('')
   const [publicLeaderboardUrl, setPublicLeaderboardUrl] = useState('')
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
@@ -373,9 +343,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentCardReady, setPaymentCardReady] = useState(false)
   const [paymentFeedback, setPaymentFeedback] = useState('')
-  const [saveCardPaymentId, setSaveCardPaymentId] = useState('')
-  const [saveCardLoading, setSaveCardLoading] = useState(false)
-  const [saveCardFeedback, setSaveCardFeedback] = useState('')
   const [promoOpen, setPromoOpen] = useState(false)
   const [obRulesOpen, setObRulesOpen] = useState(false)
   const [openEntryIds, setOpenEntryIds] = useState<Set<string>>(() => new Set())
@@ -383,13 +350,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [promoLoading, setPromoLoading] = useState(false)
   const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null)
   const [selectedSavedCardId, setSelectedSavedCardId] = useState('')
-  const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(initialHighlightedEntryId)
+  const [saveCard, setSaveCard] = useState(false)
+  const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null)
   const [forceOpenEntryId, setForceOpenEntryId] = useState<string | null>(null)
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
   const [toasts, setToasts] = useState<ToastMessage[]>([])
-  const [fieldUpdateAlerts, setFieldUpdateAlerts] = useState<FieldUpdateAlert[]>([])
-  const [dismissedFieldUpdateAlertIds, setDismissedFieldUpdateAlertIds] = useState<Set<string>>(() => new Set())
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
@@ -404,56 +370,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [])
 
   useEffect(() => {
-    trackGppEvent('pool_viewed', {
-      pool_id: pool.id,
-      tournament: tournament?.name || null,
-      tournament_status: tournament?.status || null,
-      role: isOwner ? 'runner' : myEntry ? 'player' : publicView ? 'public' : 'guest',
-      tab,
-      public_view: publicView,
-      entry_count: initialEntries.filter(entry => !entry.is_removed).length,
-      game_format: pool.game_format || 'standard',
-      picks_locked: Boolean(pool.is_locked),
-      has_my_entry: Boolean(myEntry),
-      my_picks_complete: Boolean(myEntry?.golfer_picks?.length && myEntry.golfer_picks.length >= pool.pick_count),
-    })
-  }, [initialEntries, isOwner, myEntry, pool.game_format, pool.id, pool.is_locked, pool.pick_count, publicView, tab, tournament?.name, tournament?.status])
-
-  useEffect(() => {
     if (window.location.hash === '#make-picks') {
       setTab('my-entry')
       window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
     }
   }, [])
   const supabase = useMemo(() => createClient(), [])
-
-  useEffect(() => {
-    if (publicView || !userId) return
-    let active = true
-    supabase
-      .from('gpp_notification_events')
-      .select('id, payload, sent_at')
-      .eq('pool_id', pool.id)
-      .eq('type', 'field_update')
-      .order('sent_at', { ascending: false })
-      .limit(4)
-      .then(({ data }) => {
-        if (!active) return
-        setFieldUpdateAlerts(((data || []) as FieldUpdateAlert[]).filter(alert => alert?.payload))
-      })
-    return () => { active = false }
-  }, [pool.id, publicView, supabase, userId])
-
-  useEffect(() => {
-    if (!initialHighlightedEntryId) return
-    setTab('leaderboard')
-    setForceOpenEntryId(initialHighlightedEntryId)
-    window.setTimeout(() => {
-      const targetId = window.matchMedia('(min-width: 1024px)').matches ? `entry-row-${initialHighlightedEntryId}` : `entry-card-${initialHighlightedEntryId}`
-      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 120)
-    window.setTimeout(() => setHighlightedEntryId(null), 3200)
-  }, [initialHighlightedEntryId])
 
   const dismissToast = useCallback((id: number) => {
     setToasts(current => current.filter(toast => toast.id !== id))
@@ -466,8 +388,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [dismissToast])
 
   const activeEntries = entries.filter(e => !e.is_removed)
-  const removeTargetEntry = removeTarget ? entries.find(entry => entry.id === removeTarget) : null
-  const removeTargetName = removeTargetEntry?.display_name?.trim() || 'this entry'
   const storedPickGroups: PickGroup[] = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
   const groupedFormat = pool.game_format === 'ranked_groups' || pool.game_format === 'random_groups'
   const pickGroups: PickGroup[] = useMemo(() => {
@@ -476,33 +396,28 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (!field.length) return []
     return buildPickGroups({
       field,
-      format: pool.game_format as PoolGameFormat,
+      format: pool.game_format,
       groupCount: Number(pool.group_count || 6),
       seed: `${pool.id}:${tournament?.id || tournament?.external_id || tournament?.name || 'group-preview'}`,
     })
   }, [field, groupedFormat, pool.game_format, pool.group_count, pool.id, storedPickGroups, tournament?.external_id, tournament?.id, tournament?.name])
   const groupsFinalized = !groupedFormat || (storedPickGroups.length > 0 && Boolean(pool.groups_finalized_at))
   const picksPerGroup = groupedFormat ? Number(pool.picks_per_group || 1) : 0
-  const groupName = pool.game_format === 'ranked_groups' ? 'tier' : 'group'
-  const groupNamePlural = pool.game_format === 'ranked_groups' ? 'tiers' : 'groups'
-  const displayGroupLabel = useCallback((label: string) => (pool.game_format === 'ranked_groups' ? label.replace(/^Group\b/, 'Tier') : label), [pool.game_format])
   const groupedTotalPicks = groupedFormat ? pickGroups.length * picksPerGroup : 0
-  const groupedGroupsRemaining = groupedFormat ? pickGroups.filter(group => {
-    const selectedCount = group.players.filter(player => myPicks.includes(player.name)).length
-    return selectedCount < picksPerGroup
+  const groupedGroupsRemaining = groupedFormat ? pickGroups.filter(g => {
+    const sc = g.players.filter(p => myPicks.includes(p.name)).length
+    return sc < picksPerGroup
   }).length : 0
   const entriesNeedingPicks = activeEntries.filter(entry => {
+    if (groupedFormat) {
+      const pickCount = entry.submitted_pick_count ?? ((entry.golfer_picks as string[]) || []).length
+      const totalNeeded = pickGroups.length * picksPerGroup
+      return pickCount < totalNeeded
+    }
     const picks = ((entry.golfer_picks as string[]) || [])
-    if (groupedFormat) return !validateGroupedPicks(pickGroups, picks, picksPerGroup).valid
     const pickCount = entry.submitted_pick_count ?? picks.length
     return pickCount < pool.pick_count
   })
-  const myPicksComplete = groupedFormat
-    ? validateGroupedPicks(pickGroups, myPicks, picksPerGroup).valid
-    : myPicks.length >= pool.pick_count
-  const myPicksRemaining = groupedFormat
-    ? Math.max(0, groupedTotalPicks - myPicks.length)
-    : Math.max(0, pool.pick_count - myPicks.length)
   const submittedPickCount = activeEntries.length - entriesNeedingPicks.length
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
@@ -579,9 +494,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const invalidMyPicks = !groupedFormat && fieldReady
     ? myPicks.filter(name => !currentFieldNames.has(name))
     : []
-  const showGroupedFieldPreview = groupedFormat && groupsNeedLock && pickGroups.length > 0
-  const showPickList = (pickSelectionOpen || showGroupedFieldPreview) && (fieldReady || showGroupedFieldPreview)
-  const showSelectedPicks = myPicks.length > 0 || (!groupsNeedLock && (fieldReady || showGroupedFieldPreview))
+  const showGroupPreview = groupedFormat && groupsNeedLock && (fieldReady || pickGroups.length > 0)
+  const showPickList = (pickSelectionOpen && (fieldReady || (groupedFormat && pickGroups.length > 0))) || showGroupPreview
+  const showSelectedPicks = myPicks.length > 0 || (!groupsNeedLock && (fieldReady || (groupedFormat && pickGroups.length > 0)))
   const visibleEntries = activeEntries
 
   const maskHiddenPicks = useCallback((poolEntries: any[]) => {
@@ -632,7 +547,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   useEffect(() => {
     setEntryNameValue(myEntry?.display_name || '')
-  }, [myEntry?.display_name])
+    setNotificationEmailValue(myEntry?.notification_email || '')
+  }, [myEntry?.display_name, myEntry?.notification_email])
+
+  async function updateGuestEntry(payload: Record<string, unknown>) {
+    if (!myEntry?.id || !guestEntryToken) throw new Error('Missing guest entry token.')
+    const res = await fetch('/api/pool/guest-entry', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryId: myEntry.id, token: guestEntryToken, ...payload }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'Could not update guest entry.')
+    return data.entry
+  }
 
   useEffect(() => {
     if (groupedFormat || picksAreLocked || !myEntry || !fieldReady || invalidMyPicks.length === 0) return
@@ -645,7 +573,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
     supabase
       .from('gpp_entries')
-      .update({ golfer_picks: nextPicks })
+      .update({ golfer_picks: nextPicks } as any)
       .eq('id', myEntry.id)
       .then(({ error }) => {
         if (error) {
@@ -875,7 +803,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           poolId: pool.id,
           sourceId,
           promoCode: appliedPromo?.code || null,
-          saveCard: false,
+          saveCard: amountDue > 0 && !useSavedCard && saveCard,
           savedCardId: useSavedCard ? selectedSavedCardId : null,
         }),
       })
@@ -884,6 +812,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       setPaymentStatus('active')
       const successMessage = data.discountCents > 0 ? 'Promo applied. Pool is active.' : data.amountDueCents === 0 ? 'Pool is active.' : 'Payment received. Pool is active.'
+      const paymentMessage = data.savedCardError ? `${successMessage} Card was not saved.` : successMessage
       trackGppEvent('payment_completed', {
         pool_id: pool.id,
         tournament: tournament?.name || null,
@@ -893,128 +822,24 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         discount_cents: data.discountCents ?? 0,
         is_paid: true,
       })
-      setPaymentFeedback(successMessage)
-      setStatusMessage(successMessage)
-      if (data.paymentId && amountDue > 0 && !useSavedCard) {
-        setSaveCardPaymentId(data.paymentId)
-        setSaveCardFeedback('')
-      }
-      showToast(successMessage, 'success')
+      setPaymentFeedback(paymentMessage)
+      setStatusMessage(paymentMessage)
+      showToast(paymentMessage, data.savedCardError ? 'info' : 'success')
       await refreshPaymentQuote()
     } catch (error: any) {
       const message = error?.message || 'Payment failed.'
       setPaymentFeedback(message)
-      trackGppEvent('payment_failed', {
-        pool_id: pool.id,
-        tournament: tournament?.name || null,
-        entry_count: activeEntries.length,
-        amount_due_cents: finalAmountDueCents,
-        uses_saved_card: useSavedCard,
-        reason: 'checkout_error',
-      })
       showToast(message, 'error')
     } finally {
       setPaymentLoading(false)
     }
   }
 
-  async function saveCardAfterPayment() {
-    if (!saveCardPaymentId) return
-
-    setSaveCardLoading(true)
-    setSaveCardFeedback('Saving card...')
-    try {
-      const res = await fetch('/api/payments/square/save-card', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poolId: pool.id, paymentId: saveCardPaymentId }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Card could not be saved.')
-
-      const card = data.savedCard
-      const message = card?.last_4
-        ? `${card.brand || 'Card'} ending ${card.last_4} saved for next time.`
-        : 'Card saved for next time.'
-      setSaveCardPaymentId('')
-      setSaveCardFeedback(message)
-      showToast(message, 'success')
-      await refreshPaymentQuote()
-    } catch (error: any) {
-      const message = error?.message || 'Card could not be saved.'
-      setSaveCardFeedback(message)
-      showToast(message, 'error')
-    } finally {
-      setSaveCardLoading(false)
-    }
-  }
-
-  async function toggleEntryConfirmation(entryId: string, confirmed: boolean) {
-    const previousEntries = entries
-    setEntries(current => current.map(entry => entry.id === entryId ? {
-      ...entry,
-      has_paid: confirmed,
-    } : entry))
-
-    try {
-      const res = await fetch('/api/pools/entry-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poolId: pool.id, entryId, confirmed }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Entry could not be updated.')
-      setEntries(current => current.map(entry => entry.id === entryId ? {
-        ...entry,
-        has_paid: Boolean(data.entry?.has_paid),
-      } : entry))
-      showToast(confirmed ? 'Entry marked confirmed.' : 'Entry marked open.', 'success')
-    } catch (error: any) {
-      setEntries(previousEntries)
-      showToast(error?.message || 'Entry could not be updated.', 'error')
-    }
-  }
-
-  function csvCell(value: unknown) {
-    const text = value == null ? '' : String(value)
-    return `"${text.replace(/"/g, '""')}"`
-  }
-
-  function exportEntriesCsv() {
-    const rows = activeEntries.map(entry => {
-      const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
-      return [
-        '',
-        entry.display_name || 'Player',
-        entry.has_paid ? 'Confirmed' : 'Open',
-        picks.length,
-        pool.pick_count,
-        picks.join('; '),
-      ]
-    })
-    const csv = [
-      ['Confirmed', 'Entry', 'Status', 'Picks made', 'Picks needed', 'Golfers'],
-      ...rows,
-    ].map(row => row.map(csvCell).join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    const safePoolName = (poolName || 'pool').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'pool'
-    link.href = url
-    link.download = `${safePoolName}-entries.csv`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
-  }
-
   // Fetch live leaderboard. Never refresh completed tournaments from ESPN here:
   // ESPN's old-event payload can degrade to anonymous/partial rows, which would
   // overwrite the stored final board in the browser and make finished pools look broken.
   const fetchScores = useCallback(async () => {
-    if (!tournament?.external_id) return
-    if (tournament?.status === 'completed') return
-    const storedBoardHasBadCuts = hasWeekendCutStatusErrors(leaderboard)
+    if (!tournament?.external_id || tournament?.status === 'completed') return
     try {
       const res = await fetch(`/api/tournaments/leaderboard?id=${tournament.external_id}`, { cache: 'no-store' })
       if (res.ok) {
@@ -1022,9 +847,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         const liveLeaderboard = data.leaderboard || []
         if (liveLeaderboard.length > 0) {
           setLeaderboard(liveLeaderboard)
-          // Only overwrite field state when tournament is live, or when a completed
-          // board was already rendered with impossible weekend CUT statuses.
-          if (tournament?.status === 'live' || storedBoardHasBadCuts) {
+          // Only overwrite field state when tournament is live, not upcoming.
+          // For upcoming events, field comes from server-rendered field_json and
+          // should not be replaced by empty or placeholder leaderboard data.
+          if (tournament?.status === 'live') {
             setField(liveLeaderboard)
           }
           setLeaderboardLastUpdated(new Date().toISOString())
@@ -1034,7 +860,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       await refreshPoolEntries()
     } catch {}
     setRefreshCountdown(REFRESH_SECONDS)
-  }, [leaderboard, refreshPoolEntries, tournament?.external_id, tournament?.status])
+  }, [refreshPoolEntries, tournament?.external_id, tournament?.status])
 
   useEffect(() => {
     // Load field from tournament data if available
@@ -1063,26 +889,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const message = groupsNeedLock ? 'Groups need to lock before picks can be saved.' : 'Picks are closed for this pool.'
       setStatusMessage(message)
       showToast(message, groupsNeedLock ? 'info' : 'error')
-      trackGppEvent('picks_save_failed', {
-        pool_id: pool.id,
-        tournament: tournament?.name || null,
-        reason: groupsNeedLock ? 'groups_pending' : 'picks_locked',
-        pick_count: myPicks.length,
-        required_pick_count: pool.pick_count,
-      })
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
     if (!fieldReady && !(groupedFormat && pickGroups.length > 0)) {
       setStatusMessage('Tournament field is not loaded yet.')
       showToast('Tournament field is not loaded yet.', 'info')
-      trackGppEvent('picks_save_failed', {
-        pool_id: pool.id,
-        tournament: tournament?.name || null,
-        reason: 'field_not_loaded',
-        pick_count: myPicks.length,
-        required_pick_count: pool.pick_count,
-      })
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
@@ -1092,20 +904,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         const firstMissing = validation.missing[0]?.group.label
         const firstOver = validation.over[0]?.group.label
         const message = firstOver
-          ? `${displayGroupLabel(firstOver)} has too many picks.`
+          ? `${firstOver} has too many picks.`
           : firstMissing
-            ? `${displayGroupLabel(firstMissing)} needs ${picksPerGroup} picks.`
-            : `Pick ${picksPerGroup} from each ${groupName}.`
+            ? `${firstMissing} needs ${picksPerGroup} picks.`
+            : `Pick ${picksPerGroup} from each group.`
         setStatusMessage(message)
         showToast(message, 'error')
-        trackGppEvent('picks_save_failed', {
-          pool_id: pool.id,
-          tournament: tournament?.name || null,
-          reason: firstOver ? 'too_many_group_picks' : 'missing_group_picks',
-          pick_count: myPicks.length,
-          required_pick_count: groupedTotalPicks,
-          game_format: pool.game_format || 'standard',
-        })
         setTimeout(() => setStatusMessage(''), 2500)
         return
       }
@@ -1116,29 +920,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         setMyPicks(nextPicks)
         setStatusMessage('Field updated. Removed golfers no longer in the tournament.')
         showToast('Field updated. Removed golfers no longer in the tournament.', 'info')
-        trackGppEvent('picks_save_failed', {
-          pool_id: pool.id,
-          tournament: tournament?.name || null,
-          reason: 'invalid_field_picks',
-          pick_count: myPicks.length,
-          required_pick_count: pool.pick_count,
-        })
         setTimeout(() => setStatusMessage(''), 2500)
         return
       }
     }
     setSaving(true)
-    trackGppEvent('picks_save_clicked', {
-      pool_id: pool.id,
-      tournament: tournament?.name || null,
-      pick_count: myPicks.length,
-      required_pick_count: groupedFormat ? groupedTotalPicks : pool.pick_count,
-      game_format: pool.game_format || 'standard',
-    })
-    const { error } = await supabase
-      .from('gpp_entries')
-      .update({ golfer_picks: myPicks })
-      .eq('id', myEntry.id)
+    let error: any = null
+    try {
+      if (guestEntryToken) {
+        await updateGuestEntry({ golferPicks: myPicks })
+      } else {
+        const result = await supabase
+          .from('gpp_entries')
+          .update({ golfer_picks: myPicks } as any)
+          .eq('id', myEntry.id)
+        error = result.error
+      }
+    } catch (guestError: any) {
+      error = guestError
+    }
     if (!error) {
       const updatedEntry = { ...myEntry, golfer_picks: myPicks }
       setMyEntry(updatedEntry)
@@ -1146,24 +946,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setStatusMessage('Picks saved.')
       showToast('Picks saved.', 'success')
       setTab('leaderboard')
-      trackGppEvent('picks_saved', {
-        pool_id: pool.id,
-        tournament: tournament?.name || null,
-        pick_count: myPicks.length,
-        required_pick_count: groupedFormat ? groupedTotalPicks : pool.pick_count,
-        complete: groupedFormat ? validateGroupedPicks(pickGroups, myPicks, picksPerGroup).valid : myPicks.length >= pool.pick_count,
-        game_format: pool.game_format || 'standard',
-      })
       setTimeout(() => setStatusMessage(''), 2500)
     } else {
       showToast('Could not save picks.', 'error')
-      trackGppEvent('picks_save_failed', {
-        pool_id: pool.id,
-        tournament: tournament?.name || null,
-        reason: 'database_error',
-        pick_count: myPicks.length,
-        required_pick_count: groupedFormat ? groupedTotalPicks : pool.pick_count,
-      })
     }
     setSaving(false)
   }
@@ -1171,41 +956,45 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   async function saveEntryName() {
     if (!myEntry) return
     const nextName = entryNameValue.trim()
+    const nextEmail = notificationEmailValue.trim().toLowerCase()
     if (!nextName) {
       setStatusMessage('Entry name cannot be blank.')
       showToast('Entry name cannot be blank.', 'error')
       return
     }
-    if (nextName === myEntry.display_name) return
-
-    const duplicateEntry = entries.find((entry: any) =>
-      !entry.is_removed &&
-      entry.id !== myEntry.id &&
-      normalizeEntryName(entry.display_name) === normalizeEntryName(nextName)
-    )
-    if (duplicateEntry) {
-      setStatusMessage(DUPLICATE_ENTRY_NAME_MESSAGE)
-      showToast(DUPLICATE_ENTRY_NAME_MESSAGE, 'error')
+    if (nextEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+      setStatusMessage('Enter a valid email address or leave it blank.')
+      showToast('Enter a valid email address or leave it blank.', 'error')
       return
     }
+    if (nextName === myEntry.display_name && nextEmail === (myEntry.notification_email || '')) return
 
     setEntryNameSaving(true)
-    const { error } = await supabase
-      .from('gpp_entries')
-      .update({ display_name: nextName })
-      .eq('id', myEntry.id)
-      .eq('user_id', userId)
+    let error: any = null
+    try {
+      if (guestEntryToken) {
+        await updateGuestEntry({ displayName: nextName, notificationEmail: nextEmail || null })
+      } else {
+        const result = await supabase
+          .from('gpp_entries')
+          .update({ display_name: nextName, notification_email: nextEmail || null } as any)
+          .eq('id', myEntry.id)
+          .eq('user_id', userId)
+        error = result.error
+      }
+    } catch (guestError: any) {
+      error = guestError
+    }
 
     if (error) {
-      const message = isDuplicateEntryNameError(error) ? DUPLICATE_ENTRY_NAME_MESSAGE : 'Could not update entry name.'
-      setStatusMessage(message)
-      showToast(message, 'error')
+      setStatusMessage('Could not update entry details.')
+      showToast('Could not update entry details.', 'error')
     } else {
-      const updatedEntry = { ...myEntry, display_name: nextName }
+      const updatedEntry = { ...myEntry, display_name: nextName, notification_email: nextEmail || null }
       setMyEntry(updatedEntry)
       setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
-      setStatusMessage('Entry name updated.')
-      showToast('Entry name updated.', 'success')
+      setStatusMessage('Entry details updated.')
+      showToast('Entry details updated.', 'success')
       setTimeout(() => setStatusMessage(''), 2500)
     }
     setEntryNameSaving(false)
@@ -1389,14 +1178,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [defaultOpenedEntryId, scoredEntries])
   const leaderboardRows = selectedLeaderboard.length ? selectedLeaderboard : field
   const leaderboardByName = playerStatusByName(leaderboardRows, field)
-  const pickStatusByName = useFrozenResults ? new Map<string, GolfPlayer>() : leaderboardByName
   const golferNamePeers = leaderboardRows
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
   const harePickMap = leaderboardModeIsCurrent && !publicView ? buildHarePickMap(scoredEntries, 2) : new Map()
   const tortoisePickMap = leaderboardModeIsCurrent && !publicView ? buildTortoisePickMap(scoredEntries, myEntry?.id, 2) : new Map()
   const showLeverageLegend = leaderboardModeIsCurrent && !publicView && (harePickMap.size > 0 || tortoisePickMap.size > 0)
-  const pickGridColumns = pickGridColumnCount(pool.count_scores)
 
   async function copyNeedsPicksReminder() {
     if (!entriesNeedingPicks.length) {
@@ -1405,16 +1192,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
     const names = entriesNeedingPicks.map(entry => entry.display_name || 'Player').join('\n')
     const lockDay = formatDateOnlyWeekday(tournament?.start_date) || 'tournament day'
-    const message = `Still need picks:\n\n${names}\n\nDon't forget to make your picks before the first tee time ${lockDay} for ${poolName} — ${tournamentDisplayName.toLowerCase() === 'tournament' ? 'the tournament' : tournamentDisplayName}.${inviteUrl ? `\n\n${inviteUrl}` : ''}`
+    const message = `Still need picks:\n\n${names}\n\nDon't forget to make your picks before the first tee time ${lockDay} for ${poolName} — ${tournament?.name || 'the tournament'}.${inviteUrl ? `\n\n${inviteUrl}` : ''}`
     try {
       await navigator.clipboard.writeText(message)
       showToast('Reminder copied.', 'success')
-      trackGppEvent('picks_reminder_copied', {
-        pool_id: pool.id,
-        tournament: tournament?.name || null,
-        entry_count: activeEntries.length,
-        entries_needing_picks: entriesNeedingPicks.length,
-      })
     } catch {
       const textarea = document.createElement('textarea')
       textarea.value = message
@@ -1426,12 +1207,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       document.execCommand('copy')
       document.body.removeChild(textarea)
       showToast('Reminder copied.', 'success')
-      trackGppEvent('picks_reminder_copied', {
-        pool_id: pool.id,
-        tournament: tournament?.name || null,
-        entry_count: activeEntries.length,
-        entries_needing_picks: entriesNeedingPicks.length,
-      })
     }
   }
 
@@ -1440,11 +1215,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     try {
       await navigator.clipboard.writeText(url)
       showToast('Public leaderboard link copied.', 'success')
-      trackGppEvent('public_leaderboard_link_copied', {
-        pool_id: pool.id,
-        tournament: tournament?.name || null,
-        entry_count: activeEntries.length,
-      })
     } catch {
       const textarea = document.createElement('textarea')
       textarea.value = url
@@ -1456,12 +1226,44 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       document.execCommand('copy')
       document.body.removeChild(textarea)
       showToast('Public leaderboard link copied.', 'success')
-      trackGppEvent('public_leaderboard_link_copied', {
-        pool_id: pool.id,
-        tournament: tournament?.name || null,
-        entry_count: activeEntries.length,
-      })
     }
+  }
+
+  function csvCell(value: unknown) {
+    const text = value === null || value === undefined ? '' : String(value)
+    return `"${text.replace(/"/g, '""')}"`
+  }
+
+  function downloadEntriesCsv() {
+    const rows = entries.map(entry => {
+      const scored = scoredEntries.find(scoredEntry => scoredEntry.entryId === entry.id)
+      const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
+      return [
+        entry.display_name || 'Player',
+        entry.notification_email || '',
+        entry.is_removed ? 'removed' : 'active',
+        picks.length,
+        pool.pick_count,
+        scored?.rank || entry.rank || '',
+        scored?.totalScore ?? entry.total_score ?? '',
+        picks.join('; '),
+        entry.removed_reason || '',
+      ]
+    })
+    const csv = [
+      ['Entry name', 'Email', 'Status', 'Picks made', 'Picks required', 'Rank', 'Total score', 'Picks', 'Removed reason'],
+      ...rows,
+    ].map(row => row.map(csvCell).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${poolName.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'pool'}-entries.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    showToast('Entries CSV downloaded.', 'success')
   }
 
   async function shareFinalResultsImage() {
@@ -1622,7 +1424,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     ctx.lineTo(tableX + tableW, tableY + headH)
     ctx.stroke()
     fitText(poolName || 'Golf Pool', width / 2, tableY + 82, tableW - 78, '600 60px Arial', '#111111', 'center')
-    fitText(tournamentDisplayName, width / 2, tableY + 132, tableW - 78, '700 31px Arial', '#005b3c', 'center')
+    fitText(tournament?.name || 'Tournament', width / 2, tableY + 132, tableW - 78, '700 31px Arial', '#005b3c', 'center')
     fitText(boardModeLine, width / 2, tableY + 168, tableW - 78, '700 24px Arial', '#657168', 'center')
 
     const labelY = tableY + headH
@@ -1712,7 +1514,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="break-words text-3xl font-bold">{poolName}</h1>
-            <p className="mt-1 break-words text-stone-600">{tournamentDisplayName} at {tournament?.course || 'TBD'}</p>
+            <p className="mt-1 break-words text-stone-600">{tournament?.name || 'Tournament'} at {tournament?.course || 'TBD'}</p>
           </div>
           {showLivePulse && <LivePulseBadge />}
         </div>
@@ -1728,104 +1530,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       {statusMessage && <div className="mb-4 rounded-none border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
 
-      {fieldUpdateAlerts.filter(alert => !dismissedFieldUpdateAlertIds.has(alert.id)).map(alert => {
-        const payload = alert.payload || {}
-        const isHostAlert = payload.role === 'host'
-        const affectedCount = Number(payload.affectedCount || 0)
-        const removedCount = Number(payload.removedCount || payload.removedPicks?.length || 0)
-        const removedNames = Array.isArray(payload.removedPicks) ? payload.removedPicks.join(', ') : ''
-        const affectedEntries = Array.isArray(payload.affectedEntries) ? payload.affectedEntries : []
-        const poolLabel = payload.poolName || poolName
-        const poolLink = typeof window !== 'undefined' ? `${window.location.origin}/pool/${pool.id}` : ''
-        const hostCopyMessage = [
-          `Heads up — the official field changed for ${poolLabel}.`,
-          '',
-          'These entries need replacement picks before the tournament starts:',
-          ...affectedEntries.map(entry => {
-            const removed = Array.isArray(entry.removed) ? entry.removed : []
-            return `- ${entry.displayName}: ${removed.length} ${removed.length === 1 ? 'pick' : 'picks'} removed${removed.length ? ` (${removed.join(', ')})` : ''}`
-          }),
-          '',
-          'Please open the pool and fill your open spots before picks lock.',
-          poolLink ? `Pool link: ${poolLink}` : '',
-        ].filter(Boolean).join('\n')
-        return (
-          <div key={alert.id} className="mb-4 border-2 border-[#b58a3a] bg-[#fff7dc] p-4 shadow-[5px_5px_0_#d8cab0]">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7a5a19]">Official field changed</p>
-                <p className="mt-1 text-lg font-black leading-6 text-[#123c2f]">
-                  {isHostAlert
-                    ? `${affectedCount} ${affectedCount === 1 ? 'entry needs' : 'entries need'} replacement picks.`
-                    : `${removedCount} ${removedCount === 1 ? 'golfer was' : 'golfers were'} removed from your entry.`}
-                </p>
-                <p className="mt-1 text-sm font-semibold leading-5 text-[#5f4617]">
-                  {isHostAlert
-                    ? 'The field refreshed before lock. Check the affected entries and remind players to fill their open spots.'
-                    : `Make replacement picks before the tournament starts.${removedNames ? ` Removed: ${removedNames}.` : ''}`}
-                </p>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTab('my-entry')
-                    window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
-                  }}
-                  className="border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-white"
-                >
-                  {isHostAlert ? 'Review pool' : 'Make picks'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDismissedFieldUpdateAlertIds(current => new Set(current).add(alert.id))}
-                  className="border-2 border-[#123c2f] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f]"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-            {isHostAlert && affectedEntries.length > 0 && (
-              <div className="mt-4 border-2 border-[#d8cab0] bg-white p-3">
-                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">Group chat message</p>
-                    <p className="mt-1 text-xs font-semibold text-stone-600">Names are filled in. Copy this and drop it into your group chat.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(hostCopyMessage)
-                        showToast('Message copied.', 'success')
-                      } catch {
-                        showToast('Could not copy. Select the text box and copy it.', 'error')
-                      }
-                    }}
-                    className="border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f]"
-                  >
-                    Copy message
-                  </button>
-                </div>
-                <textarea
-                  readOnly
-                  value={hostCopyMessage}
-                  rows={Math.min(8, Math.max(5, hostCopyMessage.split('\n').length))}
-                  onFocus={event => event.currentTarget.select()}
-                  className="w-full resize-y border border-[#d8cab0] bg-[#fbf7ed] p-3 font-mono text-xs leading-5 text-[#1f2a24] outline-none"
-                />
-              </div>
-            )}
-          </div>
-        )
-      })}
-
-      {!publicView && isOwner && tab === 'pool-settings' && groupedFormat && !groupsFinalized && (
+      {!publicView && isOwner && groupedFormat && !groupsFinalized && (
         <div className="mb-6 rounded-none border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-display text-lg font-bold text-emerald-950">{pool.game_format === 'ranked_groups' ? 'Tiers are not locked yet.' : 'Groups are not locked yet.'}</p>
-              <p className="mt-1 text-sm text-stone-700">{pool.game_format === 'ranked_groups' ? 'Tiers' : 'Groups'} auto-lock Tuesday morning of tournament week. You can lock them sooner once the official field is posted.</p>
+              <p className="font-display text-lg font-bold text-emerald-950">Groups are not locked yet.</p>
+              <p className="mt-1 text-sm text-stone-700">Groups auto-lock Tuesday morning of tournament week. You can lock them sooner once the official field is posted.</p>
             </div>
             <button
               type="button"
@@ -1833,51 +1543,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               disabled={finalizingGroups}
               className="gpp-3d gpp-button-3d gpp-button-wrap text-sm disabled:opacity-50"
             >
-              <span className="gpp-button-face px-4 py-2">{finalizingGroups ? 'Locking...' : `Lock ${groupNamePlural} now`}</span>
+              <span className="gpp-button-face px-4 py-2">{finalizingGroups ? 'Locking...' : 'Lock groups now'}</span>
             </button>
           </div>
         </div>
       )}
 
-      {!publicView && tab === 'leaderboard' && groupedFormat && groupsNeedLock && (
-        <section className="mb-6 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
-          <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{pool.game_format === 'ranked_groups' ? 'Tier preview' : 'Group preview'}</p>
-            <p className="mt-1 text-sm font-semibold text-stone-700">
-              {pickGroups.length > 0 || fieldReady
-                ? `Current field view. Picks unlock after the pool runner locks ${groupNamePlural}.`
-                : 'The field is not posted yet. This preview appears as soon as golfers load.'}
-            </p>
-          </div>
-          {(pickGroups.length > 0 || fieldReady) ? (
-            <div className="max-h-[28rem] overflow-y-auto p-2 sm:p-3">
-              {pickGroups.length > 0 ? (
-                <GroupedPickGrid
-                  pickGroups={pickGroups}
-                  myPicks={[]}
-                  picksPerGroup={picksPerGroup}
-                  readOnly={true}
-                  golferListName={golferListName}
-                  onTogglePick={() => {}}
-                  groupLabelForDisplay={displayGroupLabel}
-                />
-              ) : (
-                [...field].sort(compareGolfersByListName).map(player => (
-                  <div key={player.id || player.name}
-                    className="flex w-full items-center justify-between border-b border-[#eadfca] px-4 py-2.5 text-left text-stone-500">
-                    <span className="text-sm font-semibold">{golferListName(player.name)}</span>
-                    <span className="border border-stone-300 bg-stone-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-stone-500">Field</span>
-                  </div>
-                ))
-              )}
-            </div>
-          ) : (
-            <div className="px-4 py-5 text-sm font-semibold text-stone-600">Check back closer to the tournament. The field will show here before picks open.</div>
-          )}
-        </section>
-      )}
-
-      {isOwner && tab === 'pool-settings' && paymentStatus !== 'active' && (
+      {isOwner && paymentStatus !== 'active' && (
         <div className="mb-6 rounded-none border-2 border-amber-300 bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1895,11 +1567,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         </div>
       )}
 
-      {!publicView && tab === 'pool-settings' && canInvitePlayers && (
+      {!publicView && canInvitePlayers && (
         <div className="mb-6">
           <PoolInvitePrepPanel
             poolName={poolName}
-            tournamentName={tournamentDisplayName}
+            tournamentName={tournament?.name || 'Tournament'}
             startDateLabel={formatShortDate(tournament?.start_date) || 'Date TBA'}
             entryCount={activeEntries.length}
             submittedPickCount={submittedPickCount}
@@ -1918,27 +1590,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           />
         </div>
       )}
-      {!publicView && tab === 'leaderboard' && myEntry && !picksAreLocked && (
-        <section className={`mb-4 border-2 p-4 shadow-[5px_5px_0_#d8cab0] ${myPicksComplete ? 'border-[#123c2f] bg-[#eef7ef]' : 'border-[#b21e23] bg-[#fff4cf]'}`}>
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Your entry</p>
-              <h2 className="font-display text-xl font-bold text-[#0f2f25]">
-                {myPicksComplete ? 'Picks are saved. You can still edit before lock.' : `${myPicksRemaining} ${myPicksRemaining === 1 ? 'pick' : 'picks'} left before your entry is complete.`}
-              </h2>
-              <p className="mt-1 text-sm font-semibold text-[#657168]">Other entrants’ picks stay hidden until the pool locks. Use My Entry to finish or change yours.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setTab('my-entry')}
-              className="gpp-3d gpp-button-3d gpp-button-wrap text-sm"
-            >
-              <span className="gpp-button-face px-4 py-2">{myPicksComplete ? 'Edit picks' : 'Finish picks'}</span>
-            </button>
-          </div>
-        </section>
-      )}
-
       {!publicView && (
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-none p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-entry', ...(isOwner ? ['pool-settings'] as Tab[] : [])] as Tab[]).map(t => (
@@ -2002,7 +1653,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[16px]">
               <div className="gpp-score-face border-2 border-[#d8b45d] bg-[#f7f7f2] text-center">
                 <div className="relative border-b-2 border-[#d8cab0] px-3 py-2">
-                  <p className="mx-auto max-w-[90%] text-[clamp(0.78rem,4.8vw,1.25rem)] font-black uppercase leading-[0.95] tracking-[clamp(0.02em,1vw,0.1em)] text-[#111] [text-wrap:balance] sm:max-w-[90%] sm:text-3xl sm:tracking-[0.16em]" title={tournamentDisplayName}>{tournamentDisplayName}</p>
+                  <p className="mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]" title={tournament?.name || 'Leaderboard'}>{tournament?.name || 'Leaderboard'}</p>
                   <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{poolName}</p>
                   {availableHistoricalRounds.length > 0 && (
                     <details
@@ -2056,9 +1707,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="bg-[#f7f7f2] lg:hidden">
                   {scoredEntries.map((entry) => {
                     const isMe = entry.entryId === myEntry?.id
-                    const picksHidden = entry.picks.includes('__hidden__')
-                    const countingPicks = orderPicksForDisplay(entry.pickScores.filter(pick => pick.counted)).slice(0, pool.count_scores)
-                    const outOfBoundsPicks = orderPicksForDisplay(entry.pickScores.filter(pick => !pick.counted))
+                    const hasPicks = entry.picks.length > 0
+                    const countingPicks = hasPicks ? orderPicksForDisplay(entry.pickScores.filter(pick => pick.counted)).slice(0, pool.count_scores) : []
+                    const outOfBoundsPicks = hasPicks ? orderPicksForDisplay(entry.pickScores.filter(pick => !pick.counted)) : []
                     const allPickNames = golferNamePeers
                     const hareNames = isMe ? harePickMap.get(entry.entryId) : undefined
                     const tortoiseNames = !isMe ? tortoisePickMap.get(entry.entryId) : undefined
@@ -2084,15 +1735,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           <div className="min-w-0">
                             <div className="flex min-w-0 items-center gap-1.5">
                               {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
-                              <span className="min-w-0 flex-1 break-words text-sm font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
+                              <span className="min-w-0 flex-1 truncate text-sm font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]" title={entry.displayName}>{entry.displayName}</span>
                             </div>
-                            {(picksHidden || !selectedScoringIsLive || entry.obStandIns > 0) && (
+                            {(!selectedScoringIsLive || entry.obStandIns > 0) && (
                               <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                                {picksHidden ? 'Picks hidden until lock' : selectedScoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                                {selectedScoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
                               </div>
                             )}
                           </div>
-                          <div className="flex flex-col items-center justify-center text-center">
+                          <div className="text-right">
                             <div className={`text-2xl font-black leading-none ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
                             {totalScoreSubLabel && entry.todayScore !== null ? (
                               <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div>
@@ -2105,17 +1756,22 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             <span className="sr-only">Toggle entry</span>
                           </div>
                         </summary>
-                        <div className="grid border-t border-[#d8cab0] bg-[#fbfbf5]" style={{ gridTemplateColumns: `repeat(${pickGridColumns}, minmax(0, 1fr))` }}>
+                        <div className="grid grid-cols-4 border-t border-[#d8cab0] bg-[#fbfbf5]">
                           {Array.from({ length: pool.count_scores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <div key={i} className={`relative border-t border-[#d8cab0] px-1 py-1.5 text-center ${((i + 1) % pickGridColumns === 0) ? '' : 'border-r'} ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
+                              <div key={i} className="relative border-r border-t border-[#d8cab0] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
                                 <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
-                                <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className={`mt-1 truncate text-[clamp(8px,2.2vw,10px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em] ${picksHidden ? 'blur-[1px]' : ''}`}>
-                                  {pick ? shortName(pick.name, allPickNames) : '—'}
+                                {pick && pickGroupShortLabel(pick.name) ? (
+                                  <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">
+                                    {pickGroupShortLabel(pick.name)}
+                                  </span>
+                                ) : null}
+                                <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : ''}</div>
+                                <div className="mt-1 truncate text-[clamp(8px,2.2vw,10px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">
+                                  {pick ? shortName(pick.name, allPickNames) : ''}
                                 </div>
-                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, pickStatusByName, teeTimeZone)].filter(Boolean).join(' · ') : '—'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : ''}</div>
                               </div>
                             )
                           })}
@@ -2125,11 +1781,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Outside Top {pool.count_scores}</div>
                             <div className="flex flex-wrap gap-1">
                               {outOfBoundsPicks.map(pick => (
-                                <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                <span key={`${entry.entryId}-${pick.name}`} className="relative inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                   {pick.isObStandIn ? <ObMarker /> : null}
                                   {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                   {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                                  <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, pickStatusByName, teeTimeZone)}</span></span>
+                                  {pickGroupShortLabel(pick.name) ? (
+                                    <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[7px] font-black leading-none text-white">
+                                      {pickGroupShortLabel(pick.name)}
+                                    </span>
+                                  ) : null}
+                                  <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                                 </span>
                               ))}
                             </div>
@@ -2152,9 +1813,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <tbody>
                       {scoredEntries.map(entry => {
                         const isMe = entry.entryId === myEntry?.id
-                        const picksHidden = entry.picks.includes('__hidden__')
-                        const countingPicks = orderPicksForDisplay(entry.pickScores.filter(pick => pick.counted)).slice(0, pool.count_scores)
-                        const outOfBoundsPicks = orderPicksForDisplay(entry.pickScores.filter(pick => !pick.counted))
+                        const hasPicks = entry.picks.length > 0
+                        const countingPicks = hasPicks ? orderPicksForDisplay(entry.pickScores.filter(pick => pick.counted)).slice(0, pool.count_scores) : []
+                        const outOfBoundsPicks = hasPicks ? orderPicksForDisplay(entry.pickScores.filter(pick => !pick.counted)) : []
                         const allPickNames = golferNamePeers
                         const hareNames = isMe ? harePickMap.get(entry.entryId) : undefined
                         const tortoiseNames = !isMe ? tortoisePickMap.get(entry.entryId) : undefined
@@ -2169,20 +1830,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
                                   <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
                                 </div>
-                                {(picksHidden || !selectedScoringIsLive || entry.obStandIns > 0) && (
+                                {(!selectedScoringIsLive || entry.obStandIns > 0) && (
                                   <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                                    {picksHidden ? 'Picks hidden until lock' : selectedScoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                                    {selectedScoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
                                   </div>
                                 )}
                               </td>
                               {Array.from({ length: pool.count_scores }, (_, i) => {
                                 const pick = countingPicks[i]
                                 return (
-                                  <td key={i} title={picksHidden ? 'Picks hidden until the pool locks' : pick?.name || ''} className={`relative border-b border-r border-[#d8cab0] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] ${picksHidden ? 'bg-[#efeee6]' : 'bg-[#fbfbf5]'}`}>
+                                  <td key={i} title={pick?.name || ''} className="relative border-b border-r border-[#d8cab0] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                                     <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
-                                    <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                    <div className={`mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs ${picksHidden ? 'blur-[1px]' : ''}`}>{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, pickStatusByName, teeTimeZone)].filter(Boolean).join(' · ') : '—'}</div>
+                                    {pick && pickGroupShortLabel(pick.name) ? (
+                                      <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">
+                                        {pickGroupShortLabel(pick.name)}
+                                      </span>
+                                    ) : null}
+                                    <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : ''}</div>
+                                    <div className="mt-0.5 truncate text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : ''}</div>
+                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : ''}</div>
                                   </td>
                                 )
                               })}
@@ -2200,11 +1866,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 <td className="border-b border-[#d8cab0] bg-[#efeee6] px-2 py-1 text-left" colSpan={pool.count_scores + 1}>
                                   <div className="flex flex-wrap gap-1">
                                     {outOfBoundsPicks.map(pick => (
-                                      <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                      <span key={`${entry.entryId}-${pick.name}`} className="relative inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                         {pick.isObStandIn ? <ObMarker /> : null}
                                         {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                         {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                                        <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, pickStatusByName, teeTimeZone)}</span></span>
+                                        {pickGroupShortLabel(pick.name) ? (
+                                          <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[7px] font-black leading-none text-white">
+                                            {pickGroupShortLabel(pick.name)}
+                                          </span>
+                                        ) : null}
+                                        <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                                       </span>
                                     ))}
                                   </div>
@@ -2231,7 +1902,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             <div>
               <TournamentLeaderboard
                 leaderboard={leaderboard}
-                tournamentName={tournamentDisplayName}
+                tournamentName={tournament?.name}
                 lastUpdated={leaderboardLastUpdated}
                 pickedGolfers={myPicks}
                 cutLine={cutLine}
@@ -2309,11 +1980,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">
                       Your picks ({myPicks.length}/{pool.pick_count})
                     </h3>
-                    {fieldReady && (
-                      <span className="text-xs font-bold text-stone-500">
-                        {pickSelectionOpen ? 'Tap a golfer below to add or remove' : groupsNeedLock ? 'Preview only until groups lock' : 'Review the field below'}
-                      </span>
-                    )}
+                    {fieldReady && (pickSelectionOpen ? <span className="text-xs font-bold text-stone-500">Tap a golfer below to add or remove</span> : groupsNeedLock ? <span className="text-xs font-bold text-stone-500">Preview only until groups lock</span> : null)}
                   </div>
                   <div className="p-4">
                     {groupedFormat ? (
@@ -2321,7 +1988,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         {groupPickCounts(pickGroups, myPicks).map(({ group, picks }) => (
                           <div key={group.id} className="border border-[#d8cab0] bg-[#fbf7ed] p-3">
                             <div className="mb-2 flex items-center justify-between gap-2 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f]">
-                              <span>{displayGroupLabel(group.label)}</span>
+                              <span>{group.label}</span>
                               <span>{picks.length}/{picksPerGroup}</span>
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -2333,11 +2000,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   )}
                                 </span>
                               ))}
-                              {picks.length === 0 && (
-                                <span className="text-sm font-semibold text-stone-500">
-                                  No pick from this group yet.
-                                </span>
-                              )}
+                              {picks.length === 0 && <span className="text-sm font-semibold text-stone-500">No pick yet.</span>}
                             </div>
                           </div>
                         ))}
@@ -2363,15 +2026,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               {showPickList && (
                 <div className="mb-4 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
                   <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? (groupsNeedLock ? (pool.game_format === 'ranked_groups' ? 'Tier preview' : 'Group preview') : `${pool.game_format === 'random_groups' ? 'Random groups' : 'Tiered Picks'}`) : 'Tournament field'}</p>
-                      {!groupedFormat && (
-                        <span className="border border-[#123c2f] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f]">
-                          {myPicks.length}/{pool.pick_count} picks
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? (groupsNeedLock ? `Picks open after ${groupNamePlural} lock. ${pool.game_format === 'ranked_groups' ? 'Tiers' : 'Groups'} auto-lock Tuesday morning ET once the field is set.` : `Pick ${picksPerGroup} from each ${groupName}. ${pool.game_format === 'ranked_groups' ? 'Tiers' : 'Groups'} are locked for this pool.`) : 'Sorted by last name for quick scanning.'}</p>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? (groupsNeedLock ? 'Group preview' : `${pool.game_format === 'random_groups' ? 'Random' : 'Ranked'} groups`) : 'Tournament field'}</p>
+                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? (groupsNeedLock ? 'Picks open after groups lock. Groups auto-lock Tuesday morning ET once the field is set.' : `Pick ${picksPerGroup} from each group.`) : 'Sorted by last name for quick scanning.'}</p>
                     {groupedFormat && (
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#d8cab0] pt-2">
                         <div className="flex flex-wrap items-center gap-2">
@@ -2411,11 +2067,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             readOnly={picksAreLocked || groupsNeedLock}
                             golferListName={golferListName}
                             onTogglePick={togglePick}
-                            groupLabelForDisplay={displayGroupLabel}
                           />
                         </div>
                       ) : (
-                        [...field].sort(compareGolfersByListName).map(player => (
+                        [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => (
                           <div key={player.id || player.name}
                             className="flex w-full items-center justify-between border-b border-[#eadfca] px-4 py-2.5 text-left text-stone-500">
                             <span className="text-sm font-semibold">{golferListName(player.name)}</span>
@@ -2423,7 +2078,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           </div>
                         ))
                       )
-                    ) : [...field].sort(compareGolfersByListName).map(player => {
+                    ) : [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => {
                       const selected = myPicks.includes(player.name)
                       return (
                         <button key={player.id}
@@ -2445,12 +2100,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
               <details className="group rounded-none border border-stone-200 bg-white shadow-[4px_4px_0_#d8cab0]">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-[0.12em] text-stone-700 [&::-webkit-details-marker]:hidden">
-                  <span>Entry name</span>
+                  <span>Entry details</span>
                   <span className="border border-stone-300 px-1.5 py-0.5 text-[10px] group-open:hidden">Edit</span>
                 </summary>
                 <div className="border-t border-stone-200 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                    <div className="min-w-0 flex-1">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="min-w-0">
                       <label className="mb-1 block text-sm font-medium text-stone-700">Name on leaderboard</label>
                       <input
                         type="text"
@@ -2461,13 +2116,27 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                       />
                     </div>
+                    <div className="min-w-0">
+                      <label className="mb-1 block text-sm font-medium text-stone-700">Email for final score updates <span className="text-stone-400">optional</span></label>
+                      <input
+                        type="email"
+                        value={notificationEmailValue}
+                        onChange={e => setNotificationEmailValue(e.target.value)}
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs font-semibold text-stone-500">Email is optional and appears in the pool runner CSV export.</p>
                     <button
                       type="button"
                       onClick={saveEntryName}
-                      disabled={entryNameSaving || !entryNameValue.trim() || entryNameValue.trim() === myEntry.display_name}
+                      disabled={entryNameSaving || !entryNameValue.trim() || (entryNameValue.trim() === myEntry.display_name && notificationEmailValue.trim().toLowerCase() === (myEntry.notification_email || ''))}
                       className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {entryNameSaving ? 'Saving...' : 'Save entry name'}
+                      {entryNameSaving ? 'Saving...' : 'Save entry details'}
                     </button>
                   </div>
                 </div>
@@ -2500,11 +2169,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {/* Pool Settings Tab */}
       {tab === 'pool-settings' && isOwner && (
         <div ref={adminSectionRef} className="scroll-mt-6 space-y-6">
-          {myEntry && !picksAreLocked && (
-            <section className="border border-[#d8cab0] bg-white px-4 py-3 text-sm font-semibold text-[#1f2a24] shadow-[4px_4px_0_#d8cab0]">
-              Your entry is under <button type="button" onClick={() => setTab('my-entry')} className="font-black uppercase tracking-[0.08em] text-[#123c2f] underline decoration-[#b58a3a] underline-offset-4">My Entry</button>. Pool Settings is just for runner controls.
-            </section>
-          )}
           <section className="border-2 border-[#123c2f] bg-[#fbf7ed] p-5 shadow-[5px_5px_0_#d8cab0]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -2540,45 +2204,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
               <span className={`inline-flex w-fit border px-3 py-1 text-xs font-black uppercase tracking-[0.08em] ${feeStatusClass}`}>{feeStatusLabel}</span>
             </div>
-
-            {paymentStatus === 'active' && (saveCardPaymentId || saveCardFeedback) && (
-              <div className="mt-4 border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-900">
-                {saveCardPaymentId ? (
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-black uppercase tracking-[0.08em]">Save this card?</p>
-                      <p className="mt-1 text-xs leading-5 text-emerald-800">Use it for faster pool fees next time. No auto-pay.</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={saveCardAfterPayment}
-                        disabled={saveCardLoading}
-                        className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {saveCardLoading ? 'Saving...' : 'Save card'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSaveCardPaymentId('')
-                          setSaveCardFeedback('')
-                        }}
-                        disabled={saveCardLoading}
-                        className="border-2 border-emerald-800 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-emerald-900 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Not now
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p>{saveCardFeedback}</p>
-                )}
-                {saveCardPaymentId && saveCardFeedback && (
-                  <p className="mt-2 border border-emerald-300 bg-white px-3 py-2 text-xs text-emerald-900">{saveCardFeedback}</p>
-                )}
-              </div>
-            )}
 
             {paymentStatus !== 'active' && paymentQuote?.requiresCustomQuote && (
               <p className="mt-4 border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">This pool needs manual pricing.</p>
@@ -2667,6 +2292,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             {!paymentCardReady && (
                               <p className="text-xs font-semibold text-stone-600">Card form is loading.</p>
                             )}
+                            <label className="flex cursor-pointer items-start gap-2 border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-800">
+                              <input
+                                type="checkbox"
+                                checked={saveCard}
+                                onChange={event => setSaveCard(event.target.checked)}
+                                className="mt-0.5 h-4 w-4 shrink-0 accent-[#123c2f]"
+                              />
+                              <span>Save this card for faster pool payments. No auto-pay.</span>
+                            </label>
                           </>
                         )}
                         {useSavedCard && selectedSavedCard && (
@@ -2725,54 +2359,43 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           )}
           {/* Entries management */}
           <div className="bg-white rounded-none border border-stone-200 overflow-hidden shadow-[5px_5px_0_#d8cab0]">
-            <div className="flex flex-col gap-3 border-b border-stone-200 bg-stone-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="px-5 py-4 border-b border-stone-200 bg-stone-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-emerald-950">Manage entries ({activeEntries.length})</h3>
-                <p className="mt-1 text-xs font-semibold text-stone-600">Track which entries are confirmed. This is private to the pool runner.</p>
+                <p className="mt-1 text-xs font-semibold text-stone-500">CSV includes optional player emails for score updates.</p>
               </div>
               <button
                 type="button"
-                onClick={exportEntriesCsv}
-                className="w-fit border-2 border-[#123c2f] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f] transition-colors hover:bg-[#eef7ef]"
+                onClick={downloadEntriesCsv}
+                className="w-fit border-2 border-[#123c2f] bg-white px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-[#123c2f] transition-colors hover:bg-[#eef7ef]"
               >
-                Export CSV
+                Download CSV
               </button>
             </div>
             {entries.map(entry => {
               const pickCount = entry.submitted_pick_count ?? ((entry.golfer_picks as string[]) || []).length
               const picksComplete = pickCount >= pool.pick_count
-              const entryConfirmed = Boolean(entry.has_paid)
               return (
-                <div key={entry.id} className={`border-b border-stone-100 px-5 py-3 ${entry.is_removed ? 'opacity-40' : ''}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="break-words font-medium text-stone-900">{entry.display_name}</p>
-                      <p className="mt-1 text-xs text-stone-500">
-                        {pickCount}/{pool.pick_count} picks · {picksComplete ? 'Finalized' : `Needs ${pool.pick_count - pickCount}`}
-                        {entry.is_removed && <span className="ml-2 text-red-700">Removed: {entry.removed_reason}</span>}
-                      </p>
-                    </div>
+                <div key={entry.id} className={`px-5 py-3 border-b border-stone-100 flex items-center justify-between gap-3 ${entry.is_removed ? 'opacity-40' : ''}`}>
+                  <div className="min-w-0">
+                    <p className="font-medium text-stone-900">{entry.display_name}</p>
+                    <p className="text-stone-500 text-xs">
+                      {pickCount}/{pool.pick_count} Picks
+                      {entry.notification_email ? <span className="ml-2 break-all">{entry.notification_email}</span> : null}
+                      {entry.is_removed && <span className="text-red-700 ml-2">Removed: {entry.removed_reason}</span>}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {!entry.is_removed && (
+                      <span className={`border px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${picksComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+                        {picksComplete ? 'Finalized' : `Needs ${pool.pick_count - pickCount}`}
+                      </span>
+                    )}
                     {!entry.is_removed && entry.user_id !== userId && (
-                      <button
-                        type="button"
-                        onClick={() => setRemoveTarget(entry.id)}
-                        className="shrink-0 text-xs text-red-700 hover:text-red-800"
-                      >
-                        Remove
-                      </button>
+                      <button onClick={() => setRemoveTarget(entry.id)}
+                        className="text-xs text-red-700 hover:text-red-800 px-2">Remove</button>
                     )}
                   </div>
-                  {!entry.is_removed && (
-                    <label className="mt-3 flex w-fit items-center gap-2 text-sm font-semibold text-stone-700">
-                      <input
-                        type="checkbox"
-                        checked={entryConfirmed}
-                        onChange={event => toggleEntryConfirmation(entry.id, event.target.checked)}
-                        className="h-4 w-4 rounded-none border-stone-400 accent-[#123c2f]"
-                      />
-                      Confirmed
-                    </label>
-                  )}
                 </div>
               )
             })}
@@ -2851,8 +2474,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           {removeTarget && (
             <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm flex items-center justify-center z-50">
               <div className="bg-white rounded-none p-6 border border-stone-200 max-w-sm w-full mx-4 shadow-2xl">
-                <h3 className="text-lg font-semibold mb-3 text-emerald-950">Remove {removeTargetName}</h3>
-                <p className="text-stone-600 text-sm mb-4">Remove <span className="font-black text-stone-900">{removeTargetName}</span> from this pool? They won't be able to rejoin.</p>
+                <h3 className="text-lg font-semibold mb-3 text-emerald-950">Remove entry</h3>
+                <p className="text-stone-600 text-sm mb-4">Remove this person from the pool? They won't be able to rejoin.</p>
                 <input
                   type="text"
                   value={removeReason}

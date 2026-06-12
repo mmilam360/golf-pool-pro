@@ -1,29 +1,30 @@
-export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { hashGuestEntryToken } from '@/lib/guest-entry'
 import { redirect } from 'next/navigation'
 import PoolView from './PoolView'
 import { buildPreviousPlayerCandidates, summarizeInviteStatuses } from '@/lib/pool-invite-logic'
-import { hydrateFinalLeaderboard } from '@/lib/fresh-final-leaderboard'
 
-export default async function PoolPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ inviteFrom?: string; tab?: string; error?: string }> }) {
+export const runtime = 'nodejs'
+
+export default async function PoolPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ inviteFrom?: string; guest?: string }> }) {
   const { id } = await params
   const query = searchParams ? await searchParams : {}
   const inviteFromPoolId = typeof query?.inviteFrom === 'string' ? query.inviteFrom : ''
-  const requestedTab = typeof query?.tab === 'string' ? query.tab : ''
-  const initialError = typeof query?.error === 'string' ? query.error : ''
+  const guestToken = typeof query?.guest === 'string' ? query.guest : ''
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect(`/login?redirect=${encodeURIComponent(`/pool/${id}`)}`)
+  const usingGuestToken = !user && Boolean(guestToken)
+  const dataSupabase = usingGuestToken ? createServiceClient() as any : supabase as any
+  if (!user && !usingGuestToken) redirect(`/pool/join`)
 
   const [poolResult, entriesResult] = await Promise.all([
-    supabase
+    dataSupabase
       .from('gpp_pools')
       .select('*, gpp_tournaments(*)')
       .eq('id', id)
       .single(),
-    supabase
+    dataSupabase
       .from('gpp_entries')
       .select('*')
       .eq('pool_id', id)
@@ -34,9 +35,14 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
 
   if (!pool) redirect('/dashboard')
 
-  const tournament = await hydrateFinalLeaderboard(pool.gpp_tournaments as any)
-  pool.gpp_tournaments = tournament
-  const isOwner = pool.owner_id === user.id
+  const tournament = pool.gpp_tournaments as any
+  const guestTokenHash = usingGuestToken ? hashGuestEntryToken(guestToken) : ''
+  const guestEntry = usingGuestToken
+    ? (entries || []).find((entry: any) => entry.guest_entry_token_hash === guestTokenHash && !entry.is_removed) || null
+    : null
+  if (usingGuestToken && !guestEntry) redirect(`/pool/join?code=${pool.passcode}`)
+
+  const isOwner = Boolean(user && pool.owner_id === user.id)
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
   const picksAreVisible = pool.is_locked || scoringIsLive
 
@@ -44,7 +50,7 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
 
   const safeEntries = (entries || []).map(entry => {
     const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
-    if (picksAreVisible || entry.user_id === user.id) return entry
+    if (picksAreVisible || (user && entry.user_id === user.id) || (guestEntry && entry.id === guestEntry.id)) return entry
     return {
       ...entry,
       submitted_pick_count: submittedPickCount,
@@ -54,7 +60,9 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
   })
 
   // Get current user's entry
-  const myEntry = safeEntries.find(e => e.user_id === user.id && !e.is_removed) || null
+  const myEntry = usingGuestToken
+    ? safeEntries.find(e => e.id === guestEntry.id && !e.is_removed) || null
+    : safeEntries.find(e => e.user_id === user?.id && !e.is_removed) || null
 
   let previousPlayerCandidates: { userId: string; displayName: string; sourcePoolIds?: string[]; suggested?: boolean }[] = []
   let inviteSummary = { pending: 0, accepted: 0, declined: 0 }
@@ -108,11 +116,10 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
       entries={safeEntries}
       myEntry={myEntry}
       isOwner={isOwner}
-      userId={user.id}
+      userId={user?.id || `guest:${guestEntry?.id || ''}`}
+      guestEntryToken={usingGuestToken ? guestToken : ''}
       previousPlayerCandidates={previousPlayerCandidates}
       inviteSummary={inviteSummary}
-      initialTab={requestedTab === 'my-entry' ? 'my-entry' : isOwner && requestedTab === 'pool-settings' ? 'pool-settings' : undefined}
-      initialError={initialError}
     />
   )
 }
