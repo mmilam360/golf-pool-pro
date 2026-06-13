@@ -30,7 +30,8 @@
     "smoke:deployment": "node scripts/smoke-deployment.mjs",
     "test:leaderboard-sanity": "npx tsx scripts/verify-leaderboard-sanity.mjs",
     "test:final-result-freeze": "npx tsx scripts/verify-final-result-freeze.mjs",
-    "test:tournament-names": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-tournament-names.mjs"
+    "test:tournament-names": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-tournament-names.mjs",
+    "verify:guest-entry-db": "node scripts/verify-guest-entry-db.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

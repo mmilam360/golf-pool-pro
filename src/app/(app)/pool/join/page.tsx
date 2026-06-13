@@ -5,10 +5,13 @@ import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { useRouter } from 'next/navigation'
 
+type ResumeEntry = { poolId: string; token: string; poolName: string; tournamentName: string }
+
 export default function JoinPoolPage() {
   const [passcode, setPasscode] = useState('')
   const [guestName, setGuestName] = useState('')
   const [notificationEmail, setNotificationEmail] = useState('')
+  const [resumeEntry, setResumeEntry] = useState<ResumeEntry | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -22,6 +25,51 @@ export default function JoinPoolPage() {
 
     setPasscode(cleanedCode)
   }, [])
+
+  useEffect(() => {
+    const normalizedPasscode = passcode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+    if (normalizedPasscode.length !== 6) {
+      setResumeEntry(null)
+      return
+    }
+
+    let cancelled = false
+    fetch(`/api/pool/guest-entry?passcode=${encodeURIComponent(normalizedPasscode)}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (cancelled || !data?.poolId || data.picksClosed) {
+          if (!cancelled) setResumeEntry(null)
+          return
+        }
+        const stored = window.localStorage.getItem(`gpp_guest_entry:${data.poolId}`)
+        if (!stored) {
+          setResumeEntry(null)
+          return
+        }
+        try {
+          const parsed = JSON.parse(stored)
+          if (parsed?.token) {
+            setResumeEntry({
+              poolId: data.poolId,
+              token: parsed.token,
+              poolName: data.poolName || 'this pool',
+              tournamentName: data.tournamentName || '',
+            })
+          } else {
+            setResumeEntry(null)
+          }
+        } catch {
+          setResumeEntry(null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setResumeEntry(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [passcode])
 
   async function joinPool(nextPasscode: string, source: 'manual' | 'qr') {
     const normalizedPasscode = nextPasscode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
@@ -146,6 +194,22 @@ export default function JoinPoolPage() {
         <h1 className="mb-4 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Join a Pool</h1>
         <p className="mb-6 max-w-md leading-7 text-stone-600">Scan a pool poster and we’ll open the pool for you. If your host gave you a code, enter it here.</p>
         {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+        {resumeEntry && (
+          <div className="mb-4 border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Entry found</p>
+            <h2 className="mt-1 text-lg font-black text-[#123c2f]">Continue your entry</h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">
+              {resumeEntry.poolName}{resumeEntry.tournamentName ? ` · ${resumeEntry.tournamentName}` : ''}
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push(`/pool/${resumeEntry.poolId}?guest=${encodeURIComponent(resumeEntry.token)}`)}
+              className="mt-3 border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black text-white hover:bg-[#0f2f25]"
+            >
+              Continue picks
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleJoin} className="space-y-5 rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
           <div>

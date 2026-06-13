@@ -360,6 +360,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
   const [defaultOpenedEntryId, setDefaultOpenedEntryId] = useState<string | null>(null)
+  const [showGuestSavePanel, setShowGuestSavePanel] = useState(false)
   const [finalizingGroups, setFinalizingGroups] = useState(false)
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
@@ -386,6 +387,26 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     setToasts(current => [...current.slice(-2), { id, message, tone }])
     window.setTimeout(() => dismissToast(id), 3500)
   }, [dismissToast])
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const claimStatus = url.searchParams.get('claim')
+    if (!claimStatus) return
+
+    if (claimStatus === 'linked') {
+      window.localStorage.removeItem(`gpp_guest_entry:${pool.id}`)
+      showToast('Entry linked to your account.', 'success')
+    } else if (claimStatus === 'existing-entry') {
+      showToast('Your account already has an entry in this pool.', 'info')
+    } else if (claimStatus === 'already-linked') {
+      showToast('That entry is already linked.', 'info')
+    } else if (claimStatus === 'not-found' || claimStatus === 'error') {
+      showToast('Could not link that saved entry.', 'error')
+    }
+
+    url.searchParams.delete('claim')
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+  }, [pool.id, showToast])
 
   const activeEntries = entries.filter(e => !e.is_removed)
   const storedPickGroups: PickGroup[] = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
@@ -498,6 +519,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const showPickList = (pickSelectionOpen && (fieldReady || (groupedFormat && pickGroups.length > 0))) || showGroupPreview
   const showSelectedPicks = myPicks.length > 0 || (!groupsNeedLock && (fieldReady || (groupedFormat && pickGroups.length > 0)))
   const visibleEntries = activeEntries
+  const guestClaimUrl = guestEntryToken && myEntry?.id
+    ? `/api/pool/claim-guest-entry?poolId=${encodeURIComponent(pool.id)}&token=${encodeURIComponent(guestEntryToken)}`
+    : ''
+  const guestClaimRedirect = guestClaimUrl ? encodeURIComponent(guestClaimUrl) : ''
+  const guestLeaderboardUrl = myEntry?.id
+    ? `${publicLeaderboardUrl || `/leaderboard/${pool.id}`}?entry=${encodeURIComponent(myEntry.id)}`
+    : (publicLeaderboardUrl || `/leaderboard/${pool.id}`)
 
   const maskHiddenPicks = useCallback((poolEntries: any[]) => {
     if (picksAreLocked) return poolEntries
@@ -898,6 +926,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
+    if (guestEntryToken) {
+      const requiredPicks = groupedFormat ? groupedTotalPicks : pool.pick_count
+      if (requiredPicks > 0 && myPicks.length < requiredPicks) {
+        const message = `Pick ${requiredPicks} golfers to save.`
+        setStatusMessage(message)
+        showToast(message, 'error')
+        setTimeout(() => setStatusMessage(''), 2500)
+        return
+      }
+    }
     if (groupedFormat) {
       const validation = validateGroupedPicks(pickGroups, myPicks, picksPerGroup)
       if (!validation.valid) {
@@ -945,7 +983,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setStatusMessage('Picks saved.')
       showToast('Picks saved.', 'success')
-      setTab('leaderboard')
+      if (guestEntryToken) setShowGuestSavePanel(true)
+      if (!guestEntryToken) setTab('leaderboard')
       setTimeout(() => setStatusMessage(''), 2500)
     } else {
       showToast('Could not save picks.', 'error')
@@ -1226,6 +1265,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       document.execCommand('copy')
       document.body.removeChild(textarea)
       showToast('Public leaderboard link copied.', 'success')
+    }
+  }
+
+  async function copyGuestLeaderboardLink() {
+    const url = guestLeaderboardUrl.startsWith('http') ? guestLeaderboardUrl : `${window.location.origin}${guestLeaderboardUrl}`
+    try {
+      await navigator.clipboard.writeText(url)
+      showToast('Leaderboard link copied.', 'success')
+    } catch {
+      const textarea = document.createElement('textarea')
+      textarea.value = url
+      textarea.setAttribute('readonly', 'true')
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      showToast('Leaderboard link copied.', 'success')
     }
   }
 
@@ -1972,6 +2030,44 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   </details>
                 </div>
               </div>
+
+              {guestEntryToken && showGuestSavePanel && (
+                <div className="mb-4 border-2 border-[#123c2f] bg-white p-4 shadow-[5px_5px_0_#d8cab0]">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Picks saved</p>
+                      <h3 className="mt-1 text-lg font-black text-[#123c2f]">Want a faster way back?</h3>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">Copy your leaderboard link, or create an account to link this entry and edit picks before lock.</p>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={copyGuestLeaderboardLink}
+                        className="border-2 border-[#123c2f] bg-white px-4 py-2 text-sm font-black text-[#123c2f] hover:bg-[#fbf7ed]"
+                      >
+                        Copy link
+                      </button>
+                      {guestClaimRedirect && (
+                        <>
+                          <a href={`/signup?redirect=${guestClaimRedirect}`} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-center text-sm font-black text-white hover:bg-[#0f2f25]">
+                            Create account
+                          </a>
+                          <a href={`/login?redirect=${guestClaimRedirect}`} className="border-2 border-[#d8cab0] bg-[#fbf7ed] px-4 py-2 text-center text-sm font-black text-[#123c2f] hover:bg-white">
+                            Sign in
+                          </a>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowGuestSavePanel(false)}
+                        className="px-2 py-2 text-sm font-black text-stone-500 hover:text-stone-800"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Selected picks */}
               {showSelectedPicks && (

@@ -22,6 +22,28 @@ function badRequest(error: string) {
   return NextResponse.json({ error }, { status: 400 })
 }
 
+export async function GET(request: Request) {
+  const url = new URL(request.url)
+  const passcode = (url.searchParams.get('passcode') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+  if (passcode.length !== 6) return badRequest('Enter the full pool code from your host.')
+
+  const supabase = createServiceClient() as any
+  const { data: pool, error: poolError } = await supabase
+    .from('gpp_pools')
+    .select('id, name, passcode, is_locked, gpp_tournaments(name, status)')
+    .eq('passcode', passcode)
+    .maybeSingle()
+
+  if (poolError || !pool) return NextResponse.json({ error: 'Invalid passcode. Check with the pool host.' }, { status: 404 })
+  const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
+  return NextResponse.json({
+    poolId: pool.id,
+    poolName: pool.name,
+    tournamentName: tournament?.name || '',
+    picksClosed: Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed'),
+  })
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json() as JoinBody
