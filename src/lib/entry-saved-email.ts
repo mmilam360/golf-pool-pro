@@ -31,7 +31,7 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
     .select('id, pool_id, user_id, display_name, notification_email, golfer_picks, guest_entry_token_hash')
     .eq('id', entryId)
     .eq('pool_id', poolId)
-    .eq('is_removed', false)
+    .or('is_removed.is.null,is_removed.eq.false')
     .maybeSingle()
 
   if (entryError || !entry) throw new Error('Entry not found')
