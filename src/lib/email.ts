@@ -24,8 +24,10 @@ export async function sendEmail({ to, subject, text, html }: SendEmailInput) {
 
   if (!response.ok) {
     const body = await response.text().catch(() => '')
-    throw new Error(`Email send failed: ${response.status} ${body.slice(0, 200)}`)
+    console.error('email_send_failed', { status: response.status, body: body.slice(0, 200), to, subject })
+    return { sent: false, status: response.status }
   }
 
-  return response.json().catch(() => ({ ok: true }))
+  const data = await response.json().catch(() => ({ ok: true }))
+  return { sent: true, data }
 }
