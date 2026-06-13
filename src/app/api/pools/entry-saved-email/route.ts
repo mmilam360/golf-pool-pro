@@ -32,7 +32,8 @@ export async function POST(request: Request) {
     const result = await sendEntrySavedEmail({ entryId, poolId, token, userId: user?.id || null, origin })
     return NextResponse.json({ ok: true, result })
   } catch (error: any) {
-    console.error('entry_saved_email_failed', error)
-    return NextResponse.json({ error: error?.message || 'Entry email could not be sent' }, { status: 500 })
+    const detail = error?.message || (typeof error === 'string' ? error : JSON.stringify(error || {}).slice(0, 300)) || 'Entry email could not be sent'
+    console.error('entry_saved_email_failed', detail)
+    return NextResponse.json({ ok: false, error: detail }, { status: 200 })
   }
 }
