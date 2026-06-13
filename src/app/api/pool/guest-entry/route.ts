@@ -81,24 +81,11 @@ export async function POST(request: Request) {
       guest_entry_token_hash: hashGuestEntryToken(token),
     }
 
-    let { data: entry, error: insertError } = await supabase
+    const { data: entry, error: insertError } = await supabase
       .from('gpp_entries')
       .insert(insertPayload)
       .select('id')
       .single()
-
-    // Production may be a deploy ahead of the notification_email migration.
-    // Keep no-account joining live; email capture starts as soon as the column exists.
-    if (insertError?.message?.includes('notification_email')) {
-      delete insertPayload.notification_email
-      const retry = await supabase
-        .from('gpp_entries')
-        .insert(insertPayload)
-        .select('id')
-        .single()
-      entry = retry.data
-      insertError = retry.error
-    }
 
     if (insertError || !entry) {
       return NextResponse.json({ error: insertError?.message || 'Could not join this pool.' }, { status: 500 })
@@ -156,24 +143,12 @@ export async function PATCH(request: Request) {
 
     if (Object.keys(update).length === 0) return badRequest('Nothing to update.')
 
-    let { data: updatedEntry, error: updateError } = await supabase
+    const { data: updatedEntry, error: updateError } = await supabase
       .from('gpp_entries')
       .update(update)
       .eq('id', entry.id)
       .select('*')
       .single()
-
-    if (updateError?.message?.includes('notification_email')) {
-      delete update.notification_email
-      const retry = await supabase
-        .from('gpp_entries')
-        .update(update)
-        .eq('id', entry.id)
-        .select('*')
-        .single()
-      updatedEntry = retry.data
-      updateError = retry.error
-    }
 
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
     return NextResponse.json({ entry: updatedEntry })
