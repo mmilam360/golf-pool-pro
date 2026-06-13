@@ -91,7 +91,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: insertError?.message || 'Could not join this pool.' }, { status: 500 })
     }
 
-    return NextResponse.json({ poolId: pool.id, entryId: entry.id, token })
+    if (notificationEmail) {
+      const { error: emailUpdateError } = await supabase
+        .from('gpp_entries')
+        .update({ notification_email: notificationEmail } as any)
+        .eq('id', entry.id)
+      if (emailUpdateError) {
+        return NextResponse.json({ error: emailUpdateError.message || 'Could not save notification email.' }, { status: 500 })
+      }
+    }
+
+    return NextResponse.json({ poolId: pool.id, entryId: entry.id, token, notificationEmailSaved: Boolean(notificationEmail) })
   } catch {
     return NextResponse.json({ error: 'Could not join this pool.' }, { status: 500 })
   }
