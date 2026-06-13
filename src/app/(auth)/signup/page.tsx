@@ -47,7 +47,6 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
   const [marketingOptIn, setMarketingOptIn] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const [signupPromoCode, setSignupPromoCode] = useState(defaultPromoCode)
   const [joiningPool, setJoiningPool] = useState(false)
   const [linkingEntry, setLinkingEntry] = useState(false)
@@ -97,33 +96,26 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
     }
     setLoading(true)
     const redirectTo = getSafeRedirect()
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { display_name: trimmedName, full_name: trimmedName, marketing_emails: marketingOptIn },
-        emailRedirectTo: `${window.location.origin}/login?redirect=${encodeURIComponent(redirectTo)}`,
-      },
+    const signupRes = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, displayName: trimmedName, marketingOptIn }),
     })
-    if (error) {
-      setError(error.message)
+    const signupData = await signupRes.json().catch(() => ({}))
+    if (!signupRes.ok) {
+      setError(signupData.error || 'Could not create account.')
       setLoading(false)
-    } else if (data.session) {
-      router.replace(redirectTo)
-    } else {
-      setSuccess(true)
-      setLoading(false)
+      return
     }
-  }
 
-  if (success) {
-    return (
-      <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 text-center shadow-[6px_6px_0_#d8cab0]">
-        <h1 className="mb-4 text-2xl font-bold text-[#0f2f25]">Account created</h1>
-        <p className="text-stone-600 mb-4">Check your email to confirm your account, then sign in.</p>
-        <Link href={getLoginHref()} className="font-semibold text-[#123c2f] hover:underline">Go to sign in</Link>
-      </div>
-    )
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      setError(signInError.message)
+      setLoading(false)
+      return
+    }
+
+    router.replace(redirectTo)
   }
 
   return (

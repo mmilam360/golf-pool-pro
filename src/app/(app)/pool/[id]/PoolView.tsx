@@ -983,6 +983,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setStatusMessage('Picks saved.')
       showToast('Picks saved.', 'success')
+      fetch('/api/pools/entry-saved-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poolId: pool.id, entryId: myEntry.id, token: guestEntryToken || null }),
+      }).catch(() => {})
       if (guestEntryToken) setShowGuestSavePanel(true)
       if (!guestEntryToken) setTab('leaderboard')
       setTimeout(() => setStatusMessage(''), 2500)
