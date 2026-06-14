@@ -257,9 +257,9 @@ export default function JoinPoolPage() {
             </button>
             <a
               href={loginHref()}
-              className="border-2 border-[#123c2f] bg-[#fbf7ed] px-4 py-3 text-center text-sm font-black text-[#123c2f] hover:bg-white"
+              className="border border-[#d8cab0] bg-white px-4 py-3 text-center text-sm font-semibold text-[#123c2f] hover:border-[#123c2f] hover:bg-[#fbf7ed]"
             >
-              I already have a login
+              Account sign in
             </a>
           </div>
         </form>

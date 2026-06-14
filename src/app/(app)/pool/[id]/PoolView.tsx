@@ -316,7 +316,8 @@ function roundScoreLabel(round: number) {
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, guestEntryToken = '' }: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>(publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry')
+  const guestMode = Boolean(guestEntryToken)
+  const [tab, setTab] = useState<Tab>(guestMode ? 'my-entry' : publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry')
   const [entries, setEntries] = useState(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [poolName, setPoolName] = useState(pool.name)
@@ -1599,9 +1600,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }
 
   return (
-    <div>
+    <div className={guestMode ? 'mx-auto max-w-4xl' : undefined}>
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
       {/* Header */}
+      {!guestMode && (
       <div className="mb-6">
         {!publicView ? <BackButton /> : null}
         <div className="flex items-start justify-between gap-3">
@@ -1620,6 +1622,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           {pool.is_completed && <span className="text-emerald-700">Final results</span>}
         </div>}
       </div>
+      )}
 
       {statusMessage && <div className="mb-4 rounded-none border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
 
@@ -1683,7 +1686,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           />
         </div>
       )}
-      {!publicView && (
+      {!publicView && !guestMode && (
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-none p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-entry', ...(isOwner ? ['pool-settings'] as Tab[] : [])] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
@@ -2052,6 +2055,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       </p>
                     </div>
                   )}
+                  {!guestMode && (
                   <details className="group border border-[#d8cab0] bg-white" open={obRulesOpen} onToggle={event => setObRulesOpen(event.currentTarget.open)}>
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] [&::-webkit-details-marker]:hidden">
                       <span>How OB works</span>
@@ -2063,6 +2067,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       <p className="border border-[#eadfca] bg-[#fbf7ed] px-2 py-2 text-xs font-semibold text-[#1f2a24]">Example: if your pool counts 4 golfers and only 3 of yours are active, the missing counted spot gets the worst active score plus the OB penalty.</p>
                     </div>
                   </details>
+                  )}
                 </div>
               </div>
 
@@ -2109,7 +2114,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             Add password
                           </a>
                           <a href={`/login?redirect=${guestClaimRedirect}`} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-sm font-black text-[#123c2f] hover:bg-[#fbf7ed]">
-                            I have a login
+                            Account sign in
                           </a>
                         </div>
                       )}
