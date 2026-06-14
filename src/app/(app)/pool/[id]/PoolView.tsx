@@ -1338,15 +1338,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         entry.notification_email || '',
         entry.is_removed ? 'removed' : 'active',
         picks.length,
-        pool.pick_count,
         scored?.rank || entry.rank || '',
         scored?.totalScore ?? entry.total_score ?? '',
-        picks.join('; '),
-        entry.removed_reason || '',
       ]
     })
     const csv = [
-      ['Entry name', 'Email', 'Status', 'Picks made', 'Picks required', 'Rank', 'Total score', 'Picks', 'Removed reason'],
+      ['Confirmed'],
+      ['Entry name', 'Email', 'Status', 'Picks made', 'Rank', 'Total score'],
       ...rows,
     ].map(row => row.map(csvCell).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
