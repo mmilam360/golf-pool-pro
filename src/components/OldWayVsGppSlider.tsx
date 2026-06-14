@@ -50,7 +50,6 @@ function GppPanel() {
             <div className="text-center font-black text-[#8a6724]">#{rank}</div>
             <div className="min-w-0">
               <p className="truncate font-black uppercase text-[#123c2f]">{name}</p>
-              <p className="truncate text-[11px] font-semibold text-stone-600">Picks, cuts, OB all in one place</p>
             </div>
             <div className="text-right font-display text-xl text-[#b21e23]">{score}</div>
           </div>

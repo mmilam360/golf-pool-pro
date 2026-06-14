@@ -16,7 +16,7 @@ export default function GolfPoolSoftwarePage() {
       sections={[
         {
           title: 'Built for the commissioner job',
-          body: 'Golf Pools Pro keeps setup, invites, picks, rules, scoring, and standings in one place so the pool runner is not rebuilding the weekend from texts and spreadsheets.',
+          body: 'Create a pool, send the link, collect picks, lock entries, and let the leaderboard update during the tournament.',
         },
         {
           title: 'A board players come back to',

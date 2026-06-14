@@ -32,7 +32,6 @@ function buildReminderCopy(pool: ReminderPool) {
     lines.push(`${entry.displayName}: ${entry.submittedPickCount}/${entry.requiredPickCount} picks in`)
   })
 
-  lines.push('', 'Get your picks in when you get a chance.')
   return lines.join('\n')
 }
 

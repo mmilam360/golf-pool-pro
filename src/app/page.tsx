@@ -397,9 +397,6 @@ export default function Home() {
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#8a6724]">Pool runner tools</p>
               <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-[#0f2f25] md:text-5xl">Invites, posters, and run-it-back built in.</h2>
-              <p className="mt-4 max-w-xl leading-7 text-[#657168]">
-                The group text worked fine until someone asked who still owes picks. Golf Pools Pro keeps setup, invites, reminders, and the next pool in one place.
-              </p>
             </div>
             <div className="grid border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0] sm:grid-cols-2">
               {runnerTools.map(([title, body]) => (

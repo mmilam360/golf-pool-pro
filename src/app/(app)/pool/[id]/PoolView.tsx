@@ -2151,7 +2151,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   {guestSaveStep === 'email' ? (
                     <div className="mt-5">
                       <h4 className="text-lg font-black text-[#123c2f]">Want the leaderboard sent to you?</h4>
-                      <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">Add your email and we’ll send your entry link and final scores. No account needed.</p>
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <input
                           type="email"

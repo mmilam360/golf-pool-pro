@@ -72,7 +72,7 @@ export default function HelpPage() {
               <div className="border border-[#d8cab0] bg-[#fbf7ed] p-4">
                 <h2 className="text-lg font-black text-[#123c2f]">Before you send it</h2>
                 <p className="mt-2 text-sm font-semibold leading-6 text-stone-700">
-                  If the issue is tied to one pool, include the pool name, passcode, or tournament. That makes it much easier to find the right spot.
+                  Include the pool name, passcode, or tournament.
                 </p>
               </div>
 

@@ -198,7 +198,6 @@ export default function JoinPoolPage() {
         {showBackButton && <BackButton />}
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Player entry</p>
         <h1 className="mb-4 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Join a Pool</h1>
-        <p className="mb-6 max-w-md leading-7 text-stone-600">Enter the pool code, add the name you want on the leaderboard, then make your picks. No account needed.</p>
         {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
         {resumeEntry && (
           <div className="mb-4 border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">

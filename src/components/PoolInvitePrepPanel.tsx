@@ -42,7 +42,7 @@ export function PoolInvitePrepPanel({
 
   const copy = useMemo(() => {
     if (format === 'email') {
-      return `I set up the ${poolName} pool for the ${tournamentName}.\n\nJoin with this link:\n${joinLink}\n\nOr use passcode: ${passcode}\n\nRules are simple: pick ${plural(pickCount, 'golfer')}, best ${countScores} score${countScores === 1 ? '' : 's'} count. ${lockLine}\n\nGet your picks in when you get a chance.`
+      return `I set up the ${poolName} pool for the ${tournamentName}.\n\nJoin with this link:\n${joinLink}\n\nOr use passcode: ${passcode}\n\nPick ${plural(pickCount, 'golfer')}. Best ${countScores} score${countScores === 1 ? '' : 's'} count. ${lockLine}`
     }
 
     return `${poolName} golf pool is open for the ${tournamentName}.\n\nJoin with this link:\n${joinLink}\n\nOr use passcode: ${passcode}\n\nPick ${pickCount} golfers. Best ${countScores} score${countScores === 1 ? '' : 's'} count. ${lockLine}`
