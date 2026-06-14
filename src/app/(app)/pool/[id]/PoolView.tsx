@@ -411,6 +411,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [pool.id, showToast])
 
   const activeEntries = entries.filter(e => !e.is_removed)
+  const currentEntryId = myEntry?.id || initialMyEntry?.id || ''
+  const isCurrentEntry = useCallback((entry: any) => {
+    if (!entry || entry.is_removed) return false
+    if (currentEntryId && entry.id === currentEntryId) return true
+    if (!guestMode && userId && entry.user_id === userId) return true
+    return false
+  }, [currentEntryId, guestMode, userId])
   const storedPickGroups: PickGroup[] = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
   const groupedFormat = pool.game_format === 'ranked_groups' || pool.game_format === 'random_groups'
   const pickGroups: PickGroup[] = useMemo(() => {
@@ -533,7 +540,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (picksAreLocked) return poolEntries
     return poolEntries.map(entry => {
       const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
-      if (entry.user_id === userId) return entry
+      if (isCurrentEntry(entry)) return entry
       return {
         ...entry,
         submitted_pick_count: submittedPickCount,
@@ -541,7 +548,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         picks_hidden: true,
       }
     })
-  }, [picksAreLocked, userId])
+  }, [isCurrentEntry, picksAreLocked])
 
   const refreshPoolEntries = useCallback(async () => {
     const query = supabase
@@ -552,10 +559,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const { data } = await query.order('created_at', { ascending: true })
     if (data) {
       const safeData = maskHiddenPicks(data)
+      const nextMyEntry = safeData.find(isCurrentEntry) || null
       setEntries(safeData)
-      setMyEntry(safeData.find(entry => entry.user_id === userId && !entry.is_removed) || null)
+      setMyEntry(nextMyEntry)
+      if (nextMyEntry) {
+        setMyPicks(Array.isArray(nextMyEntry.golfer_picks) ? nextMyEntry.golfer_picks : [])
+      }
     }
-  }, [maskHiddenPicks, pool.id, supabase, userId])
+  }, [isCurrentEntry, maskHiddenPicks, pool.id, supabase])
 
   useEffect(() => {
     const channel = supabase
@@ -2255,6 +2266,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </div>
               )}
 
+              {!guestMode && (
               <details className="group rounded-none border border-stone-200 bg-white shadow-[4px_4px_0_#d8cab0]">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-[0.12em] text-stone-700 [&::-webkit-details-marker]:hidden">
                   <span>Entry details</span>
@@ -2298,9 +2310,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   </div>
                 </div>
               </details>
+              )}
 
-              {/* Leave pool — available to non-owners before picks close */}
-              {myEntry && !isOwner && !picksAreLocked && (
+              {/* Leave pool — available to signed-in non-owners before picks close */}
+              {!guestMode && myEntry && !isOwner && !picksAreLocked && (
                 <details className="group rounded-none border border-stone-200 bg-white shadow-[4px_4px_0_#d8cab0]">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-[0.12em] text-[#b21e23] [&::-webkit-details-marker]:hidden">
                     <span>Leave pool</span>

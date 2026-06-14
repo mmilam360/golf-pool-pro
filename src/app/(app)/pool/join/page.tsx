@@ -11,6 +11,7 @@ export default function JoinPoolPage() {
   const [passcode, setPasscode] = useState('')
   const [guestName, setGuestName] = useState('')
   const [resumeEntry, setResumeEntry] = useState<ResumeEntry | null>(null)
+  const [showBackButton, setShowBackButton] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -20,6 +21,12 @@ export default function JoinPoolPage() {
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code')
     const cleanedCode = code?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+    try {
+      const referrerUrl = document.referrer ? new URL(document.referrer) : null
+      setShowBackButton(Boolean(referrerUrl && referrerUrl.origin === window.location.origin && !cleanedCode))
+    } catch {
+      setShowBackButton(false)
+    }
     if (!cleanedCode) return
 
     setPasscode(cleanedCode)
@@ -134,13 +141,13 @@ export default function JoinPoolPage() {
       setLoading(false); return
     }
 
-    const { data: existing } = await supabase
+    const { data: existingEntries } = await supabase
       .from('gpp_entries')
-      .select('id')
+      .select('id, is_removed')
       .eq('pool_id', pool.id)
       .eq('user_id', user.id)
-      .maybeSingle()
 
+    const existing = (existingEntries || []).find(entry => !entry.is_removed)
     if (existing) {
       router.push(`/pool/${pool.id}`)
       return
@@ -187,7 +194,7 @@ export default function JoinPoolPage() {
   return (
     <div className="mx-auto max-w-xl">
       <div>
-        <BackButton />
+        {showBackButton && <BackButton />}
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Player entry</p>
         <h1 className="mb-4 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Join a Pool</h1>
         <p className="mb-6 max-w-md leading-7 text-stone-600">Enter the pool code, add the name you want on the leaderboard, then make your picks. No account needed.</p>
