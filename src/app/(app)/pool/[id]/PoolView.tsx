@@ -361,6 +361,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
   const [defaultOpenedEntryId, setDefaultOpenedEntryId] = useState<string | null>(null)
   const [showGuestSavePanel, setShowGuestSavePanel] = useState(false)
+  const [guestEmailSaving, setGuestEmailSaving] = useState(false)
   const [finalizingGroups, setFinalizingGroups] = useState(false)
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
@@ -1292,6 +1293,37 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
   }
 
+  async function saveGuestEmailForUpdates() {
+    if (!myEntry?.id || !guestEntryToken) return
+    const email = notificationEmailValue.trim().toLowerCase()
+    if (!email) {
+      showToast('Enter your email first.', 'info')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showToast('Enter a valid email address.', 'error')
+      return
+    }
+
+    setGuestEmailSaving(true)
+    try {
+      const updatedEntry = await updateGuestEntry({ notificationEmail: email })
+      setMyEntry(updatedEntry)
+      setEntries(current => current.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
+      setNotificationEmailValue(email)
+      await fetch('/api/pools/entry-saved-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poolId: pool.id, entryId: myEntry.id, token: guestEntryToken }),
+      }).catch(() => {})
+      showToast('Email saved. We sent your entry link.', 'success')
+    } catch (error: any) {
+      showToast(error?.message || 'Could not save email.', 'error')
+    } finally {
+      setGuestEmailSaving(false)
+    }
+  }
+
   function csvCell(value: unknown) {
     const text = value === null || value === undefined ? '' : String(value)
     return `"${text.replace(/"/g, '""')}"`
@@ -2038,36 +2070,57 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
               {guestEntryToken && showGuestSavePanel && (
                 <div className="mb-4 border-2 border-[#123c2f] bg-white p-4 shadow-[5px_5px_0_#d8cab0]">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
                     <div className="min-w-0">
                       <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Picks saved</p>
-                      <h3 className="mt-1 text-lg font-black text-[#123c2f]">Want a faster way back?</h3>
-                      <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">Copy your leaderboard link, or create an account to link this entry and edit picks before lock.</p>
-                    </div>
-                    <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                      <h3 className="mt-1 text-lg font-black text-[#123c2f]">Want the leaderboard sent to you?</h3>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">Add your email and we’ll send your entry link and final scores. No account needed.</p>
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <input
+                          type="email"
+                          value={notificationEmailValue}
+                          onChange={event => setNotificationEmailValue(event.target.value)}
+                          placeholder="you@example.com"
+                          autoComplete="email"
+                          className="min-w-0 flex-1 border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0]"
+                        />
+                        <button
+                          type="button"
+                          onClick={saveGuestEmailForUpdates}
+                          disabled={guestEmailSaving}
+                          className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black text-white hover:bg-[#0f2f25] disabled:opacity-50"
+                        >
+                          {guestEmailSaving ? 'Saving...' : 'Email me'}
+                        </button>
+                      </div>
                       <button
                         type="button"
                         onClick={copyGuestLeaderboardLink}
-                        className="border-2 border-[#123c2f] bg-white px-4 py-2 text-sm font-black text-[#123c2f] hover:bg-[#fbf7ed]"
+                        className="mt-3 border-2 border-[#123c2f] bg-white px-4 py-2 text-sm font-black text-[#123c2f] hover:bg-[#fbf7ed]"
                       >
-                        Copy link
+                        Copy leaderboard link
                       </button>
+                    </div>
+                    <div className="border-2 border-[#d8cab0] bg-[#fbf7ed] p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Optional account</p>
+                      <h4 className="mt-1 text-base font-black text-[#123c2f]">Add a password for easier access</h4>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">An account links this entry, lets you edit picks before lock, and makes the next pool faster.</p>
                       {guestClaimRedirect && (
-                        <>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
                           <a href={`/signup?redirect=${guestClaimRedirect}`} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-center text-sm font-black text-white hover:bg-[#0f2f25]">
-                            Create account
+                            Add password
                           </a>
-                          <a href={`/login?redirect=${guestClaimRedirect}`} className="border-2 border-[#d8cab0] bg-[#fbf7ed] px-4 py-2 text-center text-sm font-black text-[#123c2f] hover:bg-white">
-                            Sign in
+                          <a href={`/login?redirect=${guestClaimRedirect}`} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-sm font-black text-[#123c2f] hover:bg-[#fbf7ed]">
+                            I have a login
                           </a>
-                        </>
+                        </div>
                       )}
                       <button
                         type="button"
                         onClick={() => setShowGuestSavePanel(false)}
-                        className="px-2 py-2 text-sm font-black text-stone-500 hover:text-stone-800"
+                        className="mt-3 text-sm font-black text-stone-500 hover:text-stone-800"
                       >
-                        Skip
+                        Skip for now
                       </button>
                     </div>
                   </div>

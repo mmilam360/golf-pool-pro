@@ -10,7 +10,6 @@ type ResumeEntry = { poolId: string; token: string; poolName: string; tournament
 export default function JoinPoolPage() {
   const [passcode, setPasscode] = useState('')
   const [guestName, setGuestName] = useState('')
-  const [notificationEmail, setNotificationEmail] = useState('')
   const [resumeEntry, setResumeEntry] = useState<ResumeEntry | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -89,22 +88,15 @@ export default function JoinPoolPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       const displayName = guestName.trim().replace(/\s+/g, ' ')
-      const email = notificationEmail.trim()
       if (!displayName) {
         setError('Enter the name you want on the leaderboard.')
         setLoading(false)
         return
       }
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        setError('Enter a valid email address or leave it blank.')
-        setLoading(false)
-        return
-      }
-
       const res = await fetch('/api/pool/guest-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode: normalizedPasscode, displayName, notificationEmail: email || null }),
+        body: JSON.stringify({ passcode: normalizedPasscode, displayName }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -186,13 +178,19 @@ export default function JoinPoolPage() {
     await joinPool(passcode, 'manual')
   }
 
+  function loginHref() {
+    const normalizedPasscode = passcode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+    const redirect = normalizedPasscode.length === 6 ? `/pool/join?code=${normalizedPasscode}` : '/pool/join'
+    return `/login?redirect=${encodeURIComponent(redirect)}`
+  }
+
   return (
     <div className="mx-auto max-w-xl">
       <div>
         <BackButton />
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Player entry</p>
         <h1 className="mb-4 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Join a Pool</h1>
-        <p className="mb-6 max-w-md leading-7 text-stone-600">Scan a pool poster and we’ll open the pool for you. If your host gave you a code, enter it here.</p>
+        <p className="mb-6 max-w-md leading-7 text-stone-600">Enter the pool code, add the name you want on the leaderboard, then make your picks. No account needed.</p>
         {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
         {resumeEntry && (
           <div className="mb-4 border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
@@ -244,30 +242,26 @@ export default function JoinPoolPage() {
               type="text"
               value={guestName}
               onChange={e => setGuestName(e.target.value.slice(0, 60))}
-              placeholder="Your name"
+              placeholder="Name for the leaderboard"
               maxLength={60}
               className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             />
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">Email for final score updates <span className="text-stone-400">optional</span></label>
-            <input
-              type="email"
-              value={notificationEmail}
-              onChange={e => setNotificationEmail(e.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
-              className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-            />
-            <p className="mt-1 text-xs font-semibold text-stone-500">No account needed. We’ll only use this for pool updates.</p>
+          <div className="grid gap-3">
+            <button
+              type="submit"
+              disabled={loading || passcode.length < 6}
+              className="gpp-3d gpp-button-3d gpp-button-wrap w-full disabled:opacity-50"
+            >
+              <span className="gpp-button-face py-3">{loading ? 'Opening picks...' : 'Continue to picks'}</span>
+            </button>
+            <a
+              href={loginHref()}
+              className="border-2 border-[#123c2f] bg-[#fbf7ed] px-4 py-3 text-center text-sm font-black text-[#123c2f] hover:bg-white"
+            >
+              I already have a login
+            </a>
           </div>
-          <button
-            type="submit"
-            disabled={loading || passcode.length < 6}
-            className="gpp-3d gpp-button-3d gpp-button-wrap w-full disabled:opacity-50"
-          >
-            <span className="gpp-button-face py-3">{loading ? 'Joining...' : 'Join Pool'}</span>
-          </button>
         </form>
       </div>
     </div>
