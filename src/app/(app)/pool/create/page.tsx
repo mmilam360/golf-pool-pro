@@ -336,7 +336,7 @@ export default function CreatePoolPage() {
       <div>
         <BackButton />
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Tournament setup</p>
-        <h1 className="mb-6 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Create a Pool</h1>
+        <h1 className="mb-6 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Create a pool</h1>
         {cloneSourceName && (
           <div className="mb-4 border border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-sm font-semibold text-[#123c2f]">
             Running it back from {cloneSourceName}. Edit anything here, then choose the new tournament.
@@ -346,7 +346,7 @@ export default function CreatePoolPage() {
 
         <form onSubmit={handleCreate} className="w-[calc(100%-4px)] space-y-6 rounded-none border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0] sm:w-full sm:p-6 sm:shadow-[6px_6px_0_#d8cab0]">
           <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">Pool Name</label>
+            <label className="mb-1 block text-sm font-medium text-stone-700">Pool name</label>
             <input type="text" value={poolName} onChange={e => setPoolName(e.target.value)} required
               placeholder="e.g. Tiger's Tribe PGA Pool"
               className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
@@ -401,7 +401,7 @@ export default function CreatePoolPage() {
                   onClick={() => setGameFormat(option.value as PoolGameFormat)}
                   className={`border-2 px-3 py-3 text-left transition-colors ${gameFormat === option.value ? 'border-[#123c2f] bg-white text-[#123c2f]' : 'border-[#d8cab0] bg-[#fffaf0] text-stone-700 hover:border-[#123c2f]'}`}
                 >
-                  <span className="block text-center text-sm font-black uppercase tracking-[0.08em]">{option.label}</span>
+                  <span className="block text-center text-sm font-bold">{option.label}</span>
                   <span className="mt-1 block text-center text-xs font-semibold leading-4">
                     {option.helperLines.map(line => <span key={line} className="block">{line}</span>)}
                   </span>
@@ -466,7 +466,7 @@ export default function CreatePoolPage() {
 
           <div className="rounded-none border border-amber-100 bg-amber-50 p-4">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-stone-800">Out of Bounds Rule</label>
+              <label className="text-sm font-medium text-stone-800">Out of bounds rule</label>
               <button type="button" onClick={() => setObEnabled(!obEnabled)}
                 className={`h-6 w-12 rounded-full transition-colors ${obEnabled ? 'bg-emerald-700' : 'bg-stone-300'}`}>
                 <div className={`h-5 w-5 rounded-full bg-white transition-transform ${obEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
@@ -474,7 +474,7 @@ export default function CreatePoolPage() {
             </div>
             {obEnabled && (
               <div className="mt-3">
-                <NumberStepper label="OB Penalty Strokes" value={obPenalty} onChange={setObPenalty} min={1} max={10} fallback={2} />
+                <NumberStepper label="OB penalty strokes" value={obPenalty} onChange={setObPenalty} min={1} max={10} fallback={2} />
               </div>
             )}
             <p className="mt-3 text-xs leading-5 text-stone-600">
@@ -502,7 +502,7 @@ export default function CreatePoolPage() {
 
           <button type="submit" disabled={loading || !selectedTournament}
             className="gpp-3d gpp-button-3d gpp-button-wrap w-full disabled:opacity-50">
-            <span className="gpp-button-face py-3">{loading ? 'Creating...' : 'Create Pool'}</span>
+            <span className="gpp-button-face py-3">{loading ? 'Creating...' : 'Create pool'}</span>
           </button>
         </form>
       </div>

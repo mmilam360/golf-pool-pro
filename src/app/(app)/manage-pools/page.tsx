@@ -225,7 +225,7 @@ function QuickStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2">
       <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#657168]">{label}</p>
-      <p className="mt-1 text-sm font-black leading-tight text-[#123c2f]">{value}</p>
+      <p className="mt-1 text-sm font-bold leading-tight text-[#123c2f]">{value}</p>
     </div>
   )
 }
@@ -234,7 +234,7 @@ function FormatStat({ name, detail }: { name: string; detail: string }) {
   return (
     <div className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2">
       <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#657168]">Format</p>
-      <p className="mt-1 text-sm font-black leading-tight text-[#123c2f]">{name}</p>
+      <p className="mt-1 text-sm font-bold leading-tight text-[#123c2f]">{name}</p>
       <p className="mt-1 text-xs font-bold leading-tight text-[#1f2a24]">{detail}</p>
     </div>
   )
@@ -380,7 +380,7 @@ export default async function ManagePoolsPage() {
         <div className="flex items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-4 text-white sm:px-5">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Pool runner board</p>
-            <h1 className="font-display text-2xl font-bold uppercase sm:text-3xl">Manage Pools</h1>
+            <h1 className="font-display text-2xl font-bold sm:text-3xl">Manage pools</h1>
           </div>
           <Link href="/pool/create" className="shrink-0 border border-[#d8cab0] bg-[#f3df9c] px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[#0f2f25] sm:text-sm">Create pool</Link>
         </div>
@@ -396,7 +396,7 @@ export default async function ManagePoolsPage() {
             {currentPools.length ? (
               <div>
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="font-display text-xl font-bold uppercase text-[#0f2f25]">Current pools</h2>
+                  <h2 className="font-display text-xl font-bold text-[#0f2f25]">Current pools</h2>
                   <span className="border border-[#d8cab0] bg-white px-2 py-1 text-xs font-black uppercase tracking-[0.1em] text-[#657168]">{currentPools.length}</span>
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">
@@ -409,7 +409,7 @@ export default async function ManagePoolsPage() {
             {finalPools.length ? (
               <div>
                 <div className="mb-3 flex items-center justify-between gap-3 border-t border-[#d8cab0] pt-5">
-                  <h2 className="font-display text-xl font-bold uppercase text-[#0f2f25]">Final pools</h2>
+                  <h2 className="font-display text-xl font-bold text-[#0f2f25]">Final pools</h2>
                   <span className="border border-[#d8cab0] bg-white px-2 py-1 text-xs font-black uppercase tracking-[0.1em] text-[#657168]">{finalPools.length}</span>
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">

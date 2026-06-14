@@ -81,7 +81,7 @@ export default function AppHeader() {
           <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} className="h-12 w-auto object-contain sm:h-14 md:h-16" />
         </Link>
 
-        <div className="hidden min-w-0 items-center justify-end gap-2 text-sm font-black text-[#123c2f] md:flex">
+        <div className="hidden min-w-0 items-center justify-end gap-2 text-sm font-bold text-[#123c2f] md:flex">
           {signedIn ? (
             <>
               {navLinks.map(link => {
@@ -101,7 +101,7 @@ export default function AppHeader() {
               <SignOutButton className="whitespace-nowrap border-b-2 border-transparent px-2 py-2 text-sm font-normal text-[#7b857d] transition-colors hover:border-[#d8cab0] hover:text-[#4f6258]" />
             </>
           ) : (
-            <Link href={`/login?redirect=${encodeURIComponent(currentPath)}`} className="whitespace-nowrap border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]">
+            <Link href={`/login?redirect=${encodeURIComponent(currentPath)}`} className="whitespace-nowrap border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-bold text-white hover:bg-[#0f2f25]">
               Log in
             </Link>
           )}
@@ -109,11 +109,11 @@ export default function AppHeader() {
 
         {signedIn ? (
           <details className="group md:hidden" open={menuOpen} onToggle={event => setMenuOpen(event.currentTarget.open)}>
-            <summary className="list-none border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white marker:hidden [&::-webkit-details-marker]:hidden">
+            <summary className="list-none border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-bold text-white marker:hidden [&::-webkit-details-marker]:hidden">
               Menu
             </summary>
             <div className="absolute left-0 right-0 top-[calc(100%+12px)] z-[200] border-2 border-[#123c2f] bg-[#fffdf8] p-3 shadow-[5px_5px_0_#d8cab0]">
-              <div className="grid text-sm font-black text-[#123c2f]">
+              <div className="grid text-sm font-bold text-[#123c2f]">
                 {navLinks.map(link => {
                   const active = isActive(pathname, link.match)
 
@@ -134,7 +134,7 @@ export default function AppHeader() {
             </div>
           </details>
         ) : (
-          <Link href={`/login?redirect=${encodeURIComponent(currentPath)}`} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white md:hidden">
+          <Link href={`/login?redirect=${encodeURIComponent(currentPath)}`} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-bold text-white md:hidden">
             Log in
           </Link>
         )}

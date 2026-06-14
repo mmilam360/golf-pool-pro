@@ -66,7 +66,7 @@ export function HelpRequestForm() {
                 className={`border-2 px-4 py-3 text-left transition-colors ${selected ? 'border-[#123c2f] bg-[#eef7ef] text-[#123c2f]' : 'border-[#d8cab0] bg-[#fbf7ed] text-stone-700 hover:border-[#b58a3a]'}`}
                 aria-pressed={selected}
               >
-                <span className="block text-sm font-black uppercase tracking-[0.1em]">{option.label}</span>
+                <span className="block text-sm font-bold">{option.label}</span>
                 <span className="mt-1 block text-sm font-semibold leading-5">{option.help}</span>
               </button>
             )
@@ -74,7 +74,7 @@ export function HelpRequestForm() {
         </div>
 
         <div>
-          <label htmlFor="support-email" className="mb-1 block text-sm font-black text-[#123c2f]">Your email</label>
+          <label htmlFor="support-email" className="mb-1 block text-sm font-semibold text-[#123c2f]">Your email</label>
           <input
             id="support-email"
             type="email"
@@ -87,7 +87,7 @@ export function HelpRequestForm() {
         </div>
 
         <div>
-          <label htmlFor="support-pool" className="mb-1 block text-sm font-black text-[#123c2f]">Pool or tournament, if it matters</label>
+          <label htmlFor="support-pool" className="mb-1 block text-sm font-semibold text-[#123c2f]">Pool or tournament, if it matters</label>
           <input
             id="support-pool"
             type="text"
@@ -99,7 +99,7 @@ export function HelpRequestForm() {
         </div>
 
         <div>
-          <label htmlFor="support-message" className="mb-1 block text-sm font-black text-[#123c2f]">What do you need?</label>
+          <label htmlFor="support-message" className="mb-1 block text-sm font-semibold text-[#123c2f]">What do you need?</label>
           <textarea
             id="support-message"
             required
@@ -120,7 +120,7 @@ export function HelpRequestForm() {
         <button
           type="submit"
           disabled={state === 'sending'}
-          className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {state === 'sending' ? 'Sending...' : requestType === 'feature' ? 'Send feature request' : 'Send support request'}
         </button>

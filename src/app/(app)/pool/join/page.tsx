@@ -197,7 +197,7 @@ export default function JoinPoolPage() {
       <div>
         {showBackButton && <BackButton />}
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Player entry</p>
-        <h1 className="mb-4 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Join a Pool</h1>
+        <h1 className="mb-4 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Join a pool</h1>
         {error && <div className="mb-4 rounded-none border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
         {resumeEntry && (
           <div className="mb-4 border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
@@ -218,7 +218,7 @@ export default function JoinPoolPage() {
 
         <form onSubmit={handleJoin} className="space-y-5 rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
           <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">Pool Passcode</label>
+            <label className="mb-1 block text-sm font-medium text-stone-700">Pool passcode</label>
             <button
               type="button"
               onClick={() => inputRef.current?.focus()}
