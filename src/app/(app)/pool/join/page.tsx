@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { useRouter } from 'next/navigation'
 
-type ResumeEntry = { poolId: string; token: string; poolName: string; tournamentName: string }
+type ResumeEntry = { poolId: string; token: string; poolName: string; tournamentName: string; displayName: string }
 
 export default function JoinPoolPage() {
   const [passcode, setPasscode] = useState('')
@@ -60,6 +60,7 @@ export default function JoinPoolPage() {
               token: parsed.token,
               poolName: data.poolName || 'this pool',
               tournamentName: data.tournamentName || '',
+              displayName: parsed.displayName || 'Your entry',
             })
           } else {
             setResumeEntry(null)
@@ -111,7 +112,7 @@ export default function JoinPoolPage() {
         setLoading(false)
         return
       }
-      window.localStorage.setItem(`gpp_guest_entry:${data.poolId}`, JSON.stringify({ entryId: data.entryId, token: data.token }))
+      window.localStorage.setItem(`gpp_guest_entry:${data.poolId}`, JSON.stringify({ entryId: data.entryId, token: data.token, displayName }))
       trackGppEvent('entry_submitted', {
         pool_id: data.poolId,
         entry_source: source === 'qr' ? 'qr_code_guest' : 'passcode_guest',
@@ -202,7 +203,7 @@ export default function JoinPoolPage() {
         {resumeEntry && (
           <div className="mb-4 border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Entry found</p>
-            <h2 className="mt-1 text-lg font-black text-[#123c2f]">Continue your entry</h2>
+            <h2 className="mt-1 text-lg font-black text-[#123c2f]">Continue {resumeEntry.displayName}</h2>
             <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">
               {resumeEntry.poolName}{resumeEntry.tournamentName ? ` · ${resumeEntry.tournamentName}` : ''}
             </p>
@@ -211,7 +212,7 @@ export default function JoinPoolPage() {
               onClick={() => router.push(`/pool/${resumeEntry.poolId}?guest=${encodeURIComponent(resumeEntry.token)}`)}
               className="mt-3 border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black text-white hover:bg-[#0f2f25]"
             >
-              Continue picks
+              Make Picks
             </button>
           </div>
         )}
@@ -260,7 +261,7 @@ export default function JoinPoolPage() {
               disabled={loading || passcode.length < 6}
               className="gpp-3d gpp-button-3d gpp-button-wrap w-full disabled:opacity-50"
             >
-              <span className="gpp-button-face py-3">{loading ? 'Opening picks...' : 'Continue to picks'}</span>
+              <span className="gpp-button-face py-3">{loading ? 'Opening picks...' : 'Make Picks'}</span>
             </button>
             <a
               href={loginHref()}

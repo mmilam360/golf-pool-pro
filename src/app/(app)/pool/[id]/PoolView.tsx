@@ -362,6 +362,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
   const [defaultOpenedEntryId, setDefaultOpenedEntryId] = useState<string | null>(null)
   const [showGuestSavePanel, setShowGuestSavePanel] = useState(false)
+  const [guestSaveStep, setGuestSaveStep] = useState<'email' | 'account'>('email')
+  const [guestAccountPassword, setGuestAccountPassword] = useState('')
+  const [guestAccountLoading, setGuestAccountLoading] = useState(false)
+  const [guestAccountError, setGuestAccountError] = useState('')
   const [guestEmailSaving, setGuestEmailSaving] = useState(false)
   const [finalizingGroups, setFinalizingGroups] = useState(false)
   const paymentCardRef = useRef<any>(null)
@@ -524,9 +528,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const invalidMyPicks = !groupedFormat && fieldReady
     ? myPicks.filter(name => !currentFieldNames.has(name))
     : []
+  const guestPicksSaved = guestMode && showGuestSavePanel
   const showGroupPreview = groupedFormat && groupsNeedLock && (fieldReady || pickGroups.length > 0)
-  const showPickList = (pickSelectionOpen && (fieldReady || (groupedFormat && pickGroups.length > 0))) || showGroupPreview
-  const showSelectedPicks = myPicks.length > 0 || (!groupsNeedLock && (fieldReady || (groupedFormat && pickGroups.length > 0)))
+  const showPickList = !guestPicksSaved && ((pickSelectionOpen && (fieldReady || (groupedFormat && pickGroups.length > 0))) || showGroupPreview)
+  const showSelectedPicks = !guestPicksSaved && (myPicks.length > 0 || (!groupsNeedLock && (fieldReady || (groupedFormat && pickGroups.length > 0))))
   const visibleEntries = activeEntries
   const guestClaimUrl = guestEntryToken && myEntry?.id
     ? `/api/pool/claim-guest-entry?poolId=${encodeURIComponent(pool.id)}&token=${encodeURIComponent(guestEntryToken)}`
@@ -1001,7 +1006,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ poolId: pool.id, entryId: myEntry.id, token: guestEntryToken || null }),
       }).catch(() => {})
-      if (guestEntryToken) setShowGuestSavePanel(true)
+      if (guestEntryToken) {
+        setGuestSaveStep('email')
+        setShowGuestSavePanel(true)
+      }
       if (!guestEntryToken) setTab('leaderboard')
       setTimeout(() => setStatusMessage(''), 2500)
     } else {
@@ -1329,10 +1337,53 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         body: JSON.stringify({ poolId: pool.id, entryId: myEntry.id, token: guestEntryToken }),
       }).catch(() => {})
       showToast('Email saved. We sent your entry link.', 'success')
+      setGuestSaveStep('account')
     } catch (error: any) {
       showToast(error?.message || 'Could not save email.', 'error')
     } finally {
       setGuestEmailSaving(false)
+    }
+  }
+
+  async function createGuestAccount() {
+    if (!myEntry?.id || !guestEntryToken || !guestClaimUrl) return
+    const email = notificationEmailValue.trim().toLowerCase()
+    const password = guestAccountPassword.trim()
+    setGuestAccountError('')
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setGuestAccountError('Enter your email first.')
+      setGuestSaveStep('email')
+      return
+    }
+    if (password.length < 6) {
+      setGuestAccountError('Use at least 6 characters.')
+      return
+    }
+
+    setGuestAccountLoading(true)
+    try {
+      const signupRes = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          displayName: myEntry.display_name || 'Player',
+          marketingOptIn: false,
+        }),
+      })
+      const signupData = await signupRes.json().catch(() => ({}))
+      if (!signupRes.ok) throw new Error(signupData.error || 'Could not create account.')
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInError) throw signInError
+
+      window.localStorage.removeItem(`gpp_guest_entry:${pool.id}`)
+      window.location.href = guestClaimUrl
+    } catch (error: any) {
+      setGuestAccountError(error?.message || 'Could not create account.')
+    } finally {
+      setGuestAccountLoading(false)
     }
   }
 
@@ -2038,6 +2089,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </div>
               )}
 
+              {!guestPicksSaved && (
               <div className="mb-4 border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[5px_5px_0_#d8cab0]">
                 <div className="flex flex-col gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -2081,13 +2133,24 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   )}
                 </div>
               </div>
+              )}
 
               {guestEntryToken && showGuestSavePanel && (
                 <div className="mb-4 border-2 border-[#123c2f] bg-white p-4 shadow-[5px_5px_0_#d8cab0]">
-                  <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Picks saved</p>
-                      <h3 className="mt-1 text-lg font-black text-[#123c2f]">Want the leaderboard sent to you?</h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Picks saved</p>
+                  <h3 className="mt-1 text-xl font-black text-[#123c2f]">{myEntry.display_name || 'Your entry'} is in.</h3>
+                  <div className="mt-3 border border-[#d8cab0] bg-[#fbf7ed] p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Final picks</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {myPicks.map(name => (
+                        <span key={name} className="border border-[#123c2f] bg-white px-2.5 py-1 text-sm font-bold text-[#123c2f]">{golferListName(name)}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {guestSaveStep === 'email' ? (
+                    <div className="mt-5">
+                      <h4 className="text-lg font-black text-[#123c2f]">Want the leaderboard sent to you?</h4>
                       <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">Add your email and we’ll send your entry link and final scores. No account needed.</p>
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <input
@@ -2107,37 +2170,47 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           {guestEmailSaving ? 'Saving...' : 'Email me'}
                         </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={copyGuestLeaderboardLink}
-                        className="mt-3 border-2 border-[#123c2f] bg-white px-4 py-2 text-sm font-black text-[#123c2f] hover:bg-[#fbf7ed]"
-                      >
-                        Copy leaderboard link
-                      </button>
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <a href={guestLeaderboardUrl} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-sm font-black text-[#123c2f] hover:bg-[#fbf7ed]">
+                          Continue to leaderboard
+                        </a>
+                        <button type="button" onClick={copyGuestLeaderboardLink} className="border border-[#d8cab0] bg-white px-4 py-2 text-sm font-black text-stone-600 hover:border-[#123c2f] hover:text-[#123c2f]">
+                          Copy leaderboard link
+                        </button>
+                      </div>
                     </div>
-                    <div className="border-2 border-[#d8cab0] bg-[#fbf7ed] p-3">
+                  ) : (
+                    <div className="mt-5 border-2 border-[#d8cab0] bg-[#fbf7ed] p-4">
                       <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Optional account</p>
-                      <h4 className="mt-1 text-base font-black text-[#123c2f]">Add a password for easier access</h4>
-                      <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">An account links this entry, lets you edit picks before lock, and makes the next pool faster.</p>
-                      {guestClaimRedirect && (
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                          <a href={`/signup?redirect=${guestClaimRedirect}`} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-center text-sm font-black text-white hover:bg-[#0f2f25]">
-                            Add password
-                          </a>
-                          <a href={`/login?redirect=${guestClaimRedirect}`} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-sm font-black text-[#123c2f] hover:bg-[#fbf7ed]">
-                            Account sign in
-                          </a>
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setShowGuestSavePanel(false)}
-                        className="mt-3 text-sm font-black text-stone-500 hover:text-stone-800"
-                      >
-                        Skip for now
-                      </button>
+                      <h4 className="mt-1 text-lg font-black text-[#123c2f]">Add a password</h4>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">An account links this entry, gives you a quick My Entry view, lets you edit picks before lock, and makes the next pool faster.</p>
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <input
+                          type="password"
+                          value={guestAccountPassword}
+                          onChange={event => setGuestAccountPassword(event.target.value)}
+                          placeholder="Create password"
+                          minLength={6}
+                          className="min-w-0 flex-1 border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0]"
+                        />
+                        <button
+                          type="button"
+                          onClick={createGuestAccount}
+                          disabled={guestAccountLoading}
+                          className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black text-white hover:bg-[#0f2f25] disabled:opacity-50"
+                        >
+                          {guestAccountLoading ? 'Creating...' : 'Create account'}
+                        </button>
+                      </div>
+                      {guestAccountError && <p className="mt-2 border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{guestAccountError}</p>}
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <a href={guestLeaderboardUrl} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-sm font-black text-[#123c2f] hover:bg-white">
+                          Continue to leaderboard
+                        </a>
+                        {guestClaimRedirect && <a href={`/login?redirect=${guestClaimRedirect}`} className="border border-[#d8cab0] bg-white px-4 py-2 text-center text-sm font-black text-stone-600 hover:border-[#123c2f] hover:text-[#123c2f]">Account sign in</a>}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
