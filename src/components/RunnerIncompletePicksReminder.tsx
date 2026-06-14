@@ -22,13 +22,6 @@ function plural(value: number, singular: string, pluralWord = `${singular}s`) {
   return `${value} ${value === 1 ? singular : pluralWord}`
 }
 
-function nameList(entries: ReminderEntry[]) {
-  const names = entries.map(entry => entry.displayName)
-  if (names.length <= 1) return names[0] || 'Players'
-  if (names.length === 2) return `${names[0]} and ${names[1]}`
-  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
-}
-
 function buildReminderCopy(pool: ReminderPool) {
   const lines = [
     'Heads up — picks lock automatically before the first tee time on tournament day.',
@@ -92,7 +85,6 @@ export default function RunnerIncompletePicksReminder({ pools }: { pools: Remind
         {visiblePools.map(pool => {
           const copy = buildReminderCopy(pool)
           const playerLabel = plural(pool.incompleteCount, 'player')
-          const missingNames = nameList(pool.incompleteEntries)
 
           return (
             <section key={pool.id} className="relative border border-[#d8cab0] bg-white shadow-[0_24px_80px_rgba(15,47,37,0.48)] ring-4 ring-white/90">
@@ -112,7 +104,7 @@ export default function RunnerIncompletePicksReminder({ pools }: { pools: Remind
                   </p>
                   <h2 className="mt-3 text-2xl font-black leading-tight text-[#0f2f25]">{pool.name}</h2>
                   <p className="mt-1 text-sm font-bold leading-5 text-[#657168]">
-                    {missingNames} still {pool.incompleteCount === 1 ? 'needs' : 'need'} picks.
+                    {pool.incompleteCount === 1 ? '1 player still needs picks.' : `${pool.incompleteCount} players still need picks.`}
                   </p>
                 </div>
 
