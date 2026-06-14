@@ -2221,7 +2221,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">
                       Your picks ({myPicks.length}/{pool.pick_count})
                     </h3>
-                    {fieldReady && (pickSelectionOpen ? <span className="text-xs font-bold text-stone-500">Tap a golfer below to add or remove</span> : groupsNeedLock ? <span className="text-xs font-bold text-stone-500">Preview only until groups lock</span> : null)}
+                    {fieldReady && groupsNeedLock && <span className="text-xs font-bold text-stone-500">Preview only until groups lock</span>}
                   </div>
                   <div className="p-4">
                     {groupedFormat ? (
@@ -2268,7 +2268,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="mb-4 overflow-hidden rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
                   <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? (groupsNeedLock ? 'Group preview' : `${pool.game_format === 'random_groups' ? 'Random' : 'Ranked'} groups`) : 'Tournament field'}</p>
-                    <p className="mt-1 text-sm font-semibold text-stone-600">{groupedFormat ? (groupsNeedLock ? 'Picks open after groups lock. Groups auto-lock Tuesday morning ET once the field is set.' : `Pick ${picksPerGroup} from each group.`) : 'Sorted by last name for quick scanning.'}</p>
+                    {groupedFormat && (
+                      <p className="mt-1 text-sm font-semibold text-stone-600">{groupsNeedLock ? 'Picks open after groups lock. Groups auto-lock Tuesday morning ET once the field is set.' : `Pick ${picksPerGroup} from each group.`}</p>
+                    )}
                     {groupedFormat && (
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#d8cab0] pt-2">
                         <div className="flex flex-wrap items-center gap-2">
