@@ -279,9 +279,9 @@ export default function JoinPoolPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">
-              Name on leaderboard{' '}
-              {nameRequired && <span className="ml-2 text-xs font-semibold text-amber-700">required</span>}
+            <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
+              <span>Name on leaderboard</span>
+              {nameRequired && <span className="text-xs font-semibold text-amber-700">required</span>}
             </label>
             <input
               type="text"
