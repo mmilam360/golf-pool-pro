@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { hashGuestEntryToken } from '@/lib/guest-entry'
+import { findGuestEntryIdByToken, hashGuestEntryToken } from '@/lib/guest-entry'
 
 export const runtime = 'nodejs'
 
@@ -29,13 +29,18 @@ export async function GET(request: Request) {
 
   const serviceSupabase = createServiceClient() as any
   const tokenHash = hashGuestEntryToken(token)
-  const { data: guestEntry, error: guestError } = await serviceSupabase
+  const tokenEntryId = await findGuestEntryIdByToken(serviceSupabase, token)
+  let entryQuery = serviceSupabase
     .from('gpp_entries')
     .select('id, pool_id, user_id, is_removed')
     .eq('pool_id', poolId)
-    .eq('guest_entry_token_hash', tokenHash)
     .eq('is_removed', false)
-    .maybeSingle()
+
+  entryQuery = tokenEntryId
+    ? entryQuery.or(`guest_entry_token_hash.eq.${tokenHash},id.eq.${tokenEntryId}`)
+    : entryQuery.eq('guest_entry_token_hash', tokenHash)
+
+  const { data: guestEntry, error: guestError } = await entryQuery.maybeSingle()
 
   if (guestError || !guestEntry) return redirectToPool(request, poolId, '?claim=not-found')
   if (guestEntry.user_id) return redirectToPool(request, poolId, '?claim=already-linked')
@@ -60,6 +65,11 @@ export async function GET(request: Request) {
     .eq('id', guestEntry.id)
 
   if (updateError) return redirectToPool(request, poolId, '?claim=error')
+
+  await serviceSupabase
+    .from('gpp_guest_entry_tokens')
+    .delete()
+    .eq('entry_id', guestEntry.id)
 
   return redirectToPool(request, poolId, '?claim=linked')
 }

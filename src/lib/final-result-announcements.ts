@@ -29,7 +29,7 @@ export function selectFinalResultAnnouncement(
     return {
       ...candidate,
       rank: candidate.rank,
-      showSharePreview: true,
+      showSharePreview: candidate.rank <= 5,
     }
   }
 

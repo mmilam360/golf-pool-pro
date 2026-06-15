@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { createGuestEntryToken, hashGuestEntryToken, normalizeEntryDisplayName, normalizeGuestEmail } from '@/lib/guest-entry'
+import { createGuestEntryToken, guestEntryTokenMatches, hashGuestEntryToken, normalizeEntryDisplayName, normalizeGuestEmail } from '@/lib/guest-entry'
 
 export const runtime = 'nodejs'
 
@@ -131,7 +131,7 @@ export async function PATCH(request: Request) {
       .maybeSingle()
 
     if (entryError || !entry) return NextResponse.json({ error: 'Entry not found.' }, { status: 404 })
-    if (hashGuestEntryToken(token) !== entry.guest_entry_token_hash) {
+    if (!await guestEntryTokenMatches(supabase, entry, token)) {
       return NextResponse.json({ error: 'Guest entry token is invalid.' }, { status: 403 })
     }
 

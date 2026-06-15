@@ -407,6 +407,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [guestAccountError, setGuestAccountError] = useState('')
   const [guestEmailSaving, setGuestEmailSaving] = useState(false)
   const [finalizingGroups, setFinalizingGroups] = useState(false)
+  const [missingReminderSending, setMissingReminderSending] = useState(false)
+  const [missingReminderFeedback, setMissingReminderFeedback] = useState('')
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
 
@@ -497,6 +499,19 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const pickCount = entry.submitted_pick_count ?? picks.length
     return pickCount < pool.pick_count
   })
+  const entriesNeedingPicksWithEmail = entriesNeedingPicks.filter(entry => Boolean(runnerEmailForEntry(entry)))
+  const entriesNeedingPicksNoEmail = entriesNeedingPicks.filter(entry => !runnerEmailForEntry(entry))
+  const wdPickNames = new Set(field
+    .filter(player => String(player.status || '').toLowerCase() === 'wd')
+    .map(player => player.name)
+    .filter(Boolean))
+  const entriesWithWdPicks = activeEntries
+    .map(entry => ({
+      entry,
+      withdrawnPicks: (((entry.golfer_picks as string[]) || []).filter(name => wdPickNames.has(name))),
+    }))
+    .filter(item => item.withdrawnPicks.length > 0)
+  const wdPicksNoEmail = entriesWithWdPicks.filter(item => !runnerEmailForEntry(item.entry))
   const submittedPickCount = activeEntries.length - entriesNeedingPicks.length
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
@@ -1342,17 +1357,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const tortoisePickMap = leaderboardModeIsCurrent && !publicView ? buildTortoisePickMap(scoredEntries, myEntry?.id, 2) : new Map()
   const showLeverageLegend = leaderboardModeIsCurrent && !publicView && (harePickMap.size > 0 || tortoisePickMap.size > 0)
 
-  async function copyNeedsPicksReminder() {
-    if (!entriesNeedingPicks.length) {
-      showToast('Everyone has picks in.', 'success')
-      return
-    }
-    const names = entriesNeedingPicks.map(entry => entry.display_name || 'Player').join('\n')
-    const lockDay = formatDateOnlyWeekday(tournament?.start_date) || 'tournament day'
-    const message = `Still need picks:\n\n${names}\n\nDon't forget to make your picks before the first tee time ${lockDay} for ${poolName} — ${tournament?.name || 'the tournament'}.${inviteUrl ? `\n\n${inviteUrl}` : ''}`
+  async function copyTextWithToast(message: string, successMessage: string) {
     try {
       await navigator.clipboard.writeText(message)
-      showToast('Reminder copied.', 'success')
+      showToast(successMessage, 'success')
     } catch {
       const textarea = document.createElement('textarea')
       textarea.value = message
@@ -1363,8 +1371,57 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       textarea.select()
       document.execCommand('copy')
       document.body.removeChild(textarea)
-      showToast('Reminder copied.', 'success')
+      showToast(successMessage, 'success')
     }
+  }
+
+  async function copyNeedsPicksReminder() {
+    const entriesToCopy = entriesNeedingPicksNoEmail.length ? entriesNeedingPicksNoEmail : entriesNeedingPicks
+    if (!entriesToCopy.length) {
+      showToast('Everyone has picks in.', 'success')
+      return
+    }
+    const names = entriesToCopy.map(entry => entry.display_name || 'Player').join('\n')
+    const lockDay = formatDateOnlyWeekday(tournament?.start_date) || 'tournament day'
+    const message = `Still need picks:\n\n${names}\n\nDon't forget to make your picks before the first tee time ${lockDay} for ${poolName} — ${tournament?.name || 'the tournament'}.${inviteUrl ? `\n\n${inviteUrl}` : ''}`
+    await copyTextWithToast(message, entriesNeedingPicksNoEmail.length ? 'No-email reminder copied.' : 'Reminder copied.')
+  }
+
+  async function sendMissingPicksReminder() {
+    if (!entriesNeedingPicksWithEmail.length) {
+      showToast('No unfinished entries have email on file.', 'info')
+      return
+    }
+    setMissingReminderSending(true)
+    setMissingReminderFeedback('')
+    try {
+      const res = await fetch('/api/pools/missing-picks-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poolId: pool.id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Could not send reminders.')
+      const message = `Sent ${data.sent || 0}. ${data.noEmail || entriesNeedingPicksNoEmail.length} need manual follow-up.${data.duplicate ? ` ${data.duplicate} already got one today.` : ''}`
+      setMissingReminderFeedback(message)
+      showToast(message, 'success')
+    } catch (error: any) {
+      const message = error?.message || 'Could not send reminders.'
+      setMissingReminderFeedback(message)
+      showToast(message, 'error')
+    } finally {
+      setMissingReminderSending(false)
+    }
+  }
+
+  async function copyWdTextReminder() {
+    if (!wdPicksNoEmail.length) {
+      showToast('No WD picks need manual follow-up.', 'success')
+      return
+    }
+    const lines = wdPicksNoEmail.map(item => `${item.entry.display_name || 'Player'} — ${item.withdrawnPicks.join(', ')}`).join('\n')
+    const message = `WD picks need replacement:\n\n${lines}\n\nThese players need to swap picks before entries lock for ${poolName}.${inviteUrl ? `\n\n${inviteUrl}` : ''}`
+    await copyTextWithToast(message, 'WD follow-up copied.')
   }
 
   async function copyPublicLeaderboardLink() {
@@ -2660,26 +2717,81 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Pick reminders</p>
                   <h3 className="mt-1 text-xl font-black text-[#123c2f]">Still need picks: {entriesNeedingPicks.length}</h3>
-                  <p className="mt-1 text-sm font-semibold text-[#657168]">Copy this list into your group text before picks lock.</p>
+                  <p className="mt-1 text-sm font-semibold text-[#657168]">Email the players we can reach. Copy the rest for your group text.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={copyNeedsPicksReminder}
-                  disabled={entriesNeedingPicks.length === 0}
-                  className="border-2 border-[#123c2f] bg-white px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-[#123c2f] transition-colors hover:bg-[#eef7ef] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Copy reminder
-                </button>
+                <div className="flex flex-col gap-2 sm:items-end">
+                  <button
+                    type="button"
+                    onClick={sendMissingPicksReminder}
+                    disabled={missingReminderSending || entriesNeedingPicksWithEmail.length === 0}
+                    className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {missingReminderSending ? 'Sending...' : `Email ${entriesNeedingPicksWithEmail.length}`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={copyNeedsPicksReminder}
+                    disabled={entriesNeedingPicks.length === 0}
+                    className="border-2 border-[#123c2f] bg-white px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-[#123c2f] transition-colors hover:bg-[#eef7ef] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Copy text list
+                  </button>
+                </div>
               </div>
+              {missingReminderFeedback && <p className="mt-3 border border-[#d8cab0] bg-white px-3 py-2 text-sm font-semibold text-[#1f2a24]">{missingReminderFeedback}</p>}
               {entriesNeedingPicks.length ? (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {entriesNeedingPicks.map(entry => (
-                    <span key={entry.id} className="border border-[#d8cab0] bg-white px-2.5 py-1 text-sm font-bold text-[#1f2a24]">{entry.display_name || 'Player'}</span>
-                  ))}
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="border border-[#d8cab0] bg-white p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8a6724]">Can email</p>
+                    {entriesNeedingPicksWithEmail.length ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {entriesNeedingPicksWithEmail.map(entry => (
+                          <span key={entry.id} className="border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-sm font-bold text-emerald-900">{entry.display_name || 'Player'}</span>
+                        ))}
+                      </div>
+                    ) : <p className="mt-2 text-sm font-semibold text-[#657168]">No unfinished entries have email on file.</p>}
+                  </div>
+                  <div className="border border-[#d8cab0] bg-white p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8a6724]">Needs text</p>
+                    {entriesNeedingPicksNoEmail.length ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {entriesNeedingPicksNoEmail.map(entry => (
+                          <span key={entry.id} className="border border-amber-200 bg-amber-50 px-2.5 py-1 text-sm font-bold text-amber-900">{entry.display_name || 'Player'}</span>
+                        ))}
+                      </div>
+                    ) : <p className="mt-2 text-sm font-semibold text-emerald-800">Everyone missing picks has email.</p>}
+                  </div>
                 </div>
               ) : (
                 <p className="mt-4 border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Everyone has picks in.</p>
               )}
+            </section>
+          )}
+
+          {!picksAreLocked && wdPicksNoEmail.length > 0 && (
+            <section className="border border-amber-300 bg-amber-50 p-5 shadow-[5px_5px_0_#e7dbc3]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-800">WD follow-up</p>
+                  <h3 className="mt-1 text-xl font-black text-amber-950">WD picks without email: {wdPicksNoEmail.length}</h3>
+                  <p className="mt-1 text-sm font-semibold text-amber-900">Email alerts go out automatically when an entrant has email. Copy these names for text follow-up.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyWdTextReminder}
+                  className="border-2 border-amber-900 bg-white px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-amber-950 transition-colors hover:bg-amber-100"
+                >
+                  Copy WD list
+                </button>
+              </div>
+              <div className="mt-4 space-y-2">
+                {wdPicksNoEmail.map(item => (
+                  <div key={item.entry.id} className="border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-amber-950">
+                    <span className="font-black">{item.entry.display_name || 'Player'}</span>
+                    <span className="ml-2">{item.withdrawnPicks.join(', ')}</span>
+                  </div>
+                ))}
+              </div>
             </section>
           )}
           {/* Entries management */}

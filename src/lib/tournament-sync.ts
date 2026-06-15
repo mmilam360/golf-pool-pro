@@ -7,6 +7,7 @@ import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } fr
 import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
 import { recordNotificationEvent, sendPushToUser } from './notifications/push'
 import { hasPostCutRoundEvidence, hasWeekendCutStatusErrors, repairWeekendCutStatuses } from './leaderboard-sanity'
+import { sendWdPickAlertsForTournament } from './wd-pick-alerts'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 const ESPN_EVENT_URL = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${eventId}`
@@ -22,6 +23,8 @@ export interface TournamentSyncResult {
   poolsAutoLocked: number
   groupedPoolsAutoFinalized: number
   finalResults?: FinalizeResult
+  wdAlertsSent?: number
+  wdAlertsNoEmail?: number
   skipped?: boolean
   reason?: string
 }
@@ -365,8 +368,8 @@ function rowFromEvent(event: any, season: number) {
   }
 }
 
-export async function refreshPgaTourFields(supabase: any, season: number): Promise<{ checked: number; refreshed: number; rejected: number; alertsSent: number; failures: Array<{ tournamentId: string; name: string; count: number }> }> {
-  const result = { checked: 0, refreshed: 0, rejected: 0, alertsSent: 0, failures: [] as Array<{ tournamentId: string; name: string; count: number }> }
+export async function refreshPgaTourFields(supabase: any, season: number): Promise<{ checked: number; refreshed: number; rejected: number; alertsSent: number; wdAlertsSent: number; wdAlertsNoEmail: number; failures: Array<{ tournamentId: string; name: string; count: number }> }> {
+  const result = { checked: 0, refreshed: 0, rejected: 0, alertsSent: 0, wdAlertsSent: 0, wdAlertsNoEmail: 0, failures: [] as Array<{ tournamentId: string; name: string; count: number }> }
   const pgaTourSchedule = await getPgaTourSchedule(season).catch(() => [])
 
   const { data: upcomingTournaments, error } = await supabase
@@ -431,6 +434,9 @@ export async function refreshPgaTourFields(supabase: any, season: number): Promi
     }).eq('id', t.id)
 
     await pruneOpenStandardPoolPicksForTournament(supabase, t.id, fresh.players)
+    const wdAlerts = await sendWdPickAlertsForTournament(supabase, t.id, fresh.players)
+    result.wdAlertsSent += wdAlerts.sent
+    result.wdAlertsNoEmail += wdAlerts.noEmail
 
     result.refreshed++
   }
@@ -492,6 +498,8 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     leaderboardsUpdated: 0,
     poolsAutoLocked: 0,
     groupedPoolsAutoFinalized: 0,
+    wdAlertsSent: 0,
+    wdAlertsNoEmail: 0,
   }
 
   if (!activation.shouldSync) {
@@ -623,6 +631,9 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       if (error) throw error
       if (Array.isArray(row.field_json)) {
         await pruneOpenStandardPoolPicksForTournament(supabase, existing.id, row.field_json)
+        const wdAlerts = await sendWdPickAlertsForTournament(supabase, existing.id, row.field_json)
+        result.wdAlertsSent = (result.wdAlertsSent || 0) + wdAlerts.sent
+        result.wdAlertsNoEmail = (result.wdAlertsNoEmail || 0) + wdAlerts.noEmail
       }
       result.updated++
       if (effectiveStatus === 'live' || effectiveStatus === 'completed') liveTournamentIds.push(existing.id)
@@ -679,6 +690,8 @@ export async function syncTournaments({
     leaderboardsUpdated: 0,
     poolsAutoLocked: 0,
     groupedPoolsAutoFinalized: 0,
+    wdAlertsSent: 0,
+    wdAlertsNoEmail: 0,
   }
 
   const fingerprintMap = await loadExistingFingerprints(supabase)
@@ -831,6 +844,9 @@ export async function syncTournaments({
       if (error) throw error
       if (Array.isArray(row.field_json)) {
         await pruneOpenStandardPoolPicksForTournament(supabase, existing.id, row.field_json)
+        const wdAlerts = await sendWdPickAlertsForTournament(supabase, existing.id, row.field_json)
+        result.wdAlertsSent = (result.wdAlertsSent || 0) + wdAlerts.sent
+        result.wdAlertsNoEmail = (result.wdAlertsNoEmail || 0) + wdAlerts.noEmail
       }
       result.updated++
       if (effectiveStatus === 'live' || effectiveStatus === 'completed') liveTournamentIds.push(existing.id)

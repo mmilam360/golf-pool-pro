@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { hashGuestEntryToken } from '@/lib/guest-entry'
+import { guestEntryTokenMatches } from '@/lib/guest-entry'
 import { sendEmail } from '@/lib/email'
 
 type EntrySavedEmailInput = {
@@ -46,7 +46,7 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
   if (entryError || !entry) throw new Error('Entry not found')
 
   if (token) {
-    if (hashGuestEntryToken(token) !== entry.guest_entry_token_hash) throw new Error('Invalid entry token')
+    if (!await guestEntryTokenMatches(supabase, entry, token)) throw new Error('Invalid entry token')
   } else if (!userId || entry.user_id !== userId) {
     throw new Error('Unauthorized')
   }

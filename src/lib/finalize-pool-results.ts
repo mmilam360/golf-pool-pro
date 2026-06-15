@@ -2,12 +2,15 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { GolfPlayer } from './golf-api'
 import { scoreEntriesForLeaderboard } from './scoring'
 import { finalBoardHasEnoughEvidence } from './leaderboard-sanity'
+import { sendFinalResultsEmailsForPool } from './final-results-email'
 
 export type FinalizeResult = {
   tournamentsChecked: number
   poolsChecked: number
   poolsFinalized: number
   entriesUpdated: number
+  finalEmailsSent: number
+  finalEmailsNoEmail: number
   skipped: number
 }
 
@@ -20,6 +23,7 @@ type TournamentRow = {
 
 type PoolRow = {
   id: string
+  name?: string | null
   tournament_id: string
   count_scores: number | null
   ob_rule_enabled: boolean | null
@@ -55,6 +59,8 @@ export async function finalizeCompletedPoolResults(
     poolsChecked: 0,
     poolsFinalized: 0,
     entriesUpdated: 0,
+    finalEmailsSent: 0,
+    finalEmailsNoEmail: 0,
     skipped: 0,
   }
 
@@ -78,7 +84,7 @@ export async function finalizeCompletedPoolResults(
 
     const { data: pools, error: poolsError } = await supabase
       .from('gpp_pools')
-      .select('id, tournament_id, count_scores, ob_rule_enabled, ob_penalty_strokes, results_finalized_at, results_finalized_source')
+      .select('id, name, tournament_id, count_scores, ob_rule_enabled, ob_penalty_strokes, results_finalized_at, results_finalized_source')
       .eq('tournament_id', tournament.id)
 
     if (poolsError) throw poolsError
@@ -151,6 +157,10 @@ export async function finalizeCompletedPoolResults(
 
       result.entriesUpdated += scoredEntries.length
       result.poolsFinalized++
+
+      const finalEmailResult = await sendFinalResultsEmailsForPool(supabase, { pool, tournament })
+      result.finalEmailsSent += finalEmailResult.sent
+      result.finalEmailsNoEmail += finalEmailResult.noEmail
     }
   }
 

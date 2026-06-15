@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { hashGuestEntryToken } from '@/lib/guest-entry'
+import { findGuestEntryIdByToken, hashGuestEntryToken } from '@/lib/guest-entry'
 import { redirect } from 'next/navigation'
 import PoolView from './PoolView'
 import { buildPreviousPlayerCandidates, summarizeInviteStatuses } from '@/lib/pool-invite-logic'
@@ -37,8 +37,10 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
 
   const tournament = pool.gpp_tournaments as any
   const guestTokenHash = usingGuestToken ? hashGuestEntryToken(guestToken) : ''
+  const tokenEntryId = usingGuestToken ? await findGuestEntryIdByToken(dataSupabase, guestToken) : null
   const guestEntry = usingGuestToken
     ? (entries || []).find((entry: any) => entry.guest_entry_token_hash === guestTokenHash && !entry.is_removed) || null
+      || (tokenEntryId ? (entries || []).find((entry: any) => entry.id === tokenEntryId && !entry.is_removed && !entry.user_id) || null : null)
     : null
   if (usingGuestToken && !guestEntry) redirect(`/pool/join?code=${pool.passcode}`)
 
