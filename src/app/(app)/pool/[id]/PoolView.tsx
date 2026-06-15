@@ -523,8 +523,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
   const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
-  const fieldReady = field.length > 0
-  const currentFieldNames = useMemo(() => new Set(field.map(player => player.name).filter(Boolean)), [field])
+  const activeField = useMemo(() => field.filter(player => String(player.status || '').toLowerCase() !== 'wd'), [field])
+  const fieldReady = activeField.length > 0
+  const currentFieldNames = useMemo(() => new Set(activeField.map(player => player.name).filter(Boolean)), [activeField])
   const invalidMyPicks = !groupedFormat && fieldReady
     ? myPicks.filter(name => !currentFieldNames.has(name))
     : []
@@ -1678,7 +1679,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         {!publicView && !scoringIsLive && <div className="flex items-center gap-4 mt-2 text-sm">
           <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
-          <span className="text-stone-600">Field: {field.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.length || 0)} golfers</span>
+          <span className="text-stone-600">Field: {activeField.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.filter(player => String(player.status || '').toLowerCase() !== 'wd').length || 0)} golfers</span>
           {picksAreLocked && <span className="text-amber-700">Picks closed</span>}
           {!picksAreLocked && groupsNeedLock && <span className="text-amber-700">Groups pending</span>}
           {pool.is_completed && <span className="text-emerald-700">Final results</span>}
@@ -2312,7 +2313,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           />
                         </div>
                       ) : (
-                        [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => (
+                        [...activeField].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => (
                           <div key={player.id || player.name}
                             className="flex w-full items-center justify-between border-b border-[#eadfca] px-4 py-2.5 text-left text-stone-500">
                             <span className="text-sm font-semibold">{golferListName(player.name)}</span>
@@ -2320,7 +2321,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           </div>
                         ))
                       )
-                    ) : [...field].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => {
+                    ) : [...activeField].sort((a, b) => golferListName(a.name).localeCompare(golferListName(b.name))).map(player => {
                       const selected = myPicks.includes(player.name)
                       return (
                         <button key={player.id}
