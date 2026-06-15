@@ -503,10 +503,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   })
   const entriesNeedingPicksWithEmail = entriesNeedingPicks.filter(entry => Boolean(runnerEmailForEntry(entry)))
   const entriesNeedingPicksNoEmail = entriesNeedingPicks.filter(entry => !runnerEmailForEntry(entry))
-  const wdPickNames = new Set(field
+  const wdPickNames = useMemo(() => new Set(field
     .filter(player => String(player.status || '').toLowerCase() === 'wd')
     .map(player => player.name)
-    .filter(Boolean))
+    .filter(Boolean)), [field])
   const entriesWithWdPicks = activeEntries
     .map(entry => {
       const storedWithdrawnPicks = Array.isArray(entry.withdrawn_picks) ? entry.withdrawn_picks : []
@@ -641,15 +641,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (picksAreLocked) return poolEntries
     return poolEntries.map(entry => {
       const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
-      if (isCurrentEntry(entry)) return entry
+      const withdrawnPicks = isOwner && wdPickNames.size > 0 && Array.isArray(entry.golfer_picks)
+        ? entry.golfer_picks.filter((name: string) => wdPickNames.has(name))
+        : []
+      const ownerWdMeta = isOwner ? { withdrawn_picks: withdrawnPicks } : {}
+      if (isCurrentEntry(entry)) return { ...entry, ...ownerWdMeta }
       return {
         ...entry,
+        ...ownerWdMeta,
         submitted_pick_count: submittedPickCount,
         golfer_picks: [],
         picks_hidden: true,
       }
     })
-  }, [isCurrentEntry, picksAreLocked])
+  }, [isCurrentEntry, isOwner, picksAreLocked, wdPickNames])
 
   const refreshPoolEntries = useCallback(async () => {
     const query = supabase
