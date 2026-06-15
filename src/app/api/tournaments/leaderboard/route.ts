@@ -1,7 +1,7 @@
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { getLeaderboard } from '@/lib/golf-api'
+import { createServiceClient } from '@/lib/supabase/service'
 
 function validEventId(eventId: string | null) {
   return Boolean(eventId && /^\d{3,20}$/.test(eventId))
@@ -16,6 +16,23 @@ function hasUsableLeaderboard(leaderboard: unknown) {
   return namedRows >= Math.max(1, Math.ceil(leaderboard.length * 0.5))
 }
 
+function currentRound(leaderboard: any[]) {
+  const rounds = leaderboard.flatMap(player => Array.isArray(player?.roundScores) ? player.roundScores : [])
+    .map(round => Number(round?.round))
+    .filter(Number.isFinite)
+  return rounds.length ? Math.max(...rounds) : 0
+}
+
+function cachedJson(body: unknown, init?: ResponseInit) {
+  return NextResponse.json(body, {
+    ...init,
+    headers: {
+      'Cache-Control': 'public, s-maxage=45, stale-while-revalidate=90',
+      ...init?.headers,
+    },
+  })
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const eventId = searchParams.get('id')
@@ -23,13 +40,35 @@ export async function GET(request: Request) {
   if (!validEventId(eventId)) return NextResponse.json({ error: 'Invalid event id' }, { status: 400 })
 
   try {
-    const tournament = await getLeaderboard(eventId)
-    if (!tournament) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    if (!hasUsableLeaderboard(tournament.leaderboard)) {
-      return NextResponse.json({ error: 'Leaderboard unavailable' }, { status: 502 })
+    const supabase = createServiceClient() as any
+    const { data: tournament, error } = await supabase
+      .from('gpp_tournaments')
+      .select('id, external_id, name, course, location, start_date, end_date, status, leaderboard_json, last_scores_fetch')
+      .eq('external_id', eventId)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!tournament) return cachedJson({ error: 'Not found' }, { status: 404 })
+
+    const leaderboard = Array.isArray(tournament.leaderboard_json) ? tournament.leaderboard_json : []
+    if (!hasUsableLeaderboard(leaderboard)) {
+      return cachedJson({ error: 'Leaderboard unavailable' }, { status: 502 })
     }
-    return NextResponse.json(tournament, { headers: { 'Cache-Control': 'public, s-maxage=45, stale-while-revalidate=90' } })
+
+    return cachedJson({
+      id: tournament.external_id || tournament.id,
+      name: tournament.name,
+      startDate: tournament.start_date,
+      endDate: tournament.end_date,
+      course: tournament.course || '',
+      location: tournament.location || '',
+      status: tournament.status || 'upcoming',
+      round: currentRound(leaderboard),
+      leaderboard,
+      cutLine: null,
+      lastScoresFetch: tournament.last_scores_fetch || null,
+    })
   } catch {
-    return NextResponse.json({ error: 'Leaderboard unavailable' }, { status: 502 })
+    return cachedJson({ error: 'Leaderboard unavailable' }, { status: 502 })
   }
 }
