@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [signupHref, setSignupHref] = useState('/signup')
+  const [hasRedirect, setHasRedirect] = useState(false)
   const [joiningPool, setJoiningPool] = useState(false)
   const [linkingEntry, setLinkingEntry] = useState(false)
   const [error, setError] = useState('')
@@ -31,6 +32,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const redirectParam = new URLSearchParams(window.location.search).get('redirect')
+    setHasRedirect(Boolean(redirectParam))
     setSignupHref(redirectParam ? `/signup?redirect=${encodeURIComponent(redirectParam)}` : '/signup')
     setJoiningPool(Boolean(redirectParam?.startsWith('/pool/join')))
     setLinkingEntry(Boolean(redirectParam?.startsWith('/pool/join?claim=')))
@@ -65,9 +67,13 @@ export default function LoginPage() {
     <div className="rounded-none border-2 border-[#123c2f] bg-white p-8 shadow-[6px_6px_0_#d8cab0]">
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Account login</p>
       <h1 className="mb-6 text-2xl font-bold text-[#0f2f25]">Sign in</h1>
-      {joiningPool && (
+      {hasRedirect && (
         <div className="mb-5 border-2 border-[#b58a3a] bg-[#fff4cf] px-4 py-3 text-sm font-semibold leading-6 text-[#1f2a24]">
-          {linkingEntry ? 'Sign in and we will link your saved entry to this account.' : 'You are joining a pool. Sign in here and we will bring you back to finish joining.'}
+          {linkingEntry
+            ? 'Sign in and we will link your saved entry to this account.'
+            : joiningPool
+              ? 'You are joining a pool. Sign in here and we will bring you back to finish joining.'
+              : "Sign in and we'll bring you back."}
         </div>
       )}
       {error && (

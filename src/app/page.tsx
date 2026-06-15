@@ -261,6 +261,11 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            <div className="mt-5 flex justify-center">
+              <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[4px_4px_0_#d8cab0] transition-colors hover:bg-[#0f2f25]">
+                Create a pool
+              </Link>
+            </div>
           </div>
 
           <div className="relative mx-auto flex max-w-5xl flex-col justify-start pt-1" style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}>

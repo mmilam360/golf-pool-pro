@@ -5,8 +5,6 @@ import SignupPage from '@/app/(auth)/signup/page'
 import { FirstPoolCampaignLink, FirstPoolCampaignTracker } from '@/components/FirstPoolCampaignTracker'
 import { OldWayVsGppSlider } from '@/components/OldWayVsGppSlider'
 
-const promoHref = '/signup?promo=FIRSTPOOL9&utm_source=facebook&utm_medium=dm&utm_campaign=first_pool_9'
-
 export const metadata: Metadata = {
   title: 'First pool capped at $9 | Golf Pools Pro',
   description: 'A newer mobile golf pool app for pool runners. First pool capped at $9 with live leaderboards, invite links, PGA scoring, and clear pool rules.',
@@ -99,10 +97,10 @@ export default function FirstPoolNinePage() {
         <div className="flex flex-col justify-center">
           <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-[#8a6724]">For golf pool runners</p>
           <h1 className="font-display text-5xl leading-[0.92] text-[#123c2f] sm:text-6xl lg:text-7xl">
-            Golf pools without the spreadsheet.
+            Make your golf pool feel live.
           </h1>
           <p className="mt-5 max-w-2xl text-lg font-semibold leading-7 text-stone-700">
-            Run your Memorial, U.S. Open, or weekend PGA pool from one clean mobile leaderboard. Players make picks, you share the link, and scoring updates as the tournament moves.
+            Run your next major or weekend PGA pool from one clean mobile leaderboard. Players make picks, you share the link, and scoring updates as the tournament moves.
           </p>
           <div className="mt-6 max-w-xl">
             <DiscountTicket />
@@ -110,9 +108,6 @@ export default function FirstPoolNinePage() {
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <FirstPoolCampaignLink href="#signup" location="hero" className="border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-center font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]">
               Start with the $9 offer
-            </FirstPoolCampaignLink>
-            <FirstPoolCampaignLink href={promoHref} location="hero_signup_page" className="border-2 border-[#123c2f] bg-white px-5 py-3 text-center font-black uppercase tracking-[0.08em] text-[#123c2f] hover:bg-[#f7f0df]">
-              Open signup page
             </FirstPoolCampaignLink>
           </div>
         </div>
