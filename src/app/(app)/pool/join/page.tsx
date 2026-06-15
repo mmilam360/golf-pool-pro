@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
@@ -12,11 +12,14 @@ export default function JoinPoolPage() {
   const [guestName, setGuestName] = useState('')
   const [resumeEntry, setResumeEntry] = useState<ResumeEntry | null>(null)
   const [showBackButton, setShowBackButton] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
+  const [isSignedIn, setIsSignedIn] = useState(false)
+  const [signedInAccountName, setSignedInAccountName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code')
@@ -31,6 +34,40 @@ export default function JoinPoolPage() {
 
     setPasscode(cleanedCode)
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAccountName() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (cancelled) return
+
+      if (!user) {
+        setIsSignedIn(false)
+        setAuthChecked(true)
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('gpp_profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (cancelled) return
+      const accountName = profile?.display_name?.trim() || user.email?.split('@')[0] || ''
+      setIsSignedIn(true)
+      setSignedInAccountName(accountName)
+      setGuestName(current => current.trim() ? current : accountName)
+      setAuthChecked(true)
+    }
+
+    void loadAccountName()
+
+    return () => {
+      cancelled = true
+    }
+  }, [supabase])
 
   useEffect(() => {
     const normalizedPasscode = passcode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
@@ -93,14 +130,15 @@ export default function JoinPoolPage() {
       return
     }
 
+    const displayName = guestName.trim().replace(/\s+/g, ' ')
+    if (!displayName) {
+      setError('Enter the name you want on the leaderboard.')
+      setLoading(false)
+      return
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      const displayName = guestName.trim().replace(/\s+/g, ' ')
-      if (!displayName) {
-        setError('Enter the name you want on the leaderboard.')
-        setLoading(false)
-        return
-      }
       const res = await fetch('/api/pool/guest-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -154,18 +192,12 @@ export default function JoinPoolPage() {
       return
     }
 
-    const { data: profile } = await supabase
-      .from('gpp_profiles')
-      .select('display_name')
-      .eq('id', user.id)
-      .single()
-
     const { error: insertError } = await supabase
       .from('gpp_entries')
       .insert({
         pool_id: pool.id,
         user_id: user.id,
-        display_name: profile?.display_name || user.email?.split('@')[0] || 'Player',
+        display_name: displayName,
         golfer_picks: [],
       })
 
@@ -191,6 +223,8 @@ export default function JoinPoolPage() {
     const redirect = normalizedPasscode.length === 6 ? `/pool/join?code=${normalizedPasscode}` : '/pool/join'
     return `/login?redirect=${encodeURIComponent(redirect)}`
   }
+
+  const showAccountSignIn = authChecked && !isSignedIn
 
   return (
     <div className="mx-auto max-w-xl">
@@ -251,8 +285,12 @@ export default function JoinPoolPage() {
               onChange={e => setGuestName(e.target.value.slice(0, 60))}
               placeholder="Name for the leaderboard"
               maxLength={60}
+              autoComplete="name"
               className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             />
+            {signedInAccountName && (
+              <p className="mt-2 text-xs font-semibold text-stone-500">Using your account name. You can change it for this pool.</p>
+            )}
           </div>
           <div className="grid gap-3">
             <button
@@ -262,12 +300,21 @@ export default function JoinPoolPage() {
             >
               <span className="gpp-button-face py-3">{loading ? 'Opening picks...' : 'Make Picks'}</span>
             </button>
-            <a
-              href={loginHref()}
-              className="border border-[#d8cab0] bg-white px-4 py-3 text-center text-sm font-semibold text-[#123c2f] hover:border-[#123c2f] hover:bg-[#fbf7ed]"
-            >
-              Account sign in
-            </a>
+            {showAccountSignIn && (
+              <>
+                <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.16em] text-stone-500">
+                  <span className="h-px flex-1 bg-[#d8cab0]" />
+                  <span>or</span>
+                  <span className="h-px flex-1 bg-[#d8cab0]" />
+                </div>
+                <a
+                  href={loginHref()}
+                  className="border border-[#d8cab0] bg-white px-4 py-3 text-center text-sm font-semibold text-[#123c2f] hover:border-[#123c2f] hover:bg-[#fbf7ed]"
+                >
+                  Account sign in
+                </a>
+              </>
+            )}
           </div>
         </form>
       </div>
