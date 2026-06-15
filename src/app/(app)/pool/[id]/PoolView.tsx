@@ -315,7 +315,9 @@ function clearPickDraft(key: string) {
 }
 
 function runnerEmailForEntry(entry: any) {
-  return entry?.user_id ? (entry.account_email || '') : (entry?.notification_email || '')
+  const accountEmail = typeof entry?.account_email === 'string' ? entry.account_email.trim() : ''
+  const notificationEmail = typeof entry?.notification_email === 'string' ? entry.notification_email.trim() : ''
+  return accountEmail || notificationEmail
 }
 
 function TrustCheckIcon() {
