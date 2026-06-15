@@ -14,7 +14,6 @@ export default function JoinPoolPage() {
   const [showBackButton, setShowBackButton] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const [isSignedIn, setIsSignedIn] = useState(false)
-  const [signedInAccountName, setSignedInAccountName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -57,7 +56,6 @@ export default function JoinPoolPage() {
       if (cancelled) return
       const accountName = profile?.display_name?.trim() || user.email?.split('@')[0] || ''
       setIsSignedIn(true)
-      setSignedInAccountName(accountName)
       setGuestName(current => current.trim() ? current : accountName)
       setAuthChecked(true)
     }
@@ -296,9 +294,6 @@ export default function JoinPoolPage() {
               onInput={e => e.currentTarget.setCustomValidity('')}
               className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             />
-            {signedInAccountName && (
-              <p className="mt-2 text-xs font-semibold text-stone-500">Using your account name. You can change it for this pool.</p>
-            )}
           </div>
           <div className="grid gap-3">
             <button
