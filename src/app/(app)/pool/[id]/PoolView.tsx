@@ -320,6 +320,10 @@ function runnerEmailForEntry(entry: any) {
   return accountEmail || notificationEmail
 }
 
+function runnerCanEmailEntry(entry: any) {
+  return Boolean(runnerEmailForEntry(entry) || entry?.user_id)
+}
+
 function TrustCheckIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -359,6 +363,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const guestMode = Boolean(guestEntryToken)
   const [tab, setTab] = useState<Tab>(guestMode ? 'my-entry' : publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry')
   const [entries, setEntries] = useState(initialEntries)
+  const entriesRef = useRef(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [poolName, setPoolName] = useState(pool.name)
   const [poolLocked, setPoolLocked] = useState(pool.is_locked)
@@ -438,6 +443,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [dismissToast])
 
   useEffect(() => {
+    entriesRef.current = entries
+  }, [entries])
+
+  useEffect(() => {
     const url = new URL(window.location.href)
     const claimStatus = url.searchParams.get('claim')
     if (!claimStatus) return
@@ -501,8 +510,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const pickCount = entry.submitted_pick_count ?? picks.length
     return pickCount < pool.pick_count
   })
-  const entriesNeedingPicksWithEmail = entriesNeedingPicks.filter(entry => Boolean(runnerEmailForEntry(entry)))
-  const entriesNeedingPicksNoEmail = entriesNeedingPicks.filter(entry => !runnerEmailForEntry(entry))
+  const entriesNeedingPicksWithEmail = entriesNeedingPicks.filter(entry => runnerCanEmailEntry(entry))
+  const entriesNeedingPicksNoEmail = entriesNeedingPicks.filter(entry => !runnerCanEmailEntry(entry))
   const wdPickNames = useMemo(() => new Set(field
     .filter(player => String(player.status || '').toLowerCase() === 'wd')
     .map(player => player.name)
@@ -516,7 +525,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       return { entry, withdrawnPicks }
     })
     .filter(item => item.withdrawnPicks.length > 0)
-  const wdPicksNoEmail = entriesWithWdPicks.filter(item => !runnerEmailForEntry(item.entry))
+  const wdPicksNoEmail = entriesWithWdPicks.filter(item => !runnerCanEmailEntry(item.entry))
   const submittedPickCount = activeEntries.length - entriesNeedingPicks.length
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
@@ -664,7 +673,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
     const { data } = await query.order('created_at', { ascending: true })
     if (data) {
-      const safeData = maskHiddenPicks(data)
+      const accountEmailByUserId = new Map(entriesRef.current
+        .filter((entry: any) => entry.user_id && entry.account_email)
+        .map((entry: any) => [entry.user_id, entry.account_email]))
+      const dataWithKnownEmails = data.map((entry: any) => entry.user_id && accountEmailByUserId.has(entry.user_id)
+        ? { ...entry, account_email: accountEmailByUserId.get(entry.user_id) }
+        : entry)
+      const safeData = maskHiddenPicks(dataWithKnownEmails)
       const nextMyEntry = safeData.find(isCurrentEntry) || null
       setEntries(safeData)
       setMyEntry(nextMyEntry)
