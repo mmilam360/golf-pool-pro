@@ -508,10 +508,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     .map(player => player.name)
     .filter(Boolean))
   const entriesWithWdPicks = activeEntries
-    .map(entry => ({
-      entry,
-      withdrawnPicks: (((entry.golfer_picks as string[]) || []).filter(name => wdPickNames.has(name))),
-    }))
+    .map(entry => {
+      const storedWithdrawnPicks = Array.isArray(entry.withdrawn_picks) ? entry.withdrawn_picks : []
+      const withdrawnPicks = storedWithdrawnPicks.length
+        ? storedWithdrawnPicks
+        : (((entry.golfer_picks as string[]) || []).filter(name => wdPickNames.has(name)))
+      return { entry, withdrawnPicks }
+    })
     .filter(item => item.withdrawnPicks.length > 0)
   const wdPicksNoEmail = entriesWithWdPicks.filter(item => !runnerEmailForEntry(item.entry))
   const submittedPickCount = activeEntries.length - entriesNeedingPicks.length

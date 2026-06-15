@@ -47,14 +47,23 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
   const isOwner = Boolean(user && pool.owner_id === user.id)
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed'
   const picksAreVisible = pool.is_locked || scoringIsLive
+  const withdrawnNames = new Set((Array.isArray(tournament?.field_json) ? tournament.field_json : [])
+    .filter((player: any) => String(player?.status || '').toLowerCase() === 'wd')
+    .map((player: any) => player.name)
+    .filter(Boolean))
 
   // Before lock/start, mask other entrants' golfer picks before sending data to the client.
 
   let safeEntries = (entries || []).map(entry => {
     const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
-    if (picksAreVisible || (user && entry.user_id === user.id) || (guestEntry && entry.id === guestEntry.id)) return entry
+    const withdrawnPicks = isOwner && withdrawnNames.size > 0 && Array.isArray(entry.golfer_picks)
+      ? entry.golfer_picks.filter((name: string) => withdrawnNames.has(name))
+      : []
+    const ownerWdMeta = isOwner ? { withdrawn_picks: withdrawnPicks } : {}
+    if (picksAreVisible || (user && entry.user_id === user.id) || (guestEntry && entry.id === guestEntry.id)) return { ...entry, ...ownerWdMeta }
     return {
       ...entry,
+      ...ownerWdMeta,
       submitted_pick_count: submittedPickCount,
       golfer_picks: [],
       picks_hidden: true,
