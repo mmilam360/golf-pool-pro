@@ -225,6 +225,7 @@ export default function JoinPoolPage() {
   }
 
   const showAccountSignIn = authChecked && !isSignedIn
+  const nameRequired = authChecked && !isSignedIn
 
   return (
     <div className="mx-auto max-w-xl">
@@ -278,7 +279,10 @@ export default function JoinPoolPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">Name on leaderboard</label>
+            <label className="mb-1 block text-sm font-medium text-stone-700">
+              Name on leaderboard{' '}
+              {nameRequired && <span className="ml-2 text-xs font-semibold text-amber-700">required</span>}
+            </label>
             <input
               type="text"
               value={guestName}
@@ -286,6 +290,10 @@ export default function JoinPoolPage() {
               placeholder="Name for the leaderboard"
               maxLength={60}
               autoComplete="name"
+              required={nameRequired}
+              aria-required={nameRequired}
+              onInvalid={e => e.currentTarget.setCustomValidity('Enter the name you want on the leaderboard.')}
+              onInput={e => e.currentTarget.setCustomValidity('')}
               className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             />
             {signedInAccountName && (
@@ -295,7 +303,7 @@ export default function JoinPoolPage() {
           <div className="grid gap-3">
             <button
               type="submit"
-              disabled={loading || passcode.length < 6}
+              disabled={loading || passcode.length < 6 || !authChecked}
               className="gpp-3d gpp-button-3d gpp-button-wrap w-full disabled:opacity-50"
             >
               <span className="gpp-button-face py-3">{loading ? 'Opening picks...' : 'Make Picks'}</span>
