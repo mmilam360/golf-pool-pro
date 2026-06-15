@@ -48,7 +48,7 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
 
   // Before lock/start, mask other entrants' golfer picks before sending data to the client.
 
-  const safeEntries = (entries || []).map(entry => {
+  let safeEntries = (entries || []).map(entry => {
     const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
     if (picksAreVisible || (user && entry.user_id === user.id) || (guestEntry && entry.id === guestEntry.id)) return entry
     return {
@@ -58,6 +58,20 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
       picks_hidden: true,
     }
   })
+
+  if (isOwner) {
+    const accountUserIds = Array.from(new Set(safeEntries.map((entry: any) => entry.user_id).filter(Boolean)))
+    const { data: profiles } = accountUserIds.length
+      ? await (createServiceClient() as any)
+        .from('gpp_profiles')
+        .select('id, email')
+        .in('id', accountUserIds)
+      : { data: [] }
+    const emailByUserId = new Map((profiles || []).map((profile: any) => [profile.id, profile.email || '']))
+    safeEntries = safeEntries.map((entry: any) => entry.user_id
+      ? { ...entry, account_email: emailByUserId.get(entry.user_id) || '' }
+      : entry)
+  }
 
   // Get current user's entry
   const myEntry = usingGuestToken

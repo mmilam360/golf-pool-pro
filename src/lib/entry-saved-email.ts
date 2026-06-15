@@ -58,10 +58,20 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
     .maybeSingle()
   if (poolError || !pool) throw new Error('Pool not found')
 
-  let recipient = entry.notification_email || ''
-  if (!recipient && entry.user_id) {
+  let recipient = ''
+  if (entry.user_id) {
     const { data: userResult } = await supabase.auth.admin.getUserById(entry.user_id)
     recipient = userResult?.user?.email || ''
+    if (!recipient) {
+      const { data: profile } = await supabase
+        .from('gpp_profiles')
+        .select('email')
+        .eq('id', entry.user_id)
+        .maybeSingle()
+      recipient = profile?.email || ''
+    }
+  } else {
+    recipient = entry.notification_email || ''
   }
   if (!recipient) return { skipped: true, reason: 'no_recipient' }
 

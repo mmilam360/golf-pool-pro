@@ -314,6 +314,10 @@ function clearPickDraft(key: string) {
   window.localStorage.removeItem(key)
 }
 
+function runnerEmailForEntry(entry: any) {
+  return entry?.user_id ? (entry.account_email || '') : (entry?.notification_email || '')
+}
+
 function TrustCheckIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -570,15 +574,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const invalidMyPicks = !groupedFormat && fieldReady
     ? myPicks.filter(name => !currentFieldNames.has(name))
     : []
+  const savedMyPicks = cleanPickList(myEntry?.golfer_picks)
+  const picksChangedSinceSave = !picksMatch(myPicks, savedMyPicks)
   const hasRequiredPickCount = requiredPickCount > 0 && myPicks.length === requiredPickCount
   const picksComplete = groupedFormat
     ? hasRequiredPickCount && groupedPickValidation.valid
     : hasRequiredPickCount && invalidMyPicks.length === 0
-  const savePicksDisabled = saving || !picksComplete
+  const savePicksDisabled = saving || !picksComplete || !picksChangedSinceSave
   const savePicksLabel = saving
     ? 'Saving...'
     : picksComplete
-      ? 'Save picks'
+      ? picksChangedSinceSave ? 'Save picks' : 'Picks saved'
       : requiredPickCount > 0
         ? `Pick ${requiredPickCount} to save`
         : 'Save picks'
@@ -1057,6 +1063,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         return
       }
     }
+    if (!picksChangedSinceSave) {
+      setStatusMessage('Picks already saved.')
+      showToast('Picks already saved.', 'info')
+      setTimeout(() => setStatusMessage(''), 2500)
+      return
+    }
     setSaving(true)
     let error: any = null
     try {
@@ -1105,12 +1117,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       showToast('Entry name cannot be blank.', 'error')
       return
     }
-    if (nextEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+    if (guestEntryToken && nextEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
       setStatusMessage('Enter a valid email address or leave it blank.')
       showToast('Enter a valid email address or leave it blank.', 'error')
       return
     }
-    if (nextName === myEntry.display_name && nextEmail === (myEntry.notification_email || '')) return
+    if (nextName === myEntry.display_name && (!guestEntryToken || nextEmail === (myEntry.notification_email || ''))) return
 
     setEntryNameSaving(true)
     let error: any = null
@@ -1120,7 +1132,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       } else {
         const result = await supabase
           .from('gpp_entries')
-          .update({ display_name: nextName, notification_email: nextEmail || null } as any)
+          .update({ display_name: nextName } as any)
           .eq('id', myEntry.id)
           .eq('user_id', userId)
         error = result.error
@@ -1133,7 +1145,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setStatusMessage('Could not update entry details.')
       showToast('Could not update entry details.', 'error')
     } else {
-      const updatedEntry = { ...myEntry, display_name: nextName, notification_email: nextEmail || null }
+      const updatedEntry = guestEntryToken
+        ? { ...myEntry, display_name: nextName, notification_email: nextEmail || null }
+        : { ...myEntry, display_name: nextName }
       setMyEntry(updatedEntry)
       setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setStatusMessage('Entry details updated.')
@@ -1476,7 +1490,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
       return [
         entry.display_name || 'Player',
-        entry.notification_email || '',
+        runnerEmailForEntry(entry),
         picks.length > 0 ? 'Yes' : 'No',
         entry.is_removed ? 'removed' : 'active',
         picks.length,
@@ -2425,7 +2439,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   <span className="border border-stone-300 px-1.5 py-0.5 text-[10px] group-open:hidden">Edit</span>
                 </summary>
                 <div className="border-t border-stone-200 p-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:max-w-md">
                     <div className="min-w-0">
                       <label className="mb-1 block text-sm font-medium text-stone-700">Name on leaderboard</label>
                       <input
@@ -2437,24 +2451,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                       />
                     </div>
-                    <div className="min-w-0">
-                      <label className="mb-1 block text-sm font-medium text-stone-700">Email for final score updates <span className="text-stone-400">optional</span></label>
-                      <input
-                        type="email"
-                        value={notificationEmailValue}
-                        onChange={e => setNotificationEmailValue(e.target.value)}
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                        className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                      />
-                    </div>
                   </div>
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs font-semibold text-stone-500">Email is optional and appears in the pool runner CSV export.</p>
+                    <p className="text-xs font-semibold text-stone-500">Pool emails and CSV export use your account email.</p>
                     <button
                       type="button"
                       onClick={saveEntryName}
-                      disabled={entryNameSaving || !entryNameValue.trim() || (entryNameValue.trim() === myEntry.display_name && notificationEmailValue.trim().toLowerCase() === (myEntry.notification_email || ''))}
+                      disabled={entryNameSaving || !entryNameValue.trim() || entryNameValue.trim() === myEntry.display_name}
                       className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {entryNameSaving ? 'Saving...' : 'Save entry details'}
@@ -2703,7 +2706,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <p className="font-medium text-stone-900">{entry.display_name}</p>
                     <p className="text-stone-500 text-xs">
                       {pickCount}/{pool.pick_count} Picks
-                      {entry.notification_email ? <span className="ml-2 break-all">{entry.notification_email}</span> : null}
+                      {runnerEmailForEntry(entry) ? <span className="ml-2 break-all">{runnerEmailForEntry(entry)}</span> : null}
                       {entry.is_removed && <span className="text-red-700 ml-2">Removed: {entry.removed_reason}</span>}
                     </p>
                   </div>
