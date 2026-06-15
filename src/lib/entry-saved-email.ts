@@ -24,6 +24,15 @@ function pickListItems(picks: unknown) {
   return picks.filter((pick): pick is string => typeof pick === 'string' && Boolean(pick.trim()))
 }
 
+function requiredPickCount(pool: any) {
+  if (pool?.game_format === 'ranked_groups' || pool?.game_format === 'random_groups') {
+    const groups = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
+    const picksPerGroup = Number(pool.picks_per_group || 1)
+    if (groups.length > 0 && picksPerGroup > 0) return groups.length * picksPerGroup
+  }
+  return Number(pool?.pick_count || 0)
+}
+
 export async function sendEntrySavedEmail({ entryId, poolId, token, userId, origin }: EntrySavedEmailInput) {
   const supabase = createServiceClient() as any
   const { data: entry, error: entryError } = await supabase
@@ -44,7 +53,7 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
 
   const { data: pool, error: poolError } = await supabase
     .from('gpp_pools')
-    .select('id, name, is_locked, gpp_tournaments(name, start_date)')
+    .select('id, name, is_locked, pick_count, game_format, picks_per_group, pick_groups_json, gpp_tournaments(name, start_date)')
     .eq('id', poolId)
     .maybeSingle()
   if (poolError || !pool) throw new Error('Pool not found')
@@ -57,12 +66,16 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
   if (!recipient) return { skipped: true, reason: 'no_recipient' }
 
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
+  const pickItems = pickListItems(entry.golfer_picks)
+  const neededPicks = requiredPickCount(pool)
+  if (neededPicks > 0 && pickItems.length !== neededPicks) {
+    return { skipped: true, reason: 'incomplete_picks', pickCount: pickItems.length, requiredPickCount: neededPicks }
+  }
   const leaderboardUrl = `${origin}/leaderboard/${pool.id}?entry=${entry.id}`
   const editUrl = token
     ? `${origin}/pool/${pool.id}?guest=${encodeURIComponent(token)}`
     : `${origin}/pool/${pool.id}`
   const helpUrl = `${origin}/help`
-  const pickItems = pickListItems(entry.golfer_picks)
   const picks = pickItems.join(', ')
   const entryName = entry.display_name || 'Your entry'
   const poolName = pool.name || 'Golf pool'

@@ -22,6 +22,15 @@ function badRequest(error: string) {
   return NextResponse.json({ error }, { status: 400 })
 }
 
+function requiredPickCount(pool: any) {
+  if (pool?.game_format === 'ranked_groups' || pool?.game_format === 'random_groups') {
+    const groups = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
+    const picksPerGroup = Number(pool.picks_per_group || 1)
+    if (groups.length > 0 && picksPerGroup > 0) return groups.length * picksPerGroup
+  }
+  return Number(pool?.pick_count || 0)
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const passcode = (url.searchParams.get('passcode') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
@@ -117,7 +126,7 @@ export async function PATCH(request: Request) {
     const supabase = createServiceClient() as any
     const { data: entry, error: entryError } = await supabase
       .from('gpp_entries')
-      .select('id, pool_id, guest_entry_token_hash, gpp_pools(is_locked, gpp_tournaments(status))')
+      .select('id, pool_id, guest_entry_token_hash, gpp_pools(is_locked, pick_count, game_format, picks_per_group, pick_groups_json, gpp_tournaments(status))')
       .eq('id', entryId)
       .maybeSingle()
 
@@ -147,6 +156,10 @@ export async function PATCH(request: Request) {
       if (picksClosed) return NextResponse.json({ error: 'Picks are closed for this pool.' }, { status: 409 })
       if (!Array.isArray(body.golferPicks) || body.golferPicks.some(pick => typeof pick !== 'string')) {
         return badRequest('Invalid picks.')
+      }
+      const pickCount = requiredPickCount(pool)
+      if (pickCount > 0 && body.golferPicks.length !== pickCount) {
+        return badRequest(`Pick ${pickCount} golfers to save.`)
       }
       update.golfer_picks = body.golferPicks
     }

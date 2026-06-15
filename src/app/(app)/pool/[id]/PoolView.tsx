@@ -280,6 +280,40 @@ function golferListName(name: string) {
   return `${lastName}, ${firstNames}${suffix ? ` ${suffix}` : ''}`
 }
 
+function cleanPickList(value: unknown) {
+  return Array.isArray(value) ? value.filter((pick): pick is string => typeof pick === 'string' && Boolean(pick.trim())) : []
+}
+
+function picksMatch(left: string[], right: string[]) {
+  return left.length === right.length && left.every((pick, index) => pick === right[index])
+}
+
+function pickDraftKey(poolId: string, entryId: string) {
+  return `gpp_pick_draft:${poolId}:${entryId}`
+}
+
+function readPickDraft(key: string) {
+  if (!key || typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(key)
+    if (raw === null) return null
+    const parsed = JSON.parse(raw || 'null')
+    return cleanPickList(Array.isArray(parsed) ? parsed : parsed?.picks)
+  } catch {
+    return null
+  }
+}
+
+function writePickDraft(key: string, picks: string[]) {
+  if (!key || typeof window === 'undefined') return
+  window.localStorage.setItem(key, JSON.stringify({ picks, updatedAt: new Date().toISOString() }))
+}
+
+function clearPickDraft(key: string) {
+  if (!key || typeof window === 'undefined') return
+  window.localStorage.removeItem(key)
+}
+
 function TrustCheckIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -327,6 +361,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [cutLine, setCutLine] = useState<GolfCutLine | null>(() => tournament?.cutLine || null)
   const [field, setField] = useState<GolfPlayer[]>(() => Array.isArray(tournament?.field_json) ? tournament.field_json as GolfPlayer[] : Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [])
   const [myPicks, setMyPicks] = useState<string[]>(initialMyEntry?.golfer_picks || [])
+  const currentPickDraftKey = myEntry?.id ? pickDraftKey(pool.id, myEntry.id) : ''
   const [entryNameValue, setEntryNameValue] = useState(initialMyEntry?.display_name || '')
   const [notificationEmailValue, setNotificationEmailValue] = useState(initialMyEntry?.notification_email || '')
   const [entryNameSaving, setEntryNameSaving] = useState(false)
@@ -438,6 +473,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const groupsFinalized = !groupedFormat || (storedPickGroups.length > 0 && Boolean(pool.groups_finalized_at))
   const picksPerGroup = groupedFormat ? Number(pool.picks_per_group || 1) : 0
   const groupedTotalPicks = groupedFormat ? pickGroups.length * picksPerGroup : 0
+  const requiredPickCount = groupedFormat ? groupedTotalPicks : Number(pool.pick_count || 0)
+  const groupedPickValidation = useMemo(() => (
+    groupedFormat && pickGroups.length > 0
+      ? validateGroupedPicks(pickGroups, myPicks, picksPerGroup)
+      : { valid: !groupedFormat, missing: [], over: [] }
+  ), [groupedFormat, myPicks, pickGroups, picksPerGroup])
   const groupedGroupsRemaining = groupedFormat ? pickGroups.filter(g => {
     const sc = g.players.filter(p => myPicks.includes(p.name)).length
     return sc < picksPerGroup
@@ -529,6 +570,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const invalidMyPicks = !groupedFormat && fieldReady
     ? myPicks.filter(name => !currentFieldNames.has(name))
     : []
+  const hasRequiredPickCount = requiredPickCount > 0 && myPicks.length === requiredPickCount
+  const picksComplete = groupedFormat
+    ? hasRequiredPickCount && groupedPickValidation.valid
+    : hasRequiredPickCount && invalidMyPicks.length === 0
+  const savePicksDisabled = saving || !picksComplete
+  const savePicksLabel = saving
+    ? 'Saving...'
+    : picksComplete
+      ? 'Save picks'
+      : requiredPickCount > 0
+        ? `Pick ${requiredPickCount} to save`
+        : 'Save picks'
   const guestPicksSaved = guestMode && showGuestSavePanel
   const showGroupPreview = groupedFormat && groupsNeedLock && (fieldReady || pickGroups.length > 0)
   const showPickList = !guestPicksSaved && ((pickSelectionOpen && (fieldReady || (groupedFormat && pickGroups.length > 0))) || showGroupPreview)
@@ -541,6 +594,22 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const guestLeaderboardUrl = myEntry?.id
     ? `${publicLeaderboardUrl || `/leaderboard/${pool.id}`}?entry=${encodeURIComponent(myEntry.id)}`
     : (publicLeaderboardUrl || `/leaderboard/${pool.id}`)
+
+  useEffect(() => {
+    if (!currentPickDraftKey || picksAreLocked || guestPicksSaved) return
+    const draftPicks = readPickDraft(currentPickDraftKey)
+    if (draftPicks && !picksMatch(draftPicks, myPicks)) {
+      setMyPicks(draftPicks)
+    }
+  }, [currentPickDraftKey, guestPicksSaved, picksAreLocked])
+
+  useEffect(() => {
+    if (!currentPickDraftKey || picksAreLocked || guestPicksSaved) return
+    const savedPicks = cleanPickList(myEntry?.golfer_picks)
+    if (!picksMatch(myPicks, savedPicks)) {
+      writePickDraft(currentPickDraftKey, myPicks)
+    }
+  }, [currentPickDraftKey, guestPicksSaved, myEntry?.golfer_picks, myPicks, picksAreLocked])
 
   const maskHiddenPicks = useCallback((poolEntries: any[]) => {
     if (picksAreLocked) return poolEntries
@@ -569,7 +638,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setEntries(safeData)
       setMyEntry(nextMyEntry)
       if (nextMyEntry) {
-        setMyPicks(Array.isArray(nextMyEntry.golfer_picks) ? nextMyEntry.golfer_picks : [])
+        const savedPicks = cleanPickList(nextMyEntry.golfer_picks)
+        const draftPicks = readPickDraft(pickDraftKey(pool.id, nextMyEntry.id))
+        setMyPicks(draftPicks && !picksMatch(draftPicks, savedPicks) ? draftPicks : savedPicks)
       }
     }
   }, [isCurrentEntry, maskHiddenPicks, pool.id, supabase])
@@ -945,18 +1016,23 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setTimeout(() => setStatusMessage(''), 2500)
       return
     }
-    if (guestEntryToken) {
-      const requiredPicks = groupedFormat ? groupedTotalPicks : pool.pick_count
-      if (requiredPicks > 0 && myPicks.length < requiredPicks) {
-        const message = `Pick ${requiredPicks} golfers to save.`
-        setStatusMessage(message)
-        showToast(message, 'error')
-        setTimeout(() => setStatusMessage(''), 2500)
-        return
-      }
+    if (!picksComplete) {
+      const firstMissing = groupedPickValidation.missing[0]?.group.label
+      const firstOver = groupedPickValidation.over[0]?.group.label
+      const message = firstOver
+        ? `${firstOver} has too many picks.`
+        : firstMissing
+          ? `${firstMissing} needs ${picksPerGroup} picks.`
+          : requiredPickCount > 0
+            ? `Pick ${requiredPickCount} golfers to save.`
+            : 'Complete your picks to save.'
+      setStatusMessage(message)
+      showToast(message, 'error')
+      setTimeout(() => setStatusMessage(''), 2500)
+      return
     }
     if (groupedFormat) {
-      const validation = validateGroupedPicks(pickGroups, myPicks, picksPerGroup)
+      const validation = groupedPickValidation
       if (!validation.valid) {
         const firstMissing = validation.missing[0]?.group.label
         const firstOver = validation.over[0]?.group.label
@@ -998,6 +1074,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
     if (!error) {
       const updatedEntry = { ...myEntry, golfer_picks: myPicks }
+      clearPickDraft(currentPickDraftKey)
       setMyEntry(updatedEntry)
       setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setStatusMessage('Picks saved.')
@@ -2095,12 +2172,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="flex flex-col gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f3df9c]">Make picks</p>
-                    <h2 className="text-xl font-black text-white">{groupsNeedLock ? 'Picks open soon. Review the groups now.' : `Pick ${pool.pick_count}. Best ${pool.count_scores} count.`}</h2>
+                    <h2 className="text-xl font-black text-white">{groupsNeedLock ? 'Picks open soon. Review the groups now.' : `Pick ${requiredPickCount || pool.pick_count}. Best ${pool.count_scores} count.`}</h2>
                   </div>
                   {pickSelectionOpen && fieldReady ? (
-                    <button onClick={savePicks} disabled={saving}
-                      className="border-2 border-[#f3df9c] bg-[#f3df9c] px-5 py-2 text-sm font-black uppercase text-[#123c2f] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">
-                      {saving ? 'Saving...' : 'Save picks'}
+                    <button onClick={savePicks} disabled={savePicksDisabled}
+                      className="border-2 border-[#f3df9c] bg-[#f3df9c] px-5 py-2 text-sm font-black uppercase text-[#123c2f] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:border-stone-300 disabled:bg-stone-200 disabled:text-stone-500 disabled:opacity-100">
+                      {savePicksLabel}
                     </button>
                   ) : groupsNeedLock ? (
                     <span className="w-fit border border-[#f3df9c] bg-[#f3df9c] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Picks open soon</span>
@@ -2219,7 +2296,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="mb-4 rounded-none border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
                   <div className="flex flex-col gap-1 border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#123c2f]">
-                      Your picks ({myPicks.length}/{pool.pick_count})
+                      Your picks ({myPicks.length}/{requiredPickCount || pool.pick_count})
                     </h3>
                     {fieldReady && groupsNeedLock && <span className="text-xs font-bold text-stone-500">Preview only until groups lock</span>}
                   </div>
