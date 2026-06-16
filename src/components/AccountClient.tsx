@@ -198,7 +198,7 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
 
       <form onSubmit={handleSave} className="space-y-5 border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Global leaderboard name</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">Leaderboard name</label>
           <input
             type="text"
             value={name}

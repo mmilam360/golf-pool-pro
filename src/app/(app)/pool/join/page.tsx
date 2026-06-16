@@ -242,7 +242,7 @@ export default function JoinPoolPage() {
 
   const showAccountSignIn = authChecked && !isSignedIn
   const nameRequired = authChecked
-  const nameLabel = authChecked && isSignedIn ? 'Global leaderboard name' : 'Name on leaderboard'
+  const nameLabel = authChecked && isSignedIn ? 'Leaderboard name' : 'Name on leaderboard'
 
   return (
     <div className="mx-auto max-w-xl">
