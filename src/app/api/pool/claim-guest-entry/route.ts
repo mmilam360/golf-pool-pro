@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   const tokenEntryId = await findGuestEntryIdByToken(serviceSupabase, token)
   let entryQuery = serviceSupabase
     .from('gpp_entries')
-    .select('id, pool_id, user_id, is_removed, display_name, full_name')
+    .select('id, pool_id, user_id, is_removed, display_name, full_name, full_name_confirmed_at')
     .eq('pool_id', poolId)
     .eq('is_removed', false)
 
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
 
   if (updateError) return redirectToPool(request, poolId, '?claim=error')
 
-  if (guestEntry.full_name) {
+  if (guestEntry.full_name && guestEntry.full_name_confirmed_at) {
     await serviceSupabase
       .from('gpp_profiles')
       .upsert({
@@ -74,6 +74,7 @@ export async function GET(request: Request) {
         email: user.email || '',
         display_name: guestEntry.display_name || guestEntry.full_name,
         full_name: guestEntry.full_name,
+        full_name_confirmed_at: guestEntry.full_name_confirmed_at,
       })
   }
 

@@ -55,8 +55,6 @@ type EntryRecord = {
   pool_id: string
   display_name: string | null
   golfer_picks: unknown
-  full_name?: string | null
-  full_name_confirmed_at?: string | null
   picks_hidden?: boolean | null
   gpp_pools?: PoolRecord | PoolRecord[] | null
 }
@@ -320,7 +318,7 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('gpp_entries')
-      .select('id, pool_id, display_name, full_name, full_name_confirmed_at, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, last_scores_fetch))')
+      .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, last_scores_fetch))')
       .eq('user_id', user.id)
       .eq('is_removed', false)
       .order('created_at', { ascending: false }),
@@ -355,14 +353,14 @@ export default async function DashboardPage() {
     ownedPoolIds.length
       ? supabase
         .from('gpp_entries')
-        .select('id, pool_id, display_name, full_name, full_name_confirmed_at, golfer_picks, is_removed')
+        .select('id, pool_id, display_name, golfer_picks, is_removed')
         .in('pool_id', ownedPoolIds)
         .eq('is_removed', false)
       : Promise.resolve({ data: [] }),
     joinedPoolIds.length
       ? supabase
         .from('gpp_entries')
-        .select('id, pool_id, display_name, full_name, full_name_confirmed_at, golfer_picks, is_removed')
+        .select('id, pool_id, display_name, golfer_picks, is_removed')
         .in('pool_id', joinedPoolIds)
         .eq('is_removed', false)
       : Promise.resolve({ data: [] }),

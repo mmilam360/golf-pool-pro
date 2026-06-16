@@ -155,15 +155,22 @@ export default function AccountClient({ initialEmail, initialName, initialFullNa
       return
     }
 
+    const confirmedAt = new Date().toISOString()
     const { error: profileError } = await supabase
       .from('gpp_profiles')
-      .upsert({ id: user.id, email: user.email || email, display_name: trimmedName, full_name: trimmedFullName, full_name_confirmed_at: new Date().toISOString() })
+      .upsert({ id: user.id, email: user.email || email, display_name: trimmedName, full_name: trimmedFullName, full_name_confirmed_at: confirmedAt })
 
     if (profileError) {
       setToast({ message: 'Name could not be saved. Try again.', tone: 'error' })
       setSaving(false)
       return
     }
+
+    const { error: entryUpdateError } = await supabase
+      .from('gpp_entries')
+      .update({ full_name: trimmedFullName, full_name_confirmed_at: confirmedAt } as any)
+      .eq('user_id', user.id)
+      .eq('is_removed', false)
 
     const { error: metadataError } = await supabase.auth.updateUser({
       data: {
@@ -181,7 +188,9 @@ export default function AccountClient({ initialEmail, initialName, initialFullNa
       body: JSON.stringify({ prefs: notificationPrefs }),
     }).catch(() => undefined)
 
-    if (metadataError) {
+    if (entryUpdateError) {
+      setToast({ message: 'Account saved, but entry names did not update.', tone: 'info' })
+    } else if (metadataError) {
       setToast({ message: 'Name saved, but account metadata did not update.', tone: 'info' })
     } else {
       setToast({ message: 'Account settings saved.', tone: 'success' })

@@ -321,8 +321,9 @@ function runnerEmailForEntry(entry: any) {
 }
 
 function runnerFullNameForEntry(entry: any) {
-  if (!entry?.full_name_confirmed_at) return ''
-  return typeof entry?.full_name === 'string' ? entry.full_name.trim() : ''
+  const entryFullName = entry?.full_name_confirmed_at && typeof entry?.full_name === 'string' ? entry.full_name.trim() : ''
+  const accountFullName = entry?.account_full_name_confirmed_at && typeof entry?.account_full_name === 'string' ? entry.account_full_name.trim() : ''
+  return entryFullName || accountFullName
 }
 
 function runnerCanEmailEntry(entry: any) {
@@ -637,7 +638,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     ? `${publicLeaderboardUrl || `/leaderboard/${pool.id}`}?entry=${encodeURIComponent(myEntry.id)}`
     : (publicLeaderboardUrl || `/leaderboard/${pool.id}`)
   const entryHasSavedFullName = Boolean(myEntry?.full_name_confirmed_at && typeof myEntry?.full_name === 'string' && myEntry.full_name.trim().length > 0)
-  const fullNamePromptOpen = !publicView && Boolean(myEntry && !entryHasSavedFullName)
+  const fullNamePromptOpen = guestMode && !publicView && Boolean(myEntry && !entryHasSavedFullName)
   const entryDetailsDirty = entryNameValue.trim() !== (myEntry?.display_name || '') || fullNameValue.trim() !== runnerFullNameForEntry(myEntry)
 
   useEffect(() => {
@@ -1945,11 +1946,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {fullNamePromptOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-[#123c2f]/65 px-4 py-6">
           <div className="w-full max-w-md border-2 border-[#123c2f] bg-white p-5 shadow-[8px_8px_0_#d8cab0]">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Pool runner note</p>
-            <h2 className="mt-1 text-2xl font-black text-[#123c2f]">Add your name for the pool runner</h2>
-            <p className="mt-2 text-sm font-semibold leading-6 text-[#657168]">
-              Your leaderboard name can stay the same. Add your full name so the pool runner knows who joined.
-            </p>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Pool runner</p>
+            <h2 className="mt-1 text-2xl font-black text-[#123c2f]">Add your full name</h2>
+            <p className="mt-1 text-sm font-semibold text-[#657168]">Only the pool runner sees this.</p>
             <div className="mt-4">
               <label className="mb-1 block text-sm font-bold text-stone-700">Full name</label>
               <input
@@ -1961,7 +1960,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 autoFocus
                 className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0]"
               />
-              <p className="mt-1 text-xs font-semibold text-stone-500">Only the pool runner sees this.</p>
             </div>
             <button
               type="button"
@@ -2680,8 +2678,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         autoComplete="name"
                         className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                       />
-                      <p className="mt-1 text-xs font-semibold text-stone-500">Only the pool runner sees this.</p>
-                    </div>
+                            </div>
                   </div>
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-xs font-semibold text-stone-500">Pool emails use your account email.</p>
