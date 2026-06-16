@@ -193,12 +193,12 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
       <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Account settings</p>
       <h1 className="mb-3 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Account</h1>
       <p className="mb-6 max-w-xl leading-7 text-stone-600">
-        This name becomes your default entry name when you join or create a new pool. You can still rename a single pool entry from My Team.
+        Use this as your leaderboard name when you join new pools. You can still rename one pool entry from My Entry.
       </p>
 
       <form onSubmit={handleSave} className="space-y-5 border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Default entry name</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">Global leaderboard name</label>
           <input
             type="text"
             value={name}
@@ -236,7 +236,7 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
           disabled={saving || !dirty || !name.trim()}
           className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 font-bold text-white transition-colors hover:bg-[#0f2f25] disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Save settings'}
+          {saving ? 'Saving...' : dirty ? 'Save' : 'Saved'}
         </button>
       </form>
 

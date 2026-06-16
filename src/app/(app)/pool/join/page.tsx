@@ -178,6 +178,24 @@ export default function JoinPoolPage() {
       setLoading(false); return
     }
 
+    const { error: profileError } = await supabase
+      .from('gpp_profiles')
+      .upsert({ id: user.id, email: user.email || '', display_name: displayName })
+
+    if (profileError) {
+      setError('Leaderboard name could not be saved. Try again.')
+      setLoading(false)
+      return
+    }
+
+    await supabase.auth.updateUser({
+      data: {
+        ...user.user_metadata,
+        display_name: displayName,
+        full_name: displayName,
+      },
+    }).catch(() => undefined)
+
     const { data: existingEntries } = await supabase
       .from('gpp_entries')
       .select('id, is_removed')
@@ -223,7 +241,8 @@ export default function JoinPoolPage() {
   }
 
   const showAccountSignIn = authChecked && !isSignedIn
-  const nameRequired = authChecked && !isSignedIn
+  const nameRequired = authChecked
+  const nameLabel = authChecked && isSignedIn ? 'Global leaderboard name' : 'Name on leaderboard'
 
   return (
     <div className="mx-auto max-w-xl">
@@ -278,7 +297,7 @@ export default function JoinPoolPage() {
           </div>
           <div>
             <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
-              <span>Name on leaderboard</span>
+              <span>{nameLabel}</span>
               {nameRequired && <span className="text-xs font-semibold text-amber-700">required</span>}
             </label>
             <input
@@ -294,6 +313,9 @@ export default function JoinPoolPage() {
               onInput={e => e.currentTarget.setCustomValidity('')}
               className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             />
+            {authChecked && isSignedIn && (
+              <p className="mt-1 text-xs font-semibold text-stone-500">Saved as your account default when you join.</p>
+            )}
           </div>
           <div className="grid gap-3">
             <button
