@@ -514,6 +514,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
   const liveTournamentIds: string[] = []
   const fingerprintMap = await loadExistingFingerprints(supabase)
+  let pgaTourSchedule: any[] | null = null
 
   for (const event of scoreboardEvents) {
     const normalized = rowFromEvent(event, season)
@@ -537,6 +538,33 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       }
     }
 
+    let fieldSource: 'espn_scoreboard' | 'espn_event' | 'pga_tour' = playersForStorage.length > 0 && playersForStorage === players
+      ? 'espn_scoreboard'
+      : 'espn_event'
+    let fieldLastUpdated: string | null = null
+    let pgaMatchedWithoutField = false
+
+    // The minute sync can run before first tee and must obey the same upcoming-field
+    // source rule as refresh-fields: PGA Tour is canonical when it matches.
+    if (status === 'upcoming') {
+      if (!pgaTourSchedule) pgaTourSchedule = await getPgaTourSchedule(season).catch(() => [])
+      const pgaTourTournament = findPgaTourTournament({
+        pgaSchedule: pgaTourSchedule,
+        eventName: row.name,
+        startDate: row.start_date,
+      })
+      if (pgaTourTournament?.tournamentId) {
+        const pgaMeta = await getPgaTourFieldWithMeta(pgaTourTournament.tournamentId).catch(() => ({ players: [], lastUpdated: null }))
+        if (pgaMeta.players.length > 0) {
+          playersForStorage = pgaMeta.players
+          fieldSource = 'pga_tour'
+          fieldLastUpdated = pgaMeta.lastUpdated
+        } else {
+          pgaMatchedWithoutField = true
+        }
+      }
+    }
+
     // ESPN scoreboard strips tee times from competitors. Enrich separately.
     // For upcoming tournaments, fetch first-round (Thursday) tee times.
     // For live tournaments, the regular enrichPlayersWithTeeTimes path handles today's tee times.
@@ -551,11 +579,6 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     const effectiveStatus = completedStatusFromFinalRound(status, playersForStorage, liveLeaderboard?.round || event.status?.period || event.competitions?.[0]?.status?.period)
     row.status = effectiveStatus
 
-    // Decide source label used for validation
-    const fieldSource: 'espn_scoreboard' | 'espn_event' | 'pga_tour' = playersForStorage.length > 0 && playersForStorage === players
-      ? 'espn_scoreboard'
-      : 'espn_event'
-
     const { data: existing, error: existingError } = await supabase
       .from('gpp_tournaments')
       .select('id, status, leaderboard_json, field_json, field_fingerprint, field_source, last_field_fetch')
@@ -564,29 +587,33 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
     if (existingError) throw existingError
 
-    const fieldCheck = shouldAcceptField(
-      playersForStorage,
-      fieldSource,
-      existing?.field_fingerprint,
-      fingerprintMap,
-      existing?.id || row.external_id,
-    )
-
-    const wouldDowngradeOfficialField = existing?.field_source === 'pga_tour'
-      && fieldSource !== 'pga_tour'
-      && status === 'upcoming'
-
-    if (fieldCheck.ok && !wouldDowngradeOfficialField) {
-      row.field_json = playersForStorage
-      row.field_fingerprint = fieldCheck.fingerprint
-      row.field_source = fieldSource
-      row.last_field_fetch = new Date().toISOString()
-      result.fieldsUpdated++
-    } else if (playersForStorage.length > 0) {
-      if (wouldDowngradeOfficialField) {
-        console.warn(`[sync] Preserved PGA Tour field for ${existing?.id || row.external_id}; rejected ${fieldSource} downgrade`)
-      }
+    if (pgaMatchedWithoutField && fieldSource !== 'pga_tour') {
       result.fieldsRejected++
+    } else {
+      const fieldCheck = shouldAcceptField(
+        playersForStorage,
+        fieldSource,
+        existing?.field_fingerprint,
+        fingerprintMap,
+        existing?.id || row.external_id,
+      )
+
+      const wouldDowngradeOfficialField = existing?.field_source === 'pga_tour'
+        && fieldSource !== 'pga_tour'
+        && status === 'upcoming'
+
+      if (fieldCheck.ok && !wouldDowngradeOfficialField) {
+        row.field_json = playersForStorage
+        row.field_fingerprint = fieldCheck.fingerprint
+        row.field_source = fieldSource
+        row.last_field_fetch = fieldLastUpdated || new Date().toISOString()
+        result.fieldsUpdated++
+      } else if (playersForStorage.length > 0) {
+        if (wouldDowngradeOfficialField) {
+          console.warn(`[sync] Preserved PGA Tour field for ${existing?.id || row.external_id}; rejected ${fieldSource} downgrade`)
+        }
+        result.fieldsRejected++
+      }
     }
 
     if ((effectiveStatus === 'live' || effectiveStatus === 'completed') && playersForStorage.length > 0) {
