@@ -37,7 +37,7 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
   const supabase = createServiceClient() as any
   const { data: entry, error: entryError } = await supabase
     .from('gpp_entries')
-    .select('id, pool_id, user_id, display_name, notification_email, golfer_picks, guest_entry_token_hash')
+    .select('id, pool_id, user_id, display_name, full_name, full_name_confirmed_at, notification_email, golfer_picks, guest_entry_token_hash')
     .eq('id', entryId)
     .eq('pool_id', poolId)
     .or('is_removed.is.null,is_removed.eq.false')
@@ -87,6 +87,7 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
     : `${origin}/pool/${pool.id}`
   const helpUrl = `${origin}/help`
   const picks = pickItems.join(', ')
+  const entryNeedsFullName = Boolean(token && !entry.user_id && !(entry.full_name_confirmed_at && typeof entry.full_name === 'string' && entry.full_name.trim()))
   const entryName = entry.display_name || 'Your entry'
   const poolName = pool.name || 'Golf pool'
   const tournamentName = tournament?.name || 'Tournament'
@@ -98,6 +99,7 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
     `Tournament: ${tournamentName}`,
     picks ? `Picks: ${picks}` : null,
     '',
+    entryNeedsFullName ? `Quick ask: add your full name for the pool runner here: ${editUrl}` : null,
     pool.is_locked ? null : `Edit picks before lock: ${editUrl}`,
     `Leaderboard: ${leaderboardUrl}`,
     '',
@@ -143,6 +145,7 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
                       </td>
                     </tr>
                   </table>
+                  ${entryNeedsFullName ? `<div style="margin:0 0 18px;border:1px solid #d8cab0;background:#fbf7ed;padding:12px 14px;"><p style="margin:0 0 10px;color:#1f2a24;font-size:14px;"><strong>Quick ask:</strong> add your full name so the pool runner knows who joined. Only the runner sees it.</p><a href="${escapeHtml(editUrl)}" style="display:inline-block;background:#123c2f;border:2px solid #123c2f;color:#ffffff;text-decoration:none;font-weight:800;padding:10px 14px;">Add full name</a></div>` : ''}
                   ${pool.is_locked ? '' : `<p style="margin:0 0 18px;"><a href="${escapeHtml(editUrl)}" style="display:inline-block;background:#123c2f;border:2px solid #123c2f;color:#ffffff;text-decoration:none;font-weight:800;padding:12px 16px;">Edit picks before lock</a></p>`}
                   <p style="margin:0 0 18px;"><a href="${escapeHtml(leaderboardUrl)}" style="display:inline-block;background:#ffffff;border:2px solid #123c2f;color:#123c2f;text-decoration:none;font-weight:800;padding:10px 14px;">View leaderboard</a></p>
                 </td>

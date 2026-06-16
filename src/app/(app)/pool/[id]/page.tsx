@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { findGuestEntryIdByToken, hashGuestEntryToken } from '@/lib/guest-entry'
 import { redirect } from 'next/navigation'
 import PoolView from './PoolView'
+import GuestEntryLocalResume from '@/components/GuestEntryLocalResume'
 import { buildPreviousPlayerCandidates, summarizeInviteStatuses } from '@/lib/pool-invite-logic'
 
 export const runtime = 'nodejs'
@@ -16,7 +17,7 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
   const { data: { user } } = await supabase.auth.getUser()
   const usingGuestToken = !user && Boolean(guestToken)
   const dataSupabase = usingGuestToken ? createServiceClient() as any : supabase as any
-  if (!user && !usingGuestToken) redirect(`/pool/join`)
+  if (!user && !usingGuestToken) return <GuestEntryLocalResume poolId={id} />
 
   const [poolResult, entriesResult] = await Promise.all([
     dataSupabase

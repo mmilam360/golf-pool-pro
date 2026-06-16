@@ -131,6 +131,47 @@ export async function sendMissingPicksReminderEmail(params: {
   return sendEmail({ to: params.recipient, subject, text, html })
 }
 
+
+export async function sendGuestFullNameReminderEmail(params: {
+  supabase: any
+  origin: string
+  recipient: string
+  pool: PoolLike
+  tournament: TournamentLike
+  entry: EntryLike
+}) {
+  const poolName = params.pool.name || 'your pool'
+  const tournamentName = params.tournament.name || 'the tournament'
+  const editUrl = await entryEditUrl(params.supabase, params.origin, params.pool.id, params.entry, 'full_name_reminder')
+  const subject = `Quick ask for ${poolName}`
+  const text = [
+    `${params.entry.display_name || 'Your entry'}, your picks are saved for ${poolName}.`,
+    '',
+    `Tournament: ${tournamentName}`,
+    '',
+    'Quick ask: add your full name so the pool runner knows who joined. Only the runner sees it.',
+    '',
+    `Add full name: ${editUrl}`,
+    '',
+    'Golf Pools Pro',
+  ].join('\n')
+  const html = emailShell({
+    preheader: `Quick ask for ${poolName}.`,
+    title: 'Quick ask',
+    bodyHtml: `
+      <p style="margin:0 0 14px;font-size:16px;"><strong>${escapeHtml(params.entry.display_name || 'Your entry')}</strong>, your picks are saved for <strong>${escapeHtml(poolName)}</strong>.</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 0 18px;border:1px solid #d8cab0;background:#fbf7ed;">
+        <tr><td style="padding:12px 14px;border-bottom:1px solid #d8cab0;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Tournament</div><div style="font-size:16px;font-weight:800;color:#123c2f;">${escapeHtml(tournamentName)}</div></td></tr>
+        <tr><td style="padding:12px 14px;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Full name</div><div style="font-size:14px;font-weight:700;color:#1f2a24;">Only the pool runner sees this.</div></td></tr>
+      </table>
+      <p style="margin:0;color:#657168;font-size:14px;">When you have a second, add your full name so the pool runner knows who joined.</p>
+    `,
+    ctaHref: editUrl,
+    ctaLabel: 'Add full name',
+  })
+  return sendEmail({ to: params.recipient, subject, text, html })
+}
+
 export async function sendWdPickAlertEmail(params: {
   supabase: any
   origin: string

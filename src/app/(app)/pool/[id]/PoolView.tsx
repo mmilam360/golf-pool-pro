@@ -731,6 +731,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [pool.id, pool.passcode])
 
   useEffect(() => {
+    if (!guestEntryToken || !myEntry?.id) return
+    try {
+      window.localStorage.setItem(`gpp_guest_entry:${pool.id}`, JSON.stringify({
+        entryId: myEntry.id,
+        token: guestEntryToken,
+        displayName: myEntry.display_name || 'Your entry',
+        fullName: runnerFullNameForEntry(myEntry),
+      }))
+    } catch {
+      // Same-browser recovery is best effort.
+    }
+  }, [guestEntryToken, myEntry?.id, myEntry?.display_name, myEntry?.full_name, myEntry?.full_name_confirmed_at, pool.id])
+
+  useEffect(() => {
     setEntryNameValue(myEntry?.display_name || '')
     setFullNameValue(runnerFullNameForEntry(myEntry) || '')
     setNotificationEmailValue(myEntry?.notification_email || '')
