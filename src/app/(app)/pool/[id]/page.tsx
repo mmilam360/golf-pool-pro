@@ -60,10 +60,15 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
       ? entry.golfer_picks.filter((name: string) => withdrawnNames.has(name))
       : []
     const ownerWdMeta = isOwner ? { withdrawn_picks: withdrawnPicks } : {}
-    if (picksAreVisible || (user && entry.user_id === user.id) || (guestEntry && entry.id === guestEntry.id)) return { ...entry, ...ownerWdMeta }
+    const currentEntry = Boolean((user && entry.user_id === user.id) || (guestEntry && entry.id === guestEntry.id))
+    const privateMeta = isOwner || currentEntry
+      ? {}
+      : { full_name: null, account_full_name: '', notification_email: null, guest_entry_token_hash: null }
+    if (picksAreVisible || currentEntry) return { ...entry, ...ownerWdMeta, ...privateMeta }
     return {
       ...entry,
       ...ownerWdMeta,
+      ...privateMeta,
       submitted_pick_count: submittedPickCount,
       golfer_picks: [],
       picks_hidden: true,
@@ -75,12 +80,22 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
     const { data: profiles } = accountUserIds.length
       ? await (createServiceClient() as any)
         .from('gpp_profiles')
-        .select('id, email')
+        .select('id, email, full_name')
         .in('id', accountUserIds)
       : { data: [] }
     const emailByUserId = new Map((profiles || []).map((profile: any) => [profile.id, profile.email || '']))
+    const fullNameByUserId = new Map((profiles || []).map((profile: any) => [profile.id, profile.full_name || '']))
     safeEntries = safeEntries.map((entry: any) => entry.user_id
-      ? { ...entry, account_email: emailByUserId.get(entry.user_id) || '' }
+      ? { ...entry, account_email: emailByUserId.get(entry.user_id) || '', account_full_name: fullNameByUserId.get(entry.user_id) || '' }
+      : entry)
+  } else if (user) {
+    const { data: profile } = await (createServiceClient() as any)
+      .from('gpp_profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+    safeEntries = safeEntries.map((entry: any) => entry.user_id === user.id
+      ? { ...entry, account_full_name: profile?.full_name || '' }
       : entry)
   }
 

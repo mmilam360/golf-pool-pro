@@ -13,6 +13,7 @@ type NotificationPrefs = { pick_deadline: boolean; leaderboard_live: boolean; to
 type AccountClientProps = {
   initialEmail: string
   initialName: string
+  initialFullName: string
   initialMarketingOptIn: boolean
   initialNotificationPrefs: NotificationPrefs
 }
@@ -99,11 +100,13 @@ function Toast({ message, tone }: { message: string; tone: Tone }) {
   )
 }
 
-export default function AccountClient({ initialEmail, initialName, initialMarketingOptIn, initialNotificationPrefs }: AccountClientProps) {
+export default function AccountClient({ initialEmail, initialName, initialFullName, initialMarketingOptIn, initialNotificationPrefs }: AccountClientProps) {
   const supabase = createClient()
   const [email, setEmail] = useState(initialEmail)
   const [name, setName] = useState(initialName)
   const [originalName, setOriginalName] = useState(initialName)
+  const [fullName, setFullName] = useState(initialFullName)
+  const [originalFullName, setOriginalFullName] = useState(initialFullName)
   const [marketingOptIn, setMarketingOptIn] = useState(initialMarketingOptIn)
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(initialNotificationPrefs)
   const [originalNotificationPrefs, setOriginalNotificationPrefs] = useState<NotificationPrefs>(initialNotificationPrefs)
@@ -115,11 +118,13 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
     setEmail(initialEmail)
     setName(initialName)
     setOriginalName(initialName)
+    setFullName(initialFullName)
+    setOriginalFullName(initialFullName)
     setMarketingOptIn(initialMarketingOptIn)
     setOriginalMarketingOptIn(initialMarketingOptIn)
     setNotificationPrefs(initialNotificationPrefs)
     setOriginalNotificationPrefs(initialNotificationPrefs)
-  }, [initialEmail, initialName, initialMarketingOptIn, initialNotificationPrefs])
+  }, [initialEmail, initialName, initialFullName, initialMarketingOptIn, initialNotificationPrefs])
 
   useEffect(() => {
     if (!toast) return
@@ -130,9 +135,14 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     const trimmedName = name.trim()
+    const trimmedFullName = fullName.trim().replace(/\s+/g, ' ')
 
     if (!trimmedName) {
       setToast({ message: 'Enter a name first.', tone: 'error' })
+      return
+    }
+    if (!trimmedFullName) {
+      setToast({ message: 'Enter your full name first.', tone: 'error' })
       return
     }
 
@@ -147,7 +157,7 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
 
     const { error: profileError } = await supabase
       .from('gpp_profiles')
-      .upsert({ id: user.id, email: user.email || email, display_name: trimmedName })
+      .upsert({ id: user.id, email: user.email || email, display_name: trimmedName, full_name: trimmedFullName })
 
     if (profileError) {
       setToast({ message: 'Name could not be saved. Try again.', tone: 'error' })
@@ -159,7 +169,7 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
       data: {
         ...user.user_metadata,
         display_name: trimmedName,
-        full_name: trimmedName,
+        full_name: trimmedFullName,
         marketing_emails: marketingOptIn,
         notification_prefs: notificationPrefs,
       },
@@ -178,13 +188,14 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
     }
 
     setOriginalName(trimmedName)
+    setOriginalFullName(trimmedFullName)
     setOriginalMarketingOptIn(marketingOptIn)
     setOriginalNotificationPrefs(notificationPrefs)
     setSaving(false)
   }
 
   const notificationPrefsDirty = JSON.stringify(notificationPrefs) !== JSON.stringify(originalNotificationPrefs)
-  const dirty = name.trim() !== originalName || marketingOptIn !== originalMarketingOptIn || notificationPrefsDirty
+  const dirty = name.trim() !== originalName || fullName.trim() !== originalFullName || marketingOptIn !== originalMarketingOptIn || notificationPrefsDirty
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -193,7 +204,7 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
       <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Account settings</p>
       <h1 className="mb-3 font-display text-4xl font-bold tracking-[-0.03em] text-emerald-950">Account</h1>
       <p className="mb-6 max-w-xl leading-7 text-stone-600">
-        Use this as your leaderboard name when you join new pools. You can still rename one pool entry from My Entry.
+        Set your public leaderboard name and the private full name pool runners see in exports.
       </p>
 
       <form onSubmit={handleSave} className="space-y-5 border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
@@ -206,6 +217,21 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
             required
             className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
           />
+          <p className="mt-1 text-xs text-stone-500">Shown publicly on leaderboards.</p>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-stone-700">Full name</label>
+          <input
+            type="text"
+            value={fullName}
+            onChange={e => setFullName(e.target.value)}
+            required
+            maxLength={80}
+            autoComplete="name"
+            className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          />
+          <p className="mt-1 text-xs text-stone-500">Only pool runners see this.</p>
         </div>
 
         <div>
@@ -233,7 +259,7 @@ export default function AccountClient({ initialEmail, initialName, initialMarket
 
         <button
           type="submit"
-          disabled={saving || !dirty || !name.trim()}
+          disabled={saving || !dirty || !name.trim() || !fullName.trim()}
           className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 font-bold text-white transition-colors hover:bg-[#0f2f25] disabled:opacity-50"
         >
           {saving ? 'Saving...' : dirty ? 'Save' : 'Saved'}

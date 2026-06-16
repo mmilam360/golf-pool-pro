@@ -10,6 +10,7 @@ type ResumeEntry = { poolId: string; token: string; poolName: string; tournament
 export default function JoinPoolPage() {
   const [passcode, setPasscode] = useState('')
   const [guestName, setGuestName] = useState('')
+  const [fullName, setFullName] = useState('')
   const [resumeEntry, setResumeEntry] = useState<ResumeEntry | null>(null)
   const [showBackButton, setShowBackButton] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
@@ -49,14 +50,16 @@ export default function JoinPoolPage() {
 
       const { data: profile } = await supabase
         .from('gpp_profiles')
-        .select('display_name')
+        .select('display_name, full_name')
         .eq('id', user.id)
         .maybeSingle()
 
       if (cancelled) return
       const accountName = profile?.display_name?.trim() || user.email?.split('@')[0] || ''
+      const accountFullName = profile?.full_name?.trim() || (typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name.trim() : '')
       setIsSignedIn(true)
       setGuestName(current => current.trim() ? current : accountName)
+      setFullName(current => current.trim() ? current : accountFullName)
       setAuthChecked(true)
     }
 
@@ -129,8 +132,14 @@ export default function JoinPoolPage() {
     }
 
     const displayName = guestName.trim().replace(/\s+/g, ' ')
+    const runnerName = fullName.trim().replace(/\s+/g, ' ')
     if (!displayName) {
       setError('Enter the name you want on the leaderboard.')
+      setLoading(false)
+      return
+    }
+    if (!runnerName) {
+      setError('Enter your full name for the pool runner.')
       setLoading(false)
       return
     }
@@ -140,7 +149,7 @@ export default function JoinPoolPage() {
       const res = await fetch('/api/pool/guest-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode: normalizedPasscode, displayName }),
+        body: JSON.stringify({ passcode: normalizedPasscode, displayName, fullName: runnerName }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -148,7 +157,7 @@ export default function JoinPoolPage() {
         setLoading(false)
         return
       }
-      window.localStorage.setItem(`gpp_guest_entry:${data.poolId}`, JSON.stringify({ entryId: data.entryId, token: data.token, displayName }))
+      window.localStorage.setItem(`gpp_guest_entry:${data.poolId}`, JSON.stringify({ entryId: data.entryId, token: data.token, displayName, fullName: runnerName }))
       trackGppEvent('entry_submitted', {
         pool_id: data.poolId,
         entry_source: source === 'qr' ? 'qr_code_guest' : 'passcode_guest',
@@ -180,7 +189,7 @@ export default function JoinPoolPage() {
 
     const { error: profileError } = await supabase
       .from('gpp_profiles')
-      .upsert({ id: user.id, email: user.email || '', display_name: displayName })
+      .upsert({ id: user.id, email: user.email || '', display_name: displayName, full_name: runnerName })
 
     if (profileError) {
       setError('Leaderboard name could not be saved. Try again.')
@@ -192,7 +201,7 @@ export default function JoinPoolPage() {
       data: {
         ...user.user_metadata,
         display_name: displayName,
-        full_name: displayName,
+        full_name: runnerName,
       },
     }).catch(() => undefined)
 
@@ -214,6 +223,7 @@ export default function JoinPoolPage() {
         pool_id: pool.id,
         user_id: user.id,
         display_name: displayName,
+        full_name: runnerName,
         golfer_picks: [],
       })
 
@@ -242,7 +252,7 @@ export default function JoinPoolPage() {
 
   const showAccountSignIn = authChecked && !isSignedIn
   const nameRequired = authChecked
-  const nameLabel = authChecked && isSignedIn ? 'Leaderboard name' : 'Name on leaderboard'
+  const nameLabel = 'Leaderboard name'
 
   return (
     <div className="mx-auto max-w-xl">
@@ -316,6 +326,26 @@ export default function JoinPoolPage() {
             {authChecked && isSignedIn && (
               <p className="mt-1 text-xs font-semibold text-stone-500">Saved as your account default when you join.</p>
             )}
+          </div>
+          <div>
+            <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
+              <span>Full name</span>
+              {nameRequired && <span className="text-xs font-semibold text-amber-700">required</span>}
+            </label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={e => setFullName(e.target.value.slice(0, 80))}
+              placeholder="Name for the pool runner"
+              maxLength={80}
+              autoComplete="name"
+              required={nameRequired}
+              aria-required={nameRequired}
+              onInvalid={e => e.currentTarget.setCustomValidity('Enter your full name for the pool runner.')}
+              onInput={e => e.currentTarget.setCustomValidity('')}
+              className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            />
+            <p className="mt-1 text-xs font-semibold text-stone-500">Only the pool runner sees this.</p>
           </div>
           <div className="grid gap-3">
             <button

@@ -28,6 +28,11 @@ export function normalizeEntryDisplayName(value: unknown) {
   return value.trim().replace(/\s+/g, ' ').slice(0, 60)
 }
 
+export function normalizeFullName(value: unknown) {
+  if (typeof value !== 'string') return ''
+  return value.trim().replace(/\s+/g, ' ').slice(0, 80)
+}
+
 export async function createGuestEntryEmailToken(supabase: any, entryId: string, purpose = 'email_link') {
   const token = createGuestEntryToken()
   const { error } = await supabase

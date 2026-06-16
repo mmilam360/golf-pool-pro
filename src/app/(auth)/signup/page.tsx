@@ -159,14 +159,16 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
       )}
       <form onSubmit={handleSignup} className="space-y-4">
         <div>
-          <label className="block text-stone-700 text-sm font-medium mb-1">Name</label>
+          <label className="block text-stone-700 text-sm font-medium mb-1">Full name</label>
           <input
             type="text"
             value={displayName}
             onChange={e => setDisplayName(e.target.value)}
             required
+            autoComplete="name"
             className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-[#123c2f] focus:ring-2 focus:ring-[#d8cab0]"
           />
+          <p className="mt-1 text-xs text-stone-500">Used as your default leaderboard name. You can change each pool entry later.</p>
         </div>
         <div>
           <label className="block text-stone-700 text-sm font-medium mb-1">Email</label>

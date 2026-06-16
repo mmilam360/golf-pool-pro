@@ -7,6 +7,7 @@ type SignupBody = {
   email?: unknown
   password?: unknown
   displayName?: unknown
+  fullName?: unknown
   marketingOptIn?: unknown
 }
 
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
   const email = cleanEmail(body.email)
   const password = typeof body.password === 'string' ? body.password : ''
   const displayName = cleanName(body.displayName)
+  const fullName = cleanName(body.fullName) || displayName
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Enter a valid email.' }, { status: 400 })
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
     email_confirm: true,
     user_metadata: {
       display_name: displayName,
-      full_name: displayName,
+      full_name: fullName,
       marketing_emails: Boolean(body.marketingOptIn),
     },
   })

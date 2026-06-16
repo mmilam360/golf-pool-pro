@@ -320,6 +320,12 @@ function runnerEmailForEntry(entry: any) {
   return accountEmail || notificationEmail
 }
 
+function runnerFullNameForEntry(entry: any) {
+  const entryFullName = typeof entry?.full_name === 'string' ? entry.full_name.trim() : ''
+  const accountFullName = typeof entry?.account_full_name === 'string' ? entry.account_full_name.trim() : ''
+  return entryFullName || accountFullName
+}
+
 function runnerCanEmailEntry(entry: any) {
   return Boolean(runnerEmailForEntry(entry) || entry?.user_id)
 }
@@ -374,8 +380,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [myPicks, setMyPicks] = useState<string[]>(initialMyEntry?.golfer_picks || [])
   const currentPickDraftKey = myEntry?.id ? pickDraftKey(pool.id, myEntry.id) : ''
   const [entryNameValue, setEntryNameValue] = useState(initialMyEntry?.display_name || '')
+  const [fullNameValue, setFullNameValue] = useState(runnerFullNameForEntry(initialMyEntry) || '')
   const [notificationEmailValue, setNotificationEmailValue] = useState(initialMyEntry?.notification_email || '')
   const [entryNameSaving, setEntryNameSaving] = useState(false)
+  const [fullNameSaving, setFullNameSaving] = useState(false)
   const [refreshCountdown, setRefreshCountdown] = useState(REFRESH_SECONDS)
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
@@ -629,6 +637,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const guestLeaderboardUrl = myEntry?.id
     ? `${publicLeaderboardUrl || `/leaderboard/${pool.id}`}?entry=${encodeURIComponent(myEntry.id)}`
     : (publicLeaderboardUrl || `/leaderboard/${pool.id}`)
+  const entryHasSavedFullName = typeof myEntry?.full_name === 'string' && myEntry.full_name.trim().length > 0
+  const fullNamePromptOpen = !publicView && Boolean(myEntry && !entryHasSavedFullName)
+  const entryDetailsDirty = entryNameValue.trim() !== (myEntry?.display_name || '') || fullNameValue.trim() !== runnerFullNameForEntry(myEntry)
 
   useEffect(() => {
     if (!currentPickDraftKey || picksAreLocked || guestPicksSaved) return
@@ -647,17 +658,21 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [currentPickDraftKey, guestPicksSaved, myEntry?.golfer_picks, myPicks, picksAreLocked])
 
   const maskHiddenPicks = useCallback((poolEntries: any[]) => {
-    if (picksAreLocked) return poolEntries
     return poolEntries.map(entry => {
       const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
       const withdrawnPicks = isOwner && wdPickNames.size > 0 && Array.isArray(entry.golfer_picks)
         ? entry.golfer_picks.filter((name: string) => wdPickNames.has(name))
         : []
       const ownerWdMeta = isOwner ? { withdrawn_picks: withdrawnPicks } : {}
-      if (isCurrentEntry(entry)) return { ...entry, ...ownerWdMeta }
+      const currentEntry = isCurrentEntry(entry)
+      const privateMeta = isOwner || currentEntry
+        ? {}
+        : { full_name: null, account_full_name: '', notification_email: null, guest_entry_token_hash: null }
+      if (picksAreLocked || currentEntry) return { ...entry, ...ownerWdMeta, ...privateMeta }
       return {
         ...entry,
         ...ownerWdMeta,
+        ...privateMeta,
         submitted_pick_count: submittedPickCount,
         golfer_picks: [],
         picks_hidden: true,
@@ -676,8 +691,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const accountEmailByUserId = new Map(entriesRef.current
         .filter((entry: any) => entry.user_id && entry.account_email)
         .map((entry: any) => [entry.user_id, entry.account_email]))
-      const dataWithKnownEmails = data.map((entry: any) => entry.user_id && accountEmailByUserId.has(entry.user_id)
-        ? { ...entry, account_email: accountEmailByUserId.get(entry.user_id) }
+      const accountFullNameByUserId = new Map(entriesRef.current
+        .filter((entry: any) => entry.user_id && entry.account_full_name)
+        .map((entry: any) => [entry.user_id, entry.account_full_name]))
+      const dataWithKnownEmails = data.map((entry: any) => entry.user_id && (accountEmailByUserId.has(entry.user_id) || accountFullNameByUserId.has(entry.user_id))
+        ? { ...entry, account_email: accountEmailByUserId.get(entry.user_id) || '', account_full_name: accountFullNameByUserId.get(entry.user_id) || '' }
         : entry)
       const safeData = maskHiddenPicks(dataWithKnownEmails)
       const nextMyEntry = safeData.find(isCurrentEntry) || null
@@ -711,8 +729,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   useEffect(() => {
     setEntryNameValue(myEntry?.display_name || '')
+    setFullNameValue(runnerFullNameForEntry(myEntry) || '')
     setNotificationEmailValue(myEntry?.notification_email || '')
-  }, [myEntry?.display_name, myEntry?.notification_email])
+  }, [myEntry?.display_name, myEntry?.full_name, myEntry?.account_full_name, myEntry?.notification_email])
 
   async function updateGuestEntry(payload: Record<string, unknown>) {
     if (!myEntry?.id || !guestEntryToken) throw new Error('Missing guest entry token.')
@@ -1151,10 +1170,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   async function saveEntryName() {
     if (!myEntry) return
     const nextName = entryNameValue.trim()
+    const nextFullName = fullNameValue.trim().replace(/\s+/g, ' ')
     const nextEmail = notificationEmailValue.trim().toLowerCase()
     if (!nextName) {
       setStatusMessage('Entry name cannot be blank.')
       showToast('Entry name cannot be blank.', 'error')
+      return
+    }
+    if (!nextFullName) {
+      setStatusMessage('Full name cannot be blank.')
+      showToast('Enter your full name for the pool runner.', 'error')
       return
     }
     if (guestEntryToken && nextEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
@@ -1162,20 +1187,39 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       showToast('Enter a valid email address or leave it blank.', 'error')
       return
     }
-    if (nextName === myEntry.display_name && (!guestEntryToken || nextEmail === (myEntry.notification_email || ''))) return
+    if (!entryDetailsDirty && (!guestEntryToken || nextEmail === (myEntry.notification_email || ''))) return
 
     setEntryNameSaving(true)
     let error: any = null
+    let updatedEntry: any = null
     try {
       if (guestEntryToken) {
-        await updateGuestEntry({ displayName: nextName, notificationEmail: nextEmail || null })
+        updatedEntry = await updateGuestEntry({ displayName: nextName, fullName: nextFullName, notificationEmail: nextEmail || null })
       } else {
         const result = await supabase
           .from('gpp_entries')
-          .update({ display_name: nextName } as any)
+          .update({ display_name: nextName, full_name: nextFullName } as any)
           .eq('id', myEntry.id)
           .eq('user_id', userId)
+          .select('*')
+          .single()
         error = result.error
+        updatedEntry = result.data ? { ...myEntry, ...result.data } : null
+        if (!error) {
+          const { data: { user } } = await supabase.auth.getUser()
+          await supabase
+            .from('gpp_profiles')
+            .upsert({ id: userId, email: user?.email || '', display_name: nextName, full_name: nextFullName } as any)
+          if (user) {
+            await supabase.auth.updateUser({
+              data: {
+                ...user.user_metadata,
+                display_name: nextName,
+                full_name: nextFullName,
+              },
+            }).catch(() => undefined)
+          }
+        }
       }
     } catch (guestError: any) {
       error = guestError
@@ -1185,16 +1229,70 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setStatusMessage('Could not update entry details.')
       showToast('Could not update entry details.', 'error')
     } else {
-      const updatedEntry = guestEntryToken
-        ? { ...myEntry, display_name: nextName, notification_email: nextEmail || null }
-        : { ...myEntry, display_name: nextName }
-      setMyEntry(updatedEntry)
-      setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
+      const nextEntry = updatedEntry || { ...myEntry, display_name: nextName, full_name: nextFullName, notification_email: nextEmail || null }
+      setMyEntry(nextEntry)
+      setEntries(entries.map(entry => entry.id === myEntry.id ? nextEntry : entry))
       setStatusMessage('Entry details updated.')
       showToast('Entry details updated.', 'success')
       setTimeout(() => setStatusMessage(''), 2500)
     }
     setEntryNameSaving(false)
+  }
+
+  async function saveFullNamePrompt() {
+    if (!myEntry) return
+    const nextFullName = fullNameValue.trim().replace(/\s+/g, ' ')
+    if (!nextFullName) {
+      showToast('Enter your full name for the pool runner.', 'error')
+      return
+    }
+
+    setFullNameSaving(true)
+    let error: any = null
+    let updatedEntry: any = null
+    try {
+      if (guestEntryToken) {
+        updatedEntry = await updateGuestEntry({ fullName: nextFullName })
+      } else {
+        const result = await supabase
+          .from('gpp_entries')
+          .update({ full_name: nextFullName } as any)
+          .eq('id', myEntry.id)
+          .eq('user_id', userId)
+          .select('*')
+          .single()
+        error = result.error
+        updatedEntry = result.data ? { ...myEntry, ...result.data } : null
+        if (!error) {
+          const profileName = myEntry.display_name || entryNameValue.trim() || nextFullName
+          const { data: { user } } = await supabase.auth.getUser()
+          await supabase
+            .from('gpp_profiles')
+            .upsert({ id: userId, email: user?.email || '', display_name: profileName, full_name: nextFullName } as any)
+          if (user) {
+            await supabase.auth.updateUser({
+              data: {
+                ...user.user_metadata,
+                full_name: nextFullName,
+              },
+            }).catch(() => undefined)
+          }
+        }
+      }
+    } catch (guestError: any) {
+      error = guestError
+    }
+
+    if (error) {
+      showToast('Could not save full name.', 'error')
+    } else {
+      const nextEntry = updatedEntry || { ...myEntry, full_name: nextFullName }
+      setMyEntry(nextEntry)
+      setEntries(entries.map(entry => entry.id === myEntry.id ? nextEntry : entry))
+      setFullNameValue(nextFullName)
+      showToast('Full name saved.', 'success')
+    }
+    setFullNameSaving(false)
   }
 
   function jumpToMyEntry() {
@@ -1543,6 +1641,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           email,
           password,
           displayName: myEntry.display_name || 'Player',
+          fullName: runnerFullNameForEntry(myEntry) || myEntry.display_name || 'Player',
           marketingOptIn: false,
         }),
       })
@@ -1572,6 +1671,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
       return [
         entry.display_name || 'Player',
+        runnerFullNameForEntry(entry),
         runnerEmailForEntry(entry),
         picks.length > 0 ? 'Yes' : 'No',
         entry.is_removed ? 'removed' : 'active',
@@ -1581,7 +1681,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       ]
     })
     const csv = [
-      ['Entry name', 'Email', 'Confirmed', 'Status', 'Picks made', 'Rank', 'Total score'],
+      ['Leaderboard name', 'Full name', 'Email', 'Confirmed', 'Status', 'Picks made', 'Rank', 'Total score'],
       ...rows,
     ].map(row => row.map(csvCell).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
@@ -1838,6 +1938,38 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   return (
     <div className={guestMode ? 'mx-auto max-w-4xl' : undefined}>
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
+      {fullNamePromptOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-[#123c2f]/65 px-4 py-6">
+          <div className="w-full max-w-md border-2 border-[#123c2f] bg-white p-5 shadow-[8px_8px_0_#d8cab0]">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Pool runner note</p>
+            <h2 className="mt-1 text-2xl font-black text-[#123c2f]">Add your name for the pool runner</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#657168]">
+              Your leaderboard name can stay the same. Add your full name so the pool runner knows who joined.
+            </p>
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-bold text-stone-700">Full name</label>
+              <input
+                type="text"
+                value={fullNameValue}
+                onChange={event => setFullNameValue(event.target.value.slice(0, 80))}
+                maxLength={80}
+                autoComplete="name"
+                autoFocus
+                className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0]"
+              />
+              <p className="mt-1 text-xs font-semibold text-stone-500">Only the pool runner sees this.</p>
+            </div>
+            <button
+              type="button"
+              onClick={saveFullNamePrompt}
+              disabled={fullNameSaving || !fullNameValue.trim()}
+              className="mt-4 w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {fullNameSaving ? 'Saving...' : 'Save and continue'}
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       {!guestMode && (
       <div className="mb-6">
@@ -2523,7 +2655,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <div className="border-t border-stone-200 p-4">
                   <div className="grid gap-3 sm:max-w-md">
                     <div className="min-w-0">
-                      <label className="mb-1 block text-sm font-medium text-stone-700">Name on leaderboard</label>
+                      <label className="mb-1 block text-sm font-medium text-stone-700">Leaderboard name</label>
                       <input
                         type="text"
                         value={entryNameValue}
@@ -2533,13 +2665,26 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                       />
                     </div>
+                    <div className="min-w-0">
+                      <label className="mb-1 block text-sm font-medium text-stone-700">Full name</label>
+                      <input
+                        type="text"
+                        value={fullNameValue}
+                        onChange={e => setFullNameValue(e.target.value.slice(0, 80))}
+                        placeholder="Name for the pool runner"
+                        maxLength={80}
+                        autoComplete="name"
+                        className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                      />
+                      <p className="mt-1 text-xs font-semibold text-stone-500">Only the pool runner sees this.</p>
+                    </div>
                   </div>
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs font-semibold text-stone-500">Pool emails and CSV export use your account email.</p>
+                    <p className="text-xs font-semibold text-stone-500">Pool emails use your account email.</p>
                     <button
                       type="button"
                       onClick={saveEntryName}
-                      disabled={entryNameSaving || !entryNameValue.trim() || entryNameValue.trim() === myEntry.display_name}
+                      disabled={entryNameSaving || !entryNameValue.trim() || !fullNameValue.trim() || !entryDetailsDirty}
                       className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {entryNameSaving ? 'Saving...' : 'Save entry details'}

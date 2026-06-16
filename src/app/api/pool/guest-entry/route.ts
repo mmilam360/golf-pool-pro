@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { createGuestEntryToken, guestEntryTokenMatches, hashGuestEntryToken, normalizeEntryDisplayName, normalizeGuestEmail } from '@/lib/guest-entry'
+import { createGuestEntryToken, guestEntryTokenMatches, hashGuestEntryToken, normalizeEntryDisplayName, normalizeFullName, normalizeGuestEmail } from '@/lib/guest-entry'
 
 export const runtime = 'nodejs'
 
 type JoinBody = {
   passcode?: unknown
   displayName?: unknown
+  fullName?: unknown
   notificationEmail?: unknown
 }
 
@@ -14,6 +15,7 @@ type UpdateBody = {
   entryId?: unknown
   token?: unknown
   displayName?: unknown
+  fullName?: unknown
   notificationEmail?: unknown
   golferPicks?: unknown
 }
@@ -60,10 +62,12 @@ export async function POST(request: Request) {
       ? body.passcode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
       : ''
     const displayName = normalizeEntryDisplayName(body.displayName)
+    const fullName = normalizeFullName(body.fullName)
     const notificationEmail = normalizeGuestEmail(body.notificationEmail)
 
     if (passcode.length !== 6) return badRequest('Enter the full pool code from your host.')
     if (!displayName) return badRequest('Enter a leaderboard name.')
+    if (!fullName) return badRequest('Enter your full name for the pool runner.')
     if (body.notificationEmail && typeof body.notificationEmail === 'string' && body.notificationEmail.trim() && !notificationEmail) {
       return badRequest('Enter a valid email address or leave it blank.')
     }
@@ -85,6 +89,7 @@ export async function POST(request: Request) {
       pool_id: pool.id,
       user_id: null,
       display_name: displayName,
+      full_name: fullName,
       notification_email: notificationEmail,
       golfer_picks: [],
       guest_entry_token_hash: hashGuestEntryToken(token),
@@ -144,6 +149,11 @@ export async function PATCH(request: Request) {
       const displayName = normalizeEntryDisplayName(body.displayName)
       if (!displayName) return badRequest('Entry name cannot be blank.')
       update.display_name = displayName
+    }
+    if (body.fullName !== undefined) {
+      const fullName = normalizeFullName(body.fullName)
+      if (!fullName) return badRequest('Enter your full name for the pool runner.')
+      update.full_name = fullName
     }
     if (body.notificationEmail !== undefined) {
       const notificationEmail = normalizeGuestEmail(body.notificationEmail)
