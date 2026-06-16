@@ -321,9 +321,8 @@ function runnerEmailForEntry(entry: any) {
 }
 
 function runnerFullNameForEntry(entry: any) {
-  const entryFullName = typeof entry?.full_name === 'string' ? entry.full_name.trim() : ''
-  const accountFullName = typeof entry?.account_full_name === 'string' ? entry.account_full_name.trim() : ''
-  return entryFullName || accountFullName
+  if (!entry?.full_name_confirmed_at) return ''
+  return typeof entry?.full_name === 'string' ? entry.full_name.trim() : ''
 }
 
 function runnerCanEmailEntry(entry: any) {
@@ -637,7 +636,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const guestLeaderboardUrl = myEntry?.id
     ? `${publicLeaderboardUrl || `/leaderboard/${pool.id}`}?entry=${encodeURIComponent(myEntry.id)}`
     : (publicLeaderboardUrl || `/leaderboard/${pool.id}`)
-  const entryHasSavedFullName = typeof myEntry?.full_name === 'string' && myEntry.full_name.trim().length > 0
+  const entryHasSavedFullName = Boolean(myEntry?.full_name_confirmed_at && typeof myEntry?.full_name === 'string' && myEntry.full_name.trim().length > 0)
   const fullNamePromptOpen = !publicView && Boolean(myEntry && !entryHasSavedFullName)
   const entryDetailsDirty = entryNameValue.trim() !== (myEntry?.display_name || '') || fullNameValue.trim() !== runnerFullNameForEntry(myEntry)
 
@@ -667,7 +666,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const currentEntry = isCurrentEntry(entry)
       const privateMeta = isOwner || currentEntry
         ? {}
-        : { full_name: null, account_full_name: '', notification_email: null, guest_entry_token_hash: null }
+        : { full_name: null, full_name_confirmed_at: null, account_full_name: '', account_full_name_confirmed_at: null, notification_email: null, guest_entry_token_hash: null }
       if (picksAreLocked || currentEntry) return { ...entry, ...ownerWdMeta, ...privateMeta }
       return {
         ...entry,
@@ -692,10 +691,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         .filter((entry: any) => entry.user_id && entry.account_email)
         .map((entry: any) => [entry.user_id, entry.account_email]))
       const accountFullNameByUserId = new Map(entriesRef.current
-        .filter((entry: any) => entry.user_id && entry.account_full_name)
+        .filter((entry: any) => entry.user_id && entry.account_full_name && entry.account_full_name_confirmed_at)
         .map((entry: any) => [entry.user_id, entry.account_full_name]))
+      const accountFullNameConfirmedByUserId = new Map(entriesRef.current
+        .filter((entry: any) => entry.user_id && entry.account_full_name_confirmed_at)
+        .map((entry: any) => [entry.user_id, entry.account_full_name_confirmed_at]))
       const dataWithKnownEmails = data.map((entry: any) => entry.user_id && (accountEmailByUserId.has(entry.user_id) || accountFullNameByUserId.has(entry.user_id))
-        ? { ...entry, account_email: accountEmailByUserId.get(entry.user_id) || '', account_full_name: accountFullNameByUserId.get(entry.user_id) || '' }
+        ? { ...entry, account_email: accountEmailByUserId.get(entry.user_id) || '', account_full_name: accountFullNameByUserId.get(entry.user_id) || '', account_full_name_confirmed_at: accountFullNameConfirmedByUserId.get(entry.user_id) || null }
         : entry)
       const safeData = maskHiddenPicks(dataWithKnownEmails)
       const nextMyEntry = safeData.find(isCurrentEntry) || null
@@ -731,7 +733,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     setEntryNameValue(myEntry?.display_name || '')
     setFullNameValue(runnerFullNameForEntry(myEntry) || '')
     setNotificationEmailValue(myEntry?.notification_email || '')
-  }, [myEntry?.display_name, myEntry?.full_name, myEntry?.account_full_name, myEntry?.notification_email])
+  }, [myEntry?.display_name, myEntry?.full_name, myEntry?.full_name_confirmed_at, myEntry?.notification_email])
 
   async function updateGuestEntry(payload: Record<string, unknown>) {
     if (!myEntry?.id || !guestEntryToken) throw new Error('Missing guest entry token.')
@@ -1196,9 +1198,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       if (guestEntryToken) {
         updatedEntry = await updateGuestEntry({ displayName: nextName, fullName: nextFullName, notificationEmail: nextEmail || null })
       } else {
+        const confirmedAt = new Date().toISOString()
         const result = await supabase
           .from('gpp_entries')
-          .update({ display_name: nextName, full_name: nextFullName } as any)
+          .update({ display_name: nextName, full_name: nextFullName, full_name_confirmed_at: confirmedAt } as any)
           .eq('id', myEntry.id)
           .eq('user_id', userId)
           .select('*')
@@ -1209,7 +1212,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           const { data: { user } } = await supabase.auth.getUser()
           await supabase
             .from('gpp_profiles')
-            .upsert({ id: userId, email: user?.email || '', display_name: nextName, full_name: nextFullName } as any)
+            .upsert({ id: userId, email: user?.email || '', display_name: nextName, full_name: nextFullName, full_name_confirmed_at: new Date().toISOString() } as any)
           if (user) {
             await supabase.auth.updateUser({
               data: {
@@ -1229,7 +1232,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setStatusMessage('Could not update entry details.')
       showToast('Could not update entry details.', 'error')
     } else {
-      const nextEntry = updatedEntry || { ...myEntry, display_name: nextName, full_name: nextFullName, notification_email: nextEmail || null }
+      const nextEntry = updatedEntry || { ...myEntry, display_name: nextName, full_name: nextFullName, full_name_confirmed_at: new Date().toISOString(), notification_email: nextEmail || null }
       setMyEntry(nextEntry)
       setEntries(entries.map(entry => entry.id === myEntry.id ? nextEntry : entry))
       setStatusMessage('Entry details updated.')
@@ -1254,9 +1257,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       if (guestEntryToken) {
         updatedEntry = await updateGuestEntry({ fullName: nextFullName })
       } else {
+        const confirmedAt = new Date().toISOString()
         const result = await supabase
           .from('gpp_entries')
-          .update({ full_name: nextFullName } as any)
+          .update({ full_name: nextFullName, full_name_confirmed_at: confirmedAt } as any)
           .eq('id', myEntry.id)
           .eq('user_id', userId)
           .select('*')
@@ -1268,7 +1272,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           const { data: { user } } = await supabase.auth.getUser()
           await supabase
             .from('gpp_profiles')
-            .upsert({ id: userId, email: user?.email || '', display_name: profileName, full_name: nextFullName } as any)
+            .upsert({ id: userId, email: user?.email || '', display_name: profileName, full_name: nextFullName, full_name_confirmed_at: new Date().toISOString() } as any)
           if (user) {
             await supabase.auth.updateUser({
               data: {
@@ -1286,7 +1290,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (error) {
       showToast('Could not save full name.', 'error')
     } else {
-      const nextEntry = updatedEntry || { ...myEntry, full_name: nextFullName }
+      const nextEntry = updatedEntry || { ...myEntry, full_name: nextFullName, full_name_confirmed_at: new Date().toISOString() }
       setMyEntry(nextEntry)
       setEntries(entries.map(entry => entry.id === myEntry.id ? nextEntry : entry))
       setFullNameValue(nextFullName)

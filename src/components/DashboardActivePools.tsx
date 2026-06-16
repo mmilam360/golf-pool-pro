@@ -13,6 +13,7 @@ import { isGroupedPoolFormat, totalPicksRequired } from '@/lib/pick-counts'
 import { getPickLockBadgeText } from '@/lib/pick-lock-display'
 import { applySavedPoolOrder, movePoolId } from '@/lib/dashboard-pool-order'
 import { trackGppEvent } from '@/lib/posthog-events'
+import { createClient } from '@/lib/supabase/client'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -53,6 +54,8 @@ type EntryRecord = {
   pool_id: string
   display_name: string | null
   golfer_picks: unknown
+  full_name?: string | null
+  full_name_confirmed_at?: string | null
   picks_hidden?: boolean | null
   gpp_pools?: PoolRecord | PoolRecord[] | null
 }
@@ -923,6 +926,7 @@ function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tou
 
 export default function DashboardActivePools({ cards, entriesByPool, mode = 'player', snapshot = false }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner'; snapshot?: boolean }) {
   const router = useRouter()
+  const supabase = useMemo(() => createClient() as any, [])
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set(cards[0]?.pool.id ? [cards[0].pool.id] : []))
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
   const [liveLeaderboardsByExternalId, setLiveLeaderboardsByExternalId] = useState<Record<string, LiveTournamentPayload>>({})
@@ -930,6 +934,10 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const [poolOrder, setPoolOrder] = useState<string[]>(() => cards.map(card => card.pool.id))
   const [poolOrderHydrated, setPoolOrderHydrated] = useState(false)
   const [sortMode, setSortMode] = useState(false)
+  const [fullNameValue, setFullNameValue] = useState('')
+  const [fullNameSaving, setFullNameSaving] = useState(false)
+  const [fullNameError, setFullNameError] = useState('')
+  const [confirmedEntryIds, setConfirmedEntryIds] = useState<Set<string>>(() => new Set())
 
   const storageKey = `${DASHBOARD_POOL_ORDER_STORAGE_KEY}:${mode}`
   const activeCardIds = useMemo(() => cards.map(card => card.pool.id), [cards])
@@ -1071,6 +1079,12 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const activePoolIds = useMemo(() => new Set(activeCardIds), [activeCardIds])
   const canSortPools = mode === 'player' && orderedCards.length > 1
   const useSinglePoolMobileLayout = mode === 'player' && orderedCards.length === 1
+  const missingFullNameCard = useMemo(() => orderedCards.find(card => (
+    card.entry
+    && !confirmedEntryIds.has(card.entry.id)
+    && !(card.entry.full_name_confirmed_at && typeof card.entry.full_name === 'string' && card.entry.full_name.trim())
+  )) || null, [confirmedEntryIds, orderedCards])
+  const missingFullNameEntry = missingFullNameCard?.entry || null
 
   useEffect(() => {
     setExpandedPoolIds(current => {
@@ -1091,10 +1105,79 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     setSortMode(false)
   }, [canSortPools])
 
+  useEffect(() => {
+    if (!missingFullNameEntry) return
+    setFullNameValue('')
+    setFullNameError('')
+  }, [missingFullNameEntry?.id])
+
+  async function saveDashboardFullName() {
+    if (!missingFullNameEntry) return
+    const nextFullName = fullNameValue.trim().replace(/\s+/g, ' ')
+    if (!nextFullName) {
+      setFullNameError('Enter your full name for the pool runner.')
+      return
+    }
+
+    setFullNameSaving(true)
+    setFullNameError('')
+    const confirmedAt = new Date().toISOString()
+    const { error } = await supabase
+      .from('gpp_entries')
+      .update({ full_name: nextFullName, full_name_confirmed_at: confirmedAt } as any)
+      .eq('id', missingFullNameEntry.id)
+
+    if (error) {
+      setFullNameError('Could not save full name. Try again.')
+      setFullNameSaving(false)
+      return
+    }
+
+    setConfirmedEntryIds(current => new Set(current).add(missingFullNameEntry.id))
+    setFullNameSaving(false)
+    router.refresh()
+  }
+
   if (cards.length === 0) return null
 
   return (
     <section className={useSinglePoolMobileLayout ? 'border-0 bg-transparent shadow-none sm:border-2 sm:border-[#123c2f] sm:bg-white sm:shadow-[7px_7px_0_#d8cab0]' : 'border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]'}>
+      {missingFullNameCard && missingFullNameEntry && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-[#123c2f]/65 px-4 py-6">
+          <div className="w-full max-w-md border-2 border-[#123c2f] bg-white p-5 shadow-[8px_8px_0_#d8cab0]">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Pool runner note</p>
+            <h2 className="mt-1 text-2xl font-black text-[#123c2f]">Add your name for the pool runner</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#657168]">
+              Your leaderboard name can stay the same. Add your full name so the pool runner knows who joined.
+            </p>
+            <div className="mt-3 border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-xs font-semibold text-[#657168]">
+              {missingFullNameCard.pool.name} · Leaderboard name: <span className="font-black text-[#123c2f]">{missingFullNameEntry.display_name || 'Entry'}</span>
+            </div>
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-bold text-stone-700">Full name</label>
+              <input
+                type="text"
+                value={fullNameValue}
+                onChange={event => setFullNameValue(event.target.value.slice(0, 80))}
+                maxLength={80}
+                autoComplete="name"
+                autoFocus
+                className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0]"
+              />
+              <p className="mt-1 text-xs font-semibold text-stone-500">Only the pool runner sees this.</p>
+            </div>
+            {fullNameError && <p className="mt-3 border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{fullNameError}</p>}
+            <button
+              type="button"
+              onClick={saveDashboardFullName}
+              disabled={fullNameSaving || !fullNameValue.trim()}
+              className="mt-4 w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {fullNameSaving ? 'Saving...' : 'Save and continue'}
+            </button>
+          </div>
+        </div>
+      )}
       <div className={`${useSinglePoolMobileLayout ? 'hidden sm:flex' : 'flex'} items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-3 py-2 text-white sm:px-5 sm:py-3`}>
         <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#d7c99f] sm:text-xs sm:tracking-[0.22em]">Active pools</h2>
         <div className="flex items-center gap-2">

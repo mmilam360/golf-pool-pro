@@ -63,7 +63,7 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
     const currentEntry = Boolean((user && entry.user_id === user.id) || (guestEntry && entry.id === guestEntry.id))
     const privateMeta = isOwner || currentEntry
       ? {}
-      : { full_name: null, account_full_name: '', notification_email: null, guest_entry_token_hash: null }
+      : { full_name: null, full_name_confirmed_at: null, account_full_name: '', account_full_name_confirmed_at: null, notification_email: null, guest_entry_token_hash: null }
     if (picksAreVisible || currentEntry) return { ...entry, ...ownerWdMeta, ...privateMeta }
     return {
       ...entry,
@@ -80,22 +80,23 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
     const { data: profiles } = accountUserIds.length
       ? await (createServiceClient() as any)
         .from('gpp_profiles')
-        .select('id, email, full_name')
+        .select('id, email, full_name, full_name_confirmed_at')
         .in('id', accountUserIds)
       : { data: [] }
     const emailByUserId = new Map((profiles || []).map((profile: any) => [profile.id, profile.email || '']))
-    const fullNameByUserId = new Map((profiles || []).map((profile: any) => [profile.id, profile.full_name || '']))
+    const fullNameByUserId = new Map((profiles || []).map((profile: any) => [profile.id, profile.full_name_confirmed_at ? profile.full_name || '' : '']))
+    const fullNameConfirmedByUserId = new Map((profiles || []).map((profile: any) => [profile.id, profile.full_name_confirmed_at || null]))
     safeEntries = safeEntries.map((entry: any) => entry.user_id
-      ? { ...entry, account_email: emailByUserId.get(entry.user_id) || '', account_full_name: fullNameByUserId.get(entry.user_id) || '' }
+      ? { ...entry, account_email: emailByUserId.get(entry.user_id) || '', account_full_name: fullNameByUserId.get(entry.user_id) || '', account_full_name_confirmed_at: fullNameConfirmedByUserId.get(entry.user_id) || null }
       : entry)
   } else if (user) {
     const { data: profile } = await (createServiceClient() as any)
       .from('gpp_profiles')
-      .select('full_name')
+      .select('full_name, full_name_confirmed_at')
       .eq('id', user.id)
       .maybeSingle()
     safeEntries = safeEntries.map((entry: any) => entry.user_id === user.id
-      ? { ...entry, account_full_name: profile?.full_name || '' }
+      ? { ...entry, account_full_name: profile?.full_name_confirmed_at ? profile?.full_name || '' : '', account_full_name_confirmed_at: profile?.full_name_confirmed_at || null }
       : entry)
   }
 

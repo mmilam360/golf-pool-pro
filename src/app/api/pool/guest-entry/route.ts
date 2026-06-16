@@ -90,6 +90,7 @@ export async function POST(request: Request) {
       user_id: null,
       display_name: displayName,
       full_name: fullName,
+      full_name_confirmed_at: new Date().toISOString(),
       notification_email: notificationEmail,
       golfer_picks: [],
       guest_entry_token_hash: hashGuestEntryToken(token),
@@ -154,6 +155,7 @@ export async function PATCH(request: Request) {
       const fullName = normalizeFullName(body.fullName)
       if (!fullName) return badRequest('Enter your full name for the pool runner.')
       update.full_name = fullName
+      update.full_name_confirmed_at = new Date().toISOString()
     }
     if (body.notificationEmail !== undefined) {
       const notificationEmail = normalizeGuestEmail(body.notificationEmail)

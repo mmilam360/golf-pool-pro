@@ -50,13 +50,13 @@ export default function JoinPoolPage() {
 
       const { data: profile } = await supabase
         .from('gpp_profiles')
-        .select('display_name, full_name')
+        .select('display_name, full_name, full_name_confirmed_at')
         .eq('id', user.id)
         .maybeSingle()
 
       if (cancelled) return
       const accountName = profile?.display_name?.trim() || user.email?.split('@')[0] || ''
-      const accountFullName = profile?.full_name?.trim() || (typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name.trim() : '')
+      const accountFullName = profile?.full_name_confirmed_at ? profile?.full_name?.trim() || '' : ''
       setIsSignedIn(true)
       setGuestName(current => current.trim() ? current : accountName)
       setFullName(current => current.trim() ? current : accountFullName)
@@ -187,9 +187,10 @@ export default function JoinPoolPage() {
       setLoading(false); return
     }
 
+    const confirmedAt = new Date().toISOString()
     const { error: profileError } = await supabase
       .from('gpp_profiles')
-      .upsert({ id: user.id, email: user.email || '', display_name: displayName, full_name: runnerName })
+      .upsert({ id: user.id, email: user.email || '', display_name: displayName, full_name: runnerName, full_name_confirmed_at: confirmedAt })
 
     if (profileError) {
       setError('Leaderboard name could not be saved. Try again.')
@@ -224,6 +225,7 @@ export default function JoinPoolPage() {
         user_id: user.id,
         display_name: displayName,
         full_name: runnerName,
+        full_name_confirmed_at: confirmedAt,
         golfer_picks: [],
       })
 

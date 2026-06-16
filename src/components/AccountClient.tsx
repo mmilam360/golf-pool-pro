@@ -157,7 +157,7 @@ export default function AccountClient({ initialEmail, initialName, initialFullNa
 
     const { error: profileError } = await supabase
       .from('gpp_profiles')
-      .upsert({ id: user.id, email: user.email || email, display_name: trimmedName, full_name: trimmedFullName })
+      .upsert({ id: user.id, email: user.email || email, display_name: trimmedName, full_name: trimmedFullName, full_name_confirmed_at: new Date().toISOString() })
 
     if (profileError) {
       setToast({ message: 'Name could not be saved. Try again.', tone: 'error' })
