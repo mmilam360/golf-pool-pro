@@ -5,6 +5,13 @@ type SendEmailInput = {
   html: string
 }
 
+export function outboundEmailHeaders() {
+  return {
+    from: process.env.ENTRY_EMAIL_FROM || 'Golf Pools Pro <no-reply@golfpoolspro.com>',
+    reply_to: process.env.TRANSACTIONAL_EMAIL_REPLY_TO || 'no-reply@golfpoolspro.com',
+  }
+}
+
 export async function sendEmail({ to, subject, text, html }: SendEmailInput) {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
@@ -12,14 +19,13 @@ export async function sendEmail({ to, subject, text, html }: SendEmailInput) {
     return { skipped: true }
   }
 
-  const from = process.env.ENTRY_EMAIL_FROM || 'Golf Pools Pro <hello@golfpoolspro.com>'
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from, to, subject, text, html, reply_to: 'hello@golfpoolspro.com' }),
+    body: JSON.stringify({ ...outboundEmailHeaders(), to, subject, text, html }),
   })
 
   if (!response.ok) {
