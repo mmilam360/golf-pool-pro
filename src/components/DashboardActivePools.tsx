@@ -325,15 +325,25 @@ function poolIsOpenForPicks(pool: PoolRecord, tournament: Tournament | null) {
   return !pool.is_locked && !pool.is_completed && tournament?.status !== 'live' && tournament?.status !== 'completed'
 }
 
-function OpenPicksBar({ pool, tournament, mode }: { pool: PoolRecord; tournament: Tournament | null; mode: 'player' | 'runner' }) {
-  if (mode === 'player') return null
+function OpenPicksBar({ pool, tournament, mode, entry }: { pool: PoolRecord; tournament: Tournament | null; mode: 'player' | 'runner'; entry?: EntryRecord | null }) {
   if (!poolIsOpenForPicks(pool, tournament)) return null
+  const groupedPending = isGroupedFormat(pool) && !pool.groups_finalized_at
+  const picked = entryPicks(entry).length
+  const needed = totalPicksNeeded(pool)
   const href = mode === 'runner' ? `/pool/${pool.id}?tab=pool-settings` : `/pool/${pool.id}#make-picks`
-  const label = mode === 'runner' ? 'Settings' : 'Edit picks'
+  const label = mode === 'runner' ? 'Settings' : groupedPending ? 'View groups' : picked > 0 ? 'Edit picks' : 'Make picks'
+  const ariaLabel = mode === 'runner' ? `Open settings for ${pool.name}` : `${label} for ${pool.name}`
+
   return (
     <div className="mb-3 flex items-center justify-between gap-2 border border-[#d8cab0] bg-white px-2 py-2 text-[clamp(0.58rem,2.25vw,0.75rem)] font-black uppercase tracking-[0.08em] text-[#123c2f] sm:px-3">
-      <span className="min-w-0 whitespace-nowrap text-[#657168]">Event starts: <span className="text-[#123c2f]">{formatEventDate(tournament?.start_date)}</span></span>
-      <a href={href} className="inline-flex shrink-0 items-center gap-1 border border-[#123c2f] bg-[#fbf7ed] px-2 py-1.5 text-[#123c2f] hover:bg-[#fff4cf] sm:px-3" aria-label={mode === 'runner' ? `Open settings for ${pool.name}` : `Edit picks for ${pool.name}`}>
+      {mode === 'runner' ? (
+        <span className="min-w-0 whitespace-nowrap text-[#657168]">Event starts: <span className="text-[#123c2f]">{formatEventDate(tournament?.start_date)}</span></span>
+      ) : groupedPending ? (
+        <span className="min-w-0 whitespace-nowrap text-[#8a6724]">Groups pending</span>
+      ) : (
+        <span className="min-w-0 whitespace-nowrap text-[#657168]"><span className="text-[#123c2f]">{picked}/{needed}</span> picks</span>
+      )}
+      <a href={href} className="inline-flex shrink-0 items-center gap-1 border border-[#123c2f] bg-[#fbf7ed] px-2 py-1.5 text-[#123c2f] hover:bg-[#fff4cf] sm:px-3" aria-label={ariaLabel}>
         {mode === 'runner' ? (
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
             <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
@@ -608,7 +618,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   if (scoredEntries.length === 0) {
     return (
       <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-4 py-4 sm:px-5">
-        <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
+        <OpenPicksBar pool={pool} tournament={tournament} mode={mode} entry={currentEntryRecord} />
       </div>
     )
   }
@@ -629,7 +639,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
           </div>
         </div>
       ) : null}
-      <OpenPicksBar pool={pool} tournament={tournament} mode={mode} />
+      <OpenPicksBar pool={pool} tournament={tournament} mode={mode} entry={currentEntryRecord} />
       {showMyEntryBar && currentScoredEntry ? (
         <div className={`mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] transition-opacity duration-150 sm:px-3 ${inlineMyEntryBarClass}`}>
           <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
