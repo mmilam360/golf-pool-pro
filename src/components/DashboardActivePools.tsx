@@ -906,14 +906,14 @@ function PickProgressBadge({ entry, pool, tournament }: { entry?: EntryRecord | 
   if (!canShowPickBadge(pool, tournament ?? null)) return null
   if (done) {
     return (
-      <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#1f6b4a] bg-[#eef7ef] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#1f6b4a]">
+      <span className="inline-flex min-h-6 items-center gap-1 whitespace-nowrap border border-[#1f6b4a] bg-[#eef7ef] px-2 py-1 text-[10px] font-black uppercase leading-none tracking-[0.1em] text-[#1f6b4a]">
         <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"><path d="M2 6l3 3 5-5" /></svg>
         {count}/{needed} picks
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">
+    <span className="inline-flex min-h-6 items-center gap-1 whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[10px] font-black uppercase leading-none tracking-[0.1em] text-[#7a5a19]">
       <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="square"><circle cx="6" cy="6" r="4.5" /><path d="M6 3.5v3M6 7.5v1" /></svg>
       {count}/{needed} picks
     </span>
@@ -929,7 +929,7 @@ function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tou
   })
   if (!formatted) return null
   return (
-    <span className="whitespace-nowrap border border-[#f0c8c3] bg-[#fff1ef] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.06em] text-[#b21e23] sm:px-2 sm:py-1 sm:text-[10px]">
+    <span className="inline-flex min-h-6 items-center whitespace-nowrap border border-[#f0c8c3] bg-[#fff1ef] px-2 py-1 text-[10px] font-black uppercase leading-none tracking-[0.1em] text-[#b21e23]">
       Lock {formatted} ET
     </span>
   )

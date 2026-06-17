@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { reserveEmailEvent, finishEmailEvent } from '@/lib/email-events'
 import { guestEntryTokenMatches } from '@/lib/guest-entry'
 import { sendEmail } from '@/lib/email'
 
@@ -51,6 +52,9 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
     throw new Error('Unauthorized')
   }
 
+  if (entry.user_id) return { skipped: true, reason: 'account_entry' }
+  if (!token) return { skipped: true, reason: 'guest_token_required' }
+
   const { data: pool, error: poolError } = await supabase
     .from('gpp_pools')
     .select('id, name, is_locked, pick_count, game_format, picks_per_group, pick_groups_json, gpp_tournaments(name, start_date)')
@@ -58,21 +62,7 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
     .maybeSingle()
   if (poolError || !pool) throw new Error('Pool not found')
 
-  let recipient = ''
-  if (entry.user_id) {
-    const { data: userResult } = await supabase.auth.admin.getUserById(entry.user_id)
-    recipient = userResult?.user?.email || ''
-    if (!recipient) {
-      const { data: profile } = await supabase
-        .from('gpp_profiles')
-        .select('email')
-        .eq('id', entry.user_id)
-        .maybeSingle()
-      recipient = profile?.email || ''
-    }
-  } else {
-    recipient = entry.notification_email || ''
-  }
+  const recipient = entry.notification_email || ''
   if (!recipient) return { skipped: true, reason: 'no_recipient' }
 
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
@@ -174,5 +164,26 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
     </div>
   `
 
-  return sendEmail({ to: recipient, subject, text, html })
+  const event = await reserveEmailEvent(supabase, {
+    poolId,
+    entryId,
+    emailType: 'entry_saved',
+    dedupeKey: `entry_saved:${poolId}:${entryId}`,
+    recipient,
+    payload: { poolName, entryName, tournamentName },
+  })
+  if (!event.reserved) return { skipped: true, reason: 'duplicate_entry_saved_email' }
+
+  try {
+    const result = await sendEmail({ to: recipient, subject, text, html })
+    if ((result as any)?.sent === false || (result as any)?.skipped) {
+      await finishEmailEvent(supabase, event.id, 'skipped', JSON.stringify(result).slice(0, 300))
+    } else {
+      await finishEmailEvent(supabase, event.id, 'sent')
+    }
+    return result
+  } catch (error: any) {
+    await finishEmailEvent(supabase, event.id, 'failed', error?.message || 'Email failed')
+    throw error
+  }
 }

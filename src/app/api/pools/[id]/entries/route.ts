@@ -57,6 +57,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json().catch(() => ({}))
+  const action = typeof body.action === 'string' ? body.action : 'remove'
   const entryId = typeof body.entryId === 'string' ? body.entryId : ''
   const removedReason = typeof body.removedReason === 'string' ? body.removedReason.trim().slice(0, 200) : ''
   if (!entryId) return NextResponse.json({ error: 'Missing entry.' }, { status: 400 })
@@ -68,12 +69,34 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .eq('id', id)
     .maybeSingle()
   if (poolError || !pool) return NextResponse.json({ error: 'Pool not found.' }, { status: 404 })
-  if (pool.owner_id !== user.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
   if (pool.is_locked || pool.is_completed || tournament?.status === 'live' || tournament?.status === 'completed') {
     return NextResponse.json({ error: 'Entries are locked for this pool.' }, { status: 409 })
   }
+
+  if (action === 'leave') {
+    if (pool.owner_id === user.id) {
+      return NextResponse.json({ error: 'Pool runners cannot leave their own pool.' }, { status: 403 })
+    }
+
+    const { data: updatedEntry, error: updateError } = await serviceSupabase
+      .from('gpp_entries')
+      .update({ is_removed: true, removed_reason: 'Left pool', removed_at: new Date().toISOString() })
+      .eq('id', entryId)
+      .eq('pool_id', id)
+      .eq('user_id', user.id)
+      .eq('is_removed', false)
+      .select('id')
+      .maybeSingle()
+
+    if (updateError) return NextResponse.json({ error: updateError.message || 'Could not leave pool.' }, { status: 500 })
+    if (!updatedEntry?.id) return NextResponse.json({ error: 'Entry not found.' }, { status: 404 })
+
+    return NextResponse.json({ ok: true })
+  }
+
+  if (pool.owner_id !== user.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
   const { data: updatedEntry, error: updateError } = await serviceSupabase
     .from('gpp_entries')

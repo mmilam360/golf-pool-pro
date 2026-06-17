@@ -1239,11 +1239,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setStatusMessage('Picks saved.')
       showToast('Picks saved.', 'success')
-      fetch('/api/pools/entry-saved-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poolId: pool.id, entryId: myEntry.id, token: guestEntryToken || null }),
-      }).catch(() => {})
       if (guestEntryToken) {
         setGuestSaveStep('email')
         setShowGuestSavePanel(true)
@@ -1406,20 +1401,30 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     })
   }
 
-  // Remove entry (admin)
+  // Remove entry: owners can remove entrants; signed-in non-owners can leave their own unlocked pool.
   async function removeEntry(entryId: string) {
+    const leavingOwnEntry = !isOwner && myEntry?.id === entryId
     const res = await fetch(`/api/pools/${pool.id}/entries`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ entryId, removedReason: removeReason }),
+      body: JSON.stringify(leavingOwnEntry ? { action: 'leave', entryId } : { entryId, removedReason: removeReason }),
     })
     if (res.ok) {
-      setEntries(entries.map(e => e.id === entryId ? { ...e, is_removed: true, removed_reason: removeReason } : e))
+      setEntries(entries.map(e => e.id === entryId ? { ...e, is_removed: true, removed_reason: leavingOwnEntry ? 'Left pool' : removeReason } : e))
       setRemoveTarget(null); setRemoveReason('')
-      showToast('Entry removed.', 'success')
+      if (leavingOwnEntry) {
+        setMyEntry(null)
+        setMyPicks([])
+        setEntryNameValue('')
+        setFullNameValue('')
+        showToast('You left the pool.', 'success')
+      } else {
+        showToast('Entry removed.', 'success')
+      }
+      router.refresh()
     } else {
       const data = await res.json().catch(() => ({}))
-      showToast(data.error || 'Could not remove entry.', 'error')
+      showToast(data.error || (leavingOwnEntry ? 'Could not leave pool.' : 'Could not remove entry.'), 'error')
     }
   }
 
@@ -1685,17 +1690,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
 
     setGuestEmailSaving(true)
+    const hadNotificationEmail = Boolean(myEntry.notification_email?.trim())
     try {
       const updatedEntry = await updateGuestEntry({ notificationEmail: email })
       setMyEntry(updatedEntry)
       setEntries(current => current.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setNotificationEmailValue(email)
-      await fetch('/api/pools/entry-saved-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poolId: pool.id, entryId: myEntry.id, token: guestEntryToken }),
-      }).catch(() => {})
-      showToast('Email saved. We sent your entry link.', 'success')
+      if (!hadNotificationEmail) {
+        await fetch('/api/pools/entry-saved-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ poolId: pool.id, entryId: myEntry.id, token: guestEntryToken }),
+        }).catch(() => {})
+      }
+      showToast(hadNotificationEmail ? 'Email updated.' : 'Email saved. We sent your entry link.', 'success')
       setGuestSaveStep('account')
     } catch (error: any) {
       showToast(error?.message || 'Could not save email.', 'error')
@@ -2068,6 +2076,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       </div>
     </section>
   ) : null
+
+  const removingOwnEntry = Boolean(removeTarget && !isOwner && myEntry?.id === removeTarget)
 
   return (
     <div className={guestMode ? 'mx-auto max-w-4xl' : undefined}>
@@ -3180,22 +3190,26 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
           {/* Remove confirmation modal */}
           {removeTarget && (
-            <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm flex items-center justify-center z-50">
-              <div className="bg-white rounded-none p-6 border border-stone-200 max-w-sm w-full mx-4 shadow-2xl">
-                <h3 className="text-lg font-semibold mb-3 text-emerald-950">Remove entry</h3>
-                <p className="text-stone-600 text-sm mb-4">Remove this person from the pool? They won't be able to rejoin.</p>
-                <input
-                  type="text"
-                  value={removeReason}
-                  onChange={e => setRemoveReason(e.target.value)}
-                  placeholder="Reason"
-                  className="w-full bg-white border border-stone-300 rounded-none px-4 py-2 text-stone-900 text-sm mb-4 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-                />
-                <div className="flex gap-3 justify-end">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4 backdrop-blur-sm">
+              <div className="w-full max-w-sm rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[8px_8px_0_#d8cab0]">
+                <h3 className="mb-3 text-lg font-black text-[#123c2f]">{removingOwnEntry ? 'Leave pool' : 'Remove entry'}</h3>
+                <p className="mb-4 text-sm font-semibold leading-6 text-stone-700">
+                  {removingOwnEntry ? `Leave ${poolName}? Your picks will be removed.` : "Remove this person from the pool? They won't be able to rejoin."}
+                </p>
+                {!removingOwnEntry && (
+                  <input
+                    type="text"
+                    value={removeReason}
+                    onChange={e => setRemoveReason(e.target.value)}
+                    placeholder="Reason"
+                    className="mb-4 w-full rounded-none border border-stone-300 bg-white px-4 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  />
+                )}
+                <div className="flex justify-end gap-3">
                   <button onClick={() => { setRemoveTarget(null); setRemoveReason('') }}
-                    className="text-stone-600 hover:text-stone-900 px-4 py-2 text-sm">Cancel</button>
+                    className="px-4 py-2 text-sm font-semibold text-stone-600 hover:text-stone-900">Cancel</button>
                   <button onClick={() => removeEntry(removeTarget)}
-                    className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-none text-sm">Remove</button>
+                    className="rounded-none bg-[#b21e23] px-4 py-2 text-sm font-black uppercase text-white hover:bg-[#8a1719]">{removingOwnEntry ? 'Leave pool' : 'Remove'}</button>
                 </div>
               </div>
             </div>

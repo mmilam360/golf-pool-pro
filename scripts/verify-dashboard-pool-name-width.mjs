@@ -28,5 +28,11 @@ assert.ok(
   poolView.includes('className="mx-auto mt-1 max-w-[98%] truncate text-[10px] font-black uppercase tracking-[0.04em] text-[#005b3c] sm:text-xs sm:tracking-[0.08em]" title={poolName}>{poolName}</p>'),
   'pool page board subtitle should match the wider/lower-tracking pool-name treatment'
 )
+assert.ok(
+  dashboard.includes('inline-flex min-h-6 items-center gap-1 whitespace-nowrap border border-[#1f6b4a]') &&
+  dashboard.includes('inline-flex min-h-6 items-center gap-1 whitespace-nowrap border border-[#b58a3a]') &&
+  dashboard.includes('inline-flex min-h-6 items-center whitespace-nowrap border border-[#f0c8c3]'),
+  'dashboard pick-count and lock badges should share the same compact height and baseline treatment'
+)
 
 console.log('dashboard pool-name width verified')
