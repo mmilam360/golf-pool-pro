@@ -666,7 +666,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
           <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
             <div className="relative border-b-2 border-[#111] px-3 py-2">
               <p className="mx-auto max-w-[94%] text-[clamp(0.8rem,5vw,1.25rem)] font-black uppercase leading-[0.95] tracking-[clamp(0.025em,1.1vw,0.1em)] text-[#111] [text-wrap:balance] sm:text-2xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
-              <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.12em] text-[#005b3c] sm:text-xs">{pool.name}</p>
+              <p className="mx-auto mt-1 max-w-[98%] truncate text-[10px] font-black uppercase tracking-[0.04em] text-[#005b3c] sm:text-xs sm:tracking-[0.08em]" title={pool.name}>{pool.name}</p>
               <div className="mt-1 flex w-full flex-wrap items-center justify-center gap-1.5">
                 {showJumpToMyEntry ? (
                   <button type="button" onClick={jumpToCurrentEntry} className="inline-flex border-2 border-[#123c2f] bg-white px-2 py-1 text-[9px] font-black uppercase leading-none tracking-[0.08em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] hover:bg-[#fff4cf] sm:px-2.5 sm:text-[10px]">
@@ -1161,12 +1161,12 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
               className={`${useSinglePoolMobileLayout ? 'bg-transparent sm:bg-white' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'} group`}
             >
               <summary className={`${useSinglePoolMobileLayout ? 'hidden sm:block' : 'block'} cursor-pointer list-none px-2.5 py-2 transition-colors hover:bg-[#fff8e8] sm:px-5 sm:py-3 [&::-webkit-details-marker]:hidden`}>
-                <div className="grid min-h-10 min-w-0 grid-cols-[32px_minmax(0,1fr)_64px_96px] items-center gap-1.5 sm:min-h-11 sm:grid-cols-[40px_minmax(0,1fr)_86px_132px] sm:gap-3">
+                <div className={`grid min-h-10 min-w-0 items-center gap-1 sm:min-h-11 sm:gap-2 ${eventBegun ? 'grid-cols-[32px_minmax(0,1fr)_auto_78px] sm:grid-cols-[40px_minmax(0,1fr)_auto_108px]' : 'grid-cols-[32px_minmax(0,1fr)_auto] sm:grid-cols-[40px_minmax(0,1fr)_auto]'}`}>
                   <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center border border-[#123c2f] ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'} sm:h-9 sm:w-9`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
                   <div className="flex min-w-0 items-center gap-1.5">
-                    <p className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg">{pool.name}</p>
+                    <p className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg" title={pool.name}>{pool.name}</p>
                     {canReorderPools ? (
                       <span className="inline-flex shrink-0 flex-col border border-[#123c2f] bg-white text-[#123c2f]">
                         <button
@@ -1226,7 +1226,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                         </>
                       )}
                     </div>
-                  ) : <div />}
+                  ) : null}
                 </div>
                 <div className={`${canReorderPools || eventBegun ? 'hidden' : 'mt-1.5 flex'} min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.07em] text-[#657168] sm:gap-2 sm:text-[11px] sm:tracking-[0.1em]`}>
                   {!eventBegun && rankPreview?.rank ? <span className="whitespace-nowrap border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[#7a5a19] sm:px-2 sm:py-1">#{rankPreview.rank}</span> : null}
