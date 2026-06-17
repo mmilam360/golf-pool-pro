@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 
 const poolView = readFileSync('src/app/(app)/pool/[id]/PoolView.tsx', 'utf8')
 const dashboardActivePools = readFileSync('src/components/DashboardActivePools.tsx', 'utf8')
+const mobileInstallPrompt = readFileSync('src/components/MobileInstallPrompt.tsx', 'utf8')
 const tournamentSync = readFileSync('src/lib/tournament-sync.ts', 'utf8')
 
 assert.ok(
@@ -64,6 +65,18 @@ assert.ok(
 assert.ok(
   poolView.includes("if (settingsRequested) {\n        setTab('pool-settings')"),
   'owner pool-settings route should still take precedence over #make-picks'
+)
+assert.ok(
+  mobileInstallPrompt.includes("const [hash, setHash] = useState('')"),
+  'mobile install prompt should track URL hash so edit-picks routes can opt out'
+)
+assert.ok(
+  mobileInstallPrompt.includes("const editPicksRoute = /^\\/pool\\/[^/]+$/.test(pathname) && hash === '#make-picks'"),
+  'mobile install prompt should identify pool edit-picks routes'
+)
+assert.ok(
+  mobileInstallPrompt.includes("const shouldOfferInstall = !editPicksRoute && (pathname === '/dashboard' || /^\\/pool\\/[^/]+$/.test(pathname))"),
+  'mobile install prompt should stay hidden on the edit-picks route while remaining available on dashboard and normal pool pages'
 )
 
 console.log('edit-picks simplified route verified')

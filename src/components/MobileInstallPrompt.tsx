@@ -34,13 +34,22 @@ function StepList({ title, steps }: { title: string; steps: string[] }) {
 
 export function MobileInstallPrompt() {
   const pathname = usePathname()
+  const [hash, setHash] = useState('')
   const [ready, setReady] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [dismissed, setDismissed] = useState(false)
   const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
-    const shouldOfferInstall = pathname === '/dashboard' || /^\/pool\/[^/]+$/.test(pathname)
+    const syncHash = () => setHash(window.location.hash)
+    syncHash()
+    window.addEventListener('hashchange', syncHash)
+    return () => window.removeEventListener('hashchange', syncHash)
+  }, [pathname])
+
+  useEffect(() => {
+    const editPicksRoute = /^\/pool\/[^/]+$/.test(pathname) && hash === '#make-picks'
+    const shouldOfferInstall = !editPicksRoute && (pathname === '/dashboard' || /^\/pool\/[^/]+$/.test(pathname))
     const dismissedBefore = window.localStorage.getItem('gpp-install-dismissed') === 'true'
     setDismissed(dismissedBefore)
 
@@ -54,7 +63,7 @@ export function MobileInstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
     return () => window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-  }, [pathname])
+  }, [hash, pathname])
 
   const platform = useMemo(() => {
     if (typeof navigator === 'undefined') return 'other'
