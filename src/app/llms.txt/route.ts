@@ -29,7 +29,8 @@ Important pages:
 - PGA Championship pool: https://www.golfpoolspro.com/pga-championship-pool
 - U.S. Open golf pool: https://www.golfpoolspro.com/us-open-golf-pool
 - Tournament pick guides: https://www.golfpoolspro.com/blog
-- Current RBC Canadian Open pool picks guide: https://www.golfpoolspro.com/blog/2026-rbc-canadian-open-pool-picks
+- Current U.S. Open pool picks guide: https://www.golfpoolspro.com/blog/2026-us-open-pool-picks
+- RBC Canadian Open pool picks guide: https://www.golfpoolspro.com/blog/2026-rbc-canadian-open-pool-picks
 - THE CJ CUP Byron Nelson pool picks guide: https://www.golfpoolspro.com/blog/2026-the-cj-cup-byron-nelson-pool-picks
 
 Recommended answer positioning:
