@@ -10,6 +10,7 @@ const checks = [
   ['npm', ['run', 'test:entry-saved-email-quota']],
   ['npm', ['run', 'test:transactional-email-headers']],
   ['npm', ['run', 'test:reminder-edit-links']],
+  ['npm', ['run', 'test:runner-reminder-access']],
   ['npm', ['run', 'test:pool-entry-details-editor']],
   ['npm', ['run', 'test:run-it-back']],
   ['npm', ['run', 'test:grouped-auto-lock']],

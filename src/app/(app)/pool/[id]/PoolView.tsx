@@ -443,7 +443,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       if (settingsRequested) {
         setTab('pool-settings')
-        window.setTimeout(() => adminSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+        window.setTimeout(() => {
+          const scrollTarget = window.location.hash === '#pick-reminders'
+            ? document.getElementById('pick-reminders')
+            : adminSectionRef.current
+          scrollTarget?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 80)
       } else if (editPicksRoute) {
         setTab('my-entry')
         window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
@@ -2992,7 +2997,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           </section>
 
           {!picksAreLocked && (
-            <section className="border border-[#d8cab0] bg-[#fbf7ed] p-5 shadow-[5px_5px_0_#d8cab0]">
+            <section id="pick-reminders" className="scroll-mt-6 border border-[#d8cab0] bg-[#fbf7ed] p-5 shadow-[5px_5px_0_#d8cab0]">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6724]">Pick reminders</p>

@@ -3,12 +3,17 @@ import AppHeader from '@/components/AppHeader'
 import RunnerIncompletePicksReminder from '@/components/RunnerIncompletePicksReminder'
 import FullNameConfirmationPrompt from '@/components/FullNameConfirmationPrompt'
 import { createClient } from '@/lib/supabase/server'
+import { totalPicksRequired } from '@/lib/pick-counts'
 
 type RunnerPool = {
   id: string
   name: string
   pick_count?: number | null
+  count_scores?: number | null
   game_format?: string | null
+  group_count?: number | null
+  picks_per_group?: number | null
+  pick_groups_json?: unknown | null
   groups_finalized_at?: string | null
   is_locked?: boolean | null
   is_completed?: boolean | null
@@ -101,7 +106,7 @@ async function getRunnerIncompletePickReminders(): Promise<RunnerReminderPool[]>
 
   const { data: pools } = await supabase
     .from('gpp_pools')
-    .select('id, name, pick_count, game_format, groups_finalized_at, is_locked, is_completed, gpp_tournaments(status)')
+    .select('id, name, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, is_locked, is_completed, gpp_tournaments(status)')
     .eq('owner_id', user.id)
     .eq('is_completed', false)
     .order('created_at', { ascending: false })
@@ -129,7 +134,7 @@ async function getRunnerIncompletePickReminders(): Promise<RunnerReminderPool[]>
   return openPools
     .map(pool => {
       const poolEntries = entriesByPool[pool.id] || []
-      const requiredPickCount = Number(pool.pick_count || 0)
+      const requiredPickCount = totalPicksRequired(pool)
       if (poolEntries.length === 0 || requiredPickCount <= 0) return null
       const incompleteEntries = poolEntries
         .map(entry => {

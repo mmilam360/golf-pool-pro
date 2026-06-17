@@ -8,8 +8,10 @@ import { getPoolPaymentQuote, getPoolPaymentStatus, formatMoney } from '@/lib/pa
 import { selectNextRunItBackTournament } from '@/lib/run-it-back'
 import { scoreEntriesForLeaderboard, type ScoredEntry } from '@/lib/scoring'
 import ClaimedPromoBanner from '@/components/ClaimedPromoBanner'
+import RunnerMissingPicksEmailButton from '@/components/RunnerMissingPicksEmailButton'
 import { displayTournamentName } from '@/lib/tournament-name'
 import { frozenResultsForEntries, hasCompleteFrozenResults } from '@/lib/frozen-results'
+import { totalPicksRequired } from '@/lib/pick-counts'
 import type { GolfPlayer } from '@/lib/golf-api'
 import { hydrateFinalLeaderboard } from '@/lib/fresh-final-leaderboard'
 
@@ -249,34 +251,62 @@ function CurrentPoolCard({ pool, entries }: { pool: PoolRecord; entries: EntryRe
   const label = statusLabel(pool, tournament)
   const showInvitePrep = canShowInvitePrep(pool, tournament)
   const format = formatPoolFormat(pool)
+  const picksClosed = Boolean(pool.is_locked || pool.is_completed || tournament?.status === 'live' || tournament?.status === 'completed')
+  const requiredPickCount = totalPicksRequired(pool)
+  const entriesNeedingPicks = picksClosed || requiredPickCount <= 0
+    ? []
+    : entries.filter(entry => {
+      const picks = Array.isArray(entry.golfer_picks) ? entry.golfer_picks : []
+      return picks.length < requiredPickCount
+    })
+  const picksInCount = Math.max(activeEntryCount - entriesNeedingPicks.length, 0)
+  const remindersHref = `/pool/${pool.id}?tab=pool-settings#pick-reminders`
 
   return (
-    <Link href={`/pool/${pool.id}?tab=pool-settings`} className="block border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0] transition-colors hover:bg-[#fffdf8] focus:outline-none focus:ring-4 focus:ring-[#f3df9c]" aria-label={`Open settings for ${pool.name}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h3 className="break-words text-xl font-black leading-tight text-[#0f2f25]">{pool.name}</h3>
-            {showInvitePrep ? (
-              <span className="shrink-0 border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">Invite</span>
-            ) : null}
+    <div className="border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0] transition-colors hover:bg-[#fffdf8]">
+      <Link href={`/pool/${pool.id}?tab=pool-settings`} className="block focus:outline-none focus:ring-4 focus:ring-[#f3df9c]" aria-label={`Open settings for ${pool.name}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h3 className="break-words text-xl font-black leading-tight text-[#0f2f25]">{pool.name}</h3>
+              {showInvitePrep ? (
+                <span className="shrink-0 border border-[#b58a3a] bg-[#fff4cf] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#7a5a19]">Invite</span>
+              ) : null}
+            </div>
+            <p className="mt-1 text-sm font-bold leading-5 text-[#1f2a24]">{tournamentName}</p>
+            <p className="mt-0.5 font-mono text-xs text-[#657168]">{formatDateRange(tournament?.start_date, tournament?.end_date)}</p>
           </div>
-          <p className="mt-1 text-sm font-bold leading-5 text-[#1f2a24]">{tournamentName}</p>
-          <p className="mt-0.5 font-mono text-xs text-[#657168]">{formatDateRange(tournament?.start_date, tournament?.end_date)}</p>
+          <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
         </div>
-        <StatusBadge label={label} locked={Boolean(pool.is_locked)} />
-      </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <QuickStat label="Entrants" value={String(activeEntryCount)} />
-        <FormatStat name={format.name} detail={format.detail} />
-        <QuickStat label="Fee" value={feeStatus(pool, activeEntryCount, tournament)} />
-        <QuickStat label="Status" value={lockSummary(pool, tournament)} />
-      </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <QuickStat label="Entrants" value={String(activeEntryCount)} />
+          <FormatStat name={format.name} detail={format.detail} />
+          <QuickStat label="Picks in" value={`${picksInCount}/${activeEntryCount}`} />
+          <QuickStat label="Fee" value={feeStatus(pool, activeEntryCount, tournament)} />
+          <QuickStat label="Status" value={lockSummary(pool, tournament)} />
+        </div>
+      </Link>
 
-      <p className="mt-3 border-t border-[#eadfca] pt-3 text-right text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
+      {entriesNeedingPicks.length > 0 ? (
+        <div className="mt-3 border-t border-[#eadfca] pt-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-[#8a6724]">{entriesNeedingPicks.length} need picks</p>
+            <span className="border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-amber-900">Before lock</span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <RunnerMissingPicksEmailButton poolId={pool.id} label="Send reminders" />
+            <Link href={remindersHref} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-xs font-black uppercase tracking-[0.08em] text-[#123c2f] transition-colors hover:bg-[#eef7ef]">
+              Text/copy list
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      <Link href={`/pool/${pool.id}?tab=pool-settings`} className="mt-3 block border-t border-[#eadfca] pt-3 text-right text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
         Open pool settings →
-      </p>
-    </Link>
+      </Link>
+    </div>
   )
 }
 
