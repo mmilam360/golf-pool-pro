@@ -26,6 +26,7 @@ type PoolRow = {
   name?: string | null
   tournament_id: string
   count_scores: number | null
+  pick_count: number | null
   ob_rule_enabled: boolean | null
   ob_penalty_strokes: number | null
   results_finalized_at?: string | null
@@ -39,8 +40,18 @@ type EntryRow = {
   is_removed?: boolean | null
 }
 
-function hasFrozenResults(pool: PoolRow) {
-  return Boolean(pool.results_finalized_at) || String(pool.results_finalized_source || '').startsWith('finalizing:')
+const FINALIZE_LOCK_TIMEOUT_MS = 30 * 60 * 1000
+
+function finalizingLockMs(source: string | null | undefined, nowMs: number) {
+  if (!String(source || '').startsWith('finalizing:')) return null
+  const lockedAt = new Date(String(source).slice('finalizing:'.length)).getTime()
+  if (!Number.isFinite(lockedAt)) return null
+  return nowMs - lockedAt
+}
+
+function hasActiveFinalizeLock(pool: PoolRow, nowMs: number) {
+  const ageMs = finalizingLockMs(pool.results_finalized_source, nowMs)
+  return ageMs !== null && ageMs >= 0 && ageMs < FINALIZE_LOCK_TIMEOUT_MS
 }
 
 function usableLeaderboard(leaderboard: unknown): leaderboard is GolfPlayer[] {
@@ -49,11 +60,18 @@ function usableLeaderboard(leaderboard: unknown): leaderboard is GolfPlayer[] {
   )
 }
 
+async function addFinalEmailResult(result: FinalizeResult, promise: ReturnType<typeof sendFinalResultsEmailsForPool>) {
+  const finalEmailResult = await promise
+  result.finalEmailsSent += finalEmailResult.sent
+  result.finalEmailsNoEmail += finalEmailResult.noEmail
+}
+
 export async function finalizeCompletedPoolResults(
   supabase: SupabaseClient,
   options: { tournamentIds?: string[]; now?: string } = {}
 ): Promise<FinalizeResult> {
   const now = options.now || new Date().toISOString()
+  const nowMs = new Date(now).getTime()
   const result: FinalizeResult = {
     tournamentsChecked: 0,
     poolsChecked: 0,
@@ -84,83 +102,119 @@ export async function finalizeCompletedPoolResults(
 
     const { data: pools, error: poolsError } = await supabase
       .from('gpp_pools')
-      .select('id, name, tournament_id, count_scores, ob_rule_enabled, ob_penalty_strokes, results_finalized_at, results_finalized_source')
+      .select('id, name, tournament_id, count_scores, pick_count, ob_rule_enabled, ob_penalty_strokes, results_finalized_at, results_finalized_source')
       .eq('tournament_id', tournament.id)
 
     if (poolsError) throw poolsError
 
     for (const pool of (pools || []) as PoolRow[]) {
       result.poolsChecked++
-      if (hasFrozenResults(pool)) {
+      if (pool.results_finalized_at) {
+        await addFinalEmailResult(result, sendFinalResultsEmailsForPool(supabase, { pool, tournament }))
+        result.skipped++
+        continue
+      }
+      if (hasActiveFinalizeLock(pool, nowMs)) {
+        result.skipped++
+        continue
+      }
+
+      if (pool.results_finalized_source) {
+        const { error: releaseStaleLockError } = await supabase
+          .from('gpp_pools')
+          .update({ results_finalized_source: null })
+          .eq('id', pool.id)
+          .is('results_finalized_at', null)
+          .eq('results_finalized_source', pool.results_finalized_source)
+        if (releaseStaleLockError) throw releaseStaleLockError
+      }
+
+      const countScores = Number(pool.count_scores || pool.pick_count || 0)
+      if (countScores <= 0) {
         result.skipped++
         continue
       }
 
       const lockToken = `finalizing:${now}`
-      const { data: claimedPools, error: claimError } = await supabase
-        .from('gpp_pools')
-        .update({ results_finalized_source: lockToken })
-        .eq('id', pool.id)
-        .is('results_finalized_at', null)
-        .is('results_finalized_source', null)
-        .select('id')
+      let lockClaimed = false
+      try {
+        const { data: claimedPools, error: claimError } = await supabase
+          .from('gpp_pools')
+          .update({ results_finalized_source: lockToken })
+          .eq('id', pool.id)
+          .is('results_finalized_at', null)
+          .is('results_finalized_source', null)
+          .select('id')
 
-      if (claimError) throw claimError
-      if (!claimedPools?.length) {
-        result.skipped++
-        continue
-      }
-
-      const { data: entries, error: entriesError } = await supabase
-        .from('gpp_entries')
-        .select('id, display_name, golfer_picks, is_removed')
-        .eq('pool_id', pool.id)
-
-      if (entriesError) throw entriesError
-
-      const scoredEntries = scoreEntriesForLeaderboard(
-        (entries || []) as EntryRow[],
-        tournament.leaderboard_json,
-        {
-          countScores: Number(pool.count_scores || 0),
-          obRuleEnabled: Boolean(pool.ob_rule_enabled),
-          obPenaltyStrokes: Number(pool.ob_penalty_strokes || 0),
+        if (claimError) throw claimError
+        if (!claimedPools?.length) {
+          result.skipped++
+          continue
         }
-      )
+        lockClaimed = true
 
-      const updates = scoredEntries.map(entry =>
-        supabase
+        const { data: entries, error: entriesError } = await supabase
           .from('gpp_entries')
+          .select('id, display_name, golfer_picks, is_removed')
+          .eq('pool_id', pool.id)
+
+        if (entriesError) throw entriesError
+
+        const scoredEntries = scoreEntriesForLeaderboard(
+          (entries || []) as EntryRow[],
+          tournament.leaderboard_json,
+          {
+            countScores,
+            obRuleEnabled: Boolean(pool.ob_rule_enabled),
+            obPenaltyStrokes: Number(pool.ob_penalty_strokes ?? 2),
+          }
+        )
+
+        const updates = scoredEntries.map(entry =>
+          supabase
+            .from('gpp_entries')
+            .update({
+              total_score: entry.totalScore,
+              rank: entry.rank,
+              counting_scores: entry.pickScores,
+            })
+            .eq('id', entry.entryId)
+        )
+
+        const updateResults = await Promise.all(updates)
+        const updateError = updateResults.find((item: any) => item.error)?.error
+        if (updateError) throw updateError
+
+        await addFinalEmailResult(result, sendFinalResultsEmailsForPool(supabase, { pool, tournament }))
+
+        const { data: finalizedPools, error: poolUpdateError } = await supabase
+          .from('gpp_pools')
           .update({
-            total_score: entry.totalScore,
-            rank: entry.rank,
-            counting_scores: entry.pickScores,
+            is_completed: true,
+            results_finalized_at: now,
+            results_finalized_source: 'cron_finalizer',
           })
-          .eq('id', entry.entryId)
-      )
+          .eq('id', pool.id)
+          .is('results_finalized_at', null)
+          .eq('results_finalized_source', lockToken)
+          .select('id')
 
-      const updateResults = await Promise.all(updates)
-      const updateError = updateResults.find(item => item.error)?.error
-      if (updateError) throw updateError
+        if (poolUpdateError) throw poolUpdateError
+        if (!finalizedPools?.length) throw new Error(`Finalizer lock lost for pool ${pool.id}`)
 
-      const { error: poolUpdateError } = await supabase
-        .from('gpp_pools')
-        .update({
-          is_completed: true,
-          results_finalized_at: now,
-          results_finalized_source: 'cron_finalizer',
-        })
-        .eq('id', pool.id)
-        .eq('results_finalized_source', lockToken)
-
-      if (poolUpdateError) throw poolUpdateError
-
-      result.entriesUpdated += scoredEntries.length
-      result.poolsFinalized++
-
-      const finalEmailResult = await sendFinalResultsEmailsForPool(supabase, { pool, tournament })
-      result.finalEmailsSent += finalEmailResult.sent
-      result.finalEmailsNoEmail += finalEmailResult.noEmail
+        result.entriesUpdated += scoredEntries.length
+        result.poolsFinalized++
+      } catch (error) {
+        if (lockClaimed) {
+          await supabase
+            .from('gpp_pools')
+            .update({ results_finalized_source: null })
+            .eq('id', pool.id)
+            .is('results_finalized_at', null)
+            .eq('results_finalized_source', lockToken)
+        }
+        throw error
+      }
     }
   }
 

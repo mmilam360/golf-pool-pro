@@ -17,30 +17,58 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
 
   const { data: pool } = await supabase
     .from('gpp_pools')
-    .select('*, gpp_tournaments(*)')
+    .select('id, name, pick_count, count_scores, is_locked, is_completed, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, gpp_tournaments(*)')
     .eq('id', id)
     .single()
 
   if (!pool) notFound()
 
   const tournament = await hydrateFinalLeaderboard(pool.gpp_tournaments as any)
-  pool.gpp_tournaments = tournament
+  const publicPool = {
+    id: pool.id,
+    name: pool.name,
+    pick_count: pool.pick_count,
+    count_scores: pool.count_scores,
+    is_locked: pool.is_locked,
+    is_completed: pool.is_completed,
+    game_format: pool.game_format,
+    group_count: pool.group_count,
+    picks_per_group: pool.picks_per_group,
+    pick_groups_json: pool.pick_groups_json,
+    groups_finalized_at: pool.groups_finalized_at,
+    ob_rule_enabled: pool.ob_rule_enabled,
+    ob_penalty_strokes: pool.ob_penalty_strokes,
+    payment_status: pool.payment_status,
+    amount_paid_cents: 0,
+    passcode: '',
+  }
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
   const picksAreVisible = pool.is_locked || scoringIsLive
 
   const { data: entries } = await supabase
     .from('gpp_entries')
-    .select('*')
+    .select('id, pool_id, display_name, golfer_picks, total_score, counting_scores, rank, is_removed, created_at')
     .eq('pool_id', id)
     .eq('is_removed', false)
     .order('created_at', { ascending: true })
 
   const safeEntries = (entries || []).map(entry => {
     const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
-    if (picksAreVisible) return entry
-    return {
+    const publicEntry = {
       ...entry,
+      user_id: null,
+      full_name: null,
+      full_name_confirmed_at: null,
+      account_email: '',
+      account_full_name: '',
+      account_full_name_confirmed_at: null,
+      notification_email: null,
+      guest_entry_token_hash: null,
+    }
+    if (picksAreVisible) return publicEntry
+    return {
+      ...publicEntry,
       submitted_pick_count: submittedPickCount,
       golfer_picks: [],
       picks_hidden: true,
@@ -62,7 +90,7 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
           </div>
         </section>
         <PoolView
-          pool={pool}
+          pool={publicPool}
           tournament={tournament}
           entries={safeEntries}
           myEntry={null}

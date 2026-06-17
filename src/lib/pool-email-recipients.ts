@@ -24,7 +24,10 @@ export async function entryRecipientEmail(supabase: any, entry: EntryLike) {
 }
 
 export async function entryEditUrl(supabase: any, origin: string, poolId: string, entry: EntryLike, purpose: string) {
-  if (entry.user_id) return `${origin}/pool/${poolId}`
+  if (entry.user_id) {
+    const redirect = encodeURIComponent(`/pool/${poolId}`)
+    return `${origin}/login?redirect=${redirect}`
+  }
   const token = await createGuestEntryEmailToken(supabase, entry.id, purpose)
   return `${origin}/pool/${poolId}?guest=${encodeURIComponent(token)}`
 }

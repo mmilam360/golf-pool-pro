@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { rankEntries, scoreEntry } from '@/lib/scoring'
+import { scoreEntriesForLeaderboard } from '@/lib/scoring'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { notificationPrefsAllow, recordNotificationEvent, sendPushToUser } from '@/lib/notifications/push'
 import { requireCronAuth } from '@/lib/cron-auth'
 import type { GolfPlayer } from '@/lib/golf-api'
 import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
+import { totalPicksRequired } from '@/lib/pick-counts'
 
 export const runtime = 'nodejs'
 
@@ -72,7 +73,7 @@ async function sendOnce(params: {
 async function sendPickDeadlineReminders(supabase: any, prefsByUser: Map<string, Prefs>) {
   const { data: pools, error } = await supabase
     .from('gpp_pools')
-    .select('id, name, is_locked, owner_id, gpp_tournaments(name, start_date, status)')
+    .select('id, name, is_locked, owner_id, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, gpp_tournaments(name, start_date, status)')
     .eq('is_completed', false)
   if (error) throw error
 
@@ -90,10 +91,11 @@ async function sendPickDeadlineReminders(supabase: any, prefsByUser: Map<string,
       .eq('pool_id', pool.id)
       .eq('is_removed', false)
 
+    const requiredPickCount = totalPicksRequired(pool)
     for (const entry of entries || []) {
       if (!entry.user_id) continue
       const pickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
-      if (pickCount > 0) continue
+      if (pickCount >= requiredPickCount) continue
       const prefs = prefsByUser.get(entry.user_id)
       if (!notificationPrefsAllow(prefs, 'pick_deadline')) continue
       candidates += 1
@@ -152,7 +154,7 @@ async function sendLeaderboardLiveAlerts(supabase: any, prefsByUser: Map<string,
 async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Prefs>) {
   const { data: pools, error } = await supabase
     .from('gpp_pools')
-    .select('id, name, count_scores, ob_rule_enabled, ob_penalty_strokes, gpp_tournaments(name, status, leaderboard_json)')
+    .select('id, name, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, gpp_tournaments(name, status, leaderboard_json)')
     .eq('is_completed', false)
   if (error) throw error
 
@@ -162,24 +164,21 @@ async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Pref
     const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
     const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : []
     if (tournament?.status !== 'live' || leaderboard.length === 0 || hasWeekendCutStatusErrors(leaderboard)) continue
-    const { data: entries } = await supabase
+    const { data: entryRows } = await supabase
       .from('gpp_entries')
       .select('id, user_id, display_name, golfer_picks, is_removed')
       .eq('pool_id', pool.id)
       .eq('is_removed', false)
-    const scored = rankEntries((entries || []).map((entry: any) => ({
-      ...scoreEntry(Array.isArray(entry.golfer_picks) ? entry.golfer_picks : [], leaderboard, {
-        countScores: pool.count_scores || 4,
-        obRuleEnabled: Boolean(pool.ob_rule_enabled),
-        obPenaltyStrokes: pool.ob_penalty_strokes || 2,
-      }),
-      entryId: entry.id,
-      displayName: entry.display_name || 'Entry',
-      userId: entry.user_id,
-    }))) as Array<ReturnType<typeof scoreEntry> & { entryId: string; displayName: string; userId?: string; rank?: number | null }>
-    const leaders = scored.filter(entry => entry.rank === 1 && entry.userId)
+    const entries = entryRows || []
+    const scored = scoreEntriesForLeaderboard(entries, leaderboard, {
+      countScores: pool.count_scores || pool.pick_count || 0,
+      obRuleEnabled: Boolean(pool.ob_rule_enabled),
+      obPenaltyStrokes: pool.ob_penalty_strokes || 2,
+    })
+    const userIdByEntryId = new Map(entries.map((entry: any) => [entry.id, entry.user_id]))
+    const leaders = scored.filter(entry => entry.rank === 1 && userIdByEntryId.get(entry.entryId))
     for (const leader of leaders) {
-      const userId = leader.userId!
+      const userId = userIdByEntryId.get(leader.entryId) as string
       const prefs = prefsByUser.get(userId)
       if (!notificationPrefsAllow(prefs, 'took_lead')) continue
       candidates += 1
@@ -189,8 +188,8 @@ async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Pref
         poolId: pool.id,
         type: 'took_lead',
         dedupeKey: `took_lead:${pool.id}:${userId}:${leader.entryId}`,
-        title: "You're in first",
-        body: `${pool.name}: you just jumped to the top.`,
+        title: "You're at the top",
+        body: `${pool.name}: your entry is first on the board.`,
       })
       sent += result.sent
     }

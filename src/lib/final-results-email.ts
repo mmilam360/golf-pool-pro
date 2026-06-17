@@ -1,6 +1,7 @@
 import { reserveEmailEvent, finishEmailEvent } from '@/lib/email-events'
 import { entryRecipientEmail, siteOrigin } from '@/lib/pool-email-recipients'
 import { sendFinalResultsEmail } from '@/lib/pool-transactional-emails'
+import { isScoredFinalResultsEntry } from './final-result-announcements'
 
 type FinalResultsEmailResult = {
   candidates: number
@@ -24,12 +25,11 @@ export async function sendFinalResultsEmailsForPool(supabase: any, params: { poo
 
   if (error) throw error
   const activeEntries = entries || []
-  const topEntries = activeEntries
-    .filter((entry: any) => Number.isFinite(Number(entry.rank)))
-    .slice(0, 3)
+  const scoredEntries = activeEntries.filter(isScoredFinalResultsEntry)
+  const topEntries = scoredEntries.slice(0, 3)
   const origin = siteOrigin()
 
-  for (const entry of activeEntries) {
+  for (const entry of scoredEntries) {
     result.candidates++
     const recipient = await entryRecipientEmail(supabase, entry)
     if (!recipient) {

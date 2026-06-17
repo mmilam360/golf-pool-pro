@@ -9,12 +9,13 @@ import { formatDateOnly, getDateOnly, todayDateOnly } from '@/lib/date-utils'
 import { selectNextRunItBackTournament } from '@/lib/run-it-back'
 import { acceptPoolInvite, declinePoolInvite } from '@/app/(app)/pool-invites/actions'
 import { dismissFinalResultAnnouncement } from '@/app/(app)/dashboard/final-result-actions'
-import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
+import { scoreEntriesForLeaderboard, type ScoredEntry } from '@/lib/scoring'
 import { selectFinalResultAnnouncement, type FinalResultAnnouncementCandidate } from '@/lib/final-result-announcements'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { hydrateFinalLeaderboards } from '@/lib/fresh-final-leaderboard'
 import { displayTournamentName } from '@/lib/tournament-name'
+import { frozenResultsForEntries, hasFrozenResult } from '@/lib/frozen-results'
 
 type Tournament = {
   id?: string | null
@@ -55,6 +56,10 @@ type EntryRecord = {
   pool_id: string
   display_name: string | null
   golfer_picks: unknown
+  counting_scores?: unknown
+  total_score?: number | null
+  rank?: number | null
+  is_removed?: boolean | null
   picks_hidden?: boolean | null
   gpp_pools?: PoolRecord | PoolRecord[] | null
 }
@@ -230,22 +235,20 @@ function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): Scored
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   const canShowRank = Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard))
 
+  if ((pool.is_completed || tournament?.status === 'completed') && allEntries.some(hasFrozenResult)) {
+    return frozenResultsForEntries(allEntries)
+  }
+
   if (!canShowRank || leaderboard.length === 0) return []
 
-  return rankEntries(
-    allEntries.map(poolEntry => ({
-      ...scoreEntry(
-        Array.isArray(poolEntry.golfer_picks) ? poolEntry.golfer_picks as string[] : [],
-        leaderboard,
-        {
-          countScores: pool.count_scores || 4,
-          obRuleEnabled: Boolean(pool.ob_rule_enabled),
-          obPenaltyStrokes: pool.ob_penalty_strokes || 2,
-        }
-      ),
-      entryId: poolEntry.id,
-      displayName: poolEntry.display_name || 'Entry',
-    }))
+  return scoreEntriesForLeaderboard(
+    allEntries,
+    leaderboard,
+    {
+      countScores: pool.count_scores || pool.pick_count || 0,
+      obRuleEnabled: Boolean(pool.ob_rule_enabled),
+      obPenaltyStrokes: pool.ob_penalty_strokes || 2,
+    }
   )
 }
 
@@ -318,7 +321,7 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('gpp_entries')
-      .select('id, pool_id, display_name, golfer_picks, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, last_scores_fetch))')
+      .select('id, pool_id, display_name, golfer_picks, counting_scores, total_score, rank, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, last_scores_fetch))')
       .eq('user_id', user.id)
       .eq('is_removed', false)
       .order('created_at', { ascending: false }),
@@ -353,14 +356,14 @@ export default async function DashboardPage() {
     ownedPoolIds.length
       ? supabase
         .from('gpp_entries')
-        .select('id, pool_id, display_name, golfer_picks, is_removed')
+        .select('id, pool_id, display_name, golfer_picks, counting_scores, total_score, rank, is_removed')
         .in('pool_id', ownedPoolIds)
         .eq('is_removed', false)
       : Promise.resolve({ data: [] }),
     joinedPoolIds.length
       ? supabase
         .from('gpp_entries')
-        .select('id, pool_id, display_name, golfer_picks, is_removed')
+        .select('id, pool_id, display_name, golfer_picks, counting_scores, total_score, rank, is_removed')
         .in('pool_id', joinedPoolIds)
         .eq('is_removed', false)
       : Promise.resolve({ data: [] }),
@@ -477,7 +480,7 @@ export default async function DashboardPage() {
 
       <ClaimedPromoBanner />
       <PendingInvites invites={invites} />
-      <DashboardActivePools cards={activePoolCards} entriesByPool={entriesByPool} />
+      <DashboardActivePools cards={activePoolCards} entriesByPool={entriesByPool} userId={user.id} />
 
       {!hasAnyPools ? (
         <section className="border-2 border-[#123c2f] bg-white p-5 shadow-[7px_7px_0_#d8cab0] sm:p-7">

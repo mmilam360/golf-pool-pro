@@ -9,6 +9,7 @@ import { selectNextRunItBackTournament } from '@/lib/run-it-back'
 import { scoreEntriesForLeaderboard, type ScoredEntry } from '@/lib/scoring'
 import ClaimedPromoBanner from '@/components/ClaimedPromoBanner'
 import { displayTournamentName } from '@/lib/tournament-name'
+import { frozenResultsForEntries, hasFrozenResult } from '@/lib/frozen-results'
 import type { GolfPlayer } from '@/lib/golf-api'
 import { hydrateFinalLeaderboard } from '@/lib/fresh-final-leaderboard'
 
@@ -49,6 +50,10 @@ type EntryRecord = {
   user_id?: string | null
   display_name: string | null
   golfer_picks: unknown
+  counting_scores?: unknown
+  total_score?: number | null
+  rank?: number | null
+  is_removed?: boolean | null
 }
 
 function getTournament(pool?: PoolRecord | null): Tournament | null {
@@ -178,6 +183,9 @@ function BalanceBadge({ pool, activeEntryCount, tournament }: { pool: PoolRecord
 function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): ScoredEntry[] {
   const tournament = getTournament(pool)
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
+  if ((pool.is_completed || tournament?.status === 'completed') && allEntries.some(hasFrozenResult)) {
+    return frozenResultsForEntries(allEntries)
+  }
   if (!leaderboard.length) return []
 
   return scoreEntriesForLeaderboard(
@@ -348,7 +356,7 @@ export default async function ManagePoolsPage() {
   const { data: ownedPoolEntries } = ownedPoolIds.length
     ? await supabase
       .from('gpp_entries')
-      .select('id, pool_id, user_id, display_name, golfer_picks, is_removed')
+      .select('id, pool_id, user_id, display_name, golfer_picks, counting_scores, total_score, rank, is_removed')
       .in('pool_id', ownedPoolIds)
       .eq('is_removed', false)
     : { data: [] }

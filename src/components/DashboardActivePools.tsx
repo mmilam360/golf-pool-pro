@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, entryMovementSincePriorRank, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, rankEntries, scoreEntry, type EntryMovement, type PickScore, type ScoredEntry } from '@/lib/scoring'
+import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, entryMovementSincePriorRank, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, scoreEntriesForLeaderboard, type EntryMovement, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
@@ -13,6 +13,7 @@ import { isGroupedPoolFormat, totalPicksRequired } from '@/lib/pick-counts'
 import { getPickLockBadgeText } from '@/lib/pick-lock-display'
 import { applySavedPoolOrder, movePoolId } from '@/lib/dashboard-pool-order'
 import { trackGppEvent } from '@/lib/posthog-events'
+import { frozenResultsForEntries, hasFrozenResult } from '@/lib/frozen-results'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -53,6 +54,10 @@ type EntryRecord = {
   pool_id: string
   display_name: string | null
   golfer_picks: unknown
+  counting_scores?: unknown
+  total_score?: number | null
+  rank?: number | null
+  is_removed?: boolean | null
   picks_hidden?: boolean | null
   gpp_pools?: PoolRecord | PoolRecord[] | null
 }
@@ -241,6 +246,7 @@ function lastNameFor(name: string) {
 
 function shortName(name: string, peerNames: string[] = []) {
   if (name === 'Picks hidden') return 'Hidden'
+  if (name === 'Waiting') return 'Waiting'
   const clean = name.replace(/^OB Stand-in #/, 'OB ')
   if (clean.startsWith('OB ')) return clean
   const parts = clean.split(' ').filter(Boolean)
@@ -346,22 +352,20 @@ function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[], selecte
   const leaderboard = selectedLeaderboard || (Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : [])
   const canShowRank = forceScoring || Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard))
 
+  if (!forceScoring && !selectedLeaderboard && (pool.is_completed || tournament?.status === 'completed') && allEntries.some(hasFrozenResult)) {
+    return frozenResultsForEntries(allEntries)
+  }
+
   if (!canShowRank || leaderboard.length === 0) return []
 
-  return rankEntries(
-    allEntries.map(poolEntry => ({
-      ...scoreEntry(
-        Array.isArray(poolEntry.golfer_picks) ? poolEntry.golfer_picks as string[] : [],
-        leaderboard,
-        {
-          countScores: pool.count_scores || 4,
-          obRuleEnabled: Boolean(pool.ob_rule_enabled),
-          obPenaltyStrokes: pool.ob_penalty_strokes || 2,
-        }
-      ),
-      entryId: poolEntry.id,
-      displayName: poolEntry.display_name || 'Entry',
-    }))
+  return scoreEntriesForLeaderboard(
+    allEntries,
+    leaderboard,
+    {
+      countScores: pool.count_scores || pool.pick_count || 0,
+      obRuleEnabled: Boolean(pool.ob_rule_enabled),
+      obPenaltyStrokes: pool.ob_penalty_strokes || 2,
+    }
   )
 }
 
@@ -431,7 +435,7 @@ function buildPreScoringEntry(entry: EntryRecord, countScores: number, hidePicks
   const pickScores = Array.from({ length: countScores }, (_, index) => {
     const name = orderedPicks[index]
     return {
-      name: name || '—',
+      name: name || 'Waiting',
       scoreToPar: null,
       strokes: null,
       thru: '',
@@ -504,7 +508,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   teeTimeZone: string
   mode: 'player' | 'runner'
 }) {
-  const countScores = pool.count_scores || 4
+  const countScores = pool.count_scores || pool.pick_count || 0
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
   const baseLeaderboardRows = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   const fieldRows = Array.isArray(tournament?.field_json) ? tournament.field_json : []
@@ -744,7 +748,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                             <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                             <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                             <div className="mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone) : '—'}</div>
+                            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.name === 'Waiting' ? 'Waiting' : activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)) : 'Waiting'}</div>
                           </div>
                         )
                       })}
@@ -804,7 +808,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                                 <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                 <div className="mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone) : '—'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.name === 'Waiting' ? 'Waiting' : activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)) : 'Waiting'}</div>
                               </td>
                             )
                           })}
@@ -921,7 +925,7 @@ function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tou
   )
 }
 
-export default function DashboardActivePools({ cards, entriesByPool, mode = 'player', snapshot = false }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner'; snapshot?: boolean }) {
+export default function DashboardActivePools({ cards, entriesByPool, mode = 'player', snapshot = false, userId = null }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner'; snapshot?: boolean; userId?: string | null }) {
   const router = useRouter()
   const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set(cards[0]?.pool.id ? [cards[0].pool.id] : []))
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
@@ -1044,13 +1048,14 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
       window.localStorage.setItem(`${DASHBOARD_ACTIVE_POOLS_CACHE_KEY}:${mode}`, JSON.stringify({
         version: DASHBOARD_ACTIVE_POOLS_CACHE_VERSION,
         cachedAt: Date.now(),
+        userId,
         cards,
         entriesByPool,
       }))
     } catch {
       // Snapshot restore is best-effort. The live dashboard still works without local storage.
     }
-  }, [cards, entriesByPool, mode, snapshot])
+  }, [cards, entriesByPool, mode, snapshot, userId])
 
   useEffect(() => {
     if (cards.length === 0) return

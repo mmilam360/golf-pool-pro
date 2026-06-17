@@ -25,7 +25,7 @@ export function selectFinalResultAnnouncement(
 ): FinalResultAnnouncement | null {
   for (const candidate of candidates) {
     if (!candidate.poolId || dismissedPoolIds.has(candidate.poolId)) continue
-    if (!candidate.rank) continue
+    if (!candidate.rank || candidate.totalScore === null || candidate.totalScore === undefined || !Number.isFinite(Number(candidate.totalScore))) continue
     return {
       ...candidate,
       rank: candidate.rank,
@@ -34,6 +34,14 @@ export function selectFinalResultAnnouncement(
   }
 
   return null
+}
+
+export function isScoredFinalResultsEntry(entry: { rank?: number | null; total_score?: number | null }) {
+  return Number.isFinite(Number(entry.rank))
+    && Number(entry.rank) > 0
+    && entry.total_score !== null
+    && entry.total_score !== undefined
+    && Number.isFinite(Number(entry.total_score))
 }
 
 export function ordinal(value: number) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import DashboardActivePools, { DASHBOARD_ACTIVE_POOLS_CACHE_KEY } from '@/components/DashboardActivePools'
+import { createClient } from '@/lib/supabase/client'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
 
@@ -10,15 +11,36 @@ type DashboardActivePoolsProps = Parameters<typeof DashboardActivePools>[0]
 type CachedDashboard = {
   version?: number
   cachedAt?: number
+  userId?: string | null
   cards?: DashboardActivePoolsProps['cards']
   entriesByPool?: DashboardActivePoolsProps['entriesByPool']
 }
 
-const CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000
+const CACHE_MAX_AGE_MS = 5 * 60 * 1000
+
+function cachedTournamentStartHasArrived(startDate?: string | null) {
+  if (!startDate) return false
+  const dateOnlyMatch = startDate.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (dateOnlyMatch) {
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
+    return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}` <= today
+  }
+
+  const parsed = new Date(startDate)
+  return Number.isFinite(parsed.getTime()) && parsed.getTime() <= Date.now()
+}
 
 function cachedCardHasLiveOrBadScores(card: DashboardActivePoolsProps['cards'][number]) {
   const tournament = card.tournament
-  return tournament?.status === 'live'
+  const status = String(tournament?.status || '').toLowerCase()
+  return status === 'live'
+    || status === 'completed'
+    || cachedTournamentStartHasArrived(tournament?.start_date)
     || hasOnCourseScores(tournament?.leaderboard_json)
     || hasWeekendCutStatusErrors(tournament?.leaderboard_json)
 }
@@ -41,7 +63,26 @@ export default function DashboardCachedActivePools() {
   const [cached, setCached] = useState<CachedDashboard | null>(null)
 
   useEffect(() => {
-    setCached(readCachedDashboard())
+    let cancelled = false
+    async function loadCacheForCurrentUser() {
+      const nextCached = readCachedDashboard()
+      if (!nextCached?.userId) {
+        if (!cancelled) setCached(null)
+        return
+      }
+
+      const supabase = createClient()
+      const { data } = await supabase.auth.getUser()
+      if (!cancelled && data.user?.id === nextCached.userId) setCached(nextCached)
+      else if (!cancelled) setCached(null)
+    }
+
+    loadCacheForCurrentUser().catch(() => {
+      if (!cancelled) setCached(null)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   if (!cached?.cards?.length || !cached.entriesByPool || cached.cards.some(cachedCardHasLiveOrBadScores)) {

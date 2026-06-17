@@ -84,7 +84,7 @@ export async function sendEntrySavedEmail({ entryId, poolId, token, userId, orig
   const leaderboardUrl = `${origin}/leaderboard/${pool.id}?entry=${entry.id}`
   const editUrl = token
     ? `${origin}/pool/${pool.id}?guest=${encodeURIComponent(token)}`
-    : `${origin}/pool/${pool.id}`
+    : `${origin}/login?redirect=${encodeURIComponent(`/pool/${pool.id}`)}`
   const helpUrl = `${origin}/help`
   const picks = pickItems.join(', ')
   const entryNeedsFullName = Boolean(token && !entry.user_id && !(entry.full_name_confirmed_at && typeof entry.full_name === 'string' && entry.full_name.trim()))

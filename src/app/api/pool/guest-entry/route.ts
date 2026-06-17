@@ -139,6 +139,7 @@ export async function PATCH(request: Request) {
       .from('gpp_entries')
       .select('id, pool_id, guest_entry_token_hash, gpp_pools(is_locked, pick_count, game_format, picks_per_group, pick_groups_json, gpp_tournaments(status))')
       .eq('id', entryId)
+      .eq('is_removed', false)
       .maybeSingle()
 
     if (entryError || !entry) return NextResponse.json({ error: 'Entry not found.' }, { status: 404 })
@@ -189,7 +190,7 @@ export async function PATCH(request: Request) {
       .from('gpp_entries')
       .update(update)
       .eq('id', entry.id)
-      .select('*')
+      .select('id, pool_id, user_id, display_name, golfer_picks, total_score, counting_scores, rank, has_paid, payout_amount, is_removed, removed_reason, removed_at, full_name, full_name_confirmed_at, notification_email, created_at')
       .single()
 
     if (updateError) {

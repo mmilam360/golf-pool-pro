@@ -17,6 +17,7 @@ import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup } from '@/lib/pool-formats'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, normalizeEntryName } from '@/lib/entry-name'
+import { buildFrozenResultEntry, hasFrozenResult } from '@/lib/frozen-results'
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -74,6 +75,7 @@ interface Props {
   inviteSummary: { pending: number; accepted: number; declined: number }
   publicView?: boolean
   guestEntryToken?: string
+  initialHighlightedEntryId?: string | null
 }
 
 type Tab = 'leaderboard' | 'my-entry' | 'pool-settings'
@@ -126,26 +128,6 @@ function getAutoPromoDiscountCents(amountDueCents: number, promo: PaymentQuote['
 function scoreClass(score: number | null) {
   if (score === null) return 'text-stone-400'
   return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
-}
-
-function buildFrozenResultEntry(entry: any): ScoredEntry {
-  const storedPickScores = Array.isArray(entry.counting_scores) ? entry.counting_scores : []
-  return {
-    entryId: entry.id,
-    displayName: entry.display_name || 'Player',
-    picks: ((entry.golfer_picks as string[]) || []),
-    pickScores: storedPickScores,
-    totalScore: entry.total_score ?? null,
-    todayScore: null,
-    finalNineScore: null,
-    tiebreakScores: [],
-    rank: entry.rank ?? null,
-    obStandIns: storedPickScores.filter((pick: PickScore) => pick.isObStandIn).length,
-  }
-}
-
-function hasFrozenResult(entry: any) {
-  return entry.total_score !== null && entry.total_score !== undefined && entry.rank !== null && entry.rank !== undefined && Array.isArray(entry.counting_scores)
 }
 
 function buildPlaceholderPick(name: 'Picks hidden' | 'Waiting', counted: boolean): PickScore {
@@ -383,7 +365,7 @@ function roundScoreLabel(round: number) {
   return ROUND_SCORE_LABELS[round] || `R${round}`
 }
 
-export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, guestEntryToken = '' }: Props) {
+export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, guestEntryToken = '', initialHighlightedEntryId = null }: Props) {
   const router = useRouter()
   const guestMode = Boolean(guestEntryToken)
   const [tab, setTab] = useState<Tab>(guestMode ? 'my-entry' : publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry')
@@ -425,8 +407,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null)
   const [selectedSavedCardId, setSelectedSavedCardId] = useState('')
   const [saveCard, setSaveCard] = useState(false)
-  const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null)
-  const [forceOpenEntryId, setForceOpenEntryId] = useState<string | null>(null)
+  const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(initialHighlightedEntryId)
+  const [forceOpenEntryId, setForceOpenEntryId] = useState<string | null>(initialHighlightedEntryId)
   const initialActiveEntryCount = initialEntries.filter(entry => !entry.is_removed).length
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
   const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -452,11 +434,33 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [])
 
   useEffect(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get('tab')
+    if (requestedTab === 'pool-settings' && isOwner) {
+      setTab('pool-settings')
+      window.setTimeout(() => adminSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+    } else if (requestedTab === 'leaderboard') {
+      setTab('leaderboard')
+    } else if (requestedTab === 'my-entry' && !publicView) {
+      setTab('my-entry')
+    }
+
     if (window.location.hash === '#make-picks') {
       setTab('my-entry')
       window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
     }
-  }, [])
+  }, [isOwner, publicView])
+
+  useEffect(() => {
+    if (!initialHighlightedEntryId) return
+    setTab('leaderboard')
+    setForceOpenEntryId(initialHighlightedEntryId)
+    setHighlightedEntryId(initialHighlightedEntryId)
+    window.setTimeout(() => {
+      const targetId = window.matchMedia('(min-width: 1024px)').matches ? `entry-row-${initialHighlightedEntryId}` : `entry-card-${initialHighlightedEntryId}`
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 120)
+    window.setTimeout(() => setHighlightedEntryId(null), 2600)
+  }, [initialHighlightedEntryId])
   const supabase = useMemo(() => createClient(), [])
 
   const dismissToast = useCallback((id: number) => {
@@ -686,7 +690,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const currentEntry = isCurrentEntry(entry)
       const privateMeta = isOwner || currentEntry
         ? {}
-        : { full_name: null, full_name_confirmed_at: null, account_full_name: '', account_full_name_confirmed_at: null, notification_email: null, guest_entry_token_hash: null }
+        : { user_id: null, full_name: null, full_name_confirmed_at: null, account_full_name: '', account_full_name_confirmed_at: null, notification_email: null, guest_entry_token_hash: null }
       if (picksAreLocked || currentEntry) return { ...entry, ...ownerWdMeta, ...privateMeta }
       return {
         ...entry,
@@ -712,7 +716,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (!data) {
       const query = supabase
         .from('gpp_entries')
-        .select('*')
+        .select('id, pool_id, user_id, display_name, golfer_picks, total_score, counting_scores, rank, has_paid, payout_amount, is_removed, removed_reason, removed_at, created_at')
         .eq('pool_id', pool.id)
 
       const result = await query.order('created_at', { ascending: true })
@@ -729,9 +733,20 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const accountFullNameConfirmedByUserId = new Map(entriesRef.current
         .filter((entry: any) => entry.user_id && entry.account_full_name_confirmed_at)
         .map((entry: any) => [entry.user_id, entry.account_full_name_confirmed_at]))
-      const dataWithKnownEmails = data.map((entry: any) => entry.user_id && !entry.account_email && (accountEmailByUserId.has(entry.user_id) || accountFullNameByUserId.has(entry.user_id))
-        ? { ...entry, account_email: accountEmailByUserId.get(entry.user_id) || '', account_full_name: entry.account_full_name || accountFullNameByUserId.get(entry.user_id) || '', account_full_name_confirmed_at: entry.account_full_name_confirmed_at || accountFullNameConfirmedByUserId.get(entry.user_id) || null }
-        : entry)
+      const currentPrivateByEntryId = new Map(entriesRef.current
+        .filter((entry: any) => isCurrentEntry(entry))
+        .map((entry: any) => [entry.id, {
+          full_name: entry.full_name || null,
+          full_name_confirmed_at: entry.full_name_confirmed_at || null,
+          notification_email: entry.notification_email || null,
+        }]))
+      const dataWithKnownEmails = data.map((entry: any) => {
+        const currentPrivate = currentPrivateByEntryId.get(entry.id) as any
+        const withAccountMeta = entry.user_id && !entry.account_email && (accountEmailByUserId.has(entry.user_id) || accountFullNameByUserId.has(entry.user_id))
+          ? { ...entry, account_email: accountEmailByUserId.get(entry.user_id) || '', account_full_name: entry.account_full_name || accountFullNameByUserId.get(entry.user_id) || '', account_full_name_confirmed_at: entry.account_full_name_confirmed_at || accountFullNameConfirmedByUserId.get(entry.user_id) || null }
+          : entry
+        return currentPrivate ? { ...withAccountMeta, ...currentPrivate } : withAccountMeta
+      })
       const safeData = maskHiddenPicks(dataWithKnownEmails)
       const nextMyEntry = safeData.find(isCurrentEntry) || null
       setEntries(safeData)
@@ -782,7 +797,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     setNotificationEmailValue(myEntry?.notification_email || '')
   }, [myEntry?.display_name, myEntry?.full_name, myEntry?.full_name_confirmed_at, myEntry?.notification_email])
 
-  async function updateGuestEntry(payload: Record<string, unknown>) {
+  const updateGuestEntry = useCallback(async (payload: Record<string, unknown>) => {
     if (!myEntry?.id || !guestEntryToken) throw new Error('Missing guest entry token.')
     const res = await fetch('/api/pool/guest-entry', {
       method: 'PATCH',
@@ -792,7 +807,19 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error || 'Could not update guest entry.')
     return data.entry
-  }
+  }, [guestEntryToken, myEntry?.id])
+
+  const updateAccountEntry = useCallback(async (payload: Record<string, unknown>) => {
+    if (!myEntry?.id) throw new Error('Missing entry.')
+    const res = await fetch('/api/pool/account-entry', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryId: myEntry.id, poolId: pool.id, ...payload }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'Could not update entry.')
+    return data.entry
+  }, [myEntry?.id, pool.id])
 
   useEffect(() => {
     if (groupedFormat || picksAreLocked || !myEntry || !fieldReady || invalidMyPicks.length === 0) return
@@ -803,18 +830,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     setMyEntry(updatedEntry)
     setEntries(current => current.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
 
-    supabase
-      .from('gpp_entries')
-      .update({ golfer_picks: nextPicks } as any)
-      .eq('id', myEntry.id)
-      .then(({ error }) => {
-        if (error) {
-          showToast('Field updated. Review your picks before saving.', 'error')
-          return
-        }
+    const saveTrimmedPicks = guestEntryToken
+      ? updateGuestEntry({ golferPicks: nextPicks })
+      : updateAccountEntry({ golferPicks: nextPicks })
+    saveTrimmedPicks
+      .then(() => {
         showToast('Field updated. Removed golfers no longer in the tournament.', 'info')
       })
-  }, [currentFieldNames, fieldReady, groupedFormat, invalidMyPicks.length, myEntry, myPicks, picksAreLocked, showToast, supabase])
+      .catch(() => {
+        showToast('Field updated. Review your picks before saving.', 'error')
+      })
+  }, [currentFieldNames, fieldReady, groupedFormat, guestEntryToken, invalidMyPicks.length, myEntry, myPicks, picksAreLocked, showToast, updateAccountEntry, updateGuestEntry])
 
   const refreshPaymentQuote = useCallback(async () => {
     if (!isOwner) return
@@ -1179,21 +1205,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
     setSaving(true)
     let error: any = null
+    let savedEntry: any = null
     try {
-      if (guestEntryToken) {
-        await updateGuestEntry({ golferPicks: myPicks })
-      } else {
-        const result = await supabase
-          .from('gpp_entries')
-          .update({ golfer_picks: myPicks } as any)
-          .eq('id', myEntry.id)
-        error = result.error
-      }
-    } catch (guestError: any) {
-      error = guestError
+      savedEntry = guestEntryToken
+        ? await updateGuestEntry({ golferPicks: myPicks })
+        : await updateAccountEntry({ golferPicks: myPicks })
+    } catch (saveError: any) {
+      error = saveError
     }
     if (!error) {
-      const updatedEntry = { ...myEntry, golfer_picks: myPicks }
+      const updatedEntry = savedEntry ? { ...myEntry, ...savedEntry } : { ...myEntry, golfer_picks: myPicks }
       clearPickDraft(currentPickDraftKey)
       setMyEntry(updatedEntry)
       setEntries(entries.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
@@ -1251,17 +1272,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       if (guestEntryToken) {
         updatedEntry = await updateGuestEntry({ displayName: nextName, fullName: nextFullName, notificationEmail: nextEmail || null })
       } else {
-        const confirmedAt = new Date().toISOString()
-        const result = await supabase
-          .from('gpp_entries')
-          .update({ display_name: nextName, full_name: nextFullName, full_name_confirmed_at: confirmedAt } as any)
-          .eq('id', myEntry.id)
-          .eq('user_id', userId)
-          .select('*')
-          .single()
-        error = result.error
-        updatedEntry = result.data ? { ...myEntry, ...result.data } : null
-        if (!error) {
+        updatedEntry = await updateAccountEntry({ displayName: nextName, fullName: nextFullName })
+        if (updatedEntry) {
           const { data: { user } } = await supabase.auth.getUser()
           await supabase
             .from('gpp_profiles')
@@ -1313,17 +1325,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       if (guestEntryToken) {
         updatedEntry = await updateGuestEntry({ fullName: nextFullName })
       } else {
-        const confirmedAt = new Date().toISOString()
-        const result = await supabase
-          .from('gpp_entries')
-          .update({ full_name: nextFullName, full_name_confirmed_at: confirmedAt } as any)
-          .eq('id', myEntry.id)
-          .eq('user_id', userId)
-          .select('*')
-          .single()
-        error = result.error
-        updatedEntry = result.data ? { ...myEntry, ...result.data } : null
-        if (!error) {
+        updatedEntry = await updateAccountEntry({ fullName: nextFullName })
+        if (updatedEntry) {
           const profileName = myEntry.display_name || entryNameValue.trim() || nextFullName
           const { data: { user } } = await supabase.auth.getUser()
           await supabase
@@ -2292,7 +2295,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                 <div className="mt-1 truncate text-[clamp(8px,2.2vw,10px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">
                                   {pick ? shortName(pick.name, allPickNames) : 'Waiting'}
                                 </div>
-                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : 'Waiting'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.name === 'Waiting' ? 'Waiting' : [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ')) : 'Waiting'}</div>
                               </div>
                             )
                           })}
@@ -2368,8 +2371,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                       </span>
                                     ) : null}
                                     <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                    <div className="mt-0.5 truncate text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : ''}</div>
-                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : 'Waiting'}</div>
+                                    <div className="mt-0.5 truncate text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : 'Waiting'}</div>
+                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.name === 'Waiting' ? 'Waiting' : [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ')) : 'Waiting'}</div>
                                   </td>
                                 )
                               })}

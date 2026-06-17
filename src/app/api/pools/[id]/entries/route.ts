@@ -22,7 +22,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data: entries, error: entriesError } = await serviceSupabase
     .from('gpp_entries')
-    .select('*')
+    .select('id, pool_id, user_id, display_name, golfer_picks, total_score, counting_scores, rank, has_paid, payout_amount, is_removed, removed_reason, removed_at, full_name, full_name_confirmed_at, notification_email, created_at')
     .eq('pool_id', id)
     .order('created_at', { ascending: true })
   if (entriesError) return NextResponse.json({ error: entriesError.message }, { status: 500 })
