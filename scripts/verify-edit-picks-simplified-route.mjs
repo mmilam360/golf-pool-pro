@@ -88,6 +88,14 @@ assert.ok(
   'edit-only route should render Leave pool from the dedicated eligibility flag'
 )
 assert.ok(
+  poolView.includes('Leave this pool') && poolView.includes('onClick={() => setRemoveTarget(myEntry.id)}'),
+  'Leave pool should use a plain React button that opens the confirmation modal'
+)
+assert.ok(
+  !poolView.includes('<summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-[0.12em] text-[#b21e23]'),
+  'Leave pool should not be hidden behind the previous nested details/summary control'
+)
+assert.ok(
   poolView.includes("body: JSON.stringify(leavingOwnEntry ? { action: 'leave', entryId } : { entryId, removedReason: removeReason })"),
   'Leave pool should call the self-leave action instead of the owner-only remove route body'
 )

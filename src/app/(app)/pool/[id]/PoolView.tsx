@@ -2805,24 +2805,23 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </div>
               )}
 
-              {/* Leave pool — available to signed-in non-owners while the server leave route is open */}
+              {/* Leave pool — server route enforces lock/live/completed eligibility */}
               {canLeaveOwnEntry && (
-                <details className="group rounded-none border border-stone-200 bg-white shadow-[4px_4px_0_#d8cab0]">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-[0.12em] text-[#b21e23] [&::-webkit-details-marker]:hidden">
-                    <span>Leave pool</span>
-                    <span className="border border-stone-300 px-1.5 py-0.5 text-[10px] group-open:hidden">Open</span>
-                  </summary>
-                  <div className="border-t border-stone-200 p-4">
-                    <p className="text-sm font-semibold text-stone-700">Remove your entry from <span className="font-black text-stone-900">{poolName}</span>? Your picks will be lost.</p>
+                <div className="rounded-none border border-[#f0c8c3] bg-[#fff8f4] p-4 shadow-[4px_4px_0_#d8cab0]">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.12em] text-[#b21e23]">Leave pool</p>
+                      <p className="mt-1 text-sm font-semibold text-stone-700">Remove your entry from <span className="font-black text-stone-900">{poolName}</span>? Your picks will be lost.</p>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setRemoveTarget(myEntry.id)}
-                      className="mt-3 border-2 border-[#b21e23] bg-[#b21e23] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#8a1719]"
+                      className="border-2 border-[#b21e23] bg-[#b21e23] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#8a1719]"
                     >
                       Leave this pool
                     </button>
                   </div>
-                </details>
+                </div>
               )}
             </>
           )}
