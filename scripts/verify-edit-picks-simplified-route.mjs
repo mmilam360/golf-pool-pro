@@ -104,6 +104,10 @@ assert.ok(
   'successful Leave pool should clear the current entrant state in the edit route'
 )
 assert.ok(
+  poolView.includes("      )}\n\n      {/* Remove confirmation modal — used by owner entry removal and non-owner Leave pool */}"),
+  'remove/leave confirmation modal should render outside the owner-only Pool Settings block so non-owners can confirm Leave pool'
+)
+assert.ok(
   poolView.includes("{removingOwnEntry ? 'Leave pool' : 'Remove entry'}"),
   'Leave pool confirmation should use player-facing copy instead of owner removal copy'
 )

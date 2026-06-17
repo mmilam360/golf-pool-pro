@@ -3192,33 +3192,33 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
             </div>
           )}
+        </div>
+      )}
 
-          {/* Remove confirmation modal */}
-          {removeTarget && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4 backdrop-blur-sm">
-              <div className="w-full max-w-sm rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[8px_8px_0_#d8cab0]">
-                <h3 className="mb-3 text-lg font-black text-[#123c2f]">{removingOwnEntry ? 'Leave pool' : 'Remove entry'}</h3>
-                <p className="mb-4 text-sm font-semibold leading-6 text-stone-700">
-                  {removingOwnEntry ? `Leave ${poolName}? Your picks will be removed.` : "Remove this person from the pool? They won't be able to rejoin."}
-                </p>
-                {!removingOwnEntry && (
-                  <input
-                    type="text"
-                    value={removeReason}
-                    onChange={e => setRemoveReason(e.target.value)}
-                    placeholder="Reason"
-                    className="mb-4 w-full rounded-none border border-stone-300 bg-white px-4 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                  />
-                )}
-                <div className="flex justify-end gap-3">
-                  <button onClick={() => { setRemoveTarget(null); setRemoveReason('') }}
-                    className="px-4 py-2 text-sm font-semibold text-stone-600 hover:text-stone-900">Cancel</button>
-                  <button onClick={() => removeEntry(removeTarget)}
-                    className="rounded-none bg-[#b21e23] px-4 py-2 text-sm font-black uppercase text-white hover:bg-[#8a1719]">{removingOwnEntry ? 'Leave pool' : 'Remove'}</button>
-                </div>
-              </div>
+      {/* Remove confirmation modal — used by owner entry removal and non-owner Leave pool */}
+      {removeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[8px_8px_0_#d8cab0]">
+            <h3 className="mb-3 text-lg font-black text-[#123c2f]">{removingOwnEntry ? 'Leave pool' : 'Remove entry'}</h3>
+            <p className="mb-4 text-sm font-semibold leading-6 text-stone-700">
+              {removingOwnEntry ? `Leave ${poolName}? Your picks will be removed.` : "Remove this person from the pool? They won't be able to rejoin."}
+            </p>
+            {!removingOwnEntry && (
+              <input
+                type="text"
+                value={removeReason}
+                onChange={e => setRemoveReason(e.target.value)}
+                placeholder="Reason"
+                className="mb-4 w-full rounded-none border border-stone-300 bg-white px-4 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+            )}
+            <div className="flex justify-end gap-3">
+              <button onClick={() => { setRemoveTarget(null); setRemoveReason('') }}
+                className="px-4 py-2 text-sm font-semibold text-stone-600 hover:text-stone-900">Cancel</button>
+              <button onClick={() => removeEntry(removeTarget)}
+                className="rounded-none bg-[#b21e23] px-4 py-2 text-sm font-black uppercase text-white hover:bg-[#8a1719]">{removingOwnEntry ? 'Leave pool' : 'Remove'}</button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
