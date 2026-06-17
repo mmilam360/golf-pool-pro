@@ -307,11 +307,11 @@ export default function CreatePoolPage() {
         })
 
       if (entryError) {
-        await supabase
-          .from('gpp_pools')
-          .delete()
-          .eq('id', data.id)
-          .eq('owner_id', user.id)
+        await fetch(`/api/pools/${data.id}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: 'DELETE' }),
+        }).catch(() => undefined)
         setError(entryError.message)
         setLoading(false)
         return
