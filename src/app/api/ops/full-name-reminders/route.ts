@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { reserveEmailEvent, finishEmailEvent } from '@/lib/email-events'
 import { requireCronAuth } from '@/lib/cron-auth'
+import { entryRecipientEmail } from '@/lib/pool-email-recipients'
 import { sendGuestFullNameReminderEmail } from '@/lib/pool-transactional-emails'
 
 export const runtime = 'nodejs'
@@ -54,14 +55,18 @@ export async function POST(request: Request) {
     .select('id, user_id, display_name, notification_email, full_name, full_name_confirmed_at, is_removed')
     .eq('pool_id', pool.id)
     .eq('is_removed', false)
-    .is('user_id', null)
-    .not('notification_email', 'is', null)
     .limit(limit)
 
   if (entriesError) return NextResponse.json({ error: entriesError.message }, { status: 500 })
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin
-  const targets = (entries || []).filter((entry: any) => entry.notification_email && needsFullName(entry))
+  const targets = [] as { entry: any; recipient: string }[]
+  for (const entry of entries || []) {
+    if (!needsFullName(entry)) continue
+    const recipient = await entryRecipientEmail(supabase, entry)
+    if (recipient) targets.push({ entry, recipient })
+  }
+
   if (dryRun) {
     return NextResponse.json({
       ok: true,
@@ -70,7 +75,7 @@ export async function POST(request: Request) {
       sent: 0,
       skipped: 0,
       duplicate: 0,
-      entries: targets.map((entry: any) => ({ id: entry.id, displayName: entry.display_name || 'Entry', email: entry.notification_email })),
+      entries: targets.map(({ entry, recipient }) => ({ id: entry.id, displayName: entry.display_name || 'Entry', email: recipient, account: Boolean(entry.user_id) })),
     })
   }
 
@@ -78,8 +83,8 @@ export async function POST(request: Request) {
   let skipped = 0
   let duplicate = 0
 
-  for (const entry of targets) {
-    const recipient = entry.notification_email || ''
+  for (const target of targets) {
+    const { entry, recipient } = target
     const dedupeKey = `full_name_reminder:${pool.id}:${entry.id}`
     const event = await reserveEmailEvent(supabase, {
       poolId: pool.id,
@@ -87,7 +92,7 @@ export async function POST(request: Request) {
       emailType: 'full_name_reminder',
       dedupeKey,
       recipient,
-      payload: { poolName: pool.name, entryName: entry.display_name },
+      payload: { poolName: pool.name, entryName: entry.display_name, account: Boolean(entry.user_id) },
     })
     if (!event.reserved) {
       duplicate++

@@ -11,6 +11,7 @@ export default function JoinPoolPage() {
   const [passcode, setPasscode] = useState('')
   const [guestName, setGuestName] = useState('')
   const [fullName, setFullName] = useState('')
+  const [leaderboardNameEdited, setLeaderboardNameEdited] = useState(false)
   const [resumeEntry, setResumeEntry] = useState<ResumeEntry | null>(null)
   const [showBackButton, setShowBackButton] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
@@ -60,6 +61,7 @@ export default function JoinPoolPage() {
       setIsSignedIn(true)
       setGuestName(current => current.trim() ? current : accountName)
       setFullName(current => current.trim() ? current : accountFullName)
+      setLeaderboardNameEdited(Boolean(accountName))
       setAuthChecked(true)
     }
 
@@ -309,35 +311,17 @@ export default function JoinPoolPage() {
           </div>
           <div>
             <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
-              <span>{nameLabel}</span>
-              {nameRequired && <span className="text-xs font-semibold text-amber-700">required</span>}
-            </label>
-            <input
-              type="text"
-              value={guestName}
-              onChange={e => setGuestName(e.target.value.slice(0, 60))}
-              placeholder="Name for the leaderboard"
-              maxLength={60}
-              autoComplete="name"
-              required={nameRequired}
-              aria-required={nameRequired}
-              onInvalid={e => e.currentTarget.setCustomValidity('Enter the name you want on the leaderboard.')}
-              onInput={e => e.currentTarget.setCustomValidity('')}
-              className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-            />
-            {authChecked && isSignedIn && (
-              <p className="mt-1 text-xs font-semibold text-stone-500">Saved as your account default when you join.</p>
-            )}
-          </div>
-          <div>
-            <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
               <span>Full name</span>
               {nameRequired && <span className="text-xs font-semibold text-amber-700">required</span>}
             </label>
             <input
               type="text"
               value={fullName}
-              onChange={e => setFullName(e.target.value.slice(0, 80))}
+              onChange={e => {
+                const nextFullName = e.target.value.slice(0, 80)
+                setFullName(nextFullName)
+                if (!leaderboardNameEdited) setGuestName(nextFullName.slice(0, 60))
+              }}
               placeholder="Name for the pool runner"
               maxLength={80}
               autoComplete="name"
@@ -348,6 +332,32 @@ export default function JoinPoolPage() {
               className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             />
             <p className="mt-1 text-xs font-semibold text-stone-500">Only the pool runner sees this.</p>
+          </div>
+          <div>
+            <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
+              <span>{nameLabel}</span>
+              {nameRequired && <span className="text-xs font-semibold text-amber-700">required</span>}
+            </label>
+            <input
+              type="text"
+              value={guestName}
+              onChange={e => {
+                setLeaderboardNameEdited(true)
+                setGuestName(e.target.value.slice(0, 60))
+              }}
+              placeholder="Name for the leaderboard"
+              maxLength={60}
+              autoComplete="nickname"
+              required={nameRequired}
+              aria-required={nameRequired}
+              onInvalid={e => e.currentTarget.setCustomValidity('Enter the name you want on the leaderboard.')}
+              onInput={e => e.currentTarget.setCustomValidity('')}
+              className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            />
+            <p className="mt-1 text-xs font-semibold text-stone-500">Shown on the leaderboard. Edit it if you want a nickname or first name.</p>
+            {authChecked && isSignedIn && (
+              <p className="mt-1 text-xs font-semibold text-stone-500">Saved as your account default when you join.</p>
+            )}
           </div>
           <div className="grid gap-3">
             <button

@@ -43,7 +43,9 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [fullName, setFullName] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [leaderboardNameEdited, setLeaderboardNameEdited] = useState(false)
   const [marketingOptIn, setMarketingOptIn] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -89,7 +91,16 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    const trimmedName = displayName.trim()
+    const trimmedFullName = fullName.trim().replace(/\s+/g, ' ')
+    const trimmedName = displayName.trim().replace(/\s+/g, ' ')
+    if (!trimmedFullName) {
+      setError('Enter your full name.')
+      return
+    }
+    if (!trimmedName) {
+      setError('Enter a leaderboard name.')
+      return
+    }
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
@@ -99,7 +110,7 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
     const signupRes = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, displayName: trimmedName, marketingOptIn }),
+      body: JSON.stringify({ email, password, displayName: trimmedName, fullName: trimmedFullName, marketingOptIn }),
     })
     const signupData = await signupRes.json().catch(() => ({}))
     if (!signupRes.ok) {
@@ -162,13 +173,32 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
           <label className="block text-stone-700 text-sm font-medium mb-1">Full name</label>
           <input
             type="text"
-            value={displayName}
-            onChange={e => setDisplayName(e.target.value)}
+            value={fullName}
+            onChange={e => {
+              const nextFullName = e.target.value.slice(0, 80)
+              setFullName(nextFullName)
+              if (!leaderboardNameEdited) setDisplayName(nextFullName.slice(0, 60))
+            }}
             required
             autoComplete="name"
             className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-[#123c2f] focus:ring-2 focus:ring-[#d8cab0]"
           />
-          <p className="mt-1 text-xs text-stone-500">Used as your default leaderboard name. You can change each pool entry later.</p>
+          <p className="mt-1 text-xs text-stone-500">Only pool runners see this on entries.</p>
+        </div>
+        <div>
+          <label className="block text-stone-700 text-sm font-medium mb-1">Leaderboard name</label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={e => {
+              setLeaderboardNameEdited(true)
+              setDisplayName(e.target.value.slice(0, 60))
+            }}
+            required
+            autoComplete="nickname"
+            className="w-full bg-white border border-stone-300 rounded-none px-4 py-3 text-stone-900 focus:outline-none focus:border-[#123c2f] focus:ring-2 focus:ring-[#d8cab0]"
+          />
+          <p className="mt-1 text-xs text-stone-500">Shown publicly on leaderboards. Edit it if you want a nickname or first name.</p>
         </div>
         <div>
           <label className="block text-stone-700 text-sm font-medium mb-1">Email</label>
