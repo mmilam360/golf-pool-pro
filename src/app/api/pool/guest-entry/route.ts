@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createGuestEntryToken, guestEntryTokenMatches, hashGuestEntryToken, normalizeEntryDisplayName, normalizeFullName, normalizeGuestEmail } from '@/lib/guest-entry'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, entryNameTaken, isDuplicateEntryNameError } from '@/lib/entry-name'
+import { validatePickSubmission } from '@/lib/pick-submission-validation'
 
 export const runtime = 'nodejs'
 
@@ -25,15 +26,6 @@ function badRequest(error: string) {
   return NextResponse.json({ error }, { status: 400 })
 }
 
-function requiredPickCount(pool: any) {
-  if (pool?.game_format === 'ranked_groups' || pool?.game_format === 'random_groups') {
-    const groups = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
-    const picksPerGroup = Number(pool.picks_per_group || 1)
-    if (groups.length > 0 && picksPerGroup > 0) return groups.length * picksPerGroup
-  }
-  return Number(pool?.pick_count || 0)
-}
-
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const passcode = (url.searchParams.get('passcode') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
@@ -42,7 +34,7 @@ export async function GET(request: Request) {
   const supabase = createServiceClient() as any
   const { data: pool, error: poolError } = await supabase
     .from('gpp_pools')
-    .select('id, name, passcode, is_locked, gpp_tournaments(name, status)')
+    .select('id, name, passcode, is_locked, is_completed, gpp_tournaments(name, status)')
     .eq('passcode', passcode)
     .maybeSingle()
 
@@ -52,7 +44,7 @@ export async function GET(request: Request) {
     poolId: pool.id,
     poolName: pool.name,
     tournamentName: tournament?.name || '',
-    picksClosed: Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed'),
+    picksClosed: Boolean(pool.is_locked || pool.is_completed || tournament?.status === 'live' || tournament?.status === 'completed'),
   })
 }
 
@@ -76,13 +68,13 @@ export async function POST(request: Request) {
     const supabase = createServiceClient() as any
     const { data: pool, error: poolError } = await supabase
       .from('gpp_pools')
-      .select('id, is_locked, gpp_tournaments(status)')
+      .select('id, is_locked, is_completed, gpp_tournaments(status)')
       .eq('passcode', passcode)
       .maybeSingle()
 
     if (poolError || !pool) return NextResponse.json({ error: 'Invalid passcode. Check with the pool host.' }, { status: 404 })
     const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
-    const picksClosed = pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed'
+    const picksClosed = pool.is_locked || pool.is_completed || tournament?.status === 'live' || tournament?.status === 'completed'
     if (picksClosed) return NextResponse.json({ error: 'This pool is locked. Picks have closed.' }, { status: 409 })
 
     const nameTaken = await entryNameTaken(supabase, pool.id, displayName)
@@ -137,9 +129,10 @@ export async function PATCH(request: Request) {
     const supabase = createServiceClient() as any
     const { data: entry, error: entryError } = await supabase
       .from('gpp_entries')
-      .select('id, pool_id, guest_entry_token_hash, gpp_pools(is_locked, pick_count, game_format, picks_per_group, pick_groups_json, gpp_tournaments(status))')
+      .select('id, pool_id, user_id, guest_entry_token_hash, gpp_pools(is_locked, is_completed, pick_count, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, gpp_tournaments(status, field_json, leaderboard_json))')
       .eq('id', entryId)
       .eq('is_removed', false)
+      .is('user_id', null)
       .maybeSingle()
 
     if (entryError || !entry) return NextResponse.json({ error: 'Entry not found.' }, { status: 404 })
@@ -149,10 +142,11 @@ export async function PATCH(request: Request) {
 
     const pool = Array.isArray(entry.gpp_pools) ? entry.gpp_pools[0] : entry.gpp_pools
     const tournament = Array.isArray(pool?.gpp_tournaments) ? pool.gpp_tournaments[0] : pool?.gpp_tournaments
-    const picksClosed = pool?.is_locked || tournament?.status === 'live' || tournament?.status === 'completed'
+    const picksClosed = pool?.is_locked || pool?.is_completed || tournament?.status === 'live' || tournament?.status === 'completed'
 
     const update: Record<string, unknown> = {}
     if (body.displayName !== undefined) {
+      if (picksClosed) return NextResponse.json({ error: 'Entry names are locked for this pool.' }, { status: 409 })
       const displayName = normalizeEntryDisplayName(body.displayName)
       if (!displayName) return badRequest('Entry name cannot be blank.')
       const nameTaken = await entryNameTaken(supabase, entry.pool_id, displayName, entry.id)
@@ -174,13 +168,8 @@ export async function PATCH(request: Request) {
     }
     if (body.golferPicks !== undefined) {
       if (picksClosed) return NextResponse.json({ error: 'Picks are closed for this pool.' }, { status: 409 })
-      if (!Array.isArray(body.golferPicks) || body.golferPicks.some(pick => typeof pick !== 'string')) {
-        return badRequest('Invalid picks.')
-      }
-      const pickCount = requiredPickCount(pool)
-      if (pickCount > 0 && body.golferPicks.length !== pickCount) {
-        return badRequest(`Pick ${pickCount} golfers to save.`)
-      }
+      const pickError = validatePickSubmission(pool, body.golferPicks)
+      if (pickError) return badRequest(pickError)
       update.golfer_picks = body.golferPicks
     }
 
@@ -190,6 +179,9 @@ export async function PATCH(request: Request) {
       .from('gpp_entries')
       .update(update)
       .eq('id', entry.id)
+      .eq('pool_id', entry.pool_id)
+      .eq('is_removed', false)
+      .is('user_id', null)
       .select('id, pool_id, user_id, display_name, golfer_picks, total_score, counting_scores, rank, has_paid, payout_amount, is_removed, removed_reason, removed_at, full_name, full_name_confirmed_at, notification_email, created_at')
       .single()
 

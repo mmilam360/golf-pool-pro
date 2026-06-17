@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 const checks = [
   ['npm', ['run', 'lint']],
   ['npm', ['run', 'test:final-result-announcements']],
+  ['npm', ['run', 'test:pick-submission-validation']],
   ['npm', ['run', 'test:run-it-back']],
   ['npm', ['run', 'test:grouped-auto-lock']],
   ['npm', ['run', 'test:pool-invites']],

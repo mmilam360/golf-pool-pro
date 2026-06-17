@@ -17,7 +17,7 @@ import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup } from '@/lib/pool-formats'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, normalizeEntryName } from '@/lib/entry-name'
-import { buildFrozenResultEntry, hasFrozenResult } from '@/lib/frozen-results'
+import { buildFrozenResultEntry, hasCompleteFrozenResults } from '@/lib/frozen-results'
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -531,15 +531,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const sc = g.players.filter(p => myPicks.includes(p.name)).length
     return sc < picksPerGroup
   }).length : 0
+  const entryRequiredPickCount = groupedFormat
+    ? ((pickGroups.length || Number(pool.group_count || 0)) * picksPerGroup) || Number(pool.pick_count || 0)
+    : Number(pool.pick_count || 0)
+  const pickCountForEntry = (entry: any) => {
+    const picks = Array.isArray(entry?.golfer_picks) ? entry.golfer_picks as string[] : []
+    return Number(entry?.submitted_pick_count ?? picks.length)
+  }
   const entriesNeedingPicks = activeEntries.filter(entry => {
-    if (groupedFormat) {
-      const pickCount = entry.submitted_pick_count ?? ((entry.golfer_picks as string[]) || []).length
-      const totalNeeded = pickGroups.length * picksPerGroup
-      return pickCount < totalNeeded
-    }
-    const picks = ((entry.golfer_picks as string[]) || [])
-    const pickCount = entry.submitted_pick_count ?? picks.length
-    return pickCount < pool.pick_count
+    const pickCount = pickCountForEntry(entry)
+    if (entryRequiredPickCount <= 0) return pickCount <= 0
+    return pickCount < entryRequiredPickCount
   })
   const entriesNeedingPicksWithEmail = entriesNeedingPicks.filter(entry => runnerCanEmailEntry(entry))
   const entriesNeedingPicksNoEmail = entriesNeedingPicks.filter(entry => !runnerCanEmailEntry(entry))
@@ -635,6 +637,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     ? myPicks.filter(name => !currentFieldNames.has(name))
     : []
   const savedMyPicks = cleanPickList(myEntry?.golfer_picks)
+  const myEntryPickActionLabel = groupsNeedLock ? 'View groups' : savedMyPicks.length > 0 ? 'Edit picks' : 'Make picks'
+  const showMyEntryPickAction = Boolean(!publicView && !guestMode && myEntry && !picksAreLocked)
+  const myEntryTabLabel = showMyEntryPickAction ? myEntryPickActionLabel : 'My Entry'
+  const openMyEntryPicks = () => {
+    setTab('my-entry')
+    window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+  }
   const picksChangedSinceSave = !picksMatch(myPicks, savedMyPicks)
   const hasRequiredPickCount = requiredPickCount > 0 && myPicks.length === requiredPickCount
   const picksComplete = groupedFormat
@@ -714,6 +723,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
 
     if (!data) {
+      if (!isOwner) return
       const query = supabase
         .from('gpp_entries')
         .select('id, pool_id, user_id, display_name, golfer_picks, total_score, counting_scores, rank, has_paid, payout_amount, is_removed, removed_reason, removed_at, created_at')
@@ -1389,16 +1399,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   // Remove entry (admin)
   async function removeEntry(entryId: string) {
-    const { error } = await supabase
-      .from('gpp_entries')
-      .update({ is_removed: true, removed_reason: removeReason, removed_at: new Date().toISOString() })
-      .eq('id', entryId)
-    if (!error) {
+    const res = await fetch(`/api/pools/${pool.id}/entries`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryId, removedReason: removeReason }),
+    })
+    if (res.ok) {
       setEntries(entries.map(e => e.id === entryId ? { ...e, is_removed: true, removed_reason: removeReason } : e))
       setRemoveTarget(null); setRemoveReason('')
       showToast('Entry removed.', 'success')
     } else {
-      showToast('Could not remove entry.', 'error')
+      const data = await res.json().catch(() => ({}))
+      showToast(data.error || 'Could not remove entry.', 'error')
     }
   }
 
@@ -1409,7 +1421,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       showToast('Lock groups before locking picks.', 'error')
       return
     }
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('gpp_pools')
       .update({ is_locked: true })
       .eq('id', pool.id)
@@ -1455,7 +1467,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       showToast('Pool name cannot be blank.', 'error')
       return
     }
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('gpp_pools')
       .update({ name: nextName })
       .eq('id', pool.id)
@@ -1493,7 +1505,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }
 
   // Compute scored entries
-  const useFrozenResults = leaderboardModeIsCurrent && (pool.is_completed || tournament?.status === 'completed') && visibleEntries.some(hasFrozenResult)
+  const useFrozenResults = leaderboardModeIsCurrent && pool.is_completed && hasCompleteFrozenResults(visibleEntries)
   const scoredEntries: ScoredEntry[] = useFrozenResults
     ? visibleEntries
         .filter(entry => !entry.is_removed)
@@ -2041,10 +2053,16 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           </div>
           {showLivePulse && <LivePulseBadge />}
         </div>
-        {!publicView && !scoringIsLive && <div className="flex items-center gap-4 mt-2 text-sm">
-          <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span>
+        {!publicView && !scoringIsLive && <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          {isOwner && pool.passcode ? <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span> : null}
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
+          <span className="text-stone-600">{submittedPickCount} with picks</span>
           <span className="text-stone-600">Field: {activeField.length || ((tournament?.field_json as GolfPlayer[] | undefined)?.filter(player => String(player.status || '').toLowerCase() !== 'wd').length || 0)} golfers</span>
+          {showMyEntryPickAction && (
+            <button type="button" onClick={openMyEntryPicks} className="border border-[#123c2f] bg-white px-2.5 py-1 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f] hover:bg-[#fbf7ed]">
+              {myEntryPickActionLabel}
+            </button>
+          )}
           {picksAreLocked && <span className="text-amber-700">Picks closed</span>}
           {!picksAreLocked && groupsNeedLock && <span className="text-amber-700">Groups pending</span>}
           {pool.is_completed && <span className="text-emerald-700">Final results</span>}
@@ -2121,7 +2139,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             className={`px-4 py-2 rounded-none text-sm font-medium transition-colors ${
               tab === t ? 'bg-white text-emerald-900' : 'text-stone-600 hover:text-emerald-800'
             }`}>
-            {t === 'leaderboard' ? 'Leaderboard' : t === 'my-entry' ? 'My Entry' : 'Pool Settings'}
+            {t === 'leaderboard' ? 'Leaderboard' : t === 'my-entry' ? myEntryTabLabel : 'Pool Settings'}
           </button>
         ))}
       </div>
@@ -2156,6 +2174,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   className="border border-[#d8cab0] bg-[#fbf7ed] px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#657168] transition-colors hover:border-[#123c2f] hover:bg-white hover:text-[#123c2f]"
                 >
                   {shareBoardImageLabel}
+                </button>
+              )}
+              {showMyEntryPickAction && (
+                <button
+                  type="button"
+                  onClick={openMyEntryPicks}
+                  className="border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] transition-colors hover:bg-white"
+                >
+                  {myEntryPickActionLabel}
                 </button>
               )}
               {myEntry && scoredEntries.length >= 10 && scoredEntries.some(entry => entry.entryId === myEntry.id) && (
@@ -3027,8 +3054,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           <div className="bg-white rounded-none border border-stone-200 overflow-hidden shadow-[5px_5px_0_#d8cab0]">
             <div className="px-5 py-4 border-b border-stone-200 bg-stone-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-emerald-950">Manage entries ({activeEntries.length})</h3>
-                <p className="mt-1 text-xs font-semibold text-stone-500">CSV includes optional player emails for score updates.</p>
+                <h3 className="text-lg font-semibold text-emerald-950">Manage entries</h3>
+                <p className="mt-1 text-xs font-semibold text-stone-500">{activeEntries.length} total · {submittedPickCount} with picks. CSV includes optional player emails for score updates.</p>
               </div>
               <button
                 type="button"
@@ -3039,14 +3066,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </button>
             </div>
             {entries.map(entry => {
-              const pickCount = entry.submitted_pick_count ?? ((entry.golfer_picks as string[]) || []).length
-              const picksComplete = pickCount >= pool.pick_count
+              const pickCount = pickCountForEntry(entry)
+              const rowPickTarget = entryRequiredPickCount || Number(pool.pick_count || 0)
+              const picksComplete = rowPickTarget > 0 ? pickCount >= rowPickTarget : pickCount > 0
               return (
                 <div key={entry.id} className={`px-5 py-3 border-b border-stone-100 flex items-center justify-between gap-3 ${entry.is_removed ? 'opacity-40' : ''}`}>
                   <div className="min-w-0">
                     <p className="font-medium text-stone-900">{entry.display_name}</p>
                     <p className="text-stone-500 text-xs">
-                      {pickCount}/{pool.pick_count} Picks
+                      {pickCount}/{rowPickTarget || pool.pick_count} Picks
                       {runnerEmailForEntry(entry) ? <span className="ml-2 break-all">{runnerEmailForEntry(entry)}</span> : null}
                       {entry.is_removed && <span className="text-red-700 ml-2">Removed: {entry.removed_reason}</span>}
                     </p>
@@ -3054,7 +3082,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   <div className="flex shrink-0 items-center gap-2">
                     {!entry.is_removed && (
                       <span className={`border px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${picksComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-                        {picksComplete ? 'Finalized' : `Needs ${pool.pick_count - pickCount}`}
+                        {picksComplete ? 'Picks in' : `Needs ${Math.max((rowPickTarget || Number(pool.pick_count || 0)) - pickCount, 0)}`}
                       </span>
                     )}
                     {!entry.is_removed && entry.user_id !== userId && (

@@ -23,7 +23,7 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
   const [poolResult, entriesResult] = await Promise.all([
     dataSupabase
       .from('gpp_pools')
-      .select('id, tournament_id, name, passcode, owner_id, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, is_locked, lock_at, is_completed, payment_status, amount_paid_cents, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, gpp_tournaments(*)')
+      .select('id, tournament_id, name, passcode, owner_id, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, is_locked, lock_at, is_completed, payment_status, amount_paid_cents, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, gpp_tournaments(id, external_id, name, course, location, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch)')
       .eq('id', id)
       .single(),
     dataSupabase
@@ -64,19 +64,20 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
 
   // Before lock/start, mask other entrants' golfer picks before sending data to the client.
 
-  let safeEntries = (entries || []).map(entry => {
+  let safeEntries = ((entries || []) as any[]).map((entry: any) => {
     const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
     const withdrawnPicks = isOwner && withdrawnNames.size > 0 && Array.isArray(entry.golfer_picks)
       ? entry.golfer_picks.filter((name: string) => withdrawnNames.has(name))
       : []
     const ownerWdMeta = isOwner ? { withdrawn_picks: withdrawnPicks } : {}
     const currentEntry = Boolean((user && entry.user_id === user.id) || (guestEntry && entry.id === guestEntry.id))
+    const safeEntry = { ...entry, guest_entry_token_hash: null }
     const privateMeta = isOwner || currentEntry
       ? {}
-      : { user_id: null, full_name: null, full_name_confirmed_at: null, account_full_name: '', account_full_name_confirmed_at: null, notification_email: null, guest_entry_token_hash: null }
-    if (picksAreVisible || currentEntry) return { ...entry, ...ownerWdMeta, ...privateMeta }
+      : { user_id: null, full_name: null, full_name_confirmed_at: null, account_full_name: '', account_full_name_confirmed_at: null, notification_email: null }
+    if (picksAreVisible || currentEntry) return { ...safeEntry, ...ownerWdMeta, ...privateMeta }
     return {
-      ...entry,
+      ...safeEntry,
       ...ownerWdMeta,
       ...privateMeta,
       submitted_pick_count: submittedPickCount,
@@ -112,18 +113,19 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
 
   // Get current user's entry
   const myEntry = usingGuestToken
-    ? safeEntries.find(e => e.id === guestEntry.id && !e.is_removed) || null
-    : safeEntries.find(e => e.user_id === user?.id && !e.is_removed) || null
+    ? safeEntries.find((e: any) => e.id === guestEntry.id && !e.is_removed) || null
+    : safeEntries.find((e: any) => e.user_id === user?.id && !e.is_removed) || null
 
   let previousPlayerCandidates: { userId: string; displayName: string; sourcePoolIds?: string[]; suggested?: boolean }[] = []
   let inviteSummary = { pending: 0, accepted: 0, declined: 0 }
 
-  if (isOwner) {
+  if (isOwner && user) {
+    const ownerUserId = user.id
     const [ownedPoolsResult, poolInvitesResult] = await Promise.all([
       supabase
         .from('gpp_pools')
         .select('id')
-        .eq('owner_id', user.id),
+        .eq('owner_id', ownerUserId),
       supabase
         .from('gpp_pool_invites')
         .select('invited_user_id, status')
@@ -132,8 +134,8 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
     const { data: ownedPools } = ownedPoolsResult
     const { data: poolInvites } = poolInvitesResult
 
-    const previousPoolIds = (ownedPools || [])
-      .map(item => item.id)
+    const previousPoolIds = ((ownedPools || []) as any[])
+      .map((item: any) => item.id)
       .filter(poolId => poolId !== id)
 
     const { data: previousEntries } = previousPoolIds.length
@@ -144,15 +146,15 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
         .eq('is_removed', false)
       : { data: [] }
 
-    const currentPoolEntryUserIds = (entries || [])
-      .filter(entry => entry.user_id && !entry.is_removed)
-      .map(entry => entry.user_id as string)
+    const currentPoolEntryUserIds = ((entries || []) as any[])
+      .filter((entry: any) => entry.user_id && !entry.is_removed)
+      .map((entry: any) => entry.user_id as string)
 
     previousPlayerCandidates = buildPreviousPlayerCandidates({
       previousEntries: previousEntries || [],
       currentPoolEntryUserIds,
-      existingInviteUserIds: (poolInvites || []).map(invite => invite.invited_user_id),
-      ownerUserId: user.id,
+      existingInviteUserIds: ((poolInvites || []) as any[]).map((invite: any) => invite.invited_user_id),
+      ownerUserId,
     }).map(candidate => ({
       ...candidate,
       suggested: Boolean(inviteFromPoolId && candidate.sourcePoolIds?.includes(inviteFromPoolId)),

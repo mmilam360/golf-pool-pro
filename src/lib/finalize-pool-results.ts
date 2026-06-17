@@ -86,7 +86,6 @@ export async function finalizeCompletedPoolResults(
     .from('gpp_tournaments')
     .select('id, name, status, leaderboard_json')
     .eq('status', 'completed')
-    .not('leaderboard_json', 'is', null)
 
   if (options.tournamentIds?.length) tournamentQuery = tournamentQuery.in('id', options.tournamentIds)
 
@@ -95,10 +94,10 @@ export async function finalizeCompletedPoolResults(
 
   for (const tournament of (tournaments || []) as TournamentRow[]) {
     result.tournamentsChecked++
-    if (!usableLeaderboard(tournament.leaderboard_json) || !finalBoardHasEnoughEvidence(tournament.leaderboard_json, 4)) {
-      result.skipped++
-      continue
-    }
+    const leaderboardToFinalize = usableLeaderboard(tournament.leaderboard_json)
+      && finalBoardHasEnoughEvidence(tournament.leaderboard_json)
+      ? tournament.leaderboard_json
+      : null
 
     const { data: pools, error: poolsError } = await supabase
       .from('gpp_pools')
@@ -111,6 +110,10 @@ export async function finalizeCompletedPoolResults(
       result.poolsChecked++
       if (pool.results_finalized_at) {
         await addFinalEmailResult(result, sendFinalResultsEmailsForPool(supabase, { pool, tournament }))
+        result.skipped++
+        continue
+      }
+      if (!leaderboardToFinalize) {
         result.skipped++
         continue
       }
@@ -162,7 +165,7 @@ export async function finalizeCompletedPoolResults(
 
         const scoredEntries = scoreEntriesForLeaderboard(
           (entries || []) as EntryRow[],
-          tournament.leaderboard_json,
+          leaderboardToFinalize,
           {
             countScores,
             obRuleEnabled: Boolean(pool.ob_rule_enabled),
@@ -185,8 +188,6 @@ export async function finalizeCompletedPoolResults(
         const updateError = updateResults.find((item: any) => item.error)?.error
         if (updateError) throw updateError
 
-        await addFinalEmailResult(result, sendFinalResultsEmailsForPool(supabase, { pool, tournament }))
-
         const { data: finalizedPools, error: poolUpdateError } = await supabase
           .from('gpp_pools')
           .update({
@@ -201,6 +202,8 @@ export async function finalizeCompletedPoolResults(
 
         if (poolUpdateError) throw poolUpdateError
         if (!finalizedPools?.length) throw new Error(`Finalizer lock lost for pool ${pool.id}`)
+
+        await addFinalEmailResult(result, sendFinalResultsEmailsForPool(supabase, { pool, tournament }))
 
         result.entriesUpdated += scoredEntries.length
         result.poolsFinalized++

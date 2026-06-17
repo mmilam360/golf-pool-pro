@@ -18,6 +18,10 @@ export function hasFrozenResult(entry: FrozenEntryLike) {
     && Array.isArray(entry.counting_scores)
 }
 
+export function hasFrozenSnapshot(entry: FrozenEntryLike) {
+  return Array.isArray(entry.counting_scores)
+}
+
 export function buildFrozenResultEntry(entry: FrozenEntryLike): ScoredEntry {
   const storedPickScores = Array.isArray(entry.counting_scores) ? entry.counting_scores as PickScore[] : []
   return {
@@ -34,9 +38,14 @@ export function buildFrozenResultEntry(entry: FrozenEntryLike): ScoredEntry {
   }
 }
 
+export function hasCompleteFrozenResults(entries: FrozenEntryLike[]) {
+  const activeEntries = entries.filter(entry => !entry.is_removed)
+  return activeEntries.length > 0 && activeEntries.every(hasFrozenSnapshot)
+}
+
 export function frozenResultsForEntries(entries: FrozenEntryLike[]): ScoredEntry[] {
   return entries
-    .filter(entry => !entry.is_removed)
+    .filter(entry => !entry.is_removed && hasFrozenSnapshot(entry))
     .map(buildFrozenResultEntry)
     .sort((a, b) => (a.rank ?? 999999) - (b.rank ?? 999999) || (a.totalScore ?? 999999) - (b.totalScore ?? 999999) || a.displayName.localeCompare(b.displayName))
 }

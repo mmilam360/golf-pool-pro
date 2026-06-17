@@ -55,7 +55,7 @@ export async function GET(request: Request) {
 
   if (existingEntry) return redirectToPool(request, poolId, '?claim=existing-entry')
 
-  const { error: updateError } = await serviceSupabase
+  const { data: updatedEntry, error: updateError } = await serviceSupabase
     .from('gpp_entries')
     .update({
       user_id: user.id,
@@ -63,8 +63,14 @@ export async function GET(request: Request) {
       guest_entry_token_hash: null,
     })
     .eq('id', guestEntry.id)
+    .eq('pool_id', poolId)
+    .is('user_id', null)
+    .eq('is_removed', false)
+    .select('id')
+    .maybeSingle()
 
   if (updateError) return redirectToPool(request, poolId, '?claim=error')
+  if (!updatedEntry?.id) return redirectToPool(request, poolId, '?claim=already-linked')
 
   if (guestEntry.full_name && guestEntry.full_name_confirmed_at) {
     await serviceSupabase

@@ -173,7 +173,7 @@ async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Pref
     const scored = scoreEntriesForLeaderboard(entries, leaderboard, {
       countScores: pool.count_scores || pool.pick_count || 0,
       obRuleEnabled: Boolean(pool.ob_rule_enabled),
-      obPenaltyStrokes: pool.ob_penalty_strokes || 2,
+      obPenaltyStrokes: pool.ob_penalty_strokes ?? 2,
     })
     const userIdByEntryId = new Map(entries.map((entry: any) => [entry.id, entry.user_id]))
     const leaders = scored.filter(entry => entry.rank === 1 && userIdByEntryId.get(entry.entryId))

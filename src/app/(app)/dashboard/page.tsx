@@ -15,7 +15,7 @@ import { hasOnCourseScores } from '@/lib/golf-live'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { hydrateFinalLeaderboards } from '@/lib/fresh-final-leaderboard'
 import { displayTournamentName } from '@/lib/tournament-name'
-import { frozenResultsForEntries, hasFrozenResult } from '@/lib/frozen-results'
+import { frozenResultsForEntries, hasCompleteFrozenResults } from '@/lib/frozen-results'
 
 type Tournament = {
   id?: string | null
@@ -235,7 +235,7 @@ function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): Scored
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   const canShowRank = Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard))
 
-  if ((pool.is_completed || tournament?.status === 'completed') && allEntries.some(hasFrozenResult)) {
+  if (pool.is_completed && hasCompleteFrozenResults(allEntries)) {
     return frozenResultsForEntries(allEntries)
   }
 
@@ -247,7 +247,7 @@ function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): Scored
     {
       countScores: pool.count_scores || pool.pick_count || 0,
       obRuleEnabled: Boolean(pool.ob_rule_enabled),
-      obPenaltyStrokes: pool.ob_penalty_strokes || 2,
+      obPenaltyStrokes: pool.ob_penalty_strokes ?? 2,
     }
   )
 }
@@ -443,7 +443,7 @@ export default async function DashboardPage() {
     const tournament = getTournament(pool)
     return Boolean(pool && !isActivePool(pool, tournament))
   }).sort((a, b) => tournamentSortDate(getPool(b)).localeCompare(tournamentSortDate(getPool(a))))
-  const dismissedPoolIds = new Set((dismissedFinalResults ?? []).map(row => String(row.pool_id)).filter(Boolean))
+  const dismissedPoolIds = new Set(((dismissedFinalResults ?? []) as any[]).map((row: any) => String(row.pool_id)).filter(Boolean))
   const nextOpenTournament = selectNextRunItBackTournament((upcomingTournaments ?? []) as Tournament[])
   const finalResultCandidates: FinalResultAnnouncementCandidate[] = pastEntries.flatMap(entry => {
     const pool = getPool(entry)

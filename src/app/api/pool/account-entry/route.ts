@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { normalizeEntryDisplayName, normalizeFullName } from '@/lib/guest-entry'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, entryNameTaken, isDuplicateEntryNameError } from '@/lib/entry-name'
+import { validatePickSubmission } from '@/lib/pick-submission-validation'
 
 export const runtime = 'nodejs'
 
@@ -16,15 +17,6 @@ type UpdateBody = {
 
 function badRequest(error: string) {
   return NextResponse.json({ error }, { status: 400 })
-}
-
-function requiredPickCount(pool: any) {
-  if (pool?.game_format === 'ranked_groups' || pool?.game_format === 'random_groups') {
-    const groups = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
-    const picksPerGroup = Number(pool.picks_per_group || 1)
-    if (groups.length > 0 && picksPerGroup > 0) return groups.length * picksPerGroup
-  }
-  return Number(pool?.pick_count || 0)
 }
 
 export async function PATCH(request: Request) {
@@ -41,7 +33,7 @@ export async function PATCH(request: Request) {
     const supabase = createServiceClient() as any
     const { data: entry, error: entryError } = await supabase
       .from('gpp_entries')
-      .select('id, pool_id, user_id, gpp_pools(is_locked, pick_count, game_format, picks_per_group, pick_groups_json, gpp_tournaments(status))')
+      .select('id, pool_id, user_id, gpp_pools(is_locked, is_completed, pick_count, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, gpp_tournaments(status, field_json, leaderboard_json))')
       .eq('id', entryId)
       .eq('pool_id', poolId)
       .eq('user_id', user.id)
@@ -52,10 +44,11 @@ export async function PATCH(request: Request) {
 
     const pool = Array.isArray(entry.gpp_pools) ? entry.gpp_pools[0] : entry.gpp_pools
     const tournament = Array.isArray(pool?.gpp_tournaments) ? pool.gpp_tournaments[0] : pool?.gpp_tournaments
-    const picksClosed = pool?.is_locked || tournament?.status === 'live' || tournament?.status === 'completed'
+    const picksClosed = pool?.is_locked || pool?.is_completed || tournament?.status === 'live' || tournament?.status === 'completed'
 
     const update: Record<string, unknown> = {}
     if (body.displayName !== undefined) {
+      if (picksClosed) return NextResponse.json({ error: 'Entry names are locked for this pool.' }, { status: 409 })
       const displayName = normalizeEntryDisplayName(body.displayName)
       if (!displayName) return badRequest('Entry name cannot be blank.')
       const nameTaken = await entryNameTaken(supabase, entry.pool_id, displayName, entry.id)
@@ -70,13 +63,8 @@ export async function PATCH(request: Request) {
     }
     if (body.golferPicks !== undefined) {
       if (picksClosed) return NextResponse.json({ error: 'Picks are closed for this pool.' }, { status: 409 })
-      if (!Array.isArray(body.golferPicks) || body.golferPicks.some(pick => typeof pick !== 'string')) {
-        return badRequest('Invalid picks.')
-      }
-      const pickCount = requiredPickCount(pool)
-      if (pickCount > 0 && body.golferPicks.length !== pickCount) {
-        return badRequest(`Pick ${pickCount} golfers to save.`)
-      }
+      const pickError = validatePickSubmission(pool, body.golferPicks)
+      if (pickError) return badRequest(pickError)
       update.golfer_picks = body.golferPicks
     }
 

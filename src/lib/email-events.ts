@@ -7,7 +7,7 @@ type ReserveEmailEventInput = {
   payload?: Record<string, unknown>
 }
 
-const PENDING_RETRY_AFTER_MS = 10 * 60 * 1000
+const PENDING_RETRY_AFTER_MS = 60 * 60 * 1000
 
 function isDuplicateError(error: any) {
   const message = String(error?.message || '').toLowerCase()
@@ -33,7 +33,7 @@ async function reserveExistingEmailEvent(supabase: any, input: ReserveEmailEvent
     return { reserved: false, duplicate: true, id: null as string | null }
   }
 
-  const { data, error } = await supabase
+  let updateQuery = supabase
     .from('gpp_email_events')
     .update({
       pool_id: input.poolId || null,
@@ -46,7 +46,13 @@ async function reserveExistingEmailEvent(supabase: any, input: ReserveEmailEvent
       sent_at: new Date().toISOString(),
     })
     .eq('id', existing.id)
-    .neq('status', 'sent')
+    .eq('status', existing.status)
+
+  updateQuery = existing.sent_at
+    ? updateQuery.eq('sent_at', existing.sent_at)
+    : updateQuery.is('sent_at', null)
+
+  const { data, error } = await updateQuery
     .select('id')
     .maybeSingle()
 
@@ -80,8 +86,11 @@ export async function reserveEmailEvent(supabase: any, input: ReserveEmailEventI
 
 export async function finishEmailEvent(supabase: any, id: string | null | undefined, status: 'sent' | 'skipped' | 'failed', error?: string) {
   if (!id) return
-  await supabase
+  const { error: updateError } = await supabase
     .from('gpp_email_events')
     .update({ status, error: error ? error.slice(0, 500) : null, sent_at: new Date().toISOString() })
     .eq('id', id)
+    .eq('status', 'pending')
+
+  if (updateError) throw updateError
 }

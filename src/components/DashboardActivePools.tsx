@@ -13,7 +13,7 @@ import { isGroupedPoolFormat, totalPicksRequired } from '@/lib/pick-counts'
 import { getPickLockBadgeText } from '@/lib/pick-lock-display'
 import { applySavedPoolOrder, movePoolId } from '@/lib/dashboard-pool-order'
 import { trackGppEvent } from '@/lib/posthog-events'
-import { frozenResultsForEntries, hasFrozenResult } from '@/lib/frozen-results'
+import { frozenResultsForEntries, hasCompleteFrozenResults } from '@/lib/frozen-results'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -352,7 +352,7 @@ function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[], selecte
   const leaderboard = selectedLeaderboard || (Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : [])
   const canShowRank = forceScoring || Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard))
 
-  if (!forceScoring && !selectedLeaderboard && (pool.is_completed || tournament?.status === 'completed') && allEntries.some(hasFrozenResult)) {
+  if (!forceScoring && !selectedLeaderboard && pool.is_completed && hasCompleteFrozenResults(allEntries)) {
     return frozenResultsForEntries(allEntries)
   }
 
@@ -364,7 +364,7 @@ function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[], selecte
     {
       countScores: pool.count_scores || pool.pick_count || 0,
       obRuleEnabled: Boolean(pool.ob_rule_enabled),
-      obPenaltyStrokes: pool.ob_penalty_strokes || 2,
+      obPenaltyStrokes: pool.ob_penalty_strokes ?? 2,
     }
   )
 }

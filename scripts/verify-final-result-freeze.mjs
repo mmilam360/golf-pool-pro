@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { finalBoardHasEnoughEvidence } from '../src/lib/leaderboard-sanity.ts'
+import { hasCompleteFrozenResults, frozenResultsForEntries } from '../src/lib/frozen-results.ts'
 import { scoreEntriesForLeaderboard } from '../src/lib/scoring.ts'
 
 const finalBoard = [
@@ -55,5 +56,31 @@ const gerard = entry.pickScores.find(pick => pick.name === 'Ryan Gerard')
 assert.equal(gerard?.scoreToPar, -12)
 assert.equal(gerard?.roundScore, '-4')
 assert.equal(gerard?.thru, 'F')
+
+const frozenEntries = [
+  {
+    id: 'entry-1',
+    display_name: 'Winner',
+    golfer_picks: ['Ryan Gerard', 'Tony Finau'],
+    total_score: -22,
+    rank: 1,
+    counting_scores: entry.pickScores,
+    is_removed: false,
+  },
+  {
+    id: 'entry-2',
+    display_name: 'Incomplete',
+    golfer_picks: [],
+    total_score: null,
+    rank: null,
+    counting_scores: [],
+    is_removed: false,
+  },
+]
+assert.equal(hasCompleteFrozenResults(frozenEntries), true, 'unranked finalized entries should not force frozen boards to recompute from live data')
+const frozenBoard = frozenResultsForEntries(frozenEntries)
+assert.equal(frozenBoard.length, 2, 'frozen board should keep unranked finalized entries')
+assert.equal(frozenBoard[1].rank, null)
+assert.equal(frozenBoard[1].totalScore, null)
 
 console.log('Final result freeze verification passed')

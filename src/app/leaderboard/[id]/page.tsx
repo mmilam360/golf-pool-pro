@@ -15,12 +15,13 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
   const highlightedEntryId = typeof query?.entry === 'string' && /^[0-9a-f-]{36}$/i.test(query.entry) ? query.entry : null
   const supabase = await createClient()
 
-  const { data: pool } = await supabase
+  const { data: poolData } = await supabase
     .from('gpp_pools')
-    .select('id, name, pick_count, count_scores, is_locked, is_completed, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, gpp_tournaments(*)')
+    .select('id, name, pick_count, count_scores, is_locked, is_completed, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, gpp_tournaments(id, external_id, name, course, location, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch)')
     .eq('id', id)
     .single()
 
+  const pool = poolData as any
   if (!pool) notFound()
 
   const tournament = await hydrateFinalLeaderboard(pool.gpp_tournaments as any)
@@ -53,7 +54,7 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
     .eq('is_removed', false)
     .order('created_at', { ascending: true })
 
-  const safeEntries = (entries || []).map(entry => {
+  const safeEntries = ((entries || []) as any[]).map((entry: any) => {
     const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
     const publicEntry = {
       ...entry,

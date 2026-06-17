@@ -18,7 +18,7 @@ export async function sendFinalResultsEmailsForPool(supabase: any, params: { poo
 
   const { data: entries, error } = await supabase
     .from('gpp_entries')
-    .select('id, user_id, display_name, notification_email, rank, total_score, is_removed')
+    .select('id, user_id, display_name, notification_email, rank, total_score, counting_scores, is_removed')
     .eq('pool_id', pool.id)
     .eq('is_removed', false)
     .order('rank', { ascending: true })

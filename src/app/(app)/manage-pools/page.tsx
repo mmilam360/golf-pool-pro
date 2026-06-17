@@ -9,7 +9,7 @@ import { selectNextRunItBackTournament } from '@/lib/run-it-back'
 import { scoreEntriesForLeaderboard, type ScoredEntry } from '@/lib/scoring'
 import ClaimedPromoBanner from '@/components/ClaimedPromoBanner'
 import { displayTournamentName } from '@/lib/tournament-name'
-import { frozenResultsForEntries, hasFrozenResult } from '@/lib/frozen-results'
+import { frozenResultsForEntries, hasCompleteFrozenResults } from '@/lib/frozen-results'
 import type { GolfPlayer } from '@/lib/golf-api'
 import { hydrateFinalLeaderboard } from '@/lib/fresh-final-leaderboard'
 
@@ -183,7 +183,7 @@ function BalanceBadge({ pool, activeEntryCount, tournament }: { pool: PoolRecord
 function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): ScoredEntry[] {
   const tournament = getTournament(pool)
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
-  if ((pool.is_completed || tournament?.status === 'completed') && allEntries.some(hasFrozenResult)) {
+  if (pool.is_completed && hasCompleteFrozenResults(allEntries)) {
     return frozenResultsForEntries(allEntries)
   }
   if (!leaderboard.length) return []
@@ -194,7 +194,7 @@ function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): Scored
     {
       countScores: pool.count_scores || pool.pick_count || 0,
       obRuleEnabled: Boolean(pool.ob_rule_enabled),
-      obPenaltyStrokes: pool.ob_penalty_strokes || 2,
+      obPenaltyStrokes: pool.ob_penalty_strokes ?? 2,
     }
   )
 }

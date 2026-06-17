@@ -65,6 +65,18 @@ export function finalBoardLooksComplete(players: GolfPlayer[] | null | undefined
   })
 }
 
+function activePlayersHaveScores(players: GolfPlayer[] | null | undefined) {
+  const leaderboard = Array.isArray(players) ? players : []
+  const activePlayers = leaderboard.filter(player => player?.status === 'active')
+  return activePlayers.length > 0 && activePlayers.every(player =>
+    player.scoreToPar !== null
+      && player.scoreToPar !== undefined
+      && Number.isFinite(Number(player.scoreToPar))
+  )
+}
+
 export function finalBoardHasEnoughEvidence(players: GolfPlayer[] | null | undefined, reportedRound?: number | null) {
-  return finalBoardLooksComplete(players, reportedRound) && !hasWeekendCutStatusErrors(players)
+  return finalBoardLooksComplete(players, reportedRound)
+    && activePlayersHaveScores(players)
+    && !hasWeekendCutStatusErrors(players)
 }

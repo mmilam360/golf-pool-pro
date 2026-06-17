@@ -92,10 +92,13 @@ export function scoreEntry(
     )
     if (!player) return { name, scoreToPar: null, strokes: null, thru: '', status: 'dnq' as const, counted: false, isObStandIn: false, finalNineScore: null, tiebreakScores: [] }
     const playerTiebreakScores = tiebreakScores(player)
-    return { name: player.name, scoreToPar: player.scoreToPar, strokes: player.strokes, thru: player.thru, status: player.status, counted: false, isObStandIn: false, teeTime: player.teeTime, startTee: player.startTee, roundScore: player.roundScore, finalNineScore: playerTiebreakScores[0] ?? null, tiebreakScores: playerTiebreakScores }
+    const scoreToPar = player.scoreToPar !== null && player.scoreToPar !== undefined && Number.isFinite(Number(player.scoreToPar))
+      ? Number(player.scoreToPar)
+      : null
+    return { name: player.name, scoreToPar, strokes: player.strokes, thru: player.thru, status: player.status, counted: false, isObStandIn: false, teeTime: player.teeTime, startTee: player.startTee, roundScore: player.roundScore, finalNineScore: playerTiebreakScores[0] ?? null, tiebreakScores: playerTiebreakScores }
   })
 
-  const active = pickScores.filter(p => p.status === 'active' && p.scoreToPar !== null)
+  const active = pickScores.filter(p => p.status === 'active' && Number.isFinite(p.scoreToPar))
   active.sort((a, b) => (a.scoreToPar ?? 999) - (b.scoreToPar ?? 999))
 
   let counting: PickScore[] = []; let obStandIns = 0
@@ -107,8 +110,8 @@ export function scoreEntry(
     const obEligiblePicks = pickScores.filter(p => p.status !== 'active')
     const standInsNeeded = Math.min(needed, obEligiblePicks.length)
     if (standInsNeeded > 0 && safeLeaderboard.length > 0) {
-      const scoredPlayers = safeLeaderboard.filter(p => p.status === 'active' && p.scoreToPar !== null)
-      scoredPlayers.sort((a, b) => (b.scoreToPar ?? -999) - (a.scoreToPar ?? -999))
+      const scoredPlayers = safeLeaderboard.filter(p => p.status === 'active' && p.scoreToPar !== null && p.scoreToPar !== undefined && Number.isFinite(Number(p.scoreToPar)))
+      scoredPlayers.sort((a, b) => (Number(b.scoreToPar) ?? -999) - (Number(a.scoreToPar) ?? -999))
       const worstScore = scoredPlayers.length > 0 ? (scoredPlayers[0].scoreToPar ?? 0) : 0
       const standInPenalty = obRuleEnabled ? obPenaltyStrokes : 0
       const obRoundScore = worstActiveRoundScore(scoredPlayers, standInPenalty)
@@ -147,9 +150,11 @@ export function scoreEntry(
   const teamTiebreakScores: number[] = []
   if (counting.length >= countScores) {
     for (let index = 0; index < maxTiebreakLevels; index += 1) {
-      const scores = counting.map(p => p.tiebreakScores?.[index])
-      if (!scores.every(score => Number.isFinite(score))) break
-      teamTiebreakScores.push(scores.reduce((sum, score) => sum + (score ?? 0), 0))
+      const scores = counting
+        .map(p => p.tiebreakScores?.[index])
+        .filter((score): score is number => Number.isFinite(score))
+      if (scores.length !== counting.length) break
+      teamTiebreakScores.push(scores.reduce((sum, score) => sum + score, 0))
     }
   }
   return { entryId: '', displayName: '', picks, pickScores: allScored, totalScore, todayScore, finalNineScore: teamTiebreakScores[0] ?? null, tiebreakScores: teamTiebreakScores, rank: null, obStandIns }
