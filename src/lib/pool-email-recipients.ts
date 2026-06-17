@@ -24,12 +24,13 @@ export async function entryRecipientEmail(supabase: any, entry: EntryLike) {
 }
 
 export async function entryEditUrl(supabase: any, origin: string, poolId: string, entry: EntryLike, purpose: string) {
+  const editPath = `/pool/${poolId}#make-picks`
   if (entry.user_id) {
-    const redirect = encodeURIComponent(`/pool/${poolId}`)
+    const redirect = encodeURIComponent(editPath)
     return `${origin}/login?redirect=${redirect}`
   }
   const token = await createGuestEntryEmailToken(supabase, entry.id, purpose)
-  return `${origin}/pool/${poolId}?guest=${encodeURIComponent(token)}`
+  return `${origin}/pool/${poolId}?guest=${encodeURIComponent(token)}#make-picks`
 }
 
 export function publicLeaderboardUrl(origin: string, poolId: string, entryId?: string | null) {

@@ -25,6 +25,8 @@ assert.ok(entrySavedEmail.includes('const recipient = entry.notification_email |
 assert.ok(!entrySavedEmail.includes('getUserById(entry.user_id)'), 'saved-entry email helper should not fetch account email for saved-entry messages')
 assert.ok(entrySavedEmail.includes("emailType: 'entry_saved'"), 'saved-entry email helper should record email event type')
 assert.ok(entrySavedEmail.includes('dedupeKey: `entry_saved:${poolId}:${entryId}`'), 'saved-entry email helper should dedupe to one saved-entry email per entry')
+assert.ok(entrySavedEmail.includes("`${origin}/pool/${pool.id}?guest=${encodeURIComponent(token)}#make-picks`"), 'saved-entry guest edit link should open the pick editor section')
+assert.ok(entrySavedEmail.includes("`/pool/${pool.id}#make-picks`"), 'saved-entry account fallback link should redirect to the pick editor section')
 assert.ok(entrySavedEmail.includes("reason: 'duplicate_entry_saved_email'"), 'duplicate saved-entry email calls should be skipped')
 assert.ok(route.includes('sendEntrySavedEmail({ entryId, poolId, token, userId: user?.id || null, origin })'), 'saved-entry email route should continue passing auth context into the guarded helper')
 

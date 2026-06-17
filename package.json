@@ -30,6 +30,7 @@
     "test:edit-picks-simplified-route": "node scripts/verify-edit-picks-simplified-route.mjs",
     "test:entry-saved-email-quota": "node scripts/verify-entry-saved-email-quota.mjs",
     "test:transactional-email-headers": "node scripts/verify-transactional-email-headers.mjs",
+    "test:reminder-edit-links": "node scripts/verify-reminder-edit-links.mjs",
     "test:pool-entry-details-editor": "node scripts/verify-pool-entry-details-editor.mjs",
     "test:pick-counts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pick-count-rules.mjs",
     "test:guest-join-flow": "node scripts/verify-guest-join-flow.mjs",
