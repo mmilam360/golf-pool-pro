@@ -316,18 +316,18 @@ export default async function DashboardPage() {
   const [ownedPoolsResult, entriesResult, pendingInvitesResult, dismissedFinalResultsResult, upcomingTournamentsResult] = await Promise.all([
     supabase
       .from('gpp_pools')
-      .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, last_scores_fetch)')
+      .select('id, name, passcode, is_locked, is_completed, payment_status, amount_paid_cents, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch)')
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false }),
     supabase
       .from('gpp_entries')
-      .select('id, pool_id, display_name, golfer_picks, counting_scores, total_score, rank, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, last_scores_fetch))')
+      .select('id, pool_id, display_name, golfer_picks, counting_scores, total_score, rank, is_removed, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch))')
       .eq('user_id', user.id)
       .eq('is_removed', false)
       .order('created_at', { ascending: false }),
     supabase
       .from('gpp_pool_invites')
-      .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, last_scores_fetch))')
+      .select('id, pool_id, status, gpp_pools(id, name, passcode, is_locked, is_completed, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, lock_at, groups_finalized_at, gpp_tournaments(id, name, external_id, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch))')
       .eq('invited_user_id', user.id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),

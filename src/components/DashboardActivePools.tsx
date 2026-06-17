@@ -7,6 +7,7 @@ import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, O
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
+import { groupForPick, type PickGroup } from '@/lib/pool-formats'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { displayTournamentName } from '@/lib/tournament-name'
 import { isGroupedPoolFormat, totalPicksRequired } from '@/lib/pick-counts'
@@ -442,16 +443,6 @@ function playerStatusByName(scoringRows: GolfPlayer[], fieldRows: GolfPlayer[]) 
   return byName
 }
 
-function pickGridColumnCount(count: number) {
-  if (count <= 3) return Math.max(1, count)
-  if (count === 6) return 3
-  if (count === 12) return 4
-  if (count % 5 === 0) return 5
-  if (count % 4 === 0) return 4
-  if (count % 3 === 0) return 3
-  return Math.min(4, count)
-}
-
 function buildPreScoringEntry(entry: EntryRecord, countScores: number, hidePicks: boolean, playerByName: Map<string, GolfPlayer>): ScoredEntry {
   if (hidePicks) {
     return {
@@ -555,6 +546,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
 }) {
   const countScores = pool.count_scores || pool.pick_count || 0
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
+  const groupedFormat = isGroupedPoolFormat(pool.game_format)
+  const pickGroups: PickGroup[] = groupedFormat && Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json as PickGroup[] : []
   const baseLeaderboardRows = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   const fieldRows = Array.isArray(tournament?.field_json) ? tournament.field_json : []
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
@@ -582,7 +575,6 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const scoredEntries = scoringIsLive
     ? buildScoredEntries(pool, entries, leaderboardRows, selectedBoardIsHistorical)
     : entries.map(entry => buildPreScoringEntry(entry, countScores, entry.id !== currentEntryId && Boolean(entry.picks_hidden), preScoringPlayerByName))
-  const pickGridColumns = pickGridColumnCount(countScores)
   const golferNamePeers = (leaderboardRows.length ? leaderboardRows : fieldRows)
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
@@ -591,6 +583,25 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     const sourceEntry = entries.find(record => record.id === entryId)
     if (!sourceEntry || sourceEntry.picks_hidden) return false
     return Array.isArray(sourceEntry.golfer_picks) && sourceEntry.golfer_picks.length > 0
+  }
+
+  function orderPicksForDisplay(picks: PickScore[]) {
+    if (!scoringIsLive || !groupedFormat || pickGroups.length === 0) return picks
+    const order = new Map<string, number>()
+    pickGroups.forEach((group, groupIndex) => {
+      group.players.forEach((player, playerIndex) => order.set(normalizePickName(player.name), groupIndex * 1000 + playerIndex))
+    })
+    return [...picks].sort((a, b) => {
+      const aOrder = order.get(normalizePickName(a.name)) ?? 999999
+      const bOrder = order.get(normalizePickName(b.name)) ?? 999999
+      return aOrder - bOrder || a.name.localeCompare(b.name)
+    })
+  }
+
+  function pickGroupShortLabel(name?: string) {
+    if (!name || !groupedFormat) return null
+    const group = groupForPick(pickGroups, name)
+    return group ? group.label.replace('Group ', 'G') : null
   }
 
   const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
@@ -700,15 +711,15 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
         </div>
       ) : null}
       <div
-        className="gpp-3d [--gpp-depth-x:10px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]"
+        className="gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]"
         style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
       >
         <div className="gpp-board-depth-right" aria-hidden="true" />
         <div className="gpp-board-depth-bottom" aria-hidden="true" />
-        <div className="gpp-3d-face gpp-board-frame border-[8px] border-[#123c2f] md:border-[14px]">
-          <div className="gpp-score-face border-2 border-[#111] bg-[#f7f7f2] text-center">
-            <div className="relative border-b-2 border-[#111] px-3 py-2">
-              <p className="mx-auto max-w-[94%] text-[clamp(0.8rem,5vw,1.25rem)] font-black uppercase leading-[0.95] tracking-[clamp(0.025em,1.1vw,0.1em)] text-[#111] [text-wrap:balance] sm:text-2xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
+        <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[16px]">
+          <div className="gpp-score-face border-2 border-[#d8b45d] bg-[#f7f7f2] text-center">
+            <div className="relative border-b-2 border-[#d8cab0] px-3 py-2">
+              <p className="mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
               <p className="mx-auto mt-1 max-w-[98%] truncate text-[10px] font-black uppercase tracking-[0.04em] text-[#005b3c] sm:text-xs sm:tracking-[0.08em]" title={pool.name}>{pool.name}</p>
               <div className="mt-1 flex w-full flex-wrap items-center justify-center gap-1.5">
                 {showJumpToMyEntry ? (
@@ -718,13 +729,13 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 ) : null}
                 {availableHistoricalRounds.length > 0 && (
                   <details
-                    className="relative z-50 text-left"
+                    className="relative z-50 mx-auto mt-2 w-fit text-left"
                     open={leaderboardMenuOpen}
                     onToggle={event => setLeaderboardMenuOpen(event.currentTarget.open)}
                   >
-                    <summary className="list-none border-2 border-[#123c2f] bg-white px-2 py-1 text-[9px] font-black uppercase leading-none tracking-[0.08em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] marker:hidden sm:px-2.5 sm:text-[10px] [&::-webkit-details-marker]:hidden">
-                      <span className="text-[#657168]">View</span> {boardLabel}
-                      <span className="ml-1 inline-block text-[#123c2f]">▾</span>
+                    <summary className="list-none border-2 border-[#123c2f] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] marker:hidden [&::-webkit-details-marker]:hidden">
+                      <span className="mr-2 text-[#657168]">View</span>{boardLabel}
+                      <span className="ml-2 inline-block text-[#123c2f]">▾</span>
                     </summary>
                     <div className="absolute left-1/2 top-[calc(100%+6px)] z-[220] w-44 -translate-x-1/2 border-2 border-[#123c2f] bg-[#fffdf8] p-2 text-[11px] font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[5px_5px_0_#d8cab0]">
                       <button
@@ -762,8 +773,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
             </div>
             <div className="bg-[#f7f7f2] lg:hidden">
               {scoredEntries.map((entry, entryIndex) => {
-                const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
-                const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
+                const countingPicks = orderPicksForDisplay(entry.pickScores.filter(pick => pick.counted)).slice(0, countScores)
+                const outOfBoundsPicks = orderPicksForDisplay(entry.pickScores.filter(pick => !pick.counted))
                 const allPickNames = golferNamePeers
                 const isCurrentEntry = entry.entryId === currentEntryId
                 const hareNames = isCurrentEntry ? harePickMap.get(entry.entryId) : undefined
@@ -773,13 +784,13 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const hasSubmittedPicks = entryHasSubmittedPicks(entry.entryId)
                 const showPreScoringWaiting = !scoringIsLive && !hasSubmittedPicks
                 return (
-                  <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#111] last:border-b-0">
-                    <summary className={`grid min-h-[54px] cursor-pointer list-none grid-cols-[30px_minmax(0,1fr)_50px_18px] items-center gap-1 px-2 py-1.5 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:min-h-[58px] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 sm:py-2 [&::-webkit-details-marker]:hidden ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
-                      <div className="text-center text-lg font-black text-[#b21e23] sm:text-xl">{entry.rank || '—'}</div>
+                  <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#d8cab0] last:border-b-0">
+                    <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
+                      <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                       <div className="min-w-0">
                         <span className="flex min-w-0 items-center gap-1.5">
                           {isCurrentEntry ? <CurrentUserMarker /> : null}
-                          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-base font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
+                          <span className="min-w-0 flex-1 truncate text-sm font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
                         </span>
                         {(picksHidden || showPreScoringWaiting || entry.obStandIns > 0) && (
                           <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
@@ -787,37 +798,49 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                           </div>
                         )}
                       </div>
-                      <div className={`flex flex-col items-center justify-center text-center text-2xl font-black ${scoreClass(entry.totalScore)}`}>
-                        <div>{formatScore(entry.totalScore)}</div>
-                        {totalScoreSubLabel && entry.todayScore !== null ? <div className="text-[8px] font-black uppercase tracking-[0.08em] text-[#657168]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div> : null}
+                      <div className="text-right">
+                        <div className={`text-2xl font-black leading-none ${scoreClass(entry.totalScore)}`}>{formatScore(entry.totalScore)}</div>
+                        {totalScoreSubLabel && entry.todayScore !== null ? <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div> : null}
                       </div>
                       <div className="flex items-center justify-center text-[#111]" aria-label={isOpen ? 'Collapse entry' : 'Expand entry'}>
                         <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                       </div>
                     </summary>
-                    <div className="grid border-t border-[#111] bg-[#fbfbf5]" style={{ gridTemplateColumns: `repeat(${pickGridColumns}, minmax(0, 1fr))` }}>
+                    <div className="grid grid-cols-4 border-t border-[#d8cab0] bg-[#fbfbf5]">
                       {Array.from({ length: countScores }, (_, i) => {
                         const pick = countingPicks[i]
                         return (
-                          <div key={i} className={`relative border-t border-[#111] px-1 py-1.5 text-center ${((i + 1) % pickGridColumns === 0) ? '' : 'border-r'} ${picksHidden ? 'bg-[#efeee6]' : ''}`}>
+                          <div key={i} className="relative border-r border-t border-[#d8cab0] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
                             <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
+                            {pick && pickGroupShortLabel(pick.name) ? (
+                              <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">
+                                {pickGroupShortLabel(pick.name)}
+                              </span>
+                            ) : null}
                             <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                            <div className="mt-1 whitespace-nowrap text-[clamp(8px,2.45vw,11px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.name === 'Waiting' ? 'Waiting' : activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)) : 'Waiting'}</div>
+                            <div className="mt-1 truncate text-[clamp(8px,2.2vw,10px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">
+                              {pick ? shortName(pick.name, allPickNames) : 'Waiting'}
+                            </div>
+                            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.name === 'Waiting' ? 'Waiting' : [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ')) : 'Waiting'}</div>
                           </div>
                         )
                       })}
                     </div>
                     {outOfBoundsPicks.length > 0 && (
-                      <div className="border-t-2 border-[#111] bg-[#efeee6] px-2 py-1.5 text-left">
+                      <div className="border-t-2 border-[#d8cab0] bg-[#efeee6] px-2 py-1.5 text-left">
                         <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">{outOfBoundsLabel(scoringIsLive, countScores)}</div>
                         <div className="flex flex-wrap gap-1">
                           {outOfBoundsPicks.map(pick => (
-                            <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                            <span key={`${entry.entryId}-${pick.name}`} className="relative inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                               {pick.isObStandIn ? <ObMarker /> : null}
                               {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                               {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
-                              <span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span>
+                              {pickGroupShortLabel(pick.name) ? (
+                                <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[7px] font-black leading-none text-white">
+                                  {pickGroupShortLabel(pick.name)}
+                                </span>
+                              ) : null}
+                              <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                             </span>
                           ))}
                         </div>
@@ -828,61 +851,78 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               })}
             </div>
             <div className="hidden bg-[#f7f7f2] lg:block">
-              <table className="w-full table-fixed border-separate border-spacing-0 text-[12px] text-[#111]">
+              <table className="w-full table-fixed border-collapse text-[12px] text-[#111]">
                 <thead>
                   <tr className="bg-[#f7f7f2] text-[10px] font-black uppercase tracking-[0.12em] text-[#111]">
-                    <th className="w-[5%] border-b border-r border-[#111] px-1 py-1.5 text-center">Rank</th>
-                    <th className="w-[19%] border-b border-r border-[#111] px-2 py-1.5 text-left">Entry</th>
-                    <th className="border-b border-r border-[#111] px-1 py-1.5 text-center" colSpan={countScores}>Top {countScores} golfers</th>
-                    <th className="w-[9%] border-b border-[#111] px-1 py-1.5 text-center">Total</th>
+                    <th className="w-[5%] border-b-2 border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-1 py-1.5 text-center">Rank</th>
+                    <th className="w-[19%] border-b-2 border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-2 py-1.5 text-left">Entry</th>
+                    <th className="border-b-2 border-r-2 border-[#d8cab0] px-1 py-1.5 text-center" colSpan={countScores}>Top {countScores} golfers</th>
+                    <th className="w-[9%] border-b-2 border-[#d8cab0] px-1 py-1.5 text-center">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {scoredEntries.map(entry => {
-                    const countingPicks = entry.pickScores.filter(pick => pick.counted).slice(0, countScores)
-                    const outOfBoundsPicks = entry.pickScores.filter(pick => !pick.counted)
+                    const countingPicks = orderPicksForDisplay(entry.pickScores.filter(pick => pick.counted)).slice(0, countScores)
+                    const outOfBoundsPicks = orderPicksForDisplay(entry.pickScores.filter(pick => !pick.counted))
                     const allPickNames = golferNamePeers
                     const isCurrentEntry = entry.entryId === currentEntryId
                     const hareNames = isCurrentEntry ? harePickMap.get(entry.entryId) : undefined
                     const tortoiseNames = !isCurrentEntry ? tortoisePickMap.get(entry.entryId) : undefined
+                    const picksHidden = entry.picks.includes('__hidden__')
+                    const hasSubmittedPicks = entryHasSubmittedPicks(entry.entryId)
+                    const showPreScoringWaiting = !scoringIsLive && !hasSubmittedPicks
                     return (
                       <Fragment key={entry.entryId}>
-                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className="scroll-mt-28">
-                          <td className={`border-b border-r border-[#111] px-1 py-1.5 text-center text-xl font-black text-[#b21e23] ${isCurrentEntry ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>{entry.rank || '—'}</td>
-                          <td className={`border-b border-r border-[#111] px-2 py-1.5 text-left ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
+                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className={`scroll-mt-28 bg-[#f7f7f2] ${isCurrentEntry ? 'outline outline-4 outline-[#f3df9c]' : ''}`}>
+                          <td className="border-b border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</td>
+                          <td className="border-b border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-2 py-1.5 text-left">
                             <span className="flex min-w-0 items-center gap-1.5" title={entry.displayName}>
                               {isCurrentEntry ? <CurrentUserMarker /> : null}
                               <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]">{entry.displayName}</span>
                             </span>
-                            {entry.obStandIns > 0 && <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#b21e23]">{entry.obStandIns} OB</div>}
+                            {(picksHidden || showPreScoringWaiting || entry.obStandIns > 0) && (
+                              <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
+                                {picksHidden ? 'Picks hidden until lock' : scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                              </div>
+                            )}
                           </td>
                           {Array.from({ length: countScores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <td key={i} className="relative border-b border-r border-[#111] bg-[#fbfbf5] px-1 py-1 text-center align-middle">
+                              <td key={i} title={pick?.name || ''} className="relative border-b border-r border-[#d8cab0] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                                 <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
+                                {pick && pickGroupShortLabel(pick.name) ? (
+                                  <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">
+                                    {pickGroupShortLabel(pick.name)}
+                                  </span>
+                                ) : null}
                                 <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
-                                <div className="mt-0.5 break-words text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : '—'}</div>
-                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.name === 'Waiting' ? 'Waiting' : activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)) : 'Waiting'}</div>
+                                <div className="mt-0.5 truncate text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : 'Waiting'}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.name === 'Waiting' ? 'Waiting' : [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ')) : 'Waiting'}</div>
                               </td>
                             )
                           })}
-                          <td className={`border-b border-[#111] bg-[#fbfbf5] px-1 py-1.5 text-center text-3xl font-black ${scoreClass(entry.totalScore)}`}>
-                            <div>{formatScore(entry.totalScore)}</div>
-                            {totalScoreSubLabel && entry.todayScore !== null ? <div className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.08em] text-[#657168]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div> : null}
+                          <td className={`border-b border-[#d8cab0] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle ${scoreClass(entry.totalScore)}`}>
+                            <div className="text-3xl font-black leading-none">{formatScore(entry.totalScore)}</div>
+                            {totalScoreSubLabel && entry.todayScore !== null ? <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div> : null}
                           </td>
                         </tr>
                         {outOfBoundsPicks.length > 0 && (
                           <tr className="bg-[#efeee6]">
-                            <td className="border-b border-r border-[#111] bg-[#efeee6]" />
-                            <td className="border-b border-r border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">{outOfBoundsLabel(scoringIsLive, countScores)}</td>
-                            <td className="border-b border-[#111] bg-[#efeee6] px-2 py-1 text-left" colSpan={countScores + 1}>
+                            <td className="border-b border-r-2 border-[#d8cab0] bg-[#efeee6]" />
+                            <td className="border-b border-r-2 border-[#d8cab0] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">{outOfBoundsLabel(scoringIsLive, countScores)}</td>
+                            <td className="border-b border-[#d8cab0] bg-[#efeee6] px-2 py-1 text-left" colSpan={countScores + 1}>
                               <div className="flex flex-wrap gap-1">
                                 {outOfBoundsPicks.map(pick => (
-                                  <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
+                                  <span key={`${entry.entryId}-${pick.name}`} className="relative inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
                                     {pick.isObStandIn ? <ObMarker /> : null}
                                     {hareNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="hare" /> : null}
                                     {tortoiseNames?.has(normalizePickName(pick.name)) ? <LeverageMarker kind="tortoise" /> : null}
+                                    {pickGroupShortLabel(pick.name) ? (
+                                      <span className="inline-flex shrink-0 items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[7px] font-black leading-none text-white">
+                                        {pickGroupShortLabel(pick.name)}
+                                      </span>
+                                    ) : null}
                                     <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                                   </span>
                                 ))}
@@ -900,7 +940,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
           {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="mt-1" /> : null}
         </div>
       </div>
-      <div className="gpp-board-post mx-auto -mt-[4px] h-20 w-14 [--gpp-depth-x:10px] [--gpp-depth-y:8px] md:-mt-[6px] md:h-28 md:w-16 md:[--gpp-depth-x:18px] md:[--gpp-depth-y:12px]">
+      <div className="gpp-board-post mx-auto -mt-[4px] h-36 w-20 [--gpp-depth-x:12px] [--gpp-depth-y:8px] md:-mt-[7px] md:h-44 md:w-24 md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
         <div className="gpp-board-post-depth" aria-hidden="true" />
         <div className="gpp-board-post-face" aria-hidden="true" />
       </div>

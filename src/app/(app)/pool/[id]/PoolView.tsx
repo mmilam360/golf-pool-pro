@@ -2563,9 +2563,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
             </div>
             <div>
               <TournamentLeaderboard
-                leaderboard={leaderboard}
+                leaderboard={leaderboard.length ? leaderboard : field}
                 tournamentName={tournament?.name}
                 lastUpdated={leaderboardLastUpdated}
+                defaultOpen
                 pickedGolfers={myPicks}
                 cutLine={cutLine}
                 pickGroups={groupedFormat ? pickGroups : undefined}
