@@ -80,8 +80,8 @@ assert.ok(
   'mobile install prompt should stay hidden on the edit-picks route while remaining available on dashboard and normal pool pages'
 )
 assert.ok(
-  poolView.includes("const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner && !isLocked && !pool.is_completed && tournament?.status !== 'live' && tournament?.status !== 'completed'"),
-  'Leave pool visibility should match the server route lock/tournament eligibility instead of the broader scoring display predicate'
+  poolView.includes("const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner"),
+  'Leave pool visibility should depend on signed-in non-owner entry identity; server route enforces lock/live/completed eligibility'
 )
 assert.ok(
   poolView.includes('{canLeaveOwnEntry && ('),

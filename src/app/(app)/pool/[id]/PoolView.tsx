@@ -639,7 +639,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
   const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
-  const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner && !isLocked && !pool.is_completed && tournament?.status !== 'live' && tournament?.status !== 'completed'
+  const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner
   const activeField = useMemo(() => field.filter(player => String(player.status || '').toLowerCase() !== 'wd'), [field])
   const fieldReady = activeField.length > 0
   const currentFieldNames = useMemo(() => new Set(activeField.map(player => player.name).filter(Boolean)), [activeField])
