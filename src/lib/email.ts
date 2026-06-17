@@ -3,16 +3,17 @@ type SendEmailInput = {
   subject: string
   text: string
   html: string
+  replyTo?: string
 }
 
-export function outboundEmailHeaders() {
+export function outboundEmailHeaders(replyTo?: string) {
   return {
     from: process.env.ENTRY_EMAIL_FROM || 'Golf Pools Pro <no-reply@golfpoolspro.com>',
-    reply_to: process.env.TRANSACTIONAL_EMAIL_REPLY_TO || 'no-reply@golfpoolspro.com',
+    reply_to: replyTo || process.env.TRANSACTIONAL_EMAIL_REPLY_TO || 'no-reply@golfpoolspro.com',
   }
 }
 
-export async function sendEmail({ to, subject, text, html }: SendEmailInput) {
+export async function sendEmail({ to, subject, text, html, replyTo }: SendEmailInput) {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
     console.warn('email_skipped_missing_resend_key', { to, subject })
@@ -25,7 +26,7 @@ export async function sendEmail({ to, subject, text, html }: SendEmailInput) {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ ...outboundEmailHeaders(), to, subject, text, html }),
+    body: JSON.stringify({ ...outboundEmailHeaders(replyTo), to, subject, text, html }),
   })
 
   if (!response.ok) {
