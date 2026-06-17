@@ -25,6 +25,7 @@
     "test:dashboard-pool-order": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-dashboard-pool-order.mjs",
     "test:dashboard-entry-movement": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-dashboard-entry-movement.mjs",
     "test:dashboard-reorder-ui": "node scripts/verify-dashboard-reorder-ui.mjs",
+    "test:dashboard-edit-picks-cta": "node scripts/verify-dashboard-edit-picks-cta.mjs",
     "test:pick-counts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pick-count-rules.mjs",
     "test:guest-join-flow": "node scripts/verify-guest-join-flow.mjs",
     "smoke:deployment": "node scripts/smoke-deployment.mjs",
