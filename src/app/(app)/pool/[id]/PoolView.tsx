@@ -425,6 +425,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [finalizingGroups, setFinalizingGroups] = useState(false)
   const [missingReminderSending, setMissingReminderSending] = useState(false)
   const [missingReminderFeedback, setMissingReminderFeedback] = useState('')
+  const [entryEditOnly, setEntryEditOnly] = useState(false)
   const paymentCardRef = useRef<any>(null)
   const adminSectionRef = useRef<HTMLDivElement>(null)
 
@@ -434,20 +435,28 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [])
 
   useEffect(() => {
-    const requestedTab = new URLSearchParams(window.location.search).get('tab')
-    if (requestedTab === 'pool-settings' && isOwner) {
-      setTab('pool-settings')
-      window.setTimeout(() => adminSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
-    } else if (requestedTab === 'leaderboard') {
-      setTab('leaderboard')
-    } else if (requestedTab === 'my-entry' && !publicView) {
-      setTab('my-entry')
+    const applyRouteState = () => {
+      const requestedTab = new URLSearchParams(window.location.search).get('tab')
+      const settingsRequested = requestedTab === 'pool-settings' && isOwner
+      const editPicksRoute = !settingsRequested && !publicView && window.location.hash === '#make-picks'
+      setEntryEditOnly(editPicksRoute)
+
+      if (settingsRequested) {
+        setTab('pool-settings')
+        window.setTimeout(() => adminSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+      } else if (editPicksRoute) {
+        setTab('my-entry')
+        window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+      } else if (requestedTab === 'leaderboard') {
+        setTab('leaderboard')
+      } else if (requestedTab === 'my-entry' && !publicView) {
+        setTab('my-entry')
+      }
     }
 
-    if (window.location.hash === '#make-picks') {
-      setTab('my-entry')
-      window.setTimeout(() => document.getElementById('make-picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
-    }
+    applyRouteState()
+    window.addEventListener('hashchange', applyRouteState)
+    return () => window.removeEventListener('hashchange', applyRouteState)
   }, [isOwner, publicView])
 
   useEffect(() => {
@@ -1239,7 +1248,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         setGuestSaveStep('email')
         setShowGuestSavePanel(true)
       }
-      if (!guestEntryToken) setTab('leaderboard')
+      if (!guestEntryToken && !entryEditOnly) setTab('leaderboard')
       setTimeout(() => setStatusMessage(''), 2500)
     } else {
       showToast('Could not save picks.', 'error')
@@ -2103,7 +2112,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           </div>
           {showLivePulse && <LivePulseBadge />}
         </div>
-        {!publicView && !scoringIsLive && <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        {!publicView && !entryEditOnly && !scoringIsLive && <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
           {isOwner && pool.passcode ? <span className="text-stone-600">Passcode: <span className="text-emerald-700 font-mono font-semibold">{pool.passcode}</span></span> : null}
           <span className="text-stone-600">{activeEntries.length} {activeEntries.length === 1 ? 'entry' : 'entries'}</span>
           <span className="text-stone-600">{submittedPickCount} with picks</span>
@@ -2122,7 +2131,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       {statusMessage && <div className="mb-4 rounded-none border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
 
-      {!publicView && isOwner && groupedFormat && !groupsFinalized && (
+      {!entryEditOnly && !publicView && isOwner && groupedFormat && !groupsFinalized && (
         <div className="mb-6 rounded-none border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -2141,7 +2150,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         </div>
       )}
 
-      {isOwner && paymentStatus !== 'active' && (
+      {!entryEditOnly && isOwner && paymentStatus !== 'active' && (
         <div className="mb-6 rounded-none border-2 border-amber-300 bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -2159,7 +2168,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         </div>
       )}
 
-      {!publicView && canInvitePlayers && (
+      {!entryEditOnly && !publicView && canInvitePlayers && (
         <div className="mb-6">
           <PoolInvitePrepPanel
             poolName={poolName}
@@ -2182,7 +2191,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           />
         </div>
       )}
-      {!publicView && !guestMode && (
+      {!entryEditOnly && !publicView && !guestMode && (
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-none p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-entry', ...(isOwner ? ['pool-settings'] as Tab[] : [])] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}

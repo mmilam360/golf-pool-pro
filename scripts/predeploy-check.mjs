@@ -6,6 +6,7 @@ const checks = [
   ['npm', ['run', 'test:pick-submission-validation']],
   ['npm', ['run', 'test:dashboard-edit-picks-cta']],
   ['npm', ['run', 'test:dashboard-pool-name-width']],
+  ['npm', ['run', 'test:edit-picks-simplified-route']],
   ['npm', ['run', 'test:pool-entry-details-editor']],
   ['npm', ['run', 'test:run-it-back']],
   ['npm', ['run', 'test:grouped-auto-lock']],
