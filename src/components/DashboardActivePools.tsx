@@ -232,6 +232,10 @@ function formatScore(score: number | null) {
   return score > 0 ? `+${score}` : String(score)
 }
 
+function formatEntryCount(count: number) {
+  return `${count} ${count === 1 ? 'entry' : 'entries'}`
+}
+
 function scoreClass(score: number | null) {
   if (score === null) return 'text-stone-400'
   return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
@@ -242,6 +246,37 @@ function lastNameFor(name: string) {
   if (clean.startsWith('OB ')) return clean
   const parts = clean.split(' ').filter(Boolean)
   return parts.length > 1 ? parts[parts.length - 1] : clean
+}
+
+function parsedTeeTimeMs(player?: GolfPlayer | null) {
+  if (!player?.teeTime) return null
+  const parsed = new Date(player.teeTime).getTime()
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function pickNameSortValue(name: string) {
+  return `${lastNameFor(name)} ${name}`.toLowerCase()
+}
+
+function sortPickNamesForPreScoring(names: string[], playerByName: Map<string, GolfPlayer>) {
+  const hasTeeTimes = names.some(name => parsedTeeTimeMs(playerByName.get(normalizePickName(name))) !== null)
+  return [...names].sort((a, b) => {
+    if (hasTeeTimes) {
+      const aPlayer = playerByName.get(normalizePickName(a))
+      const bPlayer = playerByName.get(normalizePickName(b))
+      const aTeeTime = parsedTeeTimeMs(aPlayer) ?? Number.POSITIVE_INFINITY
+      const bTeeTime = parsedTeeTimeMs(bPlayer) ?? Number.POSITIVE_INFINITY
+      if (aTeeTime !== bTeeTime) return aTeeTime - bTeeTime
+      const aStartTee = aPlayer?.startTee ?? 1
+      const bStartTee = bPlayer?.startTee ?? 1
+      if (aStartTee !== bStartTee) return aStartTee - bStartTee
+    }
+    return pickNameSortValue(a).localeCompare(pickNameSortValue(b))
+  })
+}
+
+function outOfBoundsLabel(scoringIsLive: boolean, countScores: number) {
+  return scoringIsLive ? `Outside Top ${countScores}` : 'Other picks'
 }
 
 function shortName(name: string, peerNames: string[] = []) {
@@ -417,7 +452,7 @@ function pickGridColumnCount(count: number) {
   return Math.min(4, count)
 }
 
-function buildPreScoringEntry(entry: EntryRecord, countScores: number, hidePicks: boolean): ScoredEntry {
+function buildPreScoringEntry(entry: EntryRecord, countScores: number, hidePicks: boolean, playerByName: Map<string, GolfPlayer>): ScoredEntry {
   if (hidePicks) {
     return {
       entryId: entry.id,
@@ -441,19 +476,19 @@ function buildPreScoringEntry(entry: EntryRecord, countScores: number, hidePicks
     }
   }
 
-  const orderedPicks = (Array.isArray(entry.golfer_picks) ? [...entry.golfer_picks] as string[] : []).sort((a, b) => a.localeCompare(b))
-  const pickScores = Array.from({ length: countScores }, (_, index) => {
-    const name = orderedPicks[index]
-    return {
-      name: name || 'Waiting',
-      scoreToPar: null,
-      strokes: null,
-      thru: '',
-      status: 'active' as const,
-      counted: true,
-      isObStandIn: false,
-    }
-  })
+  const orderedPicks = sortPickNamesForPreScoring(
+    Array.isArray(entry.golfer_picks) ? entry.golfer_picks as string[] : [],
+    playerByName
+  )
+  const pickScores = orderedPicks.map((name, index) => ({
+    name,
+    scoreToPar: null,
+    strokes: null,
+    thru: '',
+    status: 'active' as const,
+    counted: index < countScores,
+    isObStandIn: false,
+  }))
 
   return {
     entryId: entry.id,
@@ -542,14 +577,22 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
       ? roundScoreLabel(leaderboardMode.round)
       : null
   const scoringIsLive = leaderboardRows.length > 0 && Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboardRows))
+  const leaderboardByName = playerStatusByName(leaderboardRows, fieldRows)
+  const preScoringPlayerByName = playerStatusByName(baseLeaderboardRows, fieldRows)
   const scoredEntries = scoringIsLive
     ? buildScoredEntries(pool, entries, leaderboardRows, selectedBoardIsHistorical)
-    : entries.map(entry => buildPreScoringEntry(entry, countScores, entry.id !== currentEntryId && Boolean(entry.picks_hidden)))
+    : entries.map(entry => buildPreScoringEntry(entry, countScores, entry.id !== currentEntryId && Boolean(entry.picks_hidden), preScoringPlayerByName))
   const pickGridColumns = pickGridColumnCount(countScores)
-  const leaderboardByName = playerStatusByName(leaderboardRows, fieldRows)
-  const golferNamePeers = leaderboardRows
+  const golferNamePeers = (leaderboardRows.length ? leaderboardRows : fieldRows)
     .map(player => player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim())
     .filter(Boolean)
+
+  function entryHasSubmittedPicks(entryId: string) {
+    const sourceEntry = entries.find(record => record.id === entryId)
+    if (!sourceEntry || sourceEntry.picks_hidden) return false
+    return Array.isArray(sourceEntry.golfer_picks) && sourceEntry.golfer_picks.length > 0
+  }
+
   const currentScoredEntry = currentEntryId ? scoredEntries.find(entry => entry.entryId === currentEntryId) : null
   const currentEntryRecord = currentEntryId ? entries.find(entry => entry.id === currentEntryId) : null
   const priorMovementRound = leaderboardModeIsCurrent ? priorCompletedRoundForMovement(baseLeaderboardRows) : null
@@ -727,6 +770,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const tortoiseNames = !isCurrentEntry ? tortoisePickMap.get(entry.entryId) : undefined
                 const isOpen = openEntryIds ? openEntryIds.has(entry.entryId) : (entry.entryId === currentEntryId || (!currentEntryId && entryIndex === 0))
                 const picksHidden = entry.picks.includes('__hidden__')
+                const hasSubmittedPicks = entryHasSubmittedPicks(entry.entryId)
+                const showPreScoringWaiting = !scoringIsLive && !hasSubmittedPicks
                 return (
                   <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#111] last:border-b-0">
                     <summary className={`grid min-h-[54px] cursor-pointer list-none grid-cols-[30px_minmax(0,1fr)_50px_18px] items-center gap-1 px-2 py-1.5 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:min-h-[58px] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 sm:py-2 [&::-webkit-details-marker]:hidden ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
@@ -736,7 +781,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                           {isCurrentEntry ? <CurrentUserMarker /> : null}
                           <span className="min-w-0 flex-1 truncate whitespace-nowrap text-base font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]">{entry.displayName}</span>
                         </span>
-                        {(picksHidden || !scoringIsLive || entry.obStandIns > 0) && (
+                        {(picksHidden || showPreScoringWaiting || entry.obStandIns > 0) && (
                           <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
                             {picksHidden ? 'Picks hidden until lock' : scoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
                           </div>
@@ -765,7 +810,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                     </div>
                     {outOfBoundsPicks.length > 0 && (
                       <div className="border-t-2 border-[#111] bg-[#efeee6] px-2 py-1.5 text-left">
-                        <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Outside Top {countScores}</div>
+                        <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">{outOfBoundsLabel(scoringIsLive, countScores)}</div>
                         <div className="flex flex-wrap gap-1">
                           {outOfBoundsPicks.map(pick => (
                             <span key={`${entry.entryId}-${pick.name}`} className="inline-flex items-center gap-1 border border-[#111] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
@@ -830,7 +875,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         {outOfBoundsPicks.length > 0 && (
                           <tr className="bg-[#efeee6]">
                             <td className="border-b border-r border-[#111] bg-[#efeee6]" />
-                            <td className="border-b border-r border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Outside Top {countScores}</td>
+                            <td className="border-b border-r border-[#111] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">{outOfBoundsLabel(scoringIsLive, countScores)}</td>
                             <td className="border-b border-[#111] bg-[#efeee6] px-2 py-1 text-left" colSpan={countScores + 1}>
                               <div className="flex flex-wrap gap-1">
                                 {outOfBoundsPicks.map(pick => (
@@ -1130,12 +1175,9 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
       <div className={useSinglePoolMobileLayout ? 'sm:divide-y sm:divide-[#eadfca]' : 'divide-y divide-[#eadfca]'}>
         {orderedCards.map(({ pool, tournament, role, entry }, index) => {
           const livePayload = tournament?.external_id ? liveLeaderboardsByExternalId[tournament.external_id] : null
-          const waitingForLiveScores = !snapshot && hasEventBegun(tournament) && Boolean(tournament?.external_id) && !livePayload?.leaderboard?.length
           const effectiveTournament = tournament && livePayload?.leaderboard?.length
             ? { ...tournament, leaderboard_json: livePayload.leaderboard, cutLine: livePayload.cutLine ?? tournament.cutLine ?? null }
-            : waitingForLiveScores
-              ? { ...tournament, leaderboard_json: [] }
-              : tournament
+            : tournament
           const effectivePool = effectiveTournament ? { ...pool, gpp_tournaments: effectiveTournament } : pool
           const label = statusLabel(effectivePool, effectiveTournament)
           const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
@@ -1165,66 +1207,65 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center border border-[#123c2f] ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'} sm:h-9 sm:w-9`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <p className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg" title={pool.name}>{pool.name}</p>
-                    {canReorderPools ? (
-                      <span className="inline-flex shrink-0 flex-col border border-[#123c2f] bg-white text-[#123c2f]">
-                        <button
-                          type="button"
-                          onClick={event => {
-                            event.preventDefault()
-                            event.stopPropagation()
-                            const previousPoolId = orderedCards[index - 1]?.pool.id
-                            if (previousPoolId) reorderPool(pool.id, previousPoolId)
-                          }}
-                          disabled={index === 0}
-                          className="flex h-4 w-5 items-center justify-center border-b border-[#d8cab0] disabled:cursor-not-allowed disabled:text-[#b7bdb6] disabled:opacity-50"
-                          aria-label={`Move ${pool.name} up`}
-                          title="Move up"
-                        >
-                          <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={event => {
-                            event.preventDefault()
-                            event.stopPropagation()
-                            const nextPoolId = orderedCards[index + 1]?.pool.id
-                            if (nextPoolId) reorderPool(nextPoolId, pool.id)
-                          }}
-                          disabled={index === orderedCards.length - 1}
-                          className="flex h-4 w-5 items-center justify-center disabled:cursor-not-allowed disabled:text-[#b7bdb6] disabled:opacity-50"
-                          aria-label={`Move ${pool.name} down`}
-                          title="Move down"
-                        >
-                          <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
-                        </button>
-                      </span>
-                    ) : null}
+                  <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <p className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg" title={pool.name}>{pool.name}</p>
+                      {canReorderPools ? (
+                        <span className="inline-flex shrink-0 flex-col border border-[#123c2f] bg-white text-[#123c2f]">
+                          <button
+                            type="button"
+                            onClick={event => {
+                              event.preventDefault()
+                              event.stopPropagation()
+                              const previousPoolId = orderedCards[index - 1]?.pool.id
+                              if (previousPoolId) reorderPool(pool.id, previousPoolId)
+                            }}
+                            disabled={index === 0}
+                            className="flex h-4 w-5 items-center justify-center border-b border-[#d8cab0] disabled:cursor-not-allowed disabled:text-[#b7bdb6] disabled:opacity-50"
+                            aria-label={`Move ${pool.name} up`}
+                            title="Move up"
+                          >
+                            <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={event => {
+                              event.preventDefault()
+                              event.stopPropagation()
+                              const nextPoolId = orderedCards[index + 1]?.pool.id
+                              if (nextPoolId) reorderPool(nextPoolId, pool.id)
+                            }}
+                            disabled={index === orderedCards.length - 1}
+                            className="flex h-4 w-5 items-center justify-center disabled:cursor-not-allowed disabled:text-[#b7bdb6] disabled:opacity-50"
+                            aria-label={`Move ${pool.name} down`}
+                            title="Move down"
+                          >
+                            <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
+                          </button>
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 justify-self-end whitespace-nowrap pb-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#657168] sm:text-[11px]">
+                      {formatEntryCount(poolEntries.length)}
+                    </span>
                   </div>
                   <div className="flex min-w-0 justify-center">
                     {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
                   </div>
                   {eventBegun ? (
                     <div className="flex min-h-10 w-full shrink-0 flex-col items-center justify-center border border-[#123c2f] bg-white px-1 py-1 text-[12px] font-black uppercase leading-none text-[#111] shadow-[1px_1px_0_#d8cab0] sm:min-h-11 sm:px-2 sm:text-base sm:shadow-[2px_2px_0_#d8cab0]">
-                      {waitingForLiveScores ? (
-                        <span className="text-[9px] tracking-[0.08em] text-[#657168] sm:text-[10px]">Syncing</span>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-1 sm:gap-2">
-                            {rankPreview?.rank ? <span className="text-[#123c2f]">#{rankPreview.rank}</span> : <span className="text-[#657168]">—</span>}
-                            <span className="text-[#657168]">/</span>
-                            <span className={scoreClass(rankPreview?.totalScore ?? null)}>{formatScore(rankPreview?.totalScore ?? null)}</span>
-                          </div>
-                          {!isPoolOpen && (typeof rankPreview?.todayScore === 'number' || rankPreview?.movementToday) ? (
-                            <div className="mt-1 flex items-center gap-1 text-[8px] font-black leading-none text-[#657168] sm:text-[10px]">
-                              {typeof rankPreview?.todayScore === 'number' ? <span>Today <span className={scoreClass(rankPreview.todayScore)}>{formatScore(rankPreview.todayScore)}</span></span> : null}
-                              {typeof rankPreview?.todayScore === 'number' && rankPreview?.movementToday ? <span>/</span> : null}
-                              {rankPreview?.movementToday ? <MovementArrow movement={rankPreview.movementToday} /> : null}
-                            </div>
-                          ) : null}
-                        </>
-                      )}
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        {rankPreview?.rank ? <span className="text-[#123c2f]">#{rankPreview.rank}</span> : <span className="text-[#657168]">—</span>}
+                        <span className="text-[#657168]">/</span>
+                        <span className={scoreClass(rankPreview?.totalScore ?? null)}>{formatScore(rankPreview?.totalScore ?? null)}</span>
+                      </div>
+                      {!isPoolOpen && (typeof rankPreview?.todayScore === 'number' || rankPreview?.movementToday) ? (
+                        <div className="mt-1 flex items-center gap-1 text-[8px] font-black leading-none text-[#657168] sm:text-[10px]">
+                          {typeof rankPreview?.todayScore === 'number' ? <span>Today <span className={scoreClass(rankPreview.todayScore)}>{formatScore(rankPreview.todayScore)}</span></span> : null}
+                          {typeof rankPreview?.todayScore === 'number' && rankPreview?.movementToday ? <span>/</span> : null}
+                          {rankPreview?.movementToday ? <MovementArrow movement={rankPreview.movementToday} /> : null}
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -1236,43 +1277,36 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                 </div>
               </summary>
               {isPoolOpen ? (
-                waitingForLiveScores ? (
-                  <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-5 text-center sm:px-5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Syncing live scores</p>
-                    <p className="mt-1 text-sm font-semibold text-[#657168]">Loading the latest board before showing standings.</p>
-                  </div>
-                ) : (
-                  <>
-                    <InlineLeaderboard
-                      pool={effectivePool}
-                      entries={poolEntries}
-                      currentEntryId={entry?.id}
-                      openEntryIds={openEntryIds}
-                      onEntryToggle={(entryId, open) => {
-                        setExpandedEntryIds(current => {
-                          const next = { ...current }
-                          const entrySet = new Set(next[pool.id] ?? [])
-                          if (open) entrySet.add(entryId)
-                          else entrySet.delete(entryId)
-                          next[pool.id] = entrySet
-                          return next
-                        })
-                      }}
-                      mode={mode}
-                      teeTimeZone={teeTimeZone}
+                <>
+                  <InlineLeaderboard
+                    pool={effectivePool}
+                    entries={poolEntries}
+                    currentEntryId={entry?.id}
+                    openEntryIds={openEntryIds}
+                    onEntryToggle={(entryId, open) => {
+                      setExpandedEntryIds(current => {
+                        const next = { ...current }
+                        const entrySet = new Set(next[pool.id] ?? [])
+                        if (open) entrySet.add(entryId)
+                        else entrySet.delete(entryId)
+                        next[pool.id] = entrySet
+                        return next
+                      })
+                    }}
+                    mode={mode}
+                    teeTimeZone={teeTimeZone}
+                  />
+                  <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
+                    <TournamentLeaderboard
+                      leaderboard={effectiveTournament?.leaderboard_json?.length ? effectiveTournament.leaderboard_json : effectiveTournament?.field_json}
+                      tournamentName={tournamentDisplayName}
+                      lastUpdated={effectiveTournament?.last_scores_fetch}
+                      defaultOpen
+                      pickedGolfers={entryPicks(entry)}
+                      cutLine={effectiveTournament?.cutLine}
                     />
-                    <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
-                      <TournamentLeaderboard
-                        leaderboard={effectiveTournament?.leaderboard_json?.length ? effectiveTournament.leaderboard_json : effectiveTournament?.field_json}
-                        tournamentName={tournamentDisplayName}
-                        lastUpdated={effectiveTournament?.last_scores_fetch}
-                        defaultOpen
-                        pickedGolfers={entryPicks(entry)}
-                        cutLine={effectiveTournament?.cutLine}
-                      />
-                    </div>
-                  </>
-                )
+                  </div>
+                </>
               ) : null}
             </details>
           )

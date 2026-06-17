@@ -21,8 +21,10 @@ assert.ok(
   'dashboard board subtitle should use wider/lower-tracking pool-name treatment'
 )
 assert.ok(
-  dashboard.includes('className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg" title={pool.name}>{pool.name}</p>'),
-  'dashboard switcher pool name should expose full title and stay readable while truncating'
+  dashboard.includes('className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2"') &&
+  dashboard.includes('className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg" title={pool.name}>{pool.name}</p>') &&
+  dashboard.includes('{formatEntryCount(poolEntries.length)}'),
+  'dashboard switcher pool name should stay readable while truncating and show the right-aligned entry count inline'
 )
 assert.ok(
   poolView.includes('className="mx-auto mt-1 max-w-[98%] truncate text-[10px] font-black uppercase tracking-[0.04em] text-[#005b3c] sm:text-xs sm:tracking-[0.08em]" title={poolName}>{poolName}</p>'),

@@ -144,7 +144,7 @@ function buildPlaceholderPick(name: 'Picks hidden' | 'Waiting', counted: boolean
   }
 }
 
-function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
+function buildPreScoringEntry(entry: any, countScores: number, playerByName: Map<string, GolfPlayer>): ScoredEntry {
   if (entry.picks_hidden) {
     const submittedCount = Number(entry.submitted_pick_count || 0)
     const label = submittedCount > 0 ? 'Picks hidden' : 'Waiting'
@@ -163,7 +163,7 @@ function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
     }
   }
 
-  const orderedPicks = ([...(entry.golfer_picks || [])] as string[]).sort((a, b) => a.localeCompare(b))
+  const orderedPicks = sortPickNamesForPreScoring([...(entry.golfer_picks || [])] as string[], playerByName)
   const pickScores = orderedPicks.map((name, index) => ({
     name,
     scoreToPar: null,
@@ -193,6 +193,37 @@ function lastNameFor(name: string) {
   if (clean.startsWith('OB ')) return clean
   const parts = clean.split(' ').filter(Boolean)
   return parts.length > 1 ? parts[parts.length - 1] : clean
+}
+
+function parsedTeeTimeMs(player?: GolfPlayer | null) {
+  if (!player?.teeTime) return null
+  const parsed = new Date(player.teeTime).getTime()
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function pickNameSortValue(name: string) {
+  return `${lastNameFor(name)} ${name}`.toLowerCase()
+}
+
+function sortPickNamesForPreScoring(names: string[], playerByName: Map<string, GolfPlayer>) {
+  const hasTeeTimes = names.some(name => parsedTeeTimeMs(playerByName.get(normalizePickName(name))) !== null)
+  return [...names].sort((a, b) => {
+    if (hasTeeTimes) {
+      const aPlayer = playerByName.get(normalizePickName(a))
+      const bPlayer = playerByName.get(normalizePickName(b))
+      const aTeeTime = parsedTeeTimeMs(aPlayer) ?? Number.POSITIVE_INFINITY
+      const bTeeTime = parsedTeeTimeMs(bPlayer) ?? Number.POSITIVE_INFINITY
+      if (aTeeTime !== bTeeTime) return aTeeTime - bTeeTime
+      const aStartTee = aPlayer?.startTee ?? 1
+      const bStartTee = bPlayer?.startTee ?? 1
+      if (aStartTee !== bStartTee) return aStartTee - bStartTee
+    }
+    return pickNameSortValue(a).localeCompare(pickNameSortValue(b))
+  })
+}
+
+function outOfBoundsLabel(scoringIsLive: boolean, countScores: number) {
+  return scoringIsLive ? `Outside Top ${countScores}` : 'Other picks'
 }
 
 function shortName(name: string, peerNames: string[] = []) {
@@ -1528,6 +1559,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }
 
   // Compute scored entries
+  const preScoringPlayerByName = playerStatusByName(leaderboard, field)
   const useFrozenResults = leaderboardModeIsCurrent && pool.is_completed && hasCompleteFrozenResults(visibleEntries)
   const scoredEntries: ScoredEntry[] = useFrozenResults
     ? visibleEntries
@@ -1540,9 +1572,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           selectedLeaderboard,
           { countScores: pool.count_scores, obRuleEnabled: pool.ob_rule_enabled, obPenaltyStrokes: pool.ob_penalty_strokes }
         )
-      : visibleEntries.map(entry => buildPreScoringEntry(entry, pool.count_scores))
+      : visibleEntries.map(entry => buildPreScoringEntry(entry, pool.count_scores, preScoringPlayerByName))
   function orderPicksForDisplay(picks: PickScore[]) {
-    if (!groupedFormat || pickGroups.length === 0) return picks
+    if (!selectedScoringIsLive || !groupedFormat || pickGroups.length === 0) return picks
     const order = new Map<string, number>()
     pickGroups.forEach((group, groupIndex) => {
       group.players.forEach((player, playerIndex) => order.set(normalizePickName(player.name), groupIndex * 1000 + playerIndex))
@@ -2334,6 +2366,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   {scoredEntries.map((entry) => {
                     const isMe = entry.entryId === myEntry?.id
                     const hasPicks = entry.picks.length > 0
+                    const picksHidden = entry.picks.includes('Picks hidden')
+                    const showPreScoringWaiting = !selectedScoringIsLive && !hasPicks
                     const countingPicks = hasPicks ? orderPicksForDisplay(entry.pickScores.filter(pick => pick.counted)).slice(0, pool.count_scores) : []
                     const outOfBoundsPicks = hasPicks ? orderPicksForDisplay(entry.pickScores.filter(pick => !pick.counted)) : []
                     const allPickNames = golferNamePeers
@@ -2363,9 +2397,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
                               <span className="min-w-0 flex-1 truncate text-sm font-black uppercase leading-tight tracking-[0.02em] text-[#111] sm:text-base sm:tracking-[0.04em]" title={entry.displayName}>{entry.displayName}</span>
                             </div>
-                            {(!selectedScoringIsLive || entry.obStandIns > 0) && (
+                            {(picksHidden || showPreScoringWaiting || entry.obStandIns > 0) && (
                               <div className="text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                                {selectedScoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                                {picksHidden ? 'Picks hidden until lock' : selectedScoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
                               </div>
                             )}
                           </div>
@@ -2404,7 +2438,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         </div>
                         {outOfBoundsPicks.length > 0 && (
                           <div className="border-t-2 border-[#d8cab0] bg-[#efeee6] px-2 py-1.5 text-left">
-                            <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">Outside Top {pool.count_scores}</div>
+                            <div className="mb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#111]">{outOfBoundsLabel(selectedScoringIsLive, pool.count_scores)}</div>
                             <div className="flex flex-wrap gap-1">
                               {outOfBoundsPicks.map(pick => (
                                 <span key={`${entry.entryId}-${pick.name}`} className="relative inline-flex items-center gap-1 border border-[#d8cab0] bg-[#fbfbf5] px-1.5 py-1 text-[10px] font-black uppercase leading-none text-[#111]">
@@ -2440,6 +2474,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       {scoredEntries.map(entry => {
                         const isMe = entry.entryId === myEntry?.id
                         const hasPicks = entry.picks.length > 0
+                        const picksHidden = entry.picks.includes('Picks hidden')
+                        const showPreScoringWaiting = !selectedScoringIsLive && !hasPicks
                         const countingPicks = hasPicks ? orderPicksForDisplay(entry.pickScores.filter(pick => pick.counted)).slice(0, pool.count_scores) : []
                         const outOfBoundsPicks = hasPicks ? orderPicksForDisplay(entry.pickScores.filter(pick => !pick.counted)) : []
                         const allPickNames = golferNamePeers
@@ -2456,9 +2492,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
                                   <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
                                 </div>
-                                {(!selectedScoringIsLive || entry.obStandIns > 0) && (
+                                {(picksHidden || showPreScoringWaiting || entry.obStandIns > 0) && (
                                   <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#555]">
-                                    {selectedScoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
+                                    {picksHidden ? 'Picks hidden until lock' : selectedScoringIsLive ? <span className="text-[#b21e23]">{entry.obStandIns} OB</span> : 'Waiting'}
                                   </div>
                                 )}
                               </td>
@@ -2488,7 +2524,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             {outOfBoundsPicks.length > 0 && (
                               <tr key={`${entry.entryId}-out`} className="bg-[#efeee6]">
                                 <td className="border-b border-r-2 border-[#d8cab0] bg-[#efeee6]" />
-                                <td className="border-b border-r-2 border-[#d8cab0] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">Outside Top {pool.count_scores}</td>
+                                <td className="border-b border-r-2 border-[#d8cab0] bg-[#efeee6] px-2 py-1 text-left text-[9px] font-black uppercase tracking-[0.1em] text-[#111]">{outOfBoundsLabel(selectedScoringIsLive, pool.count_scores)}</td>
                                 <td className="border-b border-[#d8cab0] bg-[#efeee6] px-2 py-1 text-left" colSpan={pool.count_scores + 1}>
                                   <div className="flex flex-wrap gap-1">
                                     {outOfBoundsPicks.map(pick => (

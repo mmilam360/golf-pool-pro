@@ -27,6 +27,8 @@
     "test:dashboard-reorder-ui": "node scripts/verify-dashboard-reorder-ui.mjs",
     "test:dashboard-edit-picks-cta": "node scripts/verify-dashboard-edit-picks-cta.mjs",
     "test:dashboard-pool-name-width": "node scripts/verify-dashboard-pool-name-width.mjs",
+    "test:dashboard-runner-player-parity": "node scripts/verify-dashboard-runner-player-parity.mjs",
+    "test:pre-tournament-pick-card-display": "node scripts/verify-pre-tournament-pick-card-display.mjs",
     "test:edit-picks-simplified-route": "node scripts/verify-edit-picks-simplified-route.mjs",
     "test:entry-saved-email-quota": "node scripts/verify-entry-saved-email-quota.mjs",
     "test:transactional-email-headers": "node scripts/verify-transactional-email-headers.mjs",
