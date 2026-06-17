@@ -2013,6 +2013,53 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }, 'image/png')
   }
 
+  const entryDetailsPanel = !guestMode && myEntry ? (
+    <section className="mb-4 border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
+      <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Entry details</p>
+        <h3 className="mt-1 text-lg font-black text-[#123c2f]">Change your leaderboard name</h3>
+      </div>
+      <div className="grid gap-3 p-4 sm:grid-cols-2">
+        <div className="min-w-0">
+          <label className="mb-1 block text-sm font-medium text-stone-700">Leaderboard name</label>
+          <input
+            type="text"
+            value={entryNameValue}
+            onChange={e => setEntryNameValue(e.target.value)}
+            placeholder="Name shown on leaderboard"
+            maxLength={60}
+            disabled={picksAreLocked}
+            className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100 disabled:bg-stone-100 disabled:text-stone-500"
+          />
+        </div>
+        <div className="min-w-0">
+          <label className="mb-1 block text-sm font-medium text-stone-700">Full name</label>
+          <input
+            type="text"
+            value={fullNameValue}
+            onChange={e => setFullNameValue(e.target.value.slice(0, 80))}
+            placeholder="Name for the pool runner"
+            maxLength={80}
+            autoComplete="name"
+            disabled={picksAreLocked}
+            className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100 disabled:bg-stone-100 disabled:text-stone-500"
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-2 border-t border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs font-semibold text-stone-600">Leaderboard name is public. Full name stays private for the runner.</p>
+        <button
+          type="button"
+          onClick={saveEntryName}
+          disabled={entryNameSaving || picksAreLocked || !entryNameValue.trim() || !fullNameValue.trim() || !entryDetailsDirty}
+          className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {picksAreLocked ? 'Names locked' : entryNameSaving ? 'Saving...' : entryDetailsDirty ? 'Save entry details' : 'Saved'}
+        </button>
+      </div>
+    </section>
+  ) : null
+
   return (
     <div className={guestMode ? 'mx-auto max-w-4xl' : undefined}>
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
@@ -2531,6 +2578,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
               )}
 
+              {entryDetailsPanel}
+
               {guestEntryToken && showGuestSavePanel && (
                 <div className="mb-4 border-2 border-[#123c2f] bg-white p-4 shadow-[5px_5px_0_#d8cab0]">
                   <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Picks saved</p>
@@ -2734,53 +2783,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     })}
                   </div>
                 </div>
-              )}
-
-              {!guestMode && (
-              <details className="group rounded-none border border-stone-200 bg-white shadow-[4px_4px_0_#d8cab0]">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-[0.12em] text-stone-700 [&::-webkit-details-marker]:hidden">
-                  <span>Entry details</span>
-                  <span className="border border-stone-300 px-1.5 py-0.5 text-[10px] group-open:hidden">Edit</span>
-                </summary>
-                <div className="border-t border-stone-200 p-4">
-                  <div className="grid gap-3 sm:max-w-md">
-                    <div className="min-w-0">
-                      <label className="mb-1 block text-sm font-medium text-stone-700">Leaderboard name</label>
-                      <input
-                        type="text"
-                        value={entryNameValue}
-                        onChange={e => setEntryNameValue(e.target.value)}
-                        placeholder="Name shown on leaderboard"
-                        maxLength={60}
-                        className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <label className="mb-1 block text-sm font-medium text-stone-700">Full name</label>
-                      <input
-                        type="text"
-                        value={fullNameValue}
-                        onChange={e => setFullNameValue(e.target.value.slice(0, 80))}
-                        placeholder="Name for the pool runner"
-                        maxLength={80}
-                        autoComplete="name"
-                        className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                      />
-                            </div>
-                  </div>
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs font-semibold text-stone-500">Pool emails use your account email.</p>
-                    <button
-                      type="button"
-                      onClick={saveEntryName}
-                      disabled={entryNameSaving || !entryNameValue.trim() || !fullNameValue.trim() || !entryDetailsDirty}
-                      className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {entryNameSaving ? 'Saving...' : 'Save entry details'}
-                    </button>
-                  </div>
-                </div>
-              </details>
               )}
 
               {/* Leave pool — available to signed-in non-owners before picks close */}
