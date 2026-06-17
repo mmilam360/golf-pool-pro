@@ -639,6 +639,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
   const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
+  const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner && !isLocked && !pool.is_completed && tournament?.status !== 'live' && tournament?.status !== 'completed'
   const activeField = useMemo(() => field.filter(player => String(player.status || '').toLowerCase() !== 'wd'), [field])
   const fieldReady = activeField.length > 0
   const currentFieldNames = useMemo(() => new Set(activeField.map(player => player.name).filter(Boolean)), [activeField])
@@ -2804,8 +2805,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </div>
               )}
 
-              {/* Leave pool — available to signed-in non-owners before picks close */}
-              {!guestMode && myEntry && !isOwner && !picksAreLocked && (
+              {/* Leave pool — available to signed-in non-owners while the server leave route is open */}
+              {canLeaveOwnEntry && (
                 <details className="group rounded-none border border-stone-200 bg-white shadow-[4px_4px_0_#d8cab0]">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-[0.12em] text-[#b21e23] [&::-webkit-details-marker]:hidden">
                     <span>Leave pool</span>
