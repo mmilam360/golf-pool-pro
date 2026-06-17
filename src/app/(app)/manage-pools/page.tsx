@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
 import { getPoolPaymentQuote, getPoolPaymentStatus, formatMoney } from '@/lib/payments/pricing'
 import { selectNextRunItBackTournament } from '@/lib/run-it-back'
-import { rankEntries, scoreEntry, type ScoredEntry } from '@/lib/scoring'
+import { scoreEntriesForLeaderboard, type ScoredEntry } from '@/lib/scoring'
 import ClaimedPromoBanner from '@/components/ClaimedPromoBanner'
 import { displayTournamentName } from '@/lib/tournament-name'
 import type { GolfPlayer } from '@/lib/golf-api'
@@ -180,20 +180,14 @@ function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): Scored
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   if (!leaderboard.length) return []
 
-  return rankEntries(
-    allEntries.map(poolEntry => ({
-      ...scoreEntry(
-        Array.isArray(poolEntry.golfer_picks) ? poolEntry.golfer_picks as string[] : [],
-        leaderboard,
-        {
-          countScores: pool.count_scores || 4,
-          obRuleEnabled: Boolean(pool.ob_rule_enabled),
-          obPenaltyStrokes: pool.ob_penalty_strokes || 2,
-        }
-      ),
-      entryId: `${poolEntry.pool_id}-${poolEntry.display_name || poolEntry.user_id || 'entry'}`,
-      displayName: poolEntry.display_name || 'Entry',
-    }))
+  return scoreEntriesForLeaderboard(
+    allEntries,
+    leaderboard,
+    {
+      countScores: pool.count_scores || pool.pick_count || 0,
+      obRuleEnabled: Boolean(pool.ob_rule_enabled),
+      obPenaltyStrokes: pool.ob_penalty_strokes || 2,
+    }
   )
 }
 

@@ -4,6 +4,7 @@ import { BackButton } from '@/components/BackButton'
 import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { useRouter } from 'next/navigation'
+import { DUPLICATE_ENTRY_NAME_MESSAGE, normalizeEntryName } from '@/lib/entry-name'
 
 type ResumeEntry = { poolId: string; token: string; poolName: string; tournamentName: string; displayName: string }
 
@@ -148,6 +149,10 @@ export default function JoinPoolPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
+      if (resumeEntry && normalizeEntryName(resumeEntry.displayName) === normalizeEntryName(displayName)) {
+        router.push(`/pool/${resumeEntry.poolId}?guest=${encodeURIComponent(resumeEntry.token)}`)
+        return
+      }
       const res = await fetch('/api/pool/guest-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -210,13 +215,19 @@ export default function JoinPoolPage() {
 
     const { data: existingEntries } = await supabase
       .from('gpp_entries')
-      .select('id, is_removed')
+      .select('id, user_id, display_name, is_removed')
       .eq('pool_id', pool.id)
-      .eq('user_id', user.id)
+      .eq('is_removed', false)
 
-    const existing = (existingEntries || []).find(entry => !entry.is_removed)
+    const existing = (existingEntries || []).find(entry => entry.user_id === user.id)
     if (existing) {
       router.push(`/pool/${pool.id}`)
+      return
+    }
+    const duplicate = (existingEntries || []).find(entry => normalizeEntryName(entry.display_name) === normalizeEntryName(displayName))
+    if (duplicate) {
+      setError(DUPLICATE_ENTRY_NAME_MESSAGE)
+      setLoading(false)
       return
     }
 
@@ -232,7 +243,7 @@ export default function JoinPoolPage() {
       })
 
     if (insertError) {
-      setError(insertError.message)
+      setError(insertError.message.includes('gpp_entries_active_pool_name_unique') ? DUPLICATE_ENTRY_NAME_MESSAGE : insertError.message)
       setLoading(false)
     } else {
       trackGppEvent('entry_submitted', {

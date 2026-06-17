@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createGuestEntryToken, guestEntryTokenMatches, hashGuestEntryToken, normalizeEntryDisplayName, normalizeFullName, normalizeGuestEmail } from '@/lib/guest-entry'
+import { DUPLICATE_ENTRY_NAME_MESSAGE, entryNameTaken, isDuplicateEntryNameError } from '@/lib/entry-name'
 
 export const runtime = 'nodejs'
 
@@ -84,6 +85,9 @@ export async function POST(request: Request) {
     const picksClosed = pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed'
     if (picksClosed) return NextResponse.json({ error: 'This pool is locked. Picks have closed.' }, { status: 409 })
 
+    const nameTaken = await entryNameTaken(supabase, pool.id, displayName)
+    if (nameTaken) return NextResponse.json({ error: DUPLICATE_ENTRY_NAME_MESSAGE }, { status: 409 })
+
     const token = createGuestEntryToken()
     const insertPayload: Record<string, unknown> = {
       pool_id: pool.id,
@@ -103,7 +107,8 @@ export async function POST(request: Request) {
       .single()
 
     if (insertError || !entry) {
-      return NextResponse.json({ error: insertError?.message || 'Could not join this pool.' }, { status: 500 })
+      const message = isDuplicateEntryNameError(insertError) ? DUPLICATE_ENTRY_NAME_MESSAGE : insertError?.message || 'Could not join this pool.'
+      return NextResponse.json({ error: message }, { status: isDuplicateEntryNameError(insertError) ? 409 : 500 })
     }
 
     if (notificationEmail) {
@@ -149,6 +154,8 @@ export async function PATCH(request: Request) {
     if (body.displayName !== undefined) {
       const displayName = normalizeEntryDisplayName(body.displayName)
       if (!displayName) return badRequest('Entry name cannot be blank.')
+      const nameTaken = await entryNameTaken(supabase, entry.pool_id, displayName, entry.id)
+      if (nameTaken) return NextResponse.json({ error: DUPLICATE_ENTRY_NAME_MESSAGE }, { status: 409 })
       update.display_name = displayName
     }
     if (body.fullName !== undefined) {
@@ -185,7 +192,10 @@ export async function PATCH(request: Request) {
       .select('*')
       .single()
 
-    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+    if (updateError) {
+      const message = isDuplicateEntryNameError(updateError) ? DUPLICATE_ENTRY_NAME_MESSAGE : updateError.message
+      return NextResponse.json({ error: message }, { status: isDuplicateEntryNameError(updateError) ? 409 : 500 })
+    }
     return NextResponse.json({ entry: updatedEntry })
   } catch {
     return NextResponse.json({ error: 'Could not update guest entry.' }, { status: 500 })

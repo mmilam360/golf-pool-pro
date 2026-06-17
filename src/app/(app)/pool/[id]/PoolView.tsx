@@ -16,6 +16,7 @@ import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup } from '@/lib/pool-formats'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
+import { DUPLICATE_ENTRY_NAME_MESSAGE, normalizeEntryName } from '@/lib/entry-name'
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -147,13 +148,30 @@ function hasFrozenResult(entry: any) {
   return entry.total_score !== null && entry.total_score !== undefined && entry.rank !== null && entry.rank !== undefined && Array.isArray(entry.counting_scores)
 }
 
+function buildPlaceholderPick(name: 'Picks hidden' | 'Waiting', counted: boolean): PickScore {
+  return {
+    name,
+    scoreToPar: null,
+    strokes: null,
+    thru: '',
+    status: 'active',
+    counted,
+    isObStandIn: false,
+    finalNineScore: null,
+    tiebreakScores: [],
+  }
+}
+
 function buildPreScoringEntry(entry: any, countScores: number): ScoredEntry {
   if (entry.picks_hidden) {
+    const submittedCount = Number(entry.submitted_pick_count || 0)
+    const label = submittedCount > 0 ? 'Picks hidden' : 'Waiting'
+    const pickScores = Array.from({ length: countScores }, () => buildPlaceholderPick(label, true))
     return {
       entryId: entry.id,
       displayName: entry.display_name,
-      picks: [],
-      pickScores: [],
+      picks: pickScores.map(pick => pick.name),
+      pickScores,
       totalScore: null,
       todayScore: null,
       finalNineScore: null,
@@ -197,6 +215,7 @@ function lastNameFor(name: string) {
 
 function shortName(name: string, peerNames: string[] = []) {
   if (name === 'Picks hidden') return 'Hidden'
+  if (name === 'Waiting') return 'Waiting'
   const clean = name.replace(/^OB Stand-in #/, 'OB ')
   if (clean.startsWith('OB ')) return clean
   const parts = clean.split(' ').filter(Boolean)
@@ -681,12 +700,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [isCurrentEntry, isOwner, picksAreLocked, wdPickNames])
 
   const refreshPoolEntries = useCallback(async () => {
-    const query = supabase
-      .from('gpp_entries')
-      .select('*')
-      .eq('pool_id', pool.id)
+    let data: any[] | null = null
+    if (isOwner) {
+      const res = await fetch(`/api/pools/${pool.id}/entries`, { cache: 'no-store' })
+      if (res.ok) {
+        const payload = await res.json().catch(() => ({}))
+        data = Array.isArray(payload.entries) ? payload.entries : null
+      }
+    }
 
-    const { data } = await query.order('created_at', { ascending: true })
+    if (!data) {
+      const query = supabase
+        .from('gpp_entries')
+        .select('*')
+        .eq('pool_id', pool.id)
+
+      const result = await query.order('created_at', { ascending: true })
+      data = result.data || null
+    }
+
     if (data) {
       const accountEmailByUserId = new Map(entriesRef.current
         .filter((entry: any) => entry.user_id && entry.account_email)
@@ -697,8 +729,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const accountFullNameConfirmedByUserId = new Map(entriesRef.current
         .filter((entry: any) => entry.user_id && entry.account_full_name_confirmed_at)
         .map((entry: any) => [entry.user_id, entry.account_full_name_confirmed_at]))
-      const dataWithKnownEmails = data.map((entry: any) => entry.user_id && (accountEmailByUserId.has(entry.user_id) || accountFullNameByUserId.has(entry.user_id))
-        ? { ...entry, account_email: accountEmailByUserId.get(entry.user_id) || '', account_full_name: accountFullNameByUserId.get(entry.user_id) || '', account_full_name_confirmed_at: accountFullNameConfirmedByUserId.get(entry.user_id) || null }
+      const dataWithKnownEmails = data.map((entry: any) => entry.user_id && !entry.account_email && (accountEmailByUserId.has(entry.user_id) || accountFullNameByUserId.has(entry.user_id))
+        ? { ...entry, account_email: accountEmailByUserId.get(entry.user_id) || '', account_full_name: entry.account_full_name || accountFullNameByUserId.get(entry.user_id) || '', account_full_name_confirmed_at: entry.account_full_name_confirmed_at || accountFullNameConfirmedByUserId.get(entry.user_id) || null }
         : entry)
       const safeData = maskHiddenPicks(dataWithKnownEmails)
       const nextMyEntry = safeData.find(isCurrentEntry) || null
@@ -710,7 +742,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         setMyPicks(draftPicks && !picksMatch(draftPicks, savedPicks) ? draftPicks : savedPicks)
       }
     }
-  }, [isCurrentEntry, maskHiddenPicks, pool.id, supabase])
+  }, [isCurrentEntry, isOwner, maskHiddenPicks, pool.id, supabase])
 
   useEffect(() => {
     const channel = supabase
@@ -1205,6 +1237,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       return
     }
     if (!entryDetailsDirty && (!guestEntryToken || nextEmail === (myEntry.notification_email || ''))) return
+    const duplicateEntry = entries.find(entry => !entry.is_removed && entry.id !== myEntry.id && normalizeEntryName(entry.display_name) === normalizeEntryName(nextName))
+    if (duplicateEntry) {
+      setStatusMessage(DUPLICATE_ENTRY_NAME_MESSAGE)
+      showToast(DUPLICATE_ENTRY_NAME_MESSAGE, 'error')
+      return
+    }
 
     setEntryNameSaving(true)
     let error: any = null
@@ -1244,8 +1282,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
 
     if (error) {
-      setStatusMessage('Could not update entry details.')
-      showToast('Could not update entry details.', 'error')
+      const message = String(error?.message || '').includes('gpp_entries_active_pool_name_unique') || String(error?.message || '').includes(DUPLICATE_ENTRY_NAME_MESSAGE)
+        ? DUPLICATE_ENTRY_NAME_MESSAGE
+        : 'Could not update entry details.'
+      setStatusMessage(message)
+      showToast(message, 'error')
     } else {
       const nextEntry = updatedEntry || { ...myEntry, display_name: nextName, full_name: nextFullName, full_name_confirmed_at: new Date().toISOString(), notification_email: nextEmail || null }
       setMyEntry(nextEntry)
@@ -2247,11 +2288,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                     {pickGroupShortLabel(pick.name)}
                                   </span>
                                 ) : null}
-                                <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : ''}</div>
+                                <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                 <div className="mt-1 truncate text-[clamp(8px,2.2vw,10px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">
-                                  {pick ? shortName(pick.name, allPickNames) : ''}
+                                  {pick ? shortName(pick.name, allPickNames) : 'Waiting'}
                                 </div>
-                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : ''}</div>
+                                <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : 'Waiting'}</div>
                               </div>
                             )
                           })}
@@ -2326,9 +2367,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                         {pickGroupShortLabel(pick.name)}
                                       </span>
                                     ) : null}
-                                    <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : ''}</div>
+                                    <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
                                     <div className="mt-0.5 truncate text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : ''}</div>
-                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : ''}</div>
+                                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ') : 'Waiting'}</div>
                                   </td>
                                 )
                               })}
