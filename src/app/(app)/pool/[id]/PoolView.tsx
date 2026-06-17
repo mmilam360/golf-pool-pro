@@ -1421,19 +1421,21 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       showToast('Lock groups before locking picks.', 'error')
       return
     }
-    const { error } = await (supabase as any)
-      .from('gpp_pools')
-      .update({ is_locked: true })
-      .eq('id', pool.id)
-    if (!error) {
+    const res = await fetch(`/api/pools/${pool.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'lock' }),
+    })
+    if (res.ok) {
       setPoolLocked(true)
       setShowLockConfirm(false)
       setStatusMessage('Pool locked. New entries and pick changes are closed.')
       showToast('Pool locked. Picks are closed.', 'success')
       refreshPaymentQuote()
     } else {
-      setStatusMessage('Could not lock pool.')
-      showToast('Could not lock pool.', 'error')
+      const data = await res.json().catch(() => ({}))
+      setStatusMessage(data.error || 'Could not lock pool.')
+      showToast(data.error || 'Could not lock pool.', 'error')
     }
   }
 
@@ -1467,13 +1469,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       showToast('Pool name cannot be blank.', 'error')
       return
     }
-    const { error } = await (supabase as any)
-      .from('gpp_pools')
-      .update({ name: nextName })
-      .eq('id', pool.id)
-    if (error) {
-      setStatusMessage('Could not update pool name.')
-      showToast('Could not update pool name.', 'error')
+    const res = await fetch(`/api/pools/${pool.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'rename', name: nextName }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setStatusMessage(data.error || 'Could not update pool name.')
+      showToast(data.error || 'Could not update pool name.', 'error')
       return
     }
     setPoolName(nextName)
@@ -1488,16 +1492,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       showToast('Type DELETE to confirm.', 'error')
       return
     }
-    const { error: entriesError } = await supabase.from('gpp_entries').delete().eq('pool_id', pool.id)
-    if (entriesError) {
-      setStatusMessage('Could not delete pool entries.')
-      showToast('Could not delete pool entries.', 'error')
-      return
-    }
-    const { error } = await supabase.from('gpp_pools').delete().eq('id', pool.id)
-    if (error) {
-      setStatusMessage('Could not delete pool.')
-      showToast('Could not delete pool.', 'error')
+    const res = await fetch(`/api/pools/${pool.id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: deleteConfirm }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setStatusMessage(data.error || 'Could not delete pool.')
+      showToast(data.error || 'Could not delete pool.', 'error')
       return
     }
     showToast('Pool deleted. Sending you back to the dashboard.', 'success')
