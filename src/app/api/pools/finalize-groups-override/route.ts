@@ -2,7 +2,8 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseServiceClient } from '@supabase/supabase-js'
+import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from '@/lib/pga-tour-field'
 import { buildPickGroups, type PoolGameFormat } from '@/lib/pool-formats'
 import { hydrateFieldWithOwgr } from '@/lib/owgr'
@@ -16,17 +17,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'Missing poolId' }, { status: 400 })
     }
 
+    const authSupabase = await createAuthClient()
+    const { data: { user } } = await authSupabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!supabaseUrl || !supabaseKey) {
       return NextResponse.json({ ok: false, error: 'Server misconfigured' }, { status: 500 })
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = createSupabaseServiceClient(supabaseUrl, supabaseKey)
 
     const { data: pool, error: poolError } = await supabase
       .from('gpp_pools')
-      .select('id, passcode, tournament_id, game_format, group_count, groups_finalized_at, gpp_tournaments(id, name, start_date, field_json, leaderboard_json, external_id, field_source, last_field_fetch)')
+      .select('id, passcode, owner_id, tournament_id, game_format, group_count, is_locked, is_completed, groups_finalized_at, gpp_tournaments(id, name, start_date, status, field_json, leaderboard_json, external_id, field_source, last_field_fetch)')
       .eq('id', poolId)
       .maybeSingle()
 
@@ -37,6 +44,14 @@ export async function POST(request: Request) {
     const tournament = Array.isArray(pool.gpp_tournaments)
       ? pool.gpp_tournaments[0]
       : pool.gpp_tournaments
+
+    if (pool.owner_id !== user.id) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 403 })
+    }
+
+    if (pool.is_locked || pool.is_completed || tournament?.status === 'live' || tournament?.status === 'completed') {
+      return NextResponse.json({ ok: false, error: 'Groups cannot be locked after picks close.' }, { status: 409 })
+    }
 
     if (!tournament) {
       return NextResponse.json({ ok: false, error: 'Tournament not linked' }, { status: 400 })
