@@ -137,6 +137,14 @@ function scoreClass(score: number | null) {
   return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
 }
 
+function highlightedEntryRowBg(highlighted: boolean) {
+  return highlighted ? 'bg-[#eaf5ec]' : 'bg-[#f7f7f2]'
+}
+
+function highlightedEntryCellBg(highlighted: boolean) {
+  return highlighted ? 'bg-[#eaf5ec]' : 'bg-[#fbfbf5]'
+}
+
 function buildPlaceholderPick(name: 'Picks hidden' | 'Waiting', counted: boolean): PickScore {
   return {
     name,
@@ -2307,7 +2315,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <button
                   type="button"
                   onClick={jumpToMyEntry}
-                  className="border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] transition-colors hover:bg-white"
+                  className="border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white shadow-[2px_2px_0_#b58a3a] transition-colors hover:bg-[#0f2f25]"
                 >
                   Jump to my entry
                 </button>
@@ -2386,6 +2394,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     const hareNames = isMe ? harePickMap.get(entry.entryId) : undefined
                     const tortoiseNames = !isMe ? tortoisePickMap.get(entry.entryId) : undefined
                     const isEntryOpen = openEntryIds.has(entry.entryId) || forceOpenEntryId === entry.entryId
+                    const isHighlighted = highlightedEntryId === entry.entryId
                     return (
                       <details
                         id={`entry-card-${entry.entryId}`}
@@ -2400,9 +2409,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             return next
                           })
                         }}
-                        className={`group border-b-2 border-[#d8cab0] transition-colors ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : ''}`}
+                        className={`group border-b-2 border-[#d8cab0] transition-colors ${isHighlighted ? 'bg-[#eaf5ec]' : ''}`}
                       >
-                        <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>
+                        <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedEntryRowBg(isHighlighted)}`}>
                           <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                           <div className="min-w-0">
                             <div className="flex min-w-0 items-center gap-1.5">
@@ -2494,13 +2503,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         const allPickNames = golferNamePeers
                         const hareNames = isMe ? harePickMap.get(entry.entryId) : undefined
                         const tortoiseNames = !isMe ? tortoisePickMap.get(entry.entryId) : undefined
+                        const isHighlighted = highlightedEntryId === entry.entryId
                         return (
                           <Fragment key={entry.entryId}>
-                            <tr id={`entry-row-${entry.entryId}`} key={`${entry.entryId}-top`} className={`bg-[#f7f7f2] transition-colors ${highlightedEntryId === entry.entryId ? 'outline outline-4 outline-[#f3df9c]' : ''}`}>
-                              <td className="border-b border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">
+                            <tr id={`entry-row-${entry.entryId}`} key={`${entry.entryId}-top`} className={`transition-colors ${highlightedEntryRowBg(isHighlighted)}`}>
+                              <td className={`border-b border-r-2 border-[#d8cab0] px-1 py-1.5 text-center text-xl font-black text-[#b21e23] ${highlightedEntryRowBg(isHighlighted)}`}>
                                 {entry.rank || '—'}
                               </td>
-                              <td className="border-b border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-2 py-1.5 text-left">
+                              <td className={`border-b border-r-2 border-[#d8cab0] px-2 py-1.5 text-left ${highlightedEntryRowBg(isHighlighted)}`}>
                                 <div className="flex min-w-0 items-center gap-1.5">
                                   {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
                                   <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
@@ -2514,7 +2524,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               {Array.from({ length: pool.count_scores }, (_, i) => {
                                 const pick = countingPicks[i]
                                 return (
-                                  <td key={i} title={pick?.name || ''} className="relative border-b border-r border-[#d8cab0] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                                  <td key={i} title={pick?.name || ''} className={`relative border-b border-r border-[#d8cab0] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] ${highlightedEntryCellBg(isHighlighted)}`}>
                                     <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                                     {pick && pickGroupShortLabel(pick.name) ? (
                                       <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">
@@ -2527,7 +2537,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                                   </td>
                                 )
                               })}
-                              <td className={`border-b border-[#d8cab0] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle ${scoreClass(entry.totalScore)}`}>
+                              <td className={`border-b border-[#d8cab0] px-1 py-1.5 text-center align-middle ${highlightedEntryCellBg(isHighlighted)} ${scoreClass(entry.totalScore)}`}>
                                 <div className="text-3xl font-black leading-none">{formatScore(entry.totalScore)}</div>
                                 {totalScoreSubLabel && entry.todayScore !== null ? (
                                   <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div>

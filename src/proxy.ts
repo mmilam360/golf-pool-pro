@@ -18,15 +18,19 @@ export async function proxy(request: NextRequest) {
     }
   )
   const { data: { user } } = await supabase.auth.getUser()
+  const pathname = request.nextUrl.pathname
   const protectedPaths = ['/dashboard', '/pool/create', '/manage-pools', '/account']
-  const isProtected = protectedPaths.some(p => request.nextUrl.pathname.startsWith(p))
+  const isProtected = protectedPaths.some(p => pathname.startsWith(p))
   if (!user && isProtected) {
     const url = new URL('/login', request.url)
-    const redirectTo = `${request.nextUrl.pathname}${request.nextUrl.search}`
+    const redirectTo = `${pathname}${request.nextUrl.search}`
     url.searchParams.set('redirect', redirectTo)
     return NextResponse.redirect(url)
   }
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
+  if (user && pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+  if (user && (pathname === '/login' || pathname === '/signup')) {
     const redirectParam = request.nextUrl.searchParams.get('redirect')
     if (redirectParam && !redirectParam.includes('\\')) {
       try {
@@ -47,6 +51,7 @@ export const config = {
     '/manage-pools/:path*',
     '/account/:path*',
     '/pool/create/:path*',
+    '/',
     '/login',
     '/signup',
   ],

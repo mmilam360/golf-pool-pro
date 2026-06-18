@@ -33,6 +33,14 @@ function cls(score: number | null) {
   return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
 }
 
+function highlightedRowBg(highlighted: boolean) {
+  return highlighted ? 'bg-[#eaf5ec]' : 'bg-[#f7f7f2]'
+}
+
+function highlightedCellBg(highlighted: boolean) {
+  return highlighted ? 'bg-[#eaf5ec]' : 'bg-[#fbfbf5]'
+}
+
 function pickStatus(pick: PickScore, leaderboardByName: Map<string, GolfPlayer>, timeZone: string) {
   const player = leaderboardByName.get(normalizePickName(pick.name))
   return leaderboardBackedPickProgressLabel(pick, player, timeZone)
@@ -64,6 +72,7 @@ export function GroupedPoolLeaderboard({
     <div className="bg-[#f7f7f2]">
       {entries.map(entry => {
         const isMe = entry.entryId === myEntryId
+        const isHighlighted = highlightedEntryId === entry.entryId
         const picksHidden = entry.picks.includes('__hidden__')
         const isEntryOpen = (openEntryIds?.has(entry.entryId) ?? false) || forceOpenEntryId === entry.entryId
         const groupRows = pickGroups.map(group => {
@@ -88,9 +97,9 @@ export function GroupedPoolLeaderboard({
                 return next
               })
             }}
-            className={`group border-b-2 border-[#d8cab0] transition-colors ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : ''}`}
+            className={`group border-b-2 border-[#d8cab0] transition-colors ${isHighlighted ? 'bg-[#eaf5ec]' : ''}`}
           >
-            <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedEntryId === entry.entryId ? 'bg-[#fff4cf]' : 'bg-[#f7f7f2]'}`}>
+            <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedRowBg(isHighlighted)}`}>
               <div className="text-center tallk:text-2xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
               <div className="min-w-0">
                 <div className="flex min-w-0 items-center gap-1.5">
@@ -159,18 +168,19 @@ export function GroupedPoolLeaderboard({
       <tbody>
         {entries.map(entry => {
           const isMe = entry.entryId === myEntryId
+          const isHighlighted = highlightedEntryId === entry.entryId
           const picksHidden = entry.picks.includes('__hidden__')
           const totalPicks = pickGroups.length * picksPerGroup
           return (
             <tr
               id={`entry-row-${entry.entryId}`}
               key={entry.entryId}
-              className={`bg-[#f7f7f2] transition-colors ${highlightedEntryId === entry.entryId ? 'outline outline-4 outline-[#f3df9c]' : ''}`}
+              className={`transition-colors ${highlightedRowBg(isHighlighted)}`}
             >
-              <td className="border-b border-r-2 border-[#d8cab0] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">
+              <td className={`border-b border-r-2 border-[#d8cab0] px-1 py-1.5 text-center text-xl font-black text-[#b21e23] ${highlightedRowBg(isHighlighted)}`}>
                 {entry.rank || '—'}
               </td>
-              <td className="border-b border-r-2 border-[#d8cab0] px-2 py-1.5 text-left">
+              <td className={`border-b border-r-2 border-[#d8cab0] px-2 py-1.5 text-left ${highlightedRowBg(isHighlighted)}`}>
                 <div className="flex min-w-0 items-center gap-1.5">
                   {isMe && <span aria-label="Your entry" className="h-2.5 w-2.5 shrink-0 bg-[#005b3c]" />}
                   <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]" title={entry.displayName}>{entry.displayName}</span>
@@ -189,7 +199,7 @@ export function GroupedPoolLeaderboard({
                 return cells.map((pick, i) => (
                   <td
                     key={`${group.id}-${i}`}
-                    className="relative border-b border-r border-[#d8cab0] px-1 py-1 text-center align-middle bg-[#fbfbf5]"
+                    className={`relative border-b border-r border-[#d8cab0] px-1 py-1 text-center align-middle ${highlightedCellBg(isHighlighted)}`}
                   >
                     {pick ? (
                       <>
@@ -208,7 +218,7 @@ export function GroupedPoolLeaderboard({
                   </td>
                 ))
               })}
-              <td className="border-b border-[#d8cab0] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle">
+              <td className={`border-b border-[#d8cab0] px-1 py-1.5 text-center align-middle ${highlightedCellBg(isHighlighted)}`}>
                 <div className={`text-3xl font-black leading-none ${cls(entry.totalScore)}`}>{fmt(entry.totalScore)}</div>
               </td>
             </tr>
@@ -227,7 +237,7 @@ export function GroupedPoolLeaderboard({
           <button
             type="button"
             onClick={onJumpToMine}
-            className="border-2 border-[#123c2f] bg-[#fbf7ed] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[#123c2f] transition-colors hover:bg-white"
+            className="border-2 border-[#123c2f] bg-[#123c2f] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white shadow-[2px_2px_0_#b58a3a] transition-colors hover:bg-[#0f2f25]"
           >Jump to my entry</button>
         </div>
       )}

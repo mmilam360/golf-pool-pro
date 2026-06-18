@@ -249,6 +249,14 @@ function scoreClass(score: number | null) {
   return score < 0 ? 'text-[#b21e23]' : 'text-[#111]'
 }
 
+function ownEntryRowBg(isOwnEntry: boolean) {
+  return isOwnEntry ? 'bg-[#eaf5ec]' : 'bg-[#f7f7f2]'
+}
+
+function ownEntryCellBg(isOwnEntry: boolean) {
+  return isOwnEntry ? 'bg-[#eaf5ec]' : 'bg-[#fbfbf5]'
+}
+
 function lastNameFor(name: string) {
   const clean = name.replace(/^OB Stand-in #/, 'OB ')
   if (clean.startsWith('OB ')) return clean
@@ -677,8 +685,8 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               <p className="mx-auto mt-1 max-w-[98%] truncate text-[10px] font-black uppercase tracking-[0.04em] text-[#005b3c] sm:text-xs sm:tracking-[0.08em]" title={pool.name}>{pool.name}</p>
               <div className="mt-1 flex w-full flex-wrap items-center justify-center gap-1.5">
                 {showJumpToMyEntry ? (
-                  <button type="button" onClick={jumpToCurrentEntry} className="inline-flex border-2 border-[#123c2f] bg-white px-2 py-1 text-[9px] font-black uppercase leading-none tracking-[0.08em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] hover:bg-[#fff4cf] sm:px-2.5 sm:text-[10px]">
-                    My row
+                  <button type="button" onClick={jumpToCurrentEntry} className="inline-flex border-2 border-[#123c2f] bg-[#123c2f] px-3 py-1.5 text-[9px] font-black uppercase leading-none tracking-[0.08em] text-white shadow-[2px_2px_0_#b58a3a] hover:bg-[#0f2f25] sm:px-3.5 sm:text-[10px]">
+                    Jump to my entry
                   </button>
                 ) : null}
                 {availableHistoricalRounds.length > 0 && (
@@ -740,7 +748,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const pickGridColumns = pickGridColumnCount(countScores)
                 return (
                   <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#d8cab0] last:border-b-0">
-                    <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
+                    <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${ownEntryRowBg(isCurrentEntry)}`}>
                       <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                       <div className="min-w-0">
                         <span className="flex min-w-0 items-center gap-1.5">
@@ -829,9 +837,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                     const showPreScoringWaiting = !scoringIsLive && !hasSubmittedPicks
                     return (
                       <Fragment key={entry.entryId}>
-                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className={`scroll-mt-28 bg-[#f7f7f2] ${isCurrentEntry ? 'outline outline-4 outline-[#f3df9c]' : ''}`}>
-                          <td className="border-b border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-1 py-1.5 text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</td>
-                          <td className="border-b border-r-2 border-[#d8cab0] bg-[#f7f7f2] px-2 py-1.5 text-left">
+                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className={`scroll-mt-28 transition-colors ${ownEntryRowBg(isCurrentEntry)}`}>
+                          <td className={`border-b border-r-2 border-[#d8cab0] px-1 py-1.5 text-center text-xl font-black text-[#b21e23] ${ownEntryRowBg(isCurrentEntry)}`}>{entry.rank || '—'}</td>
+                          <td className={`border-b border-r-2 border-[#d8cab0] px-2 py-1.5 text-left ${ownEntryRowBg(isCurrentEntry)}`}>
                             <span className="flex min-w-0 items-center gap-1.5" title={entry.displayName}>
                               {isCurrentEntry ? <CurrentUserMarker /> : null}
                               <span className="truncate text-base font-black uppercase tracking-[0.02em] text-[#111]">{entry.displayName}</span>
@@ -845,7 +853,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                           {Array.from({ length: countScores }, (_, i) => {
                             const pick = countingPicks[i]
                             return (
-                              <td key={i} title={pick?.name || ''} className="relative border-b border-r border-[#d8cab0] bg-[#fbfbf5] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                              <td key={i} title={pick?.name || ''} className={`relative border-b border-r border-[#d8cab0] px-1 py-1 text-center align-middle shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] ${ownEntryCellBg(isCurrentEntry)}`}>
                                 <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                                 {pick && pickGroupShortLabel(pick.name) ? (
                                   <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">
@@ -858,7 +866,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                               </td>
                             )
                           })}
-                          <td className={`border-b border-[#d8cab0] bg-[#fbfbf5] px-1 py-1.5 text-center align-middle ${scoreClass(entry.totalScore)}`}>
+                          <td className={`border-b border-[#d8cab0] px-1 py-1.5 text-center align-middle ${ownEntryCellBg(isCurrentEntry)} ${scoreClass(entry.totalScore)}`}>
                             <div className="text-3xl font-black leading-none">{formatScore(entry.totalScore)}</div>
                             {totalScoreSubLabel && entry.todayScore !== null ? <div className="mt-0.5 whitespace-nowrap text-[8px] font-black uppercase tracking-normal text-[#777] sm:text-[9px] sm:tracking-[0.08em]">{totalScoreSubLabel} {formatScore(entry.todayScore)}</div> : null}
                           </td>
@@ -912,11 +920,12 @@ function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: Entr
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   const priorRound = priorCompletedRoundForMovement(leaderboard)
   const priorEntries = priorRound ? buildScoredEntries(pool, allEntries, leaderboardForCompletedRound(leaderboard, priorRound), true) : []
+  const showToday = Boolean(priorRound || isAfterOpeningRoundDate(tournament))
   return {
     rank: current.rank,
     totalScore: current.totalScore,
-    todayScore: current.todayScore,
-    movementToday: priorEntries.length > 0 ? entryMovementSincePriorRank(current, priorEntries) : null,
+    todayScore: showToday ? current.todayScore : null,
+    movementToday: showToday && priorEntries.length > 0 ? entryMovementSincePriorRank(current, priorEntries) : null,
   }
 }
 
