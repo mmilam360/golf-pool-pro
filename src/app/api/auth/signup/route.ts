@@ -43,13 +43,15 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServiceClient() as any
-  const { error } = await supabase.auth.admin.createUser({
+  const confirmedAt = new Date().toISOString()
+  const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
     user_metadata: {
       display_name: displayName,
       full_name: fullName,
+      full_name_confirmed_at: confirmedAt,
       marketing_emails: Boolean(body.marketingOptIn),
     },
   })
@@ -60,6 +62,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'An account already exists for that email. Sign in instead.' }, { status: 409 })
     }
     return NextResponse.json({ error: message || 'Could not create account.' }, { status: 500 })
+  }
+
+  if (!data?.user?.id) {
+    return NextResponse.json({ error: 'Could not create account profile.' }, { status: 500 })
+  }
+
+  const { error: profileError } = await supabase
+    .from('gpp_profiles')
+    .upsert({
+      id: data.user.id,
+      email,
+      display_name: displayName,
+      full_name: fullName,
+      full_name_confirmed_at: confirmedAt,
+    })
+
+  if (profileError) {
+    return NextResponse.json({ error: profileError.message || 'Could not create account profile.' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })
