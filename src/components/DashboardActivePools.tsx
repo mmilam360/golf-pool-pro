@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, entryMovementSincePriorRank, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, scoreEntriesForLeaderboard, type EntryMovement, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
@@ -615,50 +615,11 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     ? entryMovementSincePriorRank(currentScoredEntry, priorMovementEntries)
     : null
   const scoreFreshness = formatScoreFreshness(tournament?.last_scores_fetch)
-  const boardSectionRef = useRef<HTMLDivElement>(null)
-  const fixedMyEntryBarRef = useRef<HTMLDivElement>(null)
-  const [fixedMyEntryBarState, setFixedMyEntryBarState] = useState<'before' | 'shown' | 'after'>('before')
   const harePickMap = leaderboardModeIsCurrent ? buildHarePickMap(scoredEntries, 2) : new Map()
   const tortoisePickMap = leaderboardModeIsCurrent ? buildTortoisePickMap(scoredEntries, currentEntryId, 2) : new Map()
   const showLeverageLegend = leaderboardModeIsCurrent && (harePickMap.size > 0 || tortoisePickMap.size > 0)
   const showMyEntryBar = mode === 'player' && scoringIsLive && Boolean(currentScoredEntry)
   const showJumpToMyEntry = mode === 'player' && scoringIsLive && Boolean(currentScoredEntry && scoredEntries.length >= 10)
-
-  useEffect(() => {
-    if (!showMyEntryBar) {
-      setFixedMyEntryBarState('before')
-      return
-    }
-
-    const updateFixedBar = () => {
-      if (window.matchMedia('(min-width: 640px)').matches) {
-        setFixedMyEntryBarState('before')
-        return
-      }
-      const rect = boardSectionRef.current?.getBoundingClientRect()
-      if (!rect) return
-      const topOffset = 8
-      const barHeight = fixedMyEntryBarRef.current?.offsetHeight || 40
-      if (rect.top >= topOffset) setFixedMyEntryBarState('before')
-      else if (rect.bottom <= topOffset + barHeight) setFixedMyEntryBarState('after')
-      else setFixedMyEntryBarState('shown')
-    }
-
-    updateFixedBar()
-    window.addEventListener('scroll', updateFixedBar, { passive: true })
-    window.addEventListener('resize', updateFixedBar)
-    return () => {
-      window.removeEventListener('scroll', updateFixedBar)
-      window.removeEventListener('resize', updateFixedBar)
-    }
-  }, [showMyEntryBar])
-
-  const fixedMyEntryBarClass = fixedMyEntryBarState === 'shown'
-    ? 'translate-y-0 opacity-100'
-    : fixedMyEntryBarState === 'after'
-      ? 'translate-y-0 opacity-0 pointer-events-none'
-      : '-translate-y-[calc(100%+1rem)] opacity-0 pointer-events-none'
-  const inlineMyEntryBarClass = fixedMyEntryBarState === 'shown' ? 'opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto' : 'opacity-100'
 
   const jumpToCurrentEntry = () => {
     if (!currentEntryId) return
@@ -679,24 +640,10 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   }
 
   return (
-    <div ref={boardSectionRef} className="overflow-visible border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-2 sm:px-5 sm:pt-4">
-      {showMyEntryBar && currentScoredEntry ? (
-        <div
-          ref={fixedMyEntryBarRef}
-          aria-hidden="true"
-          className={`fixed left-6 right-6 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[240] flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] font-black uppercase tracking-[0.08em] shadow-[2px_2px_0_#d8cab0] transition-[transform,opacity] duration-200 ease-out sm:hidden ${fixedMyEntryBarClass}`}
-        >
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
-            <span className="border border-[#b58a3a] bg-[#fff4cf] px-2 py-1 text-[#7a5a19]">#{currentScoredEntry.rank || '—'}</span>
-            <span className={`border px-2 py-1 ${scoreBadgeClass(currentScoredEntry.totalScore)}`}>{formatScore(currentScoredEntry.totalScore)}</span>
-            <TodayMovementBadge label={totalScoreSubLabel} score={currentScoredEntry.todayScore} movement={currentMovementToday} />
-          </div>
-        </div>
-      ) : null}
+    <div className="overflow-visible border-t border-[#eadfca] bg-[#fbf7ed] px-2 pb-0 pt-2 sm:px-5 sm:pt-4">
       <OpenPicksBar pool={pool} tournament={tournament} mode={mode} entry={currentEntryRecord} />
       {showMyEntryBar && currentScoredEntry ? (
-        <div className={`mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] transition-opacity duration-150 sm:px-3 ${inlineMyEntryBarClass}`}>
+        <div className="mb-3 flex items-center justify-between gap-1.5 border-2 border-[#123c2f] bg-white px-2 py-2 text-[clamp(0.58rem,2.2vw,0.75rem)] shadow-[3px_3px_0_#d8cab0] sm:px-3">
           <div className="flex min-w-0 items-center gap-1.5 font-black uppercase tracking-[0.08em]">
             <span className="inline-flex shrink-0 items-center gap-1 text-[#123c2f]"><CurrentUserMarker /> My entry</span>
             {scoringIsLive ? (
