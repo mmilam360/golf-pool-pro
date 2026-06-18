@@ -28,6 +28,7 @@ export async function GET(request: Request) {
       groupedPoolsAutoFinalized: groupFinalization.finalized,
       groupedPoolsChecked: groupFinalization.checked,
       poolsAutoLocked: poolLocks.locked,
+      emptyEntriesAutoRemoved: poolLocks.emptyEntriesAutoRemoved,
       poolsCheckedForLock: poolLocks.checked,
       poolsSkippedGroupsPending: poolLocks.skippedGroupsPending,
     })

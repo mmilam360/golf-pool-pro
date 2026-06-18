@@ -21,6 +21,7 @@ export interface TournamentSyncResult {
   fieldsRejected: number
   leaderboardsUpdated: number
   poolsAutoLocked: number
+  emptyEntriesAutoRemoved: number
   groupedPoolsAutoFinalized: number
   finalResults?: FinalizeResult
   wdAlertsSent?: number
@@ -520,6 +521,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
     fieldsRejected: 0,
     leaderboardsUpdated: 0,
     poolsAutoLocked: 0,
+    emptyEntriesAutoRemoved: 0,
     groupedPoolsAutoFinalized: 0,
     wdAlertsSent: 0,
     wdAlertsNoEmail: 0,
@@ -531,6 +533,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
   const poolLock = await autoLockPools(supabase, { now })
   result.poolsAutoLocked = poolLock.locked
+  result.emptyEntriesAutoRemoved = poolLock.emptyEntriesAutoRemoved
 
   const scoreboardEvents = await fetchScoreboardEvents()
   result.fetched = scoreboardEvents.length
@@ -703,6 +706,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
   if (liveTournamentIds.length > 0) {
     const postSyncPoolLock = await autoLockPools(supabase, { now })
     result.poolsAutoLocked += postSyncPoolLock.locked
+    result.emptyEntriesAutoRemoved += postSyncPoolLock.emptyEntriesAutoRemoved
   }
 
   const groupFinalization = await autoFinalizeGroupedPools(supabase)
@@ -744,6 +748,7 @@ export async function syncTournaments({
     fieldsRejected: 0,
     leaderboardsUpdated: 0,
     poolsAutoLocked: 0,
+    emptyEntriesAutoRemoved: 0,
     groupedPoolsAutoFinalized: 0,
     wdAlertsSent: 0,
     wdAlertsNoEmail: 0,
@@ -914,17 +919,9 @@ export async function syncTournaments({
   }
 
   if (liveTournamentIds.length > 0) {
-    const uniqueLiveTournamentIds = Array.from(new Set(liveTournamentIds))
-    const { data: lockedPools, error } = await supabase
-      .from('gpp_pools')
-      .update({ is_locked: true })
-      .in('tournament_id', uniqueLiveTournamentIds)
-      .eq('is_locked', false)
-      .or('game_format.eq.standard,and(game_format.neq.standard,groups_finalized_at.not.is.null)')
-      .select('id')
-
-    if (error) throw error
-    result.poolsAutoLocked += lockedPools?.length || 0
+    const poolLock = await autoLockPools(supabase)
+    result.poolsAutoLocked += poolLock.locked
+    result.emptyEntriesAutoRemoved += poolLock.emptyEntriesAutoRemoved
   }
 
   const groupFinalization = await autoFinalizeGroupedPools(supabase)

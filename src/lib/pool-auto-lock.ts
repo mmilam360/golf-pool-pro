@@ -19,9 +19,15 @@ type LockPool = {
   gpp_tournaments?: LockPoolTournament | LockPoolTournament[] | null
 }
 
+type LockEntry = {
+  id: string
+  golfer_picks?: unknown
+}
+
 export type AutoLockPoolsResult = {
   checked: number
   locked: number
+  emptyEntriesAutoRemoved: number
   skippedNotDue: number
   skippedGroupsPending: number
 }
@@ -71,12 +77,47 @@ export function groupsAreReady(pool: LockPool) {
   return pool.game_format === 'standard' || Boolean(pool.groups_finalized_at)
 }
 
+export function entryHasSubmittedPicks(entry: Pick<LockEntry, 'golfer_picks'>) {
+  if (!Array.isArray(entry.golfer_picks)) return false
+  return entry.golfer_picks.some(pick => typeof pick === 'string' ? pick.trim().length > 0 : Boolean(pick))
+}
+
+export function emptyEntryIdsForAutoRemoval(entries: LockEntry[]) {
+  return entries.filter(entry => !entryHasSubmittedPicks(entry)).map(entry => entry.id)
+}
+
+async function autoRemoveEmptyEntriesForPools(supabase: SupabaseClient<any>, poolIds: string[], now: Date) {
+  if (poolIds.length === 0) return 0
+
+  const { data: entries, error } = await supabase
+    .from('gpp_entries')
+    .select('id, golfer_picks')
+    .in('pool_id', poolIds)
+    .eq('is_removed', false)
+
+  if (error) throw error
+
+  const emptyEntryIds = emptyEntryIdsForAutoRemoval((entries || []) as LockEntry[])
+  if (emptyEntryIds.length === 0) return 0
+
+  const { data: removedEntries, error: updateError } = await supabase
+    .from('gpp_entries')
+    .update({ is_removed: true, removed_reason: 'No picks submitted', removed_at: now.toISOString() })
+    .in('id', emptyEntryIds)
+    .eq('is_removed', false)
+    .select('id')
+
+  if (updateError) throw updateError
+  return removedEntries?.length || 0
+}
+
 export async function autoLockPools(supabase: SupabaseClient<any>, options: { now?: Date } = {}): Promise<AutoLockPoolsResult> {
   const now = options.now || new Date()
   const today = todayDateOnly('America/New_York', now)
   const result: AutoLockPoolsResult = {
     checked: 0,
     locked: 0,
+    emptyEntriesAutoRemoved: 0,
     skippedNotDue: 0,
     skippedGroupsPending: 0,
   }
@@ -116,5 +157,10 @@ export async function autoLockPools(supabase: SupabaseClient<any>, options: { no
 
   if (updateError) throw updateError
   result.locked = lockedPools?.length || 0
+  result.emptyEntriesAutoRemoved = await autoRemoveEmptyEntriesForPools(
+    supabase,
+    (lockedPools || []).map(pool => pool.id),
+    now,
+  )
   return result
 }

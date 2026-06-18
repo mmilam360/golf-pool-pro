@@ -1447,8 +1447,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(leavingOwnEntry ? { action: 'leave', entryId } : { entryId, removedReason: removeReason }),
     })
+    const data = await res.json().catch(() => ({}))
     if (res.ok) {
-      setEntries(entries.map(e => e.id === entryId ? { ...e, is_removed: true, removed_reason: leavingOwnEntry ? 'Left pool' : removeReason } : e))
+      const nextRemovedReason = leavingOwnEntry ? 'Left pool' : data.removedReason || removeReason || 'Removed by pool runner'
+      setEntries(current => current.map(e => e.id === entryId ? { ...e, is_removed: true, removed_reason: nextRemovedReason } : e))
       setRemoveTarget(null); setRemoveReason('')
       if (leavingOwnEntry) {
         setMyEntry(null)
@@ -1458,10 +1460,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         showToast('You left the pool.', 'success')
       } else {
         showToast('Entry removed.', 'success')
+        refreshPaymentQuote()
       }
       router.refresh()
     } else {
-      const data = await res.json().catch(() => ({}))
       showToast(data.error || (leavingOwnEntry ? 'Could not leave pool.' : 'Could not remove entry.'), 'error')
     }
   }
@@ -2116,6 +2118,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     </section>
   ) : null
 
+  const removeTargetEntry = removeTarget ? entries.find(entry => entry.id === removeTarget) : null
+  const removeTargetName = typeof removeTargetEntry?.display_name === 'string' && removeTargetEntry.display_name.trim() ? removeTargetEntry.display_name.trim() : 'this entry'
   const removingOwnEntry = Boolean(removeTarget && !isOwner && myEntry?.id === removeTarget)
 
   return (
@@ -3155,8 +3159,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       </span>
                     )}
                     {!entry.is_removed && entry.user_id !== userId && (
-                      <button onClick={() => setRemoveTarget(entry.id)}
-                        className="text-xs text-red-700 hover:text-red-800 px-2">Remove</button>
+                      <button
+                        type="button"
+                        onClick={() => setRemoveTarget(entry.id)}
+                        className="px-2 text-xs text-red-700 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
                     )}
                   </div>
                 </div>
@@ -3239,9 +3248,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {removeTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[8px_8px_0_#d8cab0]">
-            <h3 className="mb-3 text-lg font-black text-[#123c2f]">{removingOwnEntry ? 'Leave pool' : 'Remove entry'}</h3>
+            <h3 className="mb-3 text-lg font-black text-[#123c2f]">{removingOwnEntry ? 'Leave pool' : `Remove ${removeTargetName}`}</h3>
             <p className="mb-4 text-sm font-semibold leading-6 text-stone-700">
-              {removingOwnEntry ? `Leave ${poolName}? Your picks will be removed.` : "Remove this person from the pool? They won't be able to rejoin."}
+              {removingOwnEntry ? `Leave ${poolName}? Your picks will be removed.` : `Remove ${removeTargetName} from this pool? They won't be able to rejoin.`}
             </p>
             {!removingOwnEntry && (
               <input

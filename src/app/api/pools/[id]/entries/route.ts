@@ -65,17 +65,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const serviceSupabase = createServiceClient() as any
   const { data: pool, error: poolError } = await serviceSupabase
     .from('gpp_pools')
-    .select('id, owner_id, is_locked, is_completed, gpp_tournaments(status)')
+    .select('id, owner_id, is_locked, is_completed, payment_status, amount_paid_cents, gpp_tournaments(status)')
     .eq('id', id)
     .maybeSingle()
   if (poolError || !pool) return NextResponse.json({ error: 'Pool not found.' }, { status: 404 })
 
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
-  if (pool.is_locked || pool.is_completed || tournament?.status === 'live' || tournament?.status === 'completed') {
-    return NextResponse.json({ error: 'Entries are locked for this pool.' }, { status: 409 })
-  }
+  const tournamentStatus = String(tournament?.status || '').toLowerCase()
+  const entriesAreLocked = Boolean(pool.is_locked || pool.is_completed || tournamentStatus === 'live' || tournamentStatus === 'completed')
+  const paymentAlreadyCollected = Number(pool.amount_paid_cents || 0) > 0
 
   if (action === 'leave') {
+    if (entriesAreLocked) {
+      return NextResponse.json({ error: 'Entries are locked for this pool.' }, { status: 409 })
+    }
     if (pool.owner_id === user.id) {
       return NextResponse.json({ error: 'Pool runners cannot leave their own pool.' }, { status: 403 })
     }
@@ -98,9 +101,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (pool.owner_id !== user.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
+  if (pool.is_completed || tournamentStatus === 'completed') {
+    return NextResponse.json({ error: 'This pool is completed.' }, { status: 409 })
+  }
+
+  if (paymentAlreadyCollected) {
+    return NextResponse.json({ error: 'Pool payment is already recorded. Contact support to change entries.' }, { status: 409 })
+  }
+
+  const ownerRemovalReason = removedReason || 'Removed by pool runner'
+
   const { data: updatedEntry, error: updateError } = await serviceSupabase
     .from('gpp_entries')
-    .update({ is_removed: true, removed_reason: removedReason, removed_at: new Date().toISOString() })
+    .update({ is_removed: true, removed_reason: ownerRemovalReason, removed_at: new Date().toISOString() })
     .eq('id', entryId)
     .eq('pool_id', id)
     .eq('is_removed', false)
@@ -110,5 +123,5 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (updateError) return NextResponse.json({ error: updateError.message || 'Could not remove entry.' }, { status: 500 })
   if (!updatedEntry?.id) return NextResponse.json({ error: 'Entry not found.' }, { status: 404 })
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, removedReason: ownerRemovalReason })
 }

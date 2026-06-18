@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { firstTeeTimeFromField, groupsAreReady, tournamentIsDueToLock, tournamentIsInLiveActivationWindow } from '../src/lib/pool-auto-lock.ts'
+import { emptyEntryIdsForAutoRemoval, entryHasSubmittedPicks, firstTeeTimeFromField, groupsAreReady, tournamentIsDueToLock, tournamentIsInLiveActivationWindow } from '../src/lib/pool-auto-lock.ts'
 import { liveSyncActivationForTournament, resolveLiveSyncStatus } from '../src/lib/tournament-sync.ts'
 
 const today = '2026-06-04'
@@ -32,5 +32,14 @@ assert.equal(groupsAreReady({ id: 'p1', game_format: 'standard' }), true, 'stand
 assert.equal(groupsAreReady({ id: 'p1', game_format: 'ranked_groups', groups_finalized_at: null }), false, 'ranked pools wait for finalized groups')
 assert.equal(groupsAreReady({ id: 'p1', game_format: 'ranked_groups', groups_finalized_at: '2026-06-02T12:00:00Z' }), true, 'ranked pools lock after group finalization')
 assert.equal(groupsAreReady({ id: 'p1', game_format: 'random_groups', groups_finalized_at: '2026-06-02T12:00:00Z' }), true, 'random grouped pools lock after group finalization')
+
+assert.equal(entryHasSubmittedPicks({ golfer_picks: ['Scottie Scheffler'] }), true, 'entry with picks stays active at lock')
+assert.equal(entryHasSubmittedPicks({ golfer_picks: [] }), false, 'empty pick array is treated as no picks')
+assert.equal(entryHasSubmittedPicks({ golfer_picks: null }), false, 'missing picks are treated as no picks')
+assert.deepEqual(emptyEntryIdsForAutoRemoval([
+  { id: 'empty-array', golfer_picks: [] },
+  { id: 'blank-pick', golfer_picks: [''] },
+  { id: 'with-pick', golfer_picks: ['Rory McIlroy'] },
+]), ['empty-array', 'blank-pick'], 'auto-lock removes only zero-pick entries')
 
 console.log('pool auto-lock rules verified')
