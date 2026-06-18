@@ -38,6 +38,7 @@
     "test:client-rls-hardening": "node scripts/verify-client-rls-hardening.mjs",
     "test:pool-entry-details-editor": "node scripts/verify-pool-entry-details-editor.mjs",
     "test:join-full-name-account-flow": "node scripts/verify-join-full-name-account-flow.mjs",
+    "test:public-leaderboard-join-cta": "node scripts/verify-public-leaderboard-join-cta.mjs",
     "test:pick-counts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pick-count-rules.mjs",
     "test:guest-join-flow": "node scripts/verify-guest-join-flow.mjs",
     "smoke:deployment": "node scripts/smoke-deployment.mjs",

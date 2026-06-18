@@ -15,6 +15,8 @@ export default function JoinPoolPage() {
   const [accountFullNameConfirmed, setAccountFullNameConfirmed] = useState(false)
   const [leaderboardNameEdited, setLeaderboardNameEdited] = useState(false)
   const [resumeEntry, setResumeEntry] = useState<ResumeEntry | null>(null)
+  const [directPoolLink, setDirectPoolLink] = useState(false)
+  const [directPoolName, setDirectPoolName] = useState('')
   const [showBackButton, setShowBackButton] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const [isSignedIn, setIsSignedIn] = useState(false)
@@ -25,13 +27,39 @@ export default function JoinPoolPage() {
   const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get('code')
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
     const cleanedCode = code?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+    const poolId = params.get('pool')
+    const cleanedPoolId = poolId && /^[0-9a-f-]{36}$/i.test(poolId) ? poolId : ''
     try {
       const referrerUrl = document.referrer ? new URL(document.referrer) : null
-      setShowBackButton(Boolean(referrerUrl && referrerUrl.origin === window.location.origin && !cleanedCode))
+      setShowBackButton(Boolean(referrerUrl && referrerUrl.origin === window.location.origin && !cleanedCode && !cleanedPoolId))
     } catch {
       setShowBackButton(false)
+    }
+    if (cleanedPoolId) {
+      setDirectPoolLink(true)
+      let cancelled = false
+      fetch(`/api/pool/guest-entry?poolId=${encodeURIComponent(cleanedPoolId)}`)
+        .then(async res => {
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) throw new Error(data.error || 'Could not open this pool.')
+          return data
+        })
+        .then(data => {
+          if (cancelled) return
+          const nextPasscode = typeof data.passcode === 'string' ? data.passcode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) : ''
+          if (nextPasscode.length !== 6) throw new Error('Could not open this pool.')
+          setPasscode(nextPasscode)
+          setDirectPoolName(typeof data.poolName === 'string' ? data.poolName : '')
+        })
+        .catch(error => {
+          if (!cancelled) setError(error instanceof Error ? error.message : 'Could not open this pool.')
+        })
+      return () => {
+        cancelled = true
+      }
     }
     if (!cleanedCode) return
 
@@ -286,6 +314,7 @@ export default function JoinPoolPage() {
 
   const showAccountSignIn = authChecked && !isSignedIn
   const showFullNameInput = authChecked && (!isSignedIn || !accountFullNameConfirmed)
+  const showPasscodeInput = !directPoolLink
   const nameRequired = authChecked
   const showNameRequiredBadge = authChecked && !isSignedIn
   const fullNameRequired = showFullNameInput
@@ -316,32 +345,36 @@ export default function JoinPoolPage() {
         )}
 
         <form onSubmit={handleJoin} className="space-y-5 rounded-none border-2 border-[#123c2f] bg-white p-6 shadow-[6px_6px_0_#d8cab0]">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">Pool passcode</label>
-            <button
-              type="button"
-              onClick={() => inputRef.current?.focus()}
-              className="grid w-full grid-cols-6 gap-2"
-              aria-label="Enter pool passcode"
-            >
-              {Array.from({ length: 6 }, (_, index) => (
-                <span key={index} className="grid h-14 place-items-center border-2 border-[#123c2f] bg-[#fbf7ed] font-mono text-2xl font-black text-[#123c2f]">
-                  {passcode[index] || '-'}
-                </span>
-              ))}
-            </button>
-            <input
-              ref={inputRef}
-              type="text"
-              value={passcode}
-              onChange={e => setPasscode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
-              required
-              maxLength={6}
-              autoCapitalize="characters"
-              autoComplete="off"
-              className="sr-only"
-            />
-          </div>
+          {showPasscodeInput ? (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-stone-700">Pool passcode</label>
+              <button
+                type="button"
+                onClick={() => inputRef.current?.focus()}
+                className="grid w-full grid-cols-6 gap-2"
+                aria-label="Enter pool passcode"
+              >
+                {Array.from({ length: 6 }, (_, index) => (
+                  <span key={index} className="grid h-14 place-items-center border-2 border-[#123c2f] bg-[#fbf7ed] font-mono text-2xl font-black text-[#123c2f]">
+                    {passcode[index] || '-'}
+                  </span>
+                ))}
+              </button>
+              <input
+                ref={inputRef}
+                type="text"
+                value={passcode}
+                onChange={e => setPasscode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                required
+                maxLength={6}
+                autoCapitalize="characters"
+                autoComplete="off"
+                className="sr-only"
+              />
+            </div>
+          ) : directPoolName ? (
+            <div className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-sm font-black text-[#123c2f]">{directPoolName}</div>
+          ) : null}
           {showFullNameInput && (
             <div>
               <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">

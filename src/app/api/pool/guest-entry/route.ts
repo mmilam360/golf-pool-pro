@@ -28,23 +28,30 @@ function badRequest(error: string) {
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
+  const poolId = url.searchParams.get('poolId') || ''
   const passcode = (url.searchParams.get('passcode') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
-  if (passcode.length !== 6) return badRequest('Enter the full pool code from your host.')
+  const lookupByPoolId = /^[0-9a-f-]{36}$/i.test(poolId)
+  if (!lookupByPoolId && passcode.length !== 6) return badRequest('Enter the full pool code from your host.')
 
   const supabase = createServiceClient() as any
-  const { data: pool, error: poolError } = await supabase
+  const query = supabase
     .from('gpp_pools')
     .select('id, name, passcode, is_locked, is_completed, gpp_tournaments(name, status)')
-    .eq('passcode', passcode)
-    .maybeSingle()
+
+  const { data: pool, error: poolError } = lookupByPoolId
+    ? await query.eq('id', poolId).maybeSingle()
+    : await query.eq('passcode', passcode).maybeSingle()
 
   if (poolError || !pool) return NextResponse.json({ error: 'Invalid passcode. Check with the pool host.' }, { status: 404 })
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
+  const picksClosed = Boolean(pool.is_locked || pool.is_completed || tournament?.status === 'live' || tournament?.status === 'completed')
+  if (lookupByPoolId && picksClosed) return NextResponse.json({ error: 'This pool is locked. Picks have closed.' }, { status: 409 })
   return NextResponse.json({
     poolId: pool.id,
     poolName: pool.name,
+    passcode: pool.passcode,
     tournamentName: tournament?.name || '',
-    picksClosed: Boolean(pool.is_locked || pool.is_completed || tournament?.status === 'live' || tournament?.status === 'completed'),
+    picksClosed,
   })
 }
 

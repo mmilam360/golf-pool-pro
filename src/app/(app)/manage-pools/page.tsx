@@ -261,10 +261,13 @@ function CurrentPoolCard({ pool, entries }: { pool: PoolRecord; entries: EntryRe
     })
   const picksInCount = Math.max(activeEntryCount - entriesNeedingPicks.length, 0)
   const remindersHref = `/pool/${pool.id}?tab=pool-settings#pick-reminders`
+  const primaryHref = showInvitePrep ? `/pool/${pool.id}` : `/pool/${pool.id}?tab=leaderboard`
+  const primaryLabel = showInvitePrep ? `Open invite board for ${pool.name}` : `Open leaderboard for ${pool.name}`
+  const primaryActionLabel = showInvitePrep ? 'Open invite board →' : 'Open leaderboard →'
 
   return (
     <div className="border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0] transition-colors hover:bg-[#fffdf8]">
-      <Link href={`/pool/${pool.id}?tab=pool-settings`} className="block focus:outline-none focus:ring-4 focus:ring-[#f3df9c]" aria-label={`Open settings for ${pool.name}`}>
+      <Link href={primaryHref} className="block focus:outline-none focus:ring-4 focus:ring-[#f3df9c]" aria-label={primaryLabel}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -303,9 +306,14 @@ function CurrentPoolCard({ pool, entries }: { pool: PoolRecord; entries: EntryRe
         </div>
       ) : null}
 
-      <Link href={`/pool/${pool.id}?tab=pool-settings`} className="mt-3 block border-t border-[#eadfca] pt-3 text-right text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
-        Open pool settings →
-      </Link>
+      <div className="mt-3 flex flex-col gap-2 border-t border-[#eadfca] pt-3 sm:flex-row sm:justify-end">
+        <Link href={primaryHref} className="text-right text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">
+          {primaryActionLabel}
+        </Link>
+        <Link href={`/pool/${pool.id}?tab=pool-settings`} className="text-right text-xs font-black uppercase tracking-[0.12em] text-[#657168]">
+          Pool settings →
+        </Link>
+      </div>
     </div>
   )
 }
