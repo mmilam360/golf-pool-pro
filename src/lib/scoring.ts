@@ -17,6 +17,26 @@ function scoreStringToPar(score?: string | null) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function normalizedThru(value?: string | null) {
+  return String(value ?? '').trim().toUpperCase().replace('*', '')
+}
+
+function hasCompletedRound(player: GolfPlayer) {
+  return Array.isArray(player.roundScores) && player.roundScores.some(round => round.complete)
+}
+
+function hasStartedScoring(player: GolfPlayer) {
+  if (player.status !== 'active') return true
+  if (String(player.roundScore ?? '').trim()) return true
+
+  const thru = normalizedThru(player.thru)
+  if (thru && thru !== '-' && thru !== '—' && !['CUT', 'WD', 'DQ', 'DNQ'].includes(thru)) return true
+  if (hasCompletedRound(player)) return true
+
+  const score = Number(player.scoreToPar)
+  return Number.isFinite(score) && score !== 0
+}
+
 function worstActiveRoundScore(players: GolfPlayer[], penalty: number) {
   const roundScores = players
     .map(player => scoreStringToPar(player.roundScore))
@@ -92,21 +112,26 @@ export function scoreEntry(
     )
     if (!player) return { name, scoreToPar: null, strokes: null, thru: '', status: 'dnq' as const, counted: false, isObStandIn: false, finalNineScore: null, tiebreakScores: [] }
     const playerTiebreakScores = tiebreakScores(player)
-    const scoreToPar = player.scoreToPar !== null && player.scoreToPar !== undefined && Number.isFinite(Number(player.scoreToPar))
+    const scoreToPar = hasStartedScoring(player) && player.scoreToPar !== null && player.scoreToPar !== undefined && Number.isFinite(Number(player.scoreToPar))
       ? Number(player.scoreToPar)
       : null
     return { name: player.name, scoreToPar, strokes: player.strokes, thru: player.thru, status: player.status, counted: false, isObStandIn: false, teeTime: player.teeTime, startTee: player.startTee, roundScore: player.roundScore, finalNineScore: playerTiebreakScores[0] ?? null, tiebreakScores: playerTiebreakScores }
   })
 
-  const active = pickScores.filter(p => p.status === 'active' && Number.isFinite(p.scoreToPar))
-  active.sort((a, b) => (a.scoreToPar ?? 999) - (b.scoreToPar ?? 999))
+  const active = pickScores.filter(p => p.status === 'active')
+  const scoredActive = active.filter(p => Number.isFinite(p.scoreToPar))
+  const waitingActive = active.filter(p => !Number.isFinite(p.scoreToPar))
+  scoredActive.sort((a, b) => (a.scoreToPar ?? 999) - (b.scoreToPar ?? 999))
 
   let counting: PickScore[] = []; let obStandIns = 0
-  if (active.length >= countScores) {
-    counting = active.slice(0, countScores)
+  if (scoredActive.length >= countScores) {
+    counting = scoredActive.slice(0, countScores)
   } else {
-    counting = [...active]
-    const needed = countScores - active.length
+    counting = [...scoredActive]
+    if (active.length >= countScores) {
+      counting.push(...waitingActive.slice(0, countScores - counting.length))
+    }
+    const needed = Math.max(0, countScores - active.length)
     const obEligiblePicks = pickScores.filter(p => p.status !== 'active')
     const standInsNeeded = Math.min(needed, obEligiblePicks.length)
     if (standInsNeeded > 0 && safeLeaderboard.length > 0) {
@@ -132,17 +157,23 @@ export function scoreEntry(
       }
       obStandIns = standInsNeeded
     }
+    if (counting.length < countScores) {
+      const countedNames = new Set(counting.map(p => normalizePickName(p.name)))
+      counting.push(...waitingActive.filter(p => !countedNames.has(normalizePickName(p.name))).slice(0, countScores - counting.length))
+    }
   }
   counting.forEach(p => p.counted = true)
   const replacedObNames = new Set(counting.filter(p => p.isObStandIn).map(p => normalizePickName(p.name)))
   const allScored = [
     ...counting,
-    ...active.filter(p => !p.counted),
+    ...scoredActive.filter(p => !p.counted),
+    ...waitingActive.filter(p => !p.counted),
     ...pickScores.filter(p => p.status !== 'active' && !replacedObNames.has(normalizePickName(p.name))),
   ]
-  const totalScore = counting.length >= countScores ? counting.reduce((s, p) => s + (p.scoreToPar ?? 0), 0) : null
-  const todayScores = counting.map(p => scoreStringToPar(p.roundScore) ?? 0)
-  const todayScore = counting.length >= countScores
+  const countingWithScores = counting.filter(p => Number.isFinite(p.scoreToPar))
+  const totalScore = countingWithScores.length > 0 ? countingWithScores.reduce((s, p) => s + (p.scoreToPar ?? 0), 0) : null
+  const todayScores = countingWithScores.map(p => scoreStringToPar(p.roundScore)).filter((score): score is number => score !== null)
+  const todayScore = todayScores.length > 0
     ? todayScores.reduce((sum, score) => sum + score, 0)
     : null
   const maxTiebreakLevels = Math.max(0, ...counting.map(p => p.tiebreakScores?.length || 0))

@@ -108,6 +108,35 @@ assert.equal(tieBreak[0].finalNineScore, -1)
 assert.equal(tieBreak[0].rank, 1)
 assert.equal(tieBreak[1].rank, 2)
 
+const firstRoundLive = scoreEntriesForLeaderboard(
+  [
+    { id: 'entry-live', display_name: 'Entry Live', golfer_picks: ['Future Even A', 'Over Par Playing', 'Future Even B', 'Under Par Playing'], is_removed: false },
+  ],
+  [
+    { id: 'future-a', name: 'Future Even A', firstName: 'Future', lastName: 'A', score: 'E', scoreToPar: 0, strokes: 0, thru: '', roundScore: '', teeTime: '2026-06-18T20:00:00Z', position: 'T1', status: 'active', country: '', roundScores: [] },
+    { id: 'over', name: 'Over Par Playing', firstName: 'Over', lastName: 'Playing', score: '+2', scoreToPar: 2, strokes: 0, thru: '2', roundScore: '+2', teeTime: '2026-06-18T12:00:00Z', position: 'T70', status: 'active', country: '', roundScores: [{ round: 1, roundScoreToPar: 2, cumulativeScoreToPar: 2, complete: false }] },
+    { id: 'future-b', name: 'Future Even B', firstName: 'Future', lastName: 'B', score: 'E', scoreToPar: 0, strokes: 0, thru: '', roundScore: '', teeTime: '2026-06-18T21:00:00Z', position: 'T1', status: 'active', country: '', roundScores: [] },
+    { id: 'under', name: 'Under Par Playing', firstName: 'Under', lastName: 'Playing', score: '-1', scoreToPar: -1, strokes: 0, thru: '1', roundScore: '-1', teeTime: '2026-06-18T12:00:00Z', position: 'T5', status: 'active', country: '', roundScores: [{ round: 1, roundScoreToPar: -1, cumulativeScoreToPar: -1, complete: false }] },
+  ],
+  { countScores: 3, obRuleEnabled: false, obPenaltyStrokes: 2 }
+)
+const firstRoundEntry = firstRoundLive[0]
+assert.equal(firstRoundEntry.totalScore, 1, 'not-started first-round E golfers should not add fake even-par scores to totals')
+assert.equal(firstRoundEntry.todayScore, 1, 'today score should ignore not-started blank golfers')
+assert.deepEqual(firstRoundEntry.pickScores.filter(pick => pick.counted).map(pick => pick.name), ['Under Par Playing', 'Over Par Playing', 'Future Even A'], 'started golfers should stay in top picks ahead of not-started blank golfers')
+assert.equal(firstRoundEntry.pickScores.find(pick => pick.name === 'Future Even A')?.scoreToPar, null, 'not-started E golfer should score as blank until on course')
+
+const priorRoundEven = scoreEntriesForLeaderboard(
+  [
+    { id: 'entry-prior-even', display_name: 'Entry Prior Even', golfer_picks: ['Prior Even'], is_removed: false },
+  ],
+  [
+    { id: 'prior-even', name: 'Prior Even', firstName: 'Prior', lastName: 'Even', score: 'E', scoreToPar: 0, strokes: 0, thru: '', roundScore: '', teeTime: '2026-06-19T20:00:00Z', position: 'T20', status: 'active', country: '', roundScores: [{ round: 1, roundScoreToPar: 0, cumulativeScoreToPar: 0, complete: true }] },
+  ],
+  { countScores: 1, obRuleEnabled: false, obPenaltyStrokes: 2 }
+)
+assert.equal(priorRoundEven[0].totalScore, 0, 'even-par scores from completed prior rounds should still count as E')
+
 const extendedTieBreak = scoreEntriesForLeaderboard(
   [
     { id: 'entry-nine-a', display_name: 'Entry Nine A', golfer_picks: ['Nine Tie A'], is_removed: false },

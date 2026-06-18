@@ -234,6 +234,12 @@ function formatScore(score: number | null) {
   return score > 0 ? `+${score}` : String(score)
 }
 
+function formatPickScore(pick?: PickScore | null) {
+  if (!pick) return ''
+  if (pick.scoreToPar === null) return ''
+  return formatScore(pick.scoreToPar)
+}
+
 function formatEntryCount(count: number) {
   return `${count} ${count === 1 ? 'entry' : 'entries'}`
 }
@@ -767,7 +773,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                                 {pickGroupShortLabel(pick.name)}
                               </span>
                             ) : null}
-                            <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                            <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{formatPickScore(pick)}</div>
                             <div className="mt-1 truncate text-[clamp(8px,2.2vw,10px)] font-black uppercase leading-none tracking-[-0.03em] text-[#111] sm:text-xs sm:tracking-[-0.01em]">
                               {pick ? shortName(pick.name, allPickNames) : 'Waiting'}
                             </div>
@@ -790,7 +796,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                                   {pickGroupShortLabel(pick.name)}
                                 </span>
                               ) : null}
-                              <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
+                              <span><span className={scoreClass(pick.scoreToPar)}>{formatPickScore(pick)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                             </span>
                           ))}
                         </div>
@@ -846,7 +852,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                                     {pickGroupShortLabel(pick.name)}
                                   </span>
                                 ) : null}
-                                <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{pick ? formatScore(pick.scoreToPar) : '—'}</div>
+                                <div className={`text-lg font-black leading-none ${scoreClass(pick?.scoreToPar ?? null)}`}>{formatPickScore(pick)}</div>
                                 <div className="mt-0.5 truncate text-[11px] font-black uppercase leading-tight tracking-[-0.01em] text-[#111] xl:text-xs">{pick ? shortName(pick.name, allPickNames) : 'Waiting'}</div>
                                 <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[#555]">{pick ? (pick.name === 'Waiting' ? 'Waiting' : [pickGroupShortLabel(pick.name), activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)].filter(Boolean).join(' · ')) : 'Waiting'}</div>
                               </td>
@@ -873,7 +879,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                                         {pickGroupShortLabel(pick.name)}
                                       </span>
                                     ) : null}
-                                    <span><span className={scoreClass(pick.scoreToPar)}>{formatScore(pick.scoreToPar)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
+                                    <span><span className={scoreClass(pick.scoreToPar)}>{formatPickScore(pick)}</span> {shortName(pick.name, allPickNames)} <span className="text-[#555]">{activePoolPickStatusLabel(pick, leaderboardByName, teeTimeZone)}</span></span>
                                   </span>
                                 ))}
                               </div>
