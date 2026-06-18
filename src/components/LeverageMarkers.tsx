@@ -16,6 +16,16 @@ export function ObMarkerCorner() {
   )
 }
 
+function InfoIcon() {
+  return (
+    <svg className="block h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.4" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="8" cy="5" r="0.85" fill="currentColor" />
+      <path d="M7.25 7.35h0.95v3.2c0 0.82 0.36 1.2 1.18 1.2" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function LeverageMarkerIcon({ kind }: { kind: MarkerKind }) {
   if (kind === 'hare') {
     return (
@@ -85,9 +95,9 @@ export function LeverageMarkerLegend({ showTortoise = true, className = '', cent
       <details className={detailsClassName}>
         <summary
           aria-label="How root for and root against are picked"
-          className="flex h-4 w-4 cursor-pointer list-none items-center justify-center border border-[#123c2f] bg-white text-[10px] font-black leading-none text-[#123c2f] shadow-[1px_1px_0_#d8cab0] marker:hidden hover:bg-[#fff4cf] [&::-webkit-details-marker]:hidden"
+          className="flex h-4 w-4 cursor-pointer list-none items-center justify-center rounded-full text-[#123c2f] marker:hidden hover:text-[#8a6724] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a3a] [&::-webkit-details-marker]:hidden"
         >
-          i
+          <InfoIcon />
         </summary>
         <div className={infoBoxClassName}>
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#123c2f]">How this works</p>
