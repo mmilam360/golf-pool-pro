@@ -659,7 +659,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
         </div>
       ) : null}
       <div
-        className="gpp-3d [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]"
+        className="gpp-3d relative z-20 [--gpp-depth-x:12px] [--gpp-depth-y:8px] [--gpp-side-color:#001f17] [--gpp-bottom-color:#001f17] md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]"
         style={{ fontFamily: 'Arial Narrow, Arial, sans-serif' }}
       >
         <div className="gpp-board-depth-right" aria-hidden="true" />
@@ -887,10 +887,10 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               </table>
             </div>
           </div>
-          {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="mt-1" /> : null}
+          {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} centerInfoBox className="mt-1" /> : null}
         </div>
       </div>
-      <div className="gpp-board-post mx-auto -mt-[4px] h-36 w-20 [--gpp-depth-x:12px] [--gpp-depth-y:8px] md:-mt-[7px] md:h-44 md:w-24 md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
+      <div className="gpp-board-post relative z-0 mx-auto -mt-[4px] h-36 w-20 [--gpp-depth-x:12px] [--gpp-depth-y:8px] md:-mt-[7px] md:h-44 md:w-24 md:[--gpp-depth-x:22px] md:[--gpp-depth-y:14px]">
         <div className="gpp-board-post-depth" aria-hidden="true" />
         <div className="gpp-board-post-face" aria-hidden="true" />
       </div>

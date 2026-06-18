@@ -72,19 +72,24 @@ export function LeverageMarkerCorner({ kind }: { kind?: MarkerKind }) {
   )
 }
 
-export function LeverageMarkerLegend({ showTortoise = true, className = '' }: { showTortoise?: boolean; className?: string }) {
+export function LeverageMarkerLegend({ showTortoise = true, className = '', centerInfoBox = false }: { showTortoise?: boolean; className?: string; centerInfoBox?: boolean }) {
+  const detailsClassName = centerInfoBox ? 'inline-flex' : 'relative inline-flex'
+  const infoBoxClassName = centerInfoBox
+    ? 'absolute left-1/2 top-[calc(100%+6px)] z-[260] w-72 -translate-x-1/2 border-2 border-[#123c2f] bg-[#fffdf8] p-3 text-left normal-case tracking-normal text-[#1f2a24] shadow-[5px_5px_0_#d8cab0]'
+    : 'absolute right-0 top-[calc(100%+6px)] z-[260] w-72 border-2 border-[#123c2f] bg-[#fffdf8] p-3 text-left normal-case tracking-normal text-[#1f2a24] shadow-[5px_5px_0_#d8cab0] sm:right-auto sm:left-1/2 sm:-translate-x-1/2'
+
   return (
-    <div className={`flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-1 bg-[#fffdf8] px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#111] ${className}`}>
+    <div className={`relative flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-1 bg-[#fffdf8] px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#111] ${className}`}>
       <span className="inline-flex items-center gap-1"><LeverageMarker kind="hare" /> Root for</span>
       {showTortoise ? <span className="inline-flex items-center gap-1"><LeverageMarker kind="tortoise" /> Root against</span> : null}
-      <details className="relative inline-flex">
+      <details className={detailsClassName}>
         <summary
           aria-label="How root for and root against are picked"
           className="flex h-4 w-4 cursor-pointer list-none items-center justify-center border border-[#123c2f] bg-white text-[10px] font-black leading-none text-[#123c2f] shadow-[1px_1px_0_#d8cab0] marker:hidden hover:bg-[#fff4cf] [&::-webkit-details-marker]:hidden"
         >
           i
         </summary>
-        <div className="absolute right-0 top-[calc(100%+6px)] z-[260] w-72 border-2 border-[#123c2f] bg-[#fffdf8] p-3 text-left normal-case tracking-normal text-[#1f2a24] shadow-[5px_5px_0_#d8cab0] sm:right-auto sm:left-1/2 sm:-translate-x-1/2">
+        <div className={infoBoxClassName}>
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#123c2f]">How this works</p>
           <p className="mt-1 text-xs font-semibold leading-5">
             We run a leverage algorithm on the live standings and every entry&apos;s picks. It compares your entry with the rest of the pool and marks the golfers whose scores can swing your rank the most.
