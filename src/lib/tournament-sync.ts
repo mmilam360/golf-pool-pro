@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getLeaderboard, getSchedule, inferInactiveStatusesFromRounds, mapCompetitorToPlayer, enrichPlayersWithTeeTimes, enrichPlayersWithFirstRoundTeeTimes } from './golf-api'
 import { autoFinalizeGroupedPools } from './grouped-pool-auto-lock'
 import { finalizeCompletedPoolResults, type FinalizeResult } from './finalize-pool-results'
-import { autoLockPools } from './pool-auto-lock'
+import { autoLockPools, firstTeeTimeFromField, tournamentIsInLiveActivationWindow } from './pool-auto-lock'
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
 import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
 import { recordNotificationEvent, sendPushToUser } from './notifications/push'
@@ -444,10 +444,31 @@ export async function refreshPgaTourFields(supabase: any, season: number): Promi
   return result
 }
 
+type LiveSyncActivationTournament = {
+  external_id?: string | null
+  start_date?: string | null
+  status?: string | null
+  field_json?: Array<{ teeTime?: string | null }> | null
+}
+
+export function liveSyncActivationForTournament(tournament: LiveSyncActivationTournament, today: string, now: Date) {
+  const status = String(tournament.status || '').toLowerCase()
+  if (status === 'live') return { shouldActivate: true, dateFallback: false }
+  if (status !== 'upcoming') return { shouldActivate: false, dateFallback: false }
+
+  const firstTee = firstTeeTimeFromField(tournament.field_json)
+  if (firstTee) {
+    return { shouldActivate: tournamentIsInLiveActivationWindow(tournament, now), dateFallback: false }
+  }
+
+  const dateFallback = Boolean(tournament.start_date && tournament.start_date <= today)
+  return { shouldActivate: dateFallback, dateFallback }
+}
+
 async function liveSyncActivationState(supabase: any, now: Date) {
   const { data: tournaments, error } = await supabase
     .from('gpp_tournaments')
-    .select('id, external_id, start_date, status')
+    .select('id, external_id, start_date, status, field_json')
     .in('status', ['upcoming', 'live'])
 
   if (error) throw error
@@ -462,21 +483,12 @@ async function liveSyncActivationState(supabase: any, now: Date) {
   let hasLiveTournament = false
   let hasDateFallbackDue = false
   for (const tournament of tournaments || []) {
+    const activation = liveSyncActivationForTournament(tournament, today, now)
+    if (!activation.shouldActivate) continue
+    if (activation.dateFallback) hasDateFallbackDue = true
     const status = String(tournament.status || '').toLowerCase()
-    if (status === 'live') {
-      hasLiveTournament = true
-      if (tournament.external_id) activatedExternalIds.add(String(tournament.external_id))
-      continue
-    }
-
-    // This function runs from the every-minute cron. Do not select field_json
-    // here: it is a large JSON blob and there can be dozens of upcoming events.
-    // First-tee precision is handled in autoLockPools(), which only runs after
-    // this cheap date/status gate opens.
-    if (status === 'upcoming' && tournament.start_date && tournament.start_date <= today) {
-      hasDateFallbackDue = true
-      if (tournament.external_id) activatedExternalIds.add(String(tournament.external_id))
-    }
+    if (status === 'live') hasLiveTournament = true
+    if (tournament.external_id) activatedExternalIds.add(String(tournament.external_id))
   }
 
   return {
