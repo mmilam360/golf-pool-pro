@@ -10,9 +10,13 @@ const rows = [
 ]
 
 const sortedIds = sortTournamentLeaderboardRows(rows, now).map(player => player.id)
-assert.deepEqual(sortedIds, ['over-par-on-course', 'under-par-finished', 'not-started-even', 'cut-player'], 'active/on-course golfers show before not-started E golfers')
+assert.deepEqual(sortedIds, ['under-par-finished', 'over-par-on-course', 'not-started-even', 'cut-player'], 'full tournament leaderboard keeps official score order while not-started E golfers stay below scored golfers')
 assert.equal(tournamentScoreLabel(rows[0], now), '', 'not-started golfers show a blank total score')
 assert.equal(tournamentPositionLabel(rows[0], 0, now), '', 'not-started golfers do not get a fake position')
 assert.equal(tournamentScoreLabel(rows[1], now), '+3', 'started golfers still show over-par scores')
+
+const duplicatedRows = [rows[2], rows[1], rows[1], rows[0], rows[0]]
+const dedupedIds = sortTournamentLeaderboardRows(duplicatedRows, now).map(player => player.id)
+assert.deepEqual(dedupedIds, ['under-par-finished', 'over-par-on-course', 'not-started-even'], 'duplicate full-field rows are removed by golfer identity')
 
 console.log('tournament leaderboard display verified')
