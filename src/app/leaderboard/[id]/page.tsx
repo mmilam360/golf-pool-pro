@@ -15,11 +15,20 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
   const highlightedEntryId = typeof query?.entry === 'string' && /^[0-9a-f-]{36}$/i.test(query.entry) ? query.entry : null
   const supabase = await createClient()
 
-  const { data: poolData } = await supabase
-    .from('gpp_pools')
-    .select('id, name, pick_count, count_scores, is_locked, is_completed, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, gpp_tournaments(id, external_id, name, course, location, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch)')
-    .eq('id', id)
-    .single()
+  const [poolResult, entriesResult] = await Promise.all([
+    supabase
+      .from('gpp_pools')
+      .select('id, name, pick_count, count_scores, is_locked, is_completed, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, gpp_tournaments(id, external_id, name, course, location, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch)')
+      .eq('id', id)
+      .single(),
+    supabase
+      .from('gpp_entries')
+      .select('id, pool_id, display_name, golfer_picks, total_score, counting_scores, rank, is_removed, created_at')
+      .eq('pool_id', id)
+      .eq('is_removed', false)
+      .order('created_at', { ascending: true }),
+  ])
+  const { data: poolData } = poolResult
 
   const pool = poolData as any
   if (!pool) notFound()
@@ -50,12 +59,7 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
   const joinHref = `/pool/join?pool=${encodeURIComponent(pool.id)}`
   const signInHref = `/login?redirect=${encodeURIComponent('/dashboard')}`
 
-  const { data: entries } = await supabase
-    .from('gpp_entries')
-    .select('id, pool_id, display_name, golfer_picks, total_score, counting_scores, rank, is_removed, created_at')
-    .eq('pool_id', id)
-    .eq('is_removed', false)
-    .order('created_at', { ascending: true })
+  const { data: entries } = entriesResult
 
   const safeEntries = ((entries || []) as any[]).map((entry: any) => {
     const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
