@@ -24,6 +24,7 @@
     "test:open-pick-field-count": "node scripts/verify-open-pick-field-count.mjs",
     "test:dashboard-pool-order": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-dashboard-pool-order.mjs",
     "test:dashboard-entry-movement": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-dashboard-entry-movement.mjs",
+    "test:leverage-marker-info": "node scripts/verify-leverage-marker-info.mjs",
     "test:dashboard-reorder-ui": "node scripts/verify-dashboard-reorder-ui.mjs",
     "test:dashboard-edit-picks-cta": "node scripts/verify-dashboard-edit-picks-cta.mjs",
     "test:dashboard-pool-name-width": "node scripts/verify-dashboard-pool-name-width.mjs",

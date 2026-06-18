@@ -6,6 +6,7 @@ const checks = [
   ['npm', ['run', 'test:pick-submission-validation']],
   ['npm', ['run', 'test:dashboard-edit-picks-cta']],
   ['npm', ['run', 'test:dashboard-pool-name-width']],
+  ['npm', ['run', 'test:leverage-marker-info']],
   ['npm', ['run', 'test:dashboard-reorder-ui']],
   ['npm', ['run', 'test:dashboard-runner-player-parity']],
   ['npm', ['run', 'test:pre-tournament-pick-card-display']],
