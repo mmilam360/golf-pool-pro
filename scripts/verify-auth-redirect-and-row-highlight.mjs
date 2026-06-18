@@ -20,4 +20,11 @@ assert.match(dashboardSource, /const showToday = Boolean\(priorRound \|\| isAfte
 assert.match(dashboardSource, /todayScore: showToday \? current\.todayScore : null/, 'dashboard status card should hide Thursday-only Today score')
 assert.match(dashboardSource, /movementToday: showToday && priorEntries\.length > 0/, 'dashboard movement should follow the same Today gate')
 
-console.log('auth redirect, row highlight, jump button, and Thursday dashboard Today markers verified')
+assert.match(dashboardSource, /formatEntryCount\(entries\.length\)/, 'expanded leaderboard header should carry the entry count')
+assert.doesNotMatch(dashboardSource, /formatEntryCount\(poolEntries\.length\)/, 'collapsed pool rows should not spend width on entry count')
+assert.match(dashboardSource, /function LiveScoreStrip\(\)/, 'live state should render as a compact strip inside the rank score box')
+assert.doesNotMatch(dashboardSource, /LivePulseBadge/, 'collapsed live badge should not render as a separate column')
+assert.match(dashboardSource, /grid-cols-\[32px_minmax\(0,1fr\)_90px\]/, 'live collapsed rows should reserve only chevron, name, and score box columns')
+assert.doesNotMatch(dashboardSource, /grid-cols-\[32px_minmax\(0,1fr\)_auto_78px\]/, 'live collapsed rows should not keep the old separate live/status column')
+
+console.log('auth redirect, row highlight, jump button, Thursday Today gate, and compact active-pool rows verified')

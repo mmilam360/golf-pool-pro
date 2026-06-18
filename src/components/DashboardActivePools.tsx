@@ -152,15 +152,15 @@ function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
   )
 }
 
-function LivePulseBadge() {
+function LiveScoreStrip() {
   return (
-    <span className="inline-flex items-center gap-1 border border-[#b21e23] bg-[#fff1ef] px-1.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#b21e23] sm:gap-1.5 sm:px-2 sm:text-xs sm:tracking-[0.12em]">
-      <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5" aria-hidden="true">
-        <span className="absolute inline-flex h-full w-full animate-ping bg-[#b21e23] opacity-70" />
+    <div className="mt-0.5 flex w-full items-center justify-center gap-1 border-t border-[#f0c8c3] bg-[#fff1ef] px-1 py-[2px] text-[8px] font-black uppercase leading-none tracking-[0.08em] text-[#b21e23] sm:text-[9px]">
+      <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+        <span className="absolute inline-flex h-full w-full animate-ping bg-[#b21e23] opacity-60" />
         <span className="relative inline-flex h-full w-full bg-[#b21e23]" />
       </span>
       Live
-    </span>
+    </div>
   )
 }
 
@@ -255,6 +255,12 @@ function ownEntryRowBg(isOwnEntry: boolean) {
 
 function ownEntryCellBg(isOwnEntry: boolean) {
   return isOwnEntry ? 'bg-[#eaf5ec]' : 'bg-[#fbfbf5]'
+}
+
+function ownEntrySummaryBg(isOwnEntry: boolean) {
+  return isOwnEntry
+    ? 'bg-[#eaf5ec] hover:bg-[#eaf5ec] group-open:bg-[#eaf5ec]'
+    : 'bg-[#f7f7f2] hover:bg-[#fffdf4] group-open:bg-[#fffdf4]'
 }
 
 function lastNameFor(name: string) {
@@ -681,7 +687,10 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
         <div className="gpp-3d-face gpp-board-frame border-[10px] border-[#123c2f] md:border-[16px]">
           <div className="gpp-score-face border-2 border-[#d8b45d] bg-[#f7f7f2] text-center">
             <div className="relative border-b-2 border-[#d8cab0] px-3 py-2">
-              <p className="mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
+              <span className="absolute right-2 top-2 border border-[#d8cab0] bg-white px-1.5 py-0.5 text-[8px] font-black uppercase leading-none tracking-[0.08em] text-[#657168] sm:right-3 sm:top-3 sm:px-2 sm:py-1 sm:text-[10px]">
+                {formatEntryCount(entries.length)}
+              </span>
+              <p className="mx-auto max-w-[66%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[76%] sm:text-3xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
               <p className="mx-auto mt-1 max-w-[98%] truncate text-[10px] font-black uppercase tracking-[0.04em] text-[#005b3c] sm:text-xs sm:tracking-[0.08em]" title={pool.name}>{pool.name}</p>
               <div className="mt-1 flex w-full flex-wrap items-center justify-center gap-1.5">
                 {showJumpToMyEntry ? (
@@ -748,7 +757,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const pickGridColumns = pickGridColumnCount(countScores)
                 return (
                   <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#d8cab0] last:border-b-0">
-                    <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${ownEntryRowBg(isCurrentEntry)}`}>
+                    <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${ownEntrySummaryBg(isCurrentEntry)}`}>
                       <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                       <div className="min-w-0">
                         <span className="flex min-w-0 items-center gap-1.5">
@@ -1194,6 +1203,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
           const rankPreview = entry ? buildRankPreview(entry, effectivePool, poolEntries) : null
           const openEntryIds = expandedEntryIds[pool.id] ?? null
           const eventBegun = hasEventBegun(effectiveTournament)
+          const scoresAreLive = hasRecentScores(effectiveTournament)
           const tournamentDisplayName = displayTournamentName(effectiveTournament?.name) || 'Tournament'
           const canReorderPools = canSortPools && sortMode
           const isPoolOpen = !canReorderPools && (useSinglePoolMobileLayout || expandedPoolIds.has(pool.id))
@@ -1218,15 +1228,14 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                 }}
                 className={`${useSinglePoolMobileLayout ? 'hidden sm:block' : 'block'} cursor-pointer list-none px-2.5 py-2 transition-colors hover:bg-[#fff8e8] sm:px-5 sm:py-3 [&::-webkit-details-marker]:hidden`}
               >
-                <div className={`grid min-h-10 min-w-0 items-center gap-1 sm:min-h-11 sm:gap-2 ${eventBegun ? 'grid-cols-[32px_minmax(0,1fr)_auto_78px] sm:grid-cols-[40px_minmax(0,1fr)_auto_108px]' : 'grid-cols-[32px_minmax(0,1fr)_auto] sm:grid-cols-[40px_minmax(0,1fr)_auto]'}`}>
+                <div className={`grid min-h-10 min-w-0 items-center gap-1.5 sm:min-h-11 sm:gap-2 ${eventBegun ? 'grid-cols-[32px_minmax(0,1fr)_90px] sm:grid-cols-[40px_minmax(0,1fr)_110px]' : 'grid-cols-[32px_minmax(0,1fr)_auto] sm:grid-cols-[40px_minmax(0,1fr)_auto]'}`}>
                   <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center border border-[#123c2f] ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'} sm:h-9 sm:w-9`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                   </span>
-                  <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                    <div className="flex min-w-0 items-center gap-1.5">
-                      <p className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg" title={pool.name}>{pool.name}</p>
-                      {canReorderPools ? (
-                        <span className="inline-flex shrink-0 flex-col border border-[#123c2f] bg-white text-[#123c2f]">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <p className="min-w-0 flex-1 truncate pb-0.5 text-lg font-black leading-tight text-[#0f2f25] sm:text-xl" title={pool.name}>{pool.name}</p>
+                    {canReorderPools ? (
+                      <span className="inline-flex shrink-0 flex-col border border-[#123c2f] bg-white text-[#123c2f]">
                           <button
                             type="button"
                             onClick={event => {
@@ -1257,30 +1266,22 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                           >
                             <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                           </button>
-                        </span>
-                      ) : null}
+                      </span>
+                    ) : null}
+                  </div>
+                  {!eventBegun ? (
+                    <div className="flex min-w-0 justify-center">
+                      {label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
                     </div>
-                    <span className="shrink-0 justify-self-end whitespace-nowrap pb-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#657168] sm:text-[11px]">
-                      {formatEntryCount(poolEntries.length)}
-                    </span>
-                  </div>
-                  <div className="flex min-w-0 justify-center">
-                    {hasRecentScores(effectiveTournament) ? <LivePulseBadge /> : label !== 'Open' ? <StatusBadge label={label} locked={Boolean(pool.is_locked)} /> : null}
-                  </div>
+                  ) : null}
                   {eventBegun ? (
-                    <div className="flex min-h-10 w-full shrink-0 flex-col items-center justify-center border border-[#123c2f] bg-white px-1 py-1 text-[12px] font-black uppercase leading-none text-[#111] shadow-[1px_1px_0_#d8cab0] sm:min-h-11 sm:px-2 sm:text-base sm:shadow-[2px_2px_0_#d8cab0]">
+                    <div className={`flex min-h-10 w-full shrink-0 flex-col items-center justify-center border border-[#123c2f] bg-white px-1 text-[13px] font-black uppercase leading-none text-[#111] shadow-[1px_1px_0_#d8cab0] sm:min-h-11 sm:px-2 sm:text-base sm:shadow-[2px_2px_0_#d8cab0] ${scoresAreLive ? 'py-0.5' : 'py-1.5'}`}>
                       <div className="flex items-center gap-1 sm:gap-2">
                         {rankPreview?.rank ? <span className="text-[#123c2f]">#{rankPreview.rank}</span> : <span className="text-[#657168]">—</span>}
                         <span className="text-[#657168]">/</span>
                         <span className={scoreClass(rankPreview?.totalScore ?? null)}>{formatScore(rankPreview?.totalScore ?? null)}</span>
                       </div>
-                      {!isPoolOpen && (typeof rankPreview?.todayScore === 'number' || rankPreview?.movementToday) ? (
-                        <div className="mt-1 flex items-center gap-1 text-[8px] font-black leading-none text-[#657168] sm:text-[10px]">
-                          {typeof rankPreview?.todayScore === 'number' ? <span>Today <span className={scoreClass(rankPreview.todayScore)}>{formatScore(rankPreview.todayScore)}</span></span> : null}
-                          {typeof rankPreview?.todayScore === 'number' && rankPreview?.movementToday ? <span>/</span> : null}
-                          {rankPreview?.movementToday ? <MovementArrow movement={rankPreview.movementToday} /> : null}
-                        </div>
-                      ) : null}
+                      {scoresAreLive ? <LiveScoreStrip /> : null}
                     </div>
                   ) : null}
                 </div>

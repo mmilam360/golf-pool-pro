@@ -41,6 +41,12 @@ function highlightedCellBg(highlighted: boolean) {
   return highlighted ? 'bg-[#eaf5ec]' : 'bg-[#fbfbf5]'
 }
 
+function highlightedSummaryBg(highlighted: boolean) {
+  return highlighted
+    ? 'bg-[#eaf5ec] hover:bg-[#eaf5ec] group-open:bg-[#eaf5ec]'
+    : 'bg-[#f7f7f2] hover:bg-[#fffdf4] group-open:bg-[#fffdf4]'
+}
+
 function pickStatus(pick: PickScore, leaderboardByName: Map<string, GolfPlayer>, timeZone: string) {
   const player = leaderboardByName.get(normalizePickName(pick.name))
   return leaderboardBackedPickProgressLabel(pick, player, timeZone)
@@ -99,7 +105,7 @@ export function GroupedPoolLeaderboard({
             }}
             className={`group border-b-2 border-[#d8cab0] transition-colors ${isHighlighted ? 'bg-[#eaf5ec]' : ''}`}
           >
-            <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedRowBg(isHighlighted)}`}>
+            <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${highlightedSummaryBg(isHighlighted)}`}>
               <div className="text-center tallk:text-2xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
               <div className="min-w-0">
                 <div className="flex min-w-0 items-center gap-1.5">
