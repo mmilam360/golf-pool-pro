@@ -16,6 +16,10 @@ assert.ok(source.includes('const [sortAutoExpandSuppressed, setSortAutoExpandSup
 assert.ok(source.includes('function handleSortModeToggle()') && source.includes('setExpandedPoolIds(new Set())') && source.includes('setSortAutoExpandSuppressed(true)'), 'entering/leaving sort mode should collapse all pools and suppress auto expansion')
 assert.ok(source.includes('if (!poolOrderHydrated || !savedTopPoolId || sortMode || sortAutoExpandSuppressed) return'), 'saved-order auto expansion should not run during or after sort mode')
 assert.ok(source.includes('const isPoolOpen = !canReorderPools && (useSinglePoolMobileLayout || expandedPoolIds.has(pool.id))'), 'sort mode should force pool details closed even if an expanded id is still present')
+assert.ok(
+  source.indexOf('const canReorderPools = canSortPools && sortMode') < source.indexOf('const isPoolOpen = !canReorderPools'),
+  'canReorderPools must be declared before isPoolOpen uses it',
+)
 assert.ok(source.includes('if (canReorderPools) event.preventDefault()'), 'summary taps should not expand/collapse pools while sort controls are active')
 assert.ok(source.includes('event.preventDefault()') && source.includes('event.stopPropagation()'), 'arrow clicks should not toggle the surrounding pool row')
 assert.ok(source.includes('{isPoolOpen ? (') && source.includes('<InlineLeaderboard'), 'dashboard should only render heavy leaderboard content for expanded pools')

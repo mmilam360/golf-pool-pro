@@ -1230,11 +1230,11 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
           const label = statusLabel(effectivePool, effectiveTournament)
           const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
           const rankPreview = entry ? buildRankPreview(entry, effectivePool, poolEntries) : null
-          const isPoolOpen = !canReorderPools && (useSinglePoolMobileLayout || expandedPoolIds.has(pool.id))
           const openEntryIds = expandedEntryIds[pool.id] ?? null
           const eventBegun = hasEventBegun(effectiveTournament)
           const tournamentDisplayName = displayTournamentName(effectiveTournament?.name) || 'Tournament'
           const canReorderPools = canSortPools && sortMode
+          const isPoolOpen = !canReorderPools && (useSinglePoolMobileLayout || expandedPoolIds.has(pool.id))
           return (
             <details
               key={`${role}-${pool.id}`}
