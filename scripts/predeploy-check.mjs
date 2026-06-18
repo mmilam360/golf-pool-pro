@@ -16,6 +16,7 @@ const checks = [
   ['npm', ['run', 'test:runner-reminder-access']],
   ['npm', ['run', 'test:client-rls-hardening']],
   ['npm', ['run', 'test:pool-entry-details-editor']],
+  ['npm', ['run', 'test:join-full-name-account-flow']],
   ['npm', ['run', 'test:run-it-back']],
   ['npm', ['run', 'test:grouped-auto-lock']],
   ['npm', ['run', 'test:pool-invites']],

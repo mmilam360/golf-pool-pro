@@ -12,6 +12,7 @@ export default function JoinPoolPage() {
   const [passcode, setPasscode] = useState('')
   const [guestName, setGuestName] = useState('')
   const [fullName, setFullName] = useState('')
+  const [accountFullNameConfirmed, setAccountFullNameConfirmed] = useState(false)
   const [leaderboardNameEdited, setLeaderboardNameEdited] = useState(false)
   const [resumeEntry, setResumeEntry] = useState<ResumeEntry | null>(null)
   const [showBackButton, setShowBackButton] = useState(false)
@@ -46,6 +47,7 @@ export default function JoinPoolPage() {
 
       if (!user) {
         setIsSignedIn(false)
+        setAccountFullNameConfirmed(false)
         setAuthChecked(true)
         return
       }
@@ -62,6 +64,7 @@ export default function JoinPoolPage() {
       setIsSignedIn(true)
       setGuestName(current => current.trim() ? current : accountName)
       setFullName(current => current.trim() ? current : accountFullName)
+      setAccountFullNameConfirmed(Boolean(accountFullName))
       setLeaderboardNameEdited(Boolean(accountName))
       setAuthChecked(true)
     }
@@ -136,13 +139,19 @@ export default function JoinPoolPage() {
 
     const displayName = guestName.trim().replace(/\s+/g, ' ')
     const runnerName = fullName.trim().replace(/\s+/g, ' ')
+    const needsFullName = !isSignedIn || !accountFullNameConfirmed
     if (!displayName) {
       setError('Enter the name you want on the leaderboard.')
       setLoading(false)
       return
     }
-    if (!runnerName) {
+    if (needsFullName && !runnerName) {
       setError('Enter your full name for the pool runner.')
+      setLoading(false)
+      return
+    }
+    if (!needsFullName && !runnerName) {
+      setError('Add your full name in Account before joining this pool.')
       setLoading(false)
       return
     }
@@ -195,9 +204,19 @@ export default function JoinPoolPage() {
     }
 
     const confirmedAt = new Date().toISOString()
+    const profilePayload: Record<string, unknown> = {
+      id: user.id,
+      email: user.email || '',
+      display_name: displayName,
+    }
+    if (!accountFullNameConfirmed) {
+      profilePayload.full_name = runnerName
+      profilePayload.full_name_confirmed_at = confirmedAt
+    }
+
     const { error: profileError } = await supabase
       .from('gpp_profiles')
-      .upsert({ id: user.id, email: user.email || '', display_name: displayName, full_name: runnerName, full_name_confirmed_at: confirmedAt })
+      .upsert(profilePayload)
 
     if (profileError) {
       setError('Leaderboard name could not be saved. Try again.')
@@ -209,7 +228,7 @@ export default function JoinPoolPage() {
       data: {
         ...user.user_metadata,
         display_name: displayName,
-        full_name: runnerName,
+        ...(!accountFullNameConfirmed ? { full_name: runnerName } : {}),
       },
     }).catch(() => undefined)
 
@@ -266,7 +285,10 @@ export default function JoinPoolPage() {
   }
 
   const showAccountSignIn = authChecked && !isSignedIn
+  const showFullNameInput = authChecked && (!isSignedIn || !accountFullNameConfirmed)
   const nameRequired = authChecked
+  const showNameRequiredBadge = authChecked && !isSignedIn
+  const fullNameRequired = showFullNameInput
   const nameLabel = 'Leaderboard name'
 
   return (
@@ -320,34 +342,36 @@ export default function JoinPoolPage() {
               className="sr-only"
             />
           </div>
-          <div>
-            <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
-              <span>Full name</span>
-              {nameRequired && <span className="text-xs font-semibold text-amber-700">required</span>}
-            </label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={e => {
-                const nextFullName = e.target.value.slice(0, 80)
-                setFullName(nextFullName)
-                if (!leaderboardNameEdited) setGuestName(nextFullName.slice(0, 60))
-              }}
-              placeholder="Name for the pool runner"
-              maxLength={80}
-              autoComplete="name"
-              required={nameRequired}
-              aria-required={nameRequired}
-              onInvalid={e => e.currentTarget.setCustomValidity('Enter your full name for the pool runner.')}
-              onInput={e => e.currentTarget.setCustomValidity('')}
-              className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-            />
-            <p className="mt-1 text-xs font-semibold text-stone-500">Only the pool runner sees this.</p>
-          </div>
+          {showFullNameInput && (
+            <div>
+              <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
+                <span>Full name</span>
+                {fullNameRequired && <span className="text-xs font-semibold text-amber-700">required</span>}
+              </label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={e => {
+                  const nextFullName = e.target.value.slice(0, 80)
+                  setFullName(nextFullName)
+                  if (!leaderboardNameEdited) setGuestName(nextFullName.slice(0, 60))
+                }}
+                placeholder="Name for the pool runner"
+                maxLength={80}
+                autoComplete="name"
+                required={fullNameRequired}
+                aria-required={fullNameRequired}
+                onInvalid={e => e.currentTarget.setCustomValidity('Enter your full name for the pool runner.')}
+                onInput={e => e.currentTarget.setCustomValidity('')}
+                className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+              <p className="mt-1 text-xs font-semibold text-stone-500">Only the pool runner sees this.</p>
+            </div>
+          )}
           <div>
             <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
               <span>{nameLabel}</span>
-              {nameRequired && <span className="text-xs font-semibold text-amber-700">required</span>}
+              {showNameRequiredBadge && <span className="text-xs font-semibold text-amber-700">required</span>}
             </label>
             <input
               type="text"
@@ -365,9 +389,8 @@ export default function JoinPoolPage() {
               onInput={e => e.currentTarget.setCustomValidity('')}
               className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             />
-            <p className="mt-1 text-xs font-semibold text-stone-500">Shown on the leaderboard. Edit it if you want a nickname or first name.</p>
-            {authChecked && isSignedIn && (
-              <p className="mt-1 text-xs font-semibold text-stone-500">Saved as your account default when you join.</p>
+            {!isSignedIn && (
+              <p className="mt-1 text-xs font-semibold text-stone-500">Shown on the leaderboard. Edit it if you want a nickname or first name.</p>
             )}
           </div>
           <div className="grid gap-3">
