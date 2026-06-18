@@ -11,6 +11,7 @@ import { groupForPick, type PickGroup } from '@/lib/pool-formats'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { displayTournamentName } from '@/lib/tournament-name'
 import { isGroupedPoolFormat, totalPicksRequired } from '@/lib/pick-counts'
+import { pickGridColumnCount } from '@/lib/pick-card-layout'
 import { getPickLockBadgeText } from '@/lib/pick-lock-display'
 import { applySavedPoolOrder, movePoolId } from '@/lib/dashboard-pool-order'
 import { trackGppEvent } from '@/lib/posthog-events'
@@ -783,6 +784,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const picksHidden = entry.picks.includes('__hidden__')
                 const hasSubmittedPicks = entryHasSubmittedPicks(entry.entryId)
                 const showPreScoringWaiting = !scoringIsLive && !hasSubmittedPicks
+                const pickGridColumns = pickGridColumnCount(countScores)
                 return (
                   <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#d8cab0] last:border-b-0">
                     <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors hover:bg-[#fffdf4] group-open:bg-[#fffdf4] sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${isCurrentEntry ? 'bg-[#fff4cf] shadow-[inset_5px_0_0_#1f6b4a]' : 'bg-[#f7f7f2]'}`}>
@@ -806,11 +808,12 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                         <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
                       </div>
                     </summary>
-                    <div className="grid grid-cols-4 border-t border-[#d8cab0] bg-[#fbfbf5]">
+                    <div className="grid border-t border-[#d8cab0] bg-[#fbfbf5]" style={{ gridTemplateColumns: `repeat(${pickGridColumns}, minmax(0, 1fr))` }}>
                       {Array.from({ length: countScores }, (_, i) => {
                         const pick = countingPicks[i]
+                        const isEndOfGridRow = (i + 1) % pickGridColumns === 0
                         return (
-                          <div key={i} className="relative border-r border-t border-[#d8cab0] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
+                          <div key={i} className="relative border-r border-t border-[#d8cab0] px-1 py-1.5 text-center" style={{ borderRightWidth: isEndOfGridRow ? 0 : undefined }}>
                             <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                             {pick && pickGroupShortLabel(pick.name) ? (
                               <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">

@@ -18,6 +18,7 @@ import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, t
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, normalizeEntryName } from '@/lib/entry-name'
 import { buildFrozenResultEntry, hasCompleteFrozenResults } from '@/lib/frozen-results'
+import { pickGridColumnCount } from '@/lib/pick-card-layout'
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -2370,6 +2371,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     const showPreScoringWaiting = !selectedScoringIsLive && !hasPicks
                     const countingPicks = hasPicks ? orderPicksForDisplay(entry.pickScores.filter(pick => pick.counted)).slice(0, pool.count_scores) : []
                     const outOfBoundsPicks = hasPicks ? orderPicksForDisplay(entry.pickScores.filter(pick => !pick.counted)) : []
+                    const pickGridColumns = pickGridColumnCount(pool.count_scores)
                     const allPickNames = golferNamePeers
                     const hareNames = isMe ? harePickMap.get(entry.entryId) : undefined
                     const tortoiseNames = !isMe ? tortoisePickMap.get(entry.entryId) : undefined
@@ -2416,11 +2418,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                             <span className="sr-only">Toggle entry</span>
                           </div>
                         </summary>
-                        <div className="grid grid-cols-4 border-t border-[#d8cab0] bg-[#fbfbf5]">
+                        <div className="grid border-t border-[#d8cab0] bg-[#fbfbf5]" style={{ gridTemplateColumns: `repeat(${pickGridColumns}, minmax(0, 1fr))` }}>
                           {Array.from({ length: pool.count_scores }, (_, i) => {
                             const pick = countingPicks[i]
+                            const isEndOfGridRow = (i + 1) % pickGridColumns === 0
                             return (
-                              <div key={i} className="relative border-r border-t border-[#d8cab0] px-1 py-1.5 text-center [&:nth-child(4n)]:border-r-0">
+                              <div key={i} className="relative border-r border-t border-[#d8cab0] px-1 py-1.5 text-center" style={{ borderRightWidth: isEndOfGridRow ? 0 : undefined }}>
                                 <>{pick?.isObStandIn ? <ObMarkerCorner /> : <LeverageMarkerCorner kind={pick && hareNames?.has(normalizePickName(pick.name)) ? 'hare' : pick && tortoiseNames?.has(normalizePickName(pick.name)) ? 'tortoise' : undefined} />}</>
                                 {pick && pickGroupShortLabel(pick.name) ? (
                                   <span className="absolute left-0.5 top-0.5 z-[2] inline-flex items-center border border-[#123c2f] bg-[#123c2f] px-[3px] py-[1px] text-[8px] font-black leading-none text-white">

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 
 const dashboard = readFileSync('src/components/DashboardActivePools.tsx', 'utf8')
 const poolView = readFileSync('src/app/(app)/pool/[id]/PoolView.tsx', 'utf8')
+const pickCardLayout = readFileSync('src/lib/pick-card-layout.ts', 'utf8')
 
 for (const [label, source] of [['dashboard', dashboard], ['pool page', poolView]]) {
   assert.ok(
@@ -51,5 +52,15 @@ assert.ok(
   poolView.includes('if (!selectedScoringIsLive || !groupedFormat || pickGroups.length === 0) return picks'),
   'pool page should not override pre-tournament last-name/tee-time ordering with grouped-pool order'
 )
+
+assert.ok(pickCardLayout.includes('export function pickGridColumnCount(count: number)'), 'pick-card column helper should be shared')
+assert.ok(pickCardLayout.includes('if (count === 6) return 3'), 'six counted picks should render as 3 columns, producing two rows of three')
+assert.ok(pickCardLayout.includes('if (count === 12) return 4'), 'twelve counted picks should render as four columns')
+for (const [label, source] of [['dashboard', dashboard], ['pool page', poolView]]) {
+  assert.ok(source.includes("import { pickGridColumnCount } from '@/lib/pick-card-layout'"), `${label} should use the shared pick-card column helper`)
+  assert.ok(source.includes('style={{ gridTemplateColumns: `repeat(${pickGridColumns}, minmax(0, 1fr))` }}'), `${label} mobile pick cards should use dynamic grid columns`)
+  assert.ok(source.includes('style={{ borderRightWidth: isEndOfGridRow ? 0 : undefined }}'), `${label} mobile pick cards should clear row-end borders using the dynamic column count`)
+  assert.equal(source.includes('grid grid-cols-4 border-t border-[#d8cab0] bg-[#fbfbf5]'), false, `${label} mobile pick cards must not be hard-coded to 4 columns`)
+}
 
 console.log('pre-tournament pick-card display verified')
