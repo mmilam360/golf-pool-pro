@@ -458,11 +458,22 @@ export function liveSyncActivationForTournament(tournament: LiveSyncActivationTo
 
   const firstTee = firstTeeTimeFromField(tournament.field_json)
   if (firstTee) {
-    return { shouldActivate: tournamentIsInLiveActivationWindow(tournament, now), dateFallback: false }
+    return { shouldActivate: tournamentIsInLiveActivationWindow({ id: 'live-sync', ...tournament }, now), dateFallback: false }
   }
 
   const dateFallback = Boolean(tournament.start_date && tournament.start_date <= today)
   return { shouldActivate: dateFallback, dateFallback }
+}
+
+export function resolveLiveSyncStatus(status: string, storedField: Array<{ teeTime?: string | null }> | null | undefined, now: Date, activatedByFirstTee: boolean) {
+  const normalizedStatus = String(status || '').toLowerCase()
+  const espnLiveBeforeFirstTee = (normalizedStatus === 'live' || normalizedStatus === 'completed')
+    && firstTeeTimeFromField(storedField)
+    && !tournamentIsInLiveActivationWindow({ id: 'live-sync', status: 'upcoming', field_json: storedField }, now)
+
+  if (espnLiveBeforeFirstTee) return 'upcoming'
+  if (normalizedStatus === 'upcoming' && activatedByFirstTee) return 'live'
+  return normalizedStatus || 'upcoming'
 }
 
 async function liveSyncActivationState(supabase: any, now: Date) {
@@ -534,10 +545,23 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
     const { row, players } = normalized
     let { status } = normalized
-    if (status === 'upcoming' && activation.activatedExternalIds.has(row.external_id)) {
-      status = 'live'
-      row.status = 'live'
-    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from('gpp_tournaments')
+      .select('id, status, leaderboard_json, field_json, field_fingerprint, field_source, last_field_fetch')
+      .eq('external_id', row.external_id)
+      .maybeSingle()
+
+    if (existingError) throw existingError
+
+    status = resolveLiveSyncStatus(
+      status,
+      existing?.field_json,
+      now,
+      activation.activatedExternalIds.has(row.external_id),
+    )
+    row.status = status
+
     const liveLeaderboard = (status === 'live' || status === 'completed') ? await getLeaderboard(row.external_id).catch(() => null) : null
     let playersForStorage = repairWeekendCutStatuses(liveLeaderboard?.leaderboard?.length ? liveLeaderboard.leaderboard : players)
 
@@ -590,14 +614,6 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
     const effectiveStatus = completedStatusFromFinalRound(status, playersForStorage, liveLeaderboard?.round || event.status?.period || event.competitions?.[0]?.status?.period)
     row.status = effectiveStatus
-
-    const { data: existing, error: existingError } = await supabase
-      .from('gpp_tournaments')
-      .select('id, status, leaderboard_json, field_json, field_fingerprint, field_source, last_field_fetch')
-      .eq('external_id', row.external_id)
-      .maybeSingle()
-
-    if (existingError) throw existingError
 
     if (pgaMatchedWithoutField && fieldSource !== 'pga_tour') {
       result.fieldsRejected++

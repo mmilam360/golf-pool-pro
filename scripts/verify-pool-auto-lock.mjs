@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { firstTeeTimeFromField, groupsAreReady, tournamentIsDueToLock, tournamentIsInLiveActivationWindow } from '../src/lib/pool-auto-lock.ts'
-import { liveSyncActivationForTournament } from '../src/lib/tournament-sync.ts'
+import { liveSyncActivationForTournament, resolveLiveSyncStatus } from '../src/lib/tournament-sync.ts'
 
 const today = '2026-06-04'
 const firstTee = '2026-06-04T12:00:00Z'
@@ -23,6 +23,10 @@ assert.equal(tournamentIsInLiveActivationWindow({ id: 't1', status: 'live', fiel
 assert.deepEqual(liveSyncActivationForTournament({ external_id: 't1', start_date: today, status: 'upcoming', field_json: [{ teeTime: firstTee }] }, today, new Date('2026-06-04T11:54:59Z')), { shouldActivate: false, dateFallback: false }, 'minute live sync must not use date fallback before first tee when tee times exist')
 assert.deepEqual(liveSyncActivationForTournament({ external_id: 't1', start_date: today, status: 'upcoming', field_json: [{ teeTime: firstTee }] }, today, new Date('2026-06-04T11:55:00Z')), { shouldActivate: true, dateFallback: false }, 'minute live sync activates inside tee window when tee times exist')
 assert.deepEqual(liveSyncActivationForTournament({ external_id: 't1', start_date: today, status: 'upcoming', field_json: [] }, today, new Date('2026-06-04T00:05:00Z')), { shouldActivate: true, dateFallback: true }, 'date fallback only applies when tee times are missing')
+assert.equal(resolveLiveSyncStatus('live', [{ teeTime: firstTee }], new Date('2026-06-04T00:05:00Z'), false), 'upcoming', 'ESPN early-live status is ignored before first tee when stored tee times exist')
+assert.equal(resolveLiveSyncStatus('completed', [{ teeTime: firstTee }], new Date('2026-06-04T00:05:00Z'), false), 'upcoming', 'ESPN early-completed status is ignored before first tee when stored tee times exist')
+assert.equal(resolveLiveSyncStatus('live', [{ teeTime: firstTee }], new Date('2026-06-04T11:55:00Z'), false), 'live', 'ESPN live status is accepted inside first-tee window')
+assert.equal(resolveLiveSyncStatus('upcoming', [{ teeTime: firstTee }], new Date('2026-06-04T11:55:00Z'), true), 'live', 'first-tee activation can promote upcoming to live')
 
 assert.equal(groupsAreReady({ id: 'p1', game_format: 'standard' }), true, 'standard pools do not need group finalization')
 assert.equal(groupsAreReady({ id: 'p1', game_format: 'ranked_groups', groups_finalized_at: null }), false, 'ranked pools wait for finalized groups')
