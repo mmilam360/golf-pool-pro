@@ -1032,6 +1032,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const [poolOrder, setPoolOrder] = useState<string[]>(() => cards.map(card => card.pool.id))
   const [poolOrderHydrated, setPoolOrderHydrated] = useState(false)
   const [sortMode, setSortMode] = useState(false)
+  const [sortAutoExpandSuppressed, setSortAutoExpandSuppressed] = useState(false)
 
   const storageKey = `${DASHBOARD_POOL_ORDER_STORAGE_KEY}:${mode}`
   const activeCardIds = useMemo(() => cards.map(card => card.pool.id), [cards])
@@ -1122,14 +1123,14 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
 
   useEffect(() => {
     const savedTopPoolId = orderedPoolIds[0]
-    if (!poolOrderHydrated || !savedTopPoolId) return
+    if (!poolOrderHydrated || !savedTopPoolId || sortMode || sortAutoExpandSuppressed) return
 
     setExpandedPoolIds(current => {
       if (current.size === 0) return new Set([savedTopPoolId])
       if (defaultTopPoolId && current.size === 1 && current.has(defaultTopPoolId)) return new Set([savedTopPoolId])
       return current
     })
-  }, [defaultTopPoolId, orderedPoolIds, poolOrderHydrated])
+  }, [defaultTopPoolId, orderedPoolIds, poolOrderHydrated, sortAutoExpandSuppressed, sortMode])
 
   useEffect(() => {
     if (!poolOrderHydrated) return
@@ -1175,6 +1176,12 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const canSortPools = mode === 'player' && orderedCards.length > 1
   const useSinglePoolMobileLayout = mode === 'player' && orderedCards.length === 1
 
+  function handleSortModeToggle() {
+    setExpandedPoolIds(new Set())
+    setSortAutoExpandSuppressed(true)
+    setSortMode(current => !current)
+  }
+
   useEffect(() => {
     setExpandedPoolIds(current => {
       const filtered = new Set([...current].filter(poolId => activePoolIds.has(poolId)))
@@ -1204,9 +1211,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
           {canSortPools ? (
             <button
               type="button"
-              onClick={() => {
-                setSortMode(current => !current)
-              }}
+              onClick={handleSortModeToggle}
               className={`border px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${sortMode ? 'border-white bg-white text-[#123c2f]' : 'border-[#d7c99f] text-[#f3df9c]'}`}
               aria-pressed={sortMode}
             >
@@ -1225,7 +1230,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
           const label = statusLabel(effectivePool, effectiveTournament)
           const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
           const rankPreview = entry ? buildRankPreview(entry, effectivePool, poolEntries) : null
-          const isPoolOpen = useSinglePoolMobileLayout || expandedPoolIds.has(pool.id)
+          const isPoolOpen = !canReorderPools && (useSinglePoolMobileLayout || expandedPoolIds.has(pool.id))
           const openEntryIds = expandedEntryIds[pool.id] ?? null
           const eventBegun = hasEventBegun(effectiveTournament)
           const tournamentDisplayName = displayTournamentName(effectiveTournament?.name) || 'Tournament'
@@ -1245,7 +1250,12 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
               }}
               className={`${useSinglePoolMobileLayout ? 'bg-transparent sm:bg-white' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'} group`}
             >
-              <summary className={`${useSinglePoolMobileLayout ? 'hidden sm:block' : 'block'} cursor-pointer list-none px-2.5 py-2 transition-colors hover:bg-[#fff8e8] sm:px-5 sm:py-3 [&::-webkit-details-marker]:hidden`}>
+              <summary
+                onClick={event => {
+                  if (canReorderPools) event.preventDefault()
+                }}
+                className={`${useSinglePoolMobileLayout ? 'hidden sm:block' : 'block'} cursor-pointer list-none px-2.5 py-2 transition-colors hover:bg-[#fff8e8] sm:px-5 sm:py-3 [&::-webkit-details-marker]:hidden`}
+              >
                 <div className={`grid min-h-10 min-w-0 items-center gap-1 sm:min-h-11 sm:gap-2 ${eventBegun ? 'grid-cols-[32px_minmax(0,1fr)_auto_78px] sm:grid-cols-[40px_minmax(0,1fr)_auto_108px]' : 'grid-cols-[32px_minmax(0,1fr)_auto] sm:grid-cols-[40px_minmax(0,1fr)_auto]'}`}>
                   <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center border border-[#123c2f] ${isPoolOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'} sm:h-9 sm:w-9`} aria-label={isPoolOpen ? 'Collapse pool' : 'Expand pool'}>
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d={isPoolOpen ? 'M4 10l4-4 4 4' : 'M4 6l4 4 4-4'} stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg>
