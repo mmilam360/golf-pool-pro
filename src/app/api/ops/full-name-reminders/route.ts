@@ -4,6 +4,7 @@ import { reserveEmailEvent, finishEmailEvent } from '@/lib/email-events'
 import { requireCronAuth } from '@/lib/cron-auth'
 import { entryRecipientEmail } from '@/lib/pool-email-recipients'
 import { sendGuestFullNameReminderEmail } from '@/lib/pool-transactional-emails'
+import { entryNeedsConfirmedFullName } from '@/lib/full-name-confirmation'
 
 export const runtime = 'nodejs'
 
@@ -11,10 +12,6 @@ type Body = {
   poolId?: unknown
   dryRun?: unknown
   limit?: unknown
-}
-
-function needsFullName(entry: any) {
-  return !(entry.full_name_confirmed_at && typeof entry.full_name === 'string' && entry.full_name.trim().length > 0)
 }
 
 export async function POST(request: Request) {
@@ -60,9 +57,22 @@ export async function POST(request: Request) {
   if (entriesError) return NextResponse.json({ error: entriesError.message }, { status: 500 })
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin
+  const accountUserIds = Array.from(new Set(
+    ((entries || []) as any[])
+      .map(entry => entry.user_id)
+      .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0),
+  ))
+  const { data: profiles } = accountUserIds.length
+    ? await supabase
+      .from('gpp_profiles')
+      .select('id, full_name, full_name_confirmed_at')
+      .in('id', accountUserIds)
+    : { data: [] }
+  const profileByUserId = new Map((profiles || []).map((profile: any) => [profile.id, profile]))
   const targets = [] as { entry: any; recipient: string }[]
   for (const entry of entries || []) {
-    if (!needsFullName(entry)) continue
+    const accountProfile = entry.user_id ? profileByUserId.get(entry.user_id) : null
+    if (!entryNeedsConfirmedFullName(entry, accountProfile)) continue
     const recipient = await entryRecipientEmail(supabase, entry)
     if (recipient) targets.push({ entry, recipient })
   }

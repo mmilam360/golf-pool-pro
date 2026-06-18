@@ -4,6 +4,7 @@ import RunnerIncompletePicksReminder from '@/components/RunnerIncompletePicksRem
 import FullNameConfirmationPrompt from '@/components/FullNameConfirmationPrompt'
 import { createClient } from '@/lib/supabase/server'
 import { totalPicksRequired } from '@/lib/pick-counts'
+import { entryNeedsConfirmedFullName, hasConfirmedFullName } from '@/lib/full-name-confirmation'
 
 type RunnerPool = {
   id: string
@@ -78,8 +79,7 @@ async function getFullNamePromptData(): Promise<FullNamePromptData | null> {
     .filter(entry => {
       const pool = Array.isArray(entry.gpp_pools) ? entry.gpp_pools[0] : entry.gpp_pools
       const tournament = Array.isArray(pool?.gpp_tournaments) ? pool.gpp_tournaments[0] : pool?.gpp_tournaments
-      const confirmed = entry.full_name_confirmed_at && typeof entry.full_name === 'string' && entry.full_name.trim().length > 0
-      return !confirmed && pool && !pool.is_completed && String(tournament?.status || '').toLowerCase() !== 'completed'
+      return entryNeedsConfirmedFullName(entry, profile) && pool && !pool.is_completed && String(tournament?.status || '').toLowerCase() !== 'completed'
     })
     .map(entry => {
       const pool = Array.isArray(entry.gpp_pools) ? entry.gpp_pools[0] : entry.gpp_pools
@@ -94,7 +94,7 @@ async function getFullNamePromptData(): Promise<FullNamePromptData | null> {
     userId: user.id,
     email: user.email || profile?.email || '',
     displayName: profile?.display_name || user.user_metadata?.display_name || '',
-    initialFullName: profile?.full_name_confirmed_at ? profile?.full_name || '' : '',
+    initialFullName: hasConfirmedFullName(profile) ? profile?.full_name?.trim() || '' : '',
     entries: missingEntries,
   }
 }
