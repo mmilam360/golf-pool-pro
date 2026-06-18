@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
-import { emptyEntryIdsForAutoRemoval, entryHasSubmittedPicks, firstTeeTimeFromField, groupsAreReady, tournamentIsDueToLock, tournamentIsInLiveActivationWindow } from '../src/lib/pool-auto-lock.ts'
+import { emptyEntryIdsForAutoRemoval, entryHasSubmittedPicks } from '../src/lib/entry-picks.ts'
+import { firstTeeTimeFromField, groupsAreReady, tournamentIsDueToLock, tournamentIsInLiveActivationWindow } from '../src/lib/pool-auto-lock.ts'
 import { liveSyncActivationForTournament, resolveLiveSyncStatus } from '../src/lib/tournament-sync.ts'
 
 const today = '2026-06-04'

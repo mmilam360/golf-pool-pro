@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { todayDateOnly } from './date-utils'
+import { emptyEntryIdsForAutoRemoval, type EntryPickFields } from './entry-picks'
 import type { PoolGameFormat } from './pool-formats'
 
 const PICK_LOCK_BEFORE_FIRST_TEE_MS = 5 * 60 * 1000
@@ -17,11 +18,6 @@ type LockPool = {
   game_format?: PoolGameFormat | null
   groups_finalized_at?: string | null
   gpp_tournaments?: LockPoolTournament | LockPoolTournament[] | null
-}
-
-type LockEntry = {
-  id: string
-  golfer_picks?: unknown
 }
 
 export type AutoLockPoolsResult = {
@@ -77,27 +73,28 @@ export function groupsAreReady(pool: LockPool) {
   return pool.game_format === 'standard' || Boolean(pool.groups_finalized_at)
 }
 
-export function entryHasSubmittedPicks(entry: Pick<LockEntry, 'golfer_picks'>) {
-  if (!Array.isArray(entry.golfer_picks)) return false
-  return entry.golfer_picks.some(pick => typeof pick === 'string' ? pick.trim().length > 0 : Boolean(pick))
-}
-
-export function emptyEntryIdsForAutoRemoval(entries: LockEntry[]) {
-  return entries.filter(entry => !entryHasSubmittedPicks(entry)).map(entry => entry.id)
-}
-
 async function autoRemoveEmptyEntriesForPools(supabase: SupabaseClient<any>, poolIds: string[], now: Date) {
   if (poolIds.length === 0) return 0
+
+  const { data: lockedPools, error: poolError } = await supabase
+    .from('gpp_pools')
+    .select('id')
+    .in('id', poolIds)
+    .eq('is_locked', true)
+
+  if (poolError) throw poolError
+  const lockedPoolIds = (lockedPools || []).map((pool: { id: string }) => pool.id)
+  if (lockedPoolIds.length === 0) return 0
 
   const { data: entries, error } = await supabase
     .from('gpp_entries')
     .select('id, golfer_picks')
-    .in('pool_id', poolIds)
+    .in('pool_id', lockedPoolIds)
     .eq('is_removed', false)
 
   if (error) throw error
 
-  const emptyEntryIds = emptyEntryIdsForAutoRemoval((entries || []) as LockEntry[])
+  const emptyEntryIds = emptyEntryIdsForAutoRemoval((entries || []) as EntryPickFields[])
   if (emptyEntryIds.length === 0) return 0
 
   const { data: removedEntries, error: updateError } = await supabase
@@ -159,7 +156,7 @@ export async function autoLockPools(supabase: SupabaseClient<any>, options: { no
   result.locked = lockedPools?.length || 0
   result.emptyEntriesAutoRemoved = await autoRemoveEmptyEntriesForPools(
     supabase,
-    (lockedPools || []).map(pool => pool.id),
+    (lockedPools || []).map((pool: { id: string }) => pool.id),
     now,
   )
   return result

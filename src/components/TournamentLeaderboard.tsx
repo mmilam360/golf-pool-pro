@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from 'react'
 import { teeTimeLabel, tournamentThruLabel } from '@/lib/golfer-status'
+import { sortTournamentLeaderboardRows, tournamentPositionLabel, tournamentScoreClass, tournamentScoreLabel } from '@/lib/tournament-leaderboard-display'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 import { groupForPick, type PickGroup } from '@/lib/pool-formats'
@@ -19,25 +20,8 @@ type Props = {
 
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 
-function formatScore(score: number | null | undefined) {
-  if (score == null) return '—'
-  if (score === 0) return 'E'
-  return score > 0 ? `+${score}` : String(score)
-}
-
-function scoreClass(score: number | null | undefined) {
-  if (score == null) return 'text-[#657168]'
-  return score < 0 ? 'text-[#b21e23]' : 'text-[#1f2a24]'
-}
-
 function normalizedName(name?: string | null) {
   return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ')
-}
-
-function positionLabel(player: GolfPlayer, index: number) {
-  const raw = String(player.position || '').trim()
-  if (raw) return raw.startsWith('T') ? raw : raw
-  return String(index + 1)
 }
 
 function statusLabel(player: GolfPlayer, timeZone: string) {
@@ -73,12 +57,8 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const rows = Array.isArray(leaderboard) ? leaderboard : []
-  const displayRows = [...rows].sort((a, b) => {
-    const aCut = a.status === 'cut'
-    const bCut = b.status === 'cut'
-    if (aCut !== bCut) return aCut ? 1 : -1
-    return (a.scoreToPar ?? 999) - (b.scoreToPar ?? 999)
-  })
+  const now = new Date()
+  const displayRows = sortTournamentLeaderboardRows(rows, now)
   const hasOfficialCuts = displayRows.some(player => player.status === 'cut') && cutLine && !cutLine.projected
   const hasGroupBadges = pickGroups.length > 0
 
@@ -137,7 +117,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
                 return (
                   <Fragment key={`${player.id}-${index}`}>
                     <tr className={isPicked ? 'bg-[#eef7ef]' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>
-                      <td className={`border-b border-r border-[#eadfca] px-1 py-1 text-center text-[10px] font-black sm:px-2 sm:py-1.5 sm:text-xs ${isPicked ? 'text-[#123c2f]' : 'text-[#657168]'}`}>{positionLabel(player, index)}</td>
+                      <td className={`border-b border-r border-[#eadfca] px-1 py-1 text-center text-[10px] font-black sm:px-2 sm:py-1.5 sm:text-xs ${isPicked ? 'text-[#123c2f]' : 'text-[#657168]'}`}>{tournamentPositionLabel(player, index, now)}</td>
                       <td className={`border-b border-[#eadfca] px-1.5 py-1 sm:px-2 sm:py-1.5 ${isPicked ? 'shadow-[inset_3px_0_0_#123c2f]' : ''}`}>
                         <div className="flex min-w-0 items-center gap-1">
                           {groupLabel ? (
@@ -149,7 +129,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
                         </div>
                         {player.country ? <div className="text-[8px] font-bold uppercase tracking-[0.06em] text-[#657168] sm:text-[10px] sm:tracking-[0.08em]">{player.country}</div> : null}
                       </td>
-                      <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${isPicked ? 'bg-[#dff0e2] text-[#123c2f]' : scoreClass(player.scoreToPar)}`}>{formatScore(player.scoreToPar)}</td>
+                      <td className={`border-b border-l border-[#eadfca] px-1 py-1 text-center text-sm font-black sm:px-2 sm:py-1.5 sm:text-lg ${isPicked ? 'bg-[#dff0e2] text-[#123c2f]' : tournamentScoreClass(player, now)}`}>{tournamentScoreLabel(player, now)}</td>
                       {player.status === 'cut' ? (
                         <td colSpan={2} className="border-b border-l border-[#eadfca] bg-[#efeee6] px-1 py-1 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#b21e23] sm:px-2 sm:py-1.5 sm:text-xs">CUT</td>
                       ) : (

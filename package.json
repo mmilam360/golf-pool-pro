@@ -48,6 +48,7 @@
     "test:final-result-freeze": "npx tsx scripts/verify-final-result-freeze.mjs",
     "test:pick-submission-validation": "npx tsx scripts/verify-pick-submission-validation.mjs",
     "test:tournament-names": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-tournament-names.mjs",
+    "test:tournament-leaderboard-display": "npx tsx scripts/verify-tournament-leaderboard-display.mjs",
     "verify:guest-entry-db": "node scripts/verify-guest-entry-db.mjs"
   },
   "dependencies": {

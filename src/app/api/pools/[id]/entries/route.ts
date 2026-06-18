@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { entryHasSubmittedPicks } from '@/lib/entry-picks'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -107,6 +108,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (paymentAlreadyCollected) {
     return NextResponse.json({ error: 'Pool payment is already recorded. Contact support to change entries.' }, { status: 409 })
+  }
+
+  const { data: entry, error: entryError } = await serviceSupabase
+    .from('gpp_entries')
+    .select('id, golfer_picks')
+    .eq('id', entryId)
+    .eq('pool_id', id)
+    .eq('is_removed', false)
+    .maybeSingle()
+
+  if (entryError) return NextResponse.json({ error: entryError.message || 'Could not remove entry.' }, { status: 500 })
+  if (!entry?.id) return NextResponse.json({ error: 'Entry not found.' }, { status: 404 })
+  if (entryHasSubmittedPicks(entry)) {
+    return NextResponse.json({ error: 'This entry already has picks. Only entries with no picks can be removed.' }, { status: 409 })
   }
 
   const ownerRemovalReason = removedReason || 'Removed by pool runner'
