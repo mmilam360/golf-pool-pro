@@ -508,9 +508,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
                 <RulesScoreboard pool={pool} tournament={tournament} entryDeadline={entryDeadline} hostNote={hostNote} hostName={hostName} />
               </div>
 
-              <div className={`absolute bottom-[88px] left-[28px] right-[28px] z-20 h-[224px] ${inkSaver ? 'bg-white' : 'bg-[#fbf7ed]'}`} aria-hidden="true" />
-
-              <div className="absolute bottom-[98px] left-[42px] right-[42px] z-30 grid h-[204px] grid-cols-2 items-center justify-items-center gap-[120px]">
+              <div className="absolute bottom-[98px] left-[42px] right-[42px] grid h-[204px] grid-cols-2 items-center gap-[120px]">
                 <div className="grid h-full place-items-center">
                   {hostLogoSrc ? (
                     <div className="grid h-[178px] w-[178px] place-items-center">
@@ -518,11 +516,11 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
                       <img src={hostLogoSrc} alt="Pool host logo" className="max-h-full max-w-full object-contain" />
                     </div>
                   ) : (
-                    <div className="w-[300px] text-center text-[#123c2f]">
+                    <div className="w-[300px] text-[#123c2f]">
                       <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Scan.</p>
                       <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Pick.</p>
                       <p className="font-black uppercase leading-[0.86] tracking-[-0.075em] text-[58px]">Follow.</p>
-                      <div className="mx-auto mt-4 h-[6px] w-[170px] bg-[#b58a3a]" aria-hidden="true" />
+                      <div className="mt-4 h-[6px] w-[170px] bg-[#b58a3a]" aria-hidden="true" />
                       <p className="mt-3 text-[13px] font-black uppercase tracking-[0.18em] text-[#657168]">Live leaderboard all week</p>
                     </div>
                   )}
