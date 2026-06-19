@@ -189,6 +189,31 @@ function hasLineStarted(line: any) {
 
 type TeeInfo = { teeTime?: string; startTee?: number | null; roundScore?: string; started: boolean }
 
+function playerIsFinishingStartedRound(player: GolfPlayer) {
+  const thru = String(player.thru || '').trim().toUpperCase().replace('*', '')
+  const holesPlayed = Number.parseInt(thru, 10)
+  if (Number.isFinite(holesPlayed) && holesPlayed > 0 && holesPlayed < 18) return true
+
+  const roundScores = Array.isArray(player.roundScores) ? player.roundScores : []
+  return roundScores.some(round => !round.complete && Array.isArray(round.holes) && round.holes.length > 0)
+}
+
+export function applyTodayTeeInfo(player: GolfPlayer, teeInfo: TeeInfo | null): GolfPlayer {
+  if (!teeInfo?.teeTime) return player
+
+  if (!teeInfo.started && playerIsFinishingStartedRound(player)) {
+    return player
+  }
+
+  return {
+    ...player,
+    teeTime: teeInfo.teeTime,
+    startTee: teeInfo.startTee,
+    thru: teeInfo.started ? player.thru : '',
+    roundScore: teeInfo.started ? teeInfo.roundScore || player.roundScore || '' : '',
+  }
+}
+
 function teeInfoForToday(linescores: any): TeeInfo | null {
   const items = Array.isArray(linescores?.items) ? linescores.items : Array.isArray(linescores) ? linescores : []
   const today = easternDateKey(new Date())
@@ -249,14 +274,7 @@ export async function enrichPlayersWithTeeTimes(eventId: string, competitionId: 
   const teeByPlayerId = new Map(entries.filter(([, info]) => Boolean(info)))
   return players.map(player => {
     const teeInfo = teeByPlayerId.get(player.id)
-    if (!teeInfo?.teeTime) return player
-    return {
-      ...player,
-      teeTime: teeInfo.teeTime,
-      startTee: teeInfo.startTee,
-      thru: teeInfo.started ? player.thru : '',
-      roundScore: teeInfo.started ? teeInfo.roundScore || player.roundScore || '' : '',
-    }
+    return applyTodayTeeInfo(player, teeInfo ?? null)
   })
 }
 

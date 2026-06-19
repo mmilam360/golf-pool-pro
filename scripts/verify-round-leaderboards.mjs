@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { applyTodayTeeInfo } from '../src/lib/golf-api.ts'
+import { leaderboardBackedPickProgressLabel } from '../src/lib/golfer-status.ts'
 import { availableCompletedRounds, leaderboardForCompletedRound, leaderboardForRoundOnly, scoreEntriesForLeaderboard } from '../src/lib/scoring.ts'
 
 function holes(backNineTotal, frontNineTotal = 0) {
@@ -125,6 +127,24 @@ assert.equal(firstRoundEntry.totalScore, 1, 'not-started first-round E golfers s
 assert.equal(firstRoundEntry.todayScore, 1, 'today score should ignore not-started blank golfers')
 assert.deepEqual(firstRoundEntry.pickScores.filter(pick => pick.counted).map(pick => pick.name), ['Under Par Playing', 'Over Par Playing', 'Future Even A'], 'started golfers should stay in top picks ahead of not-started blank golfers')
 assert.equal(firstRoundEntry.pickScores.find(pick => pick.name === 'Future Even A')?.scoreToPar, null, 'not-started E golfer should score as blank until on course')
+
+const delayedRoundPlayer = {
+  id: 'delayed-r1', name: 'Delayed Round One', firstName: 'Delayed', lastName: 'One', score: '+2', scoreToPar: 2, strokes: 0, thru: '15', roundScore: '+2', position: 'T70', status: 'active', country: '',
+  roundScores: [{ round: 1, roundScoreToPar: 2, cumulativeScoreToPar: 2, complete: false, holes: holes(2).slice(0, 15) }],
+}
+const delayedWithFutureFridayTee = applyTodayTeeInfo(delayedRoundPlayer, { teeTime: '2026-06-19T16:00:00Z', startTee: 1, roundScore: '', started: false })
+assert.equal(delayedWithFutureFridayTee.thru, '15', 'future Friday tee time should not blank a suspended Thursday round still in progress')
+assert.equal(delayedWithFutureFridayTee.roundScore, '+2', 'suspended Thursday round score should remain the active round score')
+assert.equal(delayedWithFutureFridayTee.teeTime, undefined, 'future next-round tee time should not override active delayed-round progress')
+
+const delayedRoundScore = scoreEntriesForLeaderboard(
+  [{ id: 'entry-delayed', display_name: 'Entry Delayed', golfer_picks: ['Delayed Round One'], is_removed: false }],
+  [delayedWithFutureFridayTee],
+  { countScores: 1, obRuleEnabled: false, obPenaltyStrokes: 2 }
+)[0]
+assert.equal(delayedRoundScore.totalScore, 2, 'suspended Thursday holes played Friday should keep counting in the current total')
+assert.equal(delayedRoundScore.todayScore, 2, 'suspended Thursday holes played Friday should keep using the Thursday round score')
+assert.equal(leaderboardBackedPickProgressLabel(delayedRoundScore.pickScores[0], delayedWithFutureFridayTee, 'America/New_York', new Date('2026-06-19T13:00:00Z')), '+2 THRU 15', 'suspended Thursday round should show live thru status, not a future Friday tee time')
 
 const priorRoundEven = scoreEntriesForLeaderboard(
   [
