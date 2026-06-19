@@ -8,7 +8,7 @@ import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
 import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
-import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
+import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, leaderboardForCompletedRound, leaderboardForRoundOnly, leaderboardHasPlayoffScores, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
@@ -415,16 +415,24 @@ function roundScoreLabel(round: number) {
   return `R${round}`
 }
 
-function selectedBoardLabelForMode(mode: LeaderboardMode) {
+function isFinalRound(round: number, hasPlayoffScores: boolean) {
+  return round === 4 && !hasPlayoffScores
+}
+
+function cumulativeRoundLabel(round: number, hasPlayoffScores: boolean) {
+  return isFinalRound(round, hasPlayoffScores) ? 'Final' : `Through ${roundMenuLabel(round)}`
+}
+
+function selectedBoardLabelForMode(mode: LeaderboardMode, hasPlayoffScores: boolean) {
   if (mode.type === 'current') return 'Current'
-  if (mode.type === 'thru') return `Through ${roundMenuLabel(mode.round)}`
+  if (mode.type === 'thru') return cumulativeRoundLabel(mode.round, hasPlayoffScores)
   return roundMenuLabel(mode.round)
 }
 
-function historicalBoardCaption(mode: LeaderboardMode) {
+function historicalBoardCaption(mode: LeaderboardMode, hasPlayoffScores: boolean) {
   if (mode.type === 'current') return null
   if (mode.type === 'day') return `${roundMenuLabel(mode.round)} scores only`
-  return `Standings through ${roundMenuLabel(mode.round)}`
+  return isFinalRound(mode.round, hasPlayoffScores) ? 'Final standings' : `Standings through ${roundMenuLabel(mode.round)}`
 }
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, guestEntryToken = '', initialHighlightedEntryId = null }: Props) {
@@ -640,13 +648,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
   const showLivePulse = hasRecentOnCourseScores(tournament, leaderboard)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(leaderboard), [leaderboard])
+  const hasPlayoffScores = useMemo(() => leaderboardHasPlayoffScores(leaderboard), [leaderboard])
   const selectedLeaderboard = useMemo(() => {
     if (leaderboardMode.type === 'thru') return leaderboardForCompletedRound(leaderboard, leaderboardMode.round)
     if (leaderboardMode.type === 'day') return leaderboardForRoundOnly(leaderboard, leaderboardMode.round)
     return leaderboard
   }, [leaderboard, leaderboardMode])
   const leaderboardModeIsCurrent = leaderboardMode.type === 'current'
-  const selectedBoardLabel = selectedBoardLabelForMode(leaderboardMode)
+  const selectedBoardLabel = selectedBoardLabelForMode(leaderboardMode, hasPlayoffScores)
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
   const canShareBoardImage = (pool.is_completed || tournament?.status === 'completed') || (isOwner && selectedBoardIsHistorical)
   const shareBoardImageLabel = selectedBoardIsHistorical ? 'Share board image' : 'Share final results'
@@ -658,7 +667,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       : null
   const selectedScoringIsLive = scoringIsLive || selectedBoardIsHistorical
   useEffect(() => {
-    if (!leaderboardModeIsCurrent && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
+    if (leaderboardModeIsCurrent) return
+    if (!availableHistoricalRounds.includes(leaderboardMode.round)) {
+      setLeaderboardMode({ type: 'current' })
+      return
+    }
+    if (leaderboardMode.type === 'day' && leaderboardMode.round === 1) setLeaderboardMode({ type: 'thru', round: 1 })
   }, [availableHistoricalRounds, leaderboardMode, leaderboardModeIsCurrent])
   const groupsNeedLock = groupedFormat && !groupsFinalized
   const picksAreLocked = isLocked || scoringIsLive
@@ -1941,7 +1955,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     const boardModeLabel = selectedBoardIsHistorical
       ? leaderboardMode.type === 'day'
         ? `${roundMenuLabel(leaderboardMode.round)} scores`
-        : `Scores through ${roundMenuLabel(leaderboardMode.round)}`
+        : isFinalRound(leaderboardMode.round, hasPlayoffScores) ? 'Final standings' : `Scores through ${roundMenuLabel(leaderboardMode.round)}`
       : 'Final board'
     const scoreHeader = selectedBoardIsHistorical && leaderboardMode.type === 'day'
       ? roundScoreLabel(leaderboardMode.round)
@@ -2365,27 +2379,29 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         </button>
                         {availableHistoricalRounds.map(round => (
                           <div key={round} className="border-b border-[#d8cab0] py-1 last:border-b-0">
-                            <div className="px-3 pb-1 pt-2 text-[9px] text-[#657168]">{roundMenuLabel(round)}</div>
+                            <div className="px-3 pb-1 pt-2 text-[9px] text-[#657168]">{isFinalRound(round, hasPlayoffScores) ? 'Final' : roundMenuLabel(round)}</div>
                             <button
                               type="button"
                               onClick={() => { setLeaderboardMode({ type: 'thru', round }); setLeaderboardMenuOpen(false) }}
                               className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'thru' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                             >
-                              Through {roundMenuLabel(round)}
+                              {cumulativeRoundLabel(round, hasPlayoffScores)}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
-                              className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
-                            >
-                              {roundMenuLabel(round)} Only
-                            </button>
+                            {round > 1 ? (
+                              <button
+                                type="button"
+                                onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
+                                className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                              >
+                                {roundMenuLabel(round)} Only
+                              </button>
+                            ) : null}
                           </div>
                         ))}
                       </div>
                     </details>
                   )}
-                  {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{historicalBoardCaption(leaderboardMode)}</p> : null}
+                  {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{historicalBoardCaption(leaderboardMode, hasPlayoffScores)}</p> : null}
                   {!selectedBoardIsHistorical && <div className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c]" title="Auto-refresh countdown">
                     <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                       <path d="M13 8a5 5 0 1 1-1.46-3.54" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />

@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, entryMovementSincePriorRank, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, scoreEntriesForLeaderboard, type EntryMovement, type PickScore, type ScoredEntry } from '@/lib/scoring'
+import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, entryMovementSincePriorRank, leaderboardForCompletedRound, leaderboardForRoundOnly, leaderboardHasPlayoffScores, normalizePickName, scoreEntriesForLeaderboard, type EntryMovement, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
@@ -98,16 +98,24 @@ function roundScoreLabel(round: number) {
   return `R${round}`
 }
 
-function selectedBoardLabel(mode: LeaderboardMode) {
+function isFinalRound(round: number, hasPlayoffScores: boolean) {
+  return round === 4 && !hasPlayoffScores
+}
+
+function cumulativeRoundLabel(round: number, hasPlayoffScores: boolean) {
+  return isFinalRound(round, hasPlayoffScores) ? 'Final' : `Through ${roundMenuLabel(round)}`
+}
+
+function selectedBoardLabel(mode: LeaderboardMode, hasPlayoffScores: boolean) {
   if (mode.type === 'current') return 'Current'
-  if (mode.type === 'thru') return `Through ${roundMenuLabel(mode.round)}`
+  if (mode.type === 'thru') return cumulativeRoundLabel(mode.round, hasPlayoffScores)
   return roundMenuLabel(mode.round)
 }
 
-function historicalBoardCaption(mode: LeaderboardMode) {
+function historicalBoardCaption(mode: LeaderboardMode, hasPlayoffScores: boolean) {
   if (mode.type === 'current') return null
   if (mode.type === 'day') return `${roundMenuLabel(mode.round)} scores only`
-  return `Standings through ${roundMenuLabel(mode.round)}`
+  return isFinalRound(mode.round, hasPlayoffScores) ? 'Final standings' : `Standings through ${roundMenuLabel(mode.round)}`
 }
 
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
@@ -578,8 +586,14 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(baseLeaderboardRows), [baseLeaderboardRows])
+  const hasPlayoffScores = useMemo(() => leaderboardHasPlayoffScores(baseLeaderboardRows), [baseLeaderboardRows])
   useEffect(() => {
-    if (leaderboardMode.type !== 'current' && !availableHistoricalRounds.includes(leaderboardMode.round)) setLeaderboardMode({ type: 'current' })
+    if (leaderboardMode.type === 'current') return
+    if (!availableHistoricalRounds.includes(leaderboardMode.round)) {
+      setLeaderboardMode({ type: 'current' })
+      return
+    }
+    if (leaderboardMode.type === 'day' && leaderboardMode.round === 1) setLeaderboardMode({ type: 'thru', round: 1 })
   }, [availableHistoricalRounds, leaderboardMode])
   const leaderboardRows = useMemo(() => {
     if (leaderboardMode.type === 'thru') return leaderboardForCompletedRound(baseLeaderboardRows, leaderboardMode.round)
@@ -587,7 +601,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     return baseLeaderboardRows
   }, [baseLeaderboardRows, leaderboardMode])
   const leaderboardModeIsCurrent = leaderboardMode.type === 'current'
-  const boardLabel = selectedBoardLabel(leaderboardMode)
+  const boardLabel = selectedBoardLabel(leaderboardMode, hasPlayoffScores)
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
   const currentRound = leaderboardModeIsCurrent ? currentLeaderboardRound(baseLeaderboardRows) : null
   const totalScoreSubLabel = leaderboardMode.type === 'current'
@@ -723,21 +737,23 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                       </button>
                       {availableHistoricalRounds.map(round => (
                         <div key={round} className="border-b border-[#d8cab0] py-1 last:border-b-0">
-                          <div className="px-3 pb-1 pt-2 text-[9px] text-[#657168]">{roundMenuLabel(round)}</div>
+                          <div className="px-3 pb-1 pt-2 text-[9px] text-[#657168]">{isFinalRound(round, hasPlayoffScores) ? 'Final' : roundMenuLabel(round)}</div>
                           <button
                             type="button"
                             onClick={() => { setLeaderboardMode({ type: 'thru', round }); setLeaderboardMenuOpen(false) }}
                             className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'thru' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                           >
-                            Through {roundMenuLabel(round)}
+                            {cumulativeRoundLabel(round, hasPlayoffScores)}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
-                            className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
-                          >
-                            {roundMenuLabel(round)} Only
-                          </button>
+                          {round > 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
+                              className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
+                            >
+                              {roundMenuLabel(round)} Only
+                            </button>
+                          ) : null}
                         </div>
                       ))}
                     </div>
@@ -745,7 +761,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 )}
                 {scoreFreshness ? <span className="hidden text-[9px] font-black uppercase leading-none tracking-[0.08em] text-[#657168] sm:inline">{scoreFreshness}</span> : null}
               </div>
-              {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{historicalBoardCaption(leaderboardMode)}</p> : null}
+              {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{historicalBoardCaption(leaderboardMode, hasPlayoffScores)}</p> : null}
             </div>
             <div className="bg-[#f7f7f2] lg:hidden">
               {scoredEntries.map((entry, entryIndex) => {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { applyTodayTeeInfo } from '../src/lib/golf-api.ts'
 import { leaderboardBackedPickProgressLabel } from '../src/lib/golfer-status.ts'
-import { availableCompletedRounds, leaderboardForCompletedRound, leaderboardForRoundOnly, scoreEntriesForLeaderboard } from '../src/lib/scoring.ts'
+import { availableCompletedRounds, leaderboardForCompletedRound, leaderboardForRoundOnly, leaderboardHasPlayoffScores, scoreEntriesForLeaderboard } from '../src/lib/scoring.ts'
 
 function holes(backNineTotal, frontNineTotal = 0) {
   const front = Array.from({ length: 9 }, (_, index) => ({ hole: index + 1, score: 4, par: 4, scoreToPar: 0 }))
@@ -184,6 +184,28 @@ const priorRoundEven = scoreEntriesForLeaderboard(
   { countScores: 1, obRuleEnabled: false, obPenaltyStrokes: 2 }
 )
 assert.equal(priorRoundEven[0].totalScore, 0, 'even-par scores from completed prior rounds should still count as E')
+
+const finalRoundPlayers = [
+  {
+    id: 'final-a', name: 'Final A', firstName: 'Final', lastName: 'A', score: '-8', scoreToPar: -8, strokes: 0, thru: 'F', roundScore: '-2', position: '1', status: 'active', country: '',
+    roundScores: [
+      { round: 1, roundScoreToPar: -2, cumulativeScoreToPar: -2, complete: true, holes: holes(-2) },
+      { round: 2, roundScoreToPar: -1, cumulativeScoreToPar: -3, complete: true, holes: holes(-1) },
+      { round: 3, roundScoreToPar: -3, cumulativeScoreToPar: -6, complete: true, holes: holes(-3) },
+      { round: 4, roundScoreToPar: -2, cumulativeScoreToPar: -8, complete: true, holes: holes(-2) },
+    ],
+  },
+]
+assert.equal(leaderboardHasPlayoffScores(finalRoundPlayers), false, 'normal completed round 4 should be treated as final, not a playoff')
+assert.equal(leaderboardHasPlayoffScores([
+  {
+    ...finalRoundPlayers[0],
+    roundScores: [
+      ...finalRoundPlayers[0].roundScores,
+      { round: 5, roundScoreToPar: 0, cumulativeScoreToPar: -8, complete: true, holes: holes(0).slice(0, 1) },
+    ],
+  },
+]), true, 'scored round after round 4 should be treated as playoff data')
 
 const extendedTieBreak = scoreEntriesForLeaderboard(
   [

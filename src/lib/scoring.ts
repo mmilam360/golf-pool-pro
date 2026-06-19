@@ -214,6 +214,11 @@ function roundHasScore(round: NonNullable<GolfPlayer['roundScores']>[number]) {
   return Number.isFinite(round.roundScoreToPar) || Number.isFinite(round.cumulativeScoreToPar) || Boolean(round.holes?.length)
 }
 
+export function leaderboardHasPlayoffScores(leaderboard: GolfPlayer[]) {
+  const players = repairWeekendCutStatuses(Array.isArray(leaderboard) ? leaderboard : [])
+  return players.some(player => player.roundScores?.some(round => Number(round.round) > 4 && roundHasScore(round)))
+}
+
 export function availableCompletedRounds(leaderboard: GolfPlayer[]) {
   const players = repairWeekendCutStatuses(Array.isArray(leaderboard) ? leaderboard : [])
   const activePlayers = players.filter(player => player.status === 'active')
