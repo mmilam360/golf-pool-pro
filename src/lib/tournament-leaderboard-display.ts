@@ -1,6 +1,6 @@
 import type { GolfPlayer } from './golf-api'
 
-type LeaderboardPlayer = Pick<GolfPlayer, 'status' | 'thru' | 'roundScore' | 'scoreToPar' | 'position' | 'teeTime'>
+type LeaderboardPlayer = Pick<GolfPlayer, 'status' | 'thru' | 'roundScore' | 'scoreToPar' | 'position' | 'teeTime' | 'roundScores'>
 
 function normalizedStatus(player: LeaderboardPlayer) {
   return String(player.status || '').trim().toLowerCase()
@@ -34,6 +34,23 @@ function officialPositionSortValue(player: LeaderboardPlayer) {
   return Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER
 }
 
+function roundHasScore(round: NonNullable<LeaderboardPlayer['roundScores']>[number]) {
+  return Number.isFinite(round.roundScoreToPar)
+    || Number.isFinite(round.cumulativeScoreToPar)
+    || Boolean(round.holes?.length)
+}
+
+function playerHasTournamentScore(player: LeaderboardPlayer) {
+  if (isInactive(player)) return true
+  if (String(player.roundScore ?? '').trim()) return true
+
+  const thru = normalizedThru(player)
+  if (thru && thru !== '-' && thru !== '—' && !['CUT', 'WD', 'DQ', 'DNQ'].includes(thru)) return true
+
+  if ((player.roundScores || []).some(roundHasScore)) return true
+  return Number.isFinite(player.scoreToPar) && player.scoreToPar !== 0
+}
+
 export function tournamentPlayerHasStarted(player: LeaderboardPlayer, now = new Date()) {
   if (isInactive(player)) return true
   if (String(player.roundScore ?? '').trim()) return true
@@ -51,12 +68,12 @@ export function tournamentPlayerNotStarted(player: LeaderboardPlayer, now = new 
 
 function leaderboardSortBucket(player: GolfPlayer, now: Date) {
   if (isInactive(player)) return 3
-  if (tournamentPlayerHasStarted(player, now)) return 0
+  if (playerHasTournamentScore(player) || tournamentPlayerHasStarted(player, now)) return 0
   return 1
 }
 
 function scoreSortValue(player: GolfPlayer, now: Date) {
-  return tournamentPlayerNotStarted(player, now) ? 999 : player.scoreToPar ?? 999
+  return playerHasTournamentScore(player) || tournamentPlayerHasStarted(player, now) ? player.scoreToPar ?? 999 : 999
 }
 
 function teeTimeSortValue(player: GolfPlayer) {
@@ -90,7 +107,7 @@ export function sortTournamentLeaderboardRows(rows: GolfPlayer[], now = new Date
 }
 
 export function tournamentScoreLabel(player: LeaderboardPlayer, now = new Date()) {
-  if (tournamentPlayerNotStarted(player, now)) return ''
+  if (!playerHasTournamentScore(player) && tournamentPlayerNotStarted(player, now)) return ''
   const score = player.scoreToPar
   if (score == null) return '—'
   if (score === 0) return 'E'
@@ -98,14 +115,14 @@ export function tournamentScoreLabel(player: LeaderboardPlayer, now = new Date()
 }
 
 export function tournamentScoreClass(player: LeaderboardPlayer, now = new Date()) {
-  if (tournamentPlayerNotStarted(player, now)) return 'text-[#657168]'
+  if (!playerHasTournamentScore(player) && tournamentPlayerNotStarted(player, now)) return 'text-[#657168]'
   const score = player.scoreToPar
   if (score == null) return 'text-[#657168]'
   return score < 0 ? 'text-[#b21e23]' : 'text-[#1f2a24]'
 }
 
 export function tournamentPositionLabel(player: LeaderboardPlayer, index: number, now = new Date()) {
-  if (tournamentPlayerNotStarted(player, now)) return ''
+  if (!playerHasTournamentScore(player) && tournamentPlayerNotStarted(player, now)) return ''
   const raw = String(player.position || '').trim()
   if (raw) return raw
   return String(index + 1)
