@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, entryMovementSincePriorRank, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, scoreEntriesForLeaderboard, type EntryMovement, type PickScore, type ScoredEntry } from '@/lib/scoring'
+import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, entryMovementSincePriorRank, leaderboardForCompletedRound, leaderboardForRoundOnly, normalizePickName, scoreEntriesForLeaderboard, type EntryMovement, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { formatDateOnly } from '@/lib/date-utils'
@@ -585,8 +585,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const leaderboardModeIsCurrent = leaderboardMode.type === 'current'
   const boardLabel = selectedBoardLabel(leaderboardMode)
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
+  const currentRound = leaderboardModeIsCurrent ? currentLeaderboardRound(baseLeaderboardRows) : null
   const totalScoreSubLabel = leaderboardMode.type === 'current'
-    ? (availableHistoricalRounds.length > 0 || isAfterOpeningRoundDate(tournament) ? 'TODAY' : null)
+    ? (currentRound ? roundScoreLabel(currentRound) : availableHistoricalRounds.length > 0 || isAfterOpeningRoundDate(tournament) ? 'TODAY' : null)
     : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
       ? roundScoreLabel(leaderboardMode.round)
       : null
