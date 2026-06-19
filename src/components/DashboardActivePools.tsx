@@ -87,23 +87,27 @@ const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 const DASHBOARD_POOL_ORDER_STORAGE_KEY = 'gpp-dashboard-active-pool-order'
 export const DASHBOARD_ACTIVE_POOLS_CACHE_KEY = 'gpp-dashboard-active-pools-cache'
 const DASHBOARD_ACTIVE_POOLS_CACHE_VERSION = 1
-const ROUND_MENU_LABELS: Record<number, string> = { 1: 'THURSDAY', 2: 'FRIDAY', 3: 'SATURDAY', 4: 'SUNDAY' }
-const ROUND_SCORE_LABELS: Record<number, string> = { 1: 'THU', 2: 'FRI', 3: 'SAT', 4: 'SUN' }
 
 type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
 
 function roundMenuLabel(round: number) {
-  return ROUND_MENU_LABELS[round] || `ROUND ${round}`
+  return `R${round}`
 }
 
 function roundScoreLabel(round: number) {
-  return ROUND_SCORE_LABELS[round] || `R${round}`
+  return `R${round}`
 }
 
 function selectedBoardLabel(mode: LeaderboardMode) {
   if (mode.type === 'current') return 'Current'
-  if (mode.type === 'thru') return `Thru ${roundMenuLabel(mode.round)}`
+  if (mode.type === 'thru') return `Through ${roundMenuLabel(mode.round)}`
   return roundMenuLabel(mode.round)
+}
+
+function historicalBoardCaption(mode: LeaderboardMode) {
+  if (mode.type === 'current') return null
+  if (mode.type === 'day') return `${roundMenuLabel(mode.round)} scores only`
+  return `Standings through ${roundMenuLabel(mode.round)}`
 }
 
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
@@ -693,19 +697,19 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               </span>
               <p className="mx-auto max-w-[66%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[76%] sm:text-3xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
               <p className="mx-auto mt-1 max-w-[98%] truncate text-[10px] font-black uppercase tracking-[0.04em] text-[#005b3c] sm:text-xs sm:tracking-[0.08em]" title={pool.name}>{pool.name}</p>
-              <div className="mt-1 flex w-full flex-wrap items-center justify-center gap-1.5">
+              <div className="mt-2 flex w-full flex-wrap items-center justify-center gap-2">
                 {showJumpToMyEntry ? (
-                  <button type="button" onClick={jumpToCurrentEntry} className="inline-flex border-2 border-[#123c2f] bg-[#123c2f] px-3 py-1.5 text-[9px] font-black uppercase leading-none tracking-[0.08em] text-white shadow-[2px_2px_0_#b58a3a] hover:bg-[#0f2f25] sm:px-3.5 sm:text-[10px]">
+                  <button type="button" onClick={jumpToCurrentEntry} className="inline-flex h-9 items-center justify-center border-2 border-[#123c2f] bg-[#123c2f] px-3 text-[9px] font-black uppercase leading-none tracking-[0.08em] text-white shadow-[2px_2px_0_#b58a3a] hover:bg-[#0f2f25] sm:px-3.5 sm:text-[10px]">
                     Jump to my entry
                   </button>
                 ) : null}
                 {availableHistoricalRounds.length > 0 && (
                   <details
-                    className="relative z-50 mx-auto mt-2 w-fit text-left"
+                    className="relative z-50 shrink-0 text-left"
                     open={leaderboardMenuOpen}
                     onToggle={event => setLeaderboardMenuOpen(event.currentTarget.open)}
                   >
-                    <summary className="list-none border-2 border-[#123c2f] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] marker:hidden [&::-webkit-details-marker]:hidden">
+                    <summary className="inline-flex h-9 cursor-pointer list-none items-center justify-center border-2 border-[#123c2f] bg-white px-3 text-[10px] font-black uppercase leading-none tracking-[0.1em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] marker:hidden [&::-webkit-details-marker]:hidden">
                       <span className="mr-2 text-[#657168]">View</span>{boardLabel}
                       <span className="ml-2 inline-block text-[#123c2f]">▾</span>
                     </summary>
@@ -725,14 +729,14 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                             onClick={() => { setLeaderboardMode({ type: 'thru', round }); setLeaderboardMenuOpen(false) }}
                             className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'thru' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                           >
-                            Scores Through
+                            Through {roundMenuLabel(round)}
                           </button>
                           <button
                             type="button"
                             onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
                             className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                           >
-                            Daily Winner
+                            {roundMenuLabel(round)} Only
                           </button>
                         </div>
                       ))}
@@ -741,7 +745,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 )}
                 {scoreFreshness ? <span className="hidden text-[9px] font-black uppercase leading-none tracking-[0.08em] text-[#657168] sm:inline">{scoreFreshness}</span> : null}
               </div>
-              {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{leaderboardMode.type === 'day' ? `${boardLabel} daily scores only` : `Standings through ${boardLabel.replace('Thru ', '')}`}</p> : null}
+              {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{historicalBoardCaption(leaderboardMode)}</p> : null}
             </div>
             <div className="bg-[#f7f7f2] lg:hidden">
               {scoredEntries.map((entry, entryIndex) => {

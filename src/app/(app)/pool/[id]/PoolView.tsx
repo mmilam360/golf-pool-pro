@@ -404,17 +404,27 @@ function SquareTrustMark() {
 
 const REFRESH_SECONDS = 60
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
-const ROUND_MENU_LABELS: Record<number, string> = { 1: 'THURSDAY', 2: 'FRIDAY', 3: 'SATURDAY', 4: 'SUNDAY' }
-const ROUND_SCORE_LABELS: Record<number, string> = { 1: 'THU', 2: 'FRI', 3: 'SAT', 4: 'SUN' }
 
 type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
 
 function roundMenuLabel(round: number) {
-  return ROUND_MENU_LABELS[round] || `ROUND ${round}`
+  return `R${round}`
 }
 
 function roundScoreLabel(round: number) {
-  return ROUND_SCORE_LABELS[round] || `R${round}`
+  return `R${round}`
+}
+
+function selectedBoardLabelForMode(mode: LeaderboardMode) {
+  if (mode.type === 'current') return 'Current'
+  if (mode.type === 'thru') return `Through ${roundMenuLabel(mode.round)}`
+  return roundMenuLabel(mode.round)
+}
+
+function historicalBoardCaption(mode: LeaderboardMode) {
+  if (mode.type === 'current') return null
+  if (mode.type === 'day') return `${roundMenuLabel(mode.round)} scores only`
+  return `Standings through ${roundMenuLabel(mode.round)}`
 }
 
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, guestEntryToken = '', initialHighlightedEntryId = null }: Props) {
@@ -636,11 +646,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     return leaderboard
   }, [leaderboard, leaderboardMode])
   const leaderboardModeIsCurrent = leaderboardMode.type === 'current'
-  const selectedBoardLabel = leaderboardMode.type === 'current'
-    ? 'Current'
-    : leaderboardMode.type === 'thru'
-      ? `Thru ${roundMenuLabel(leaderboardMode.round)}`
-      : roundMenuLabel(leaderboardMode.round)
+  const selectedBoardLabel = selectedBoardLabelForMode(leaderboardMode)
   const selectedBoardIsHistorical = !leaderboardModeIsCurrent
   const canShareBoardImage = (pool.is_completed || tournament?.status === 'completed') || (isOwner && selectedBoardIsHistorical)
   const shareBoardImageLabel = selectedBoardIsHistorical ? 'Share board image' : 'Share final results'
@@ -1934,8 +1940,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
     const boardModeLabel = selectedBoardIsHistorical
       ? leaderboardMode.type === 'day'
-        ? `${selectedBoardLabel} scores`
-        : `Scores through ${selectedBoardLabel.replace('Thru ', '')}`
+        ? `${roundMenuLabel(leaderboardMode.round)} scores`
+        : `Scores through ${roundMenuLabel(leaderboardMode.round)}`
       : 'Final board'
     const scoreHeader = selectedBoardIsHistorical && leaderboardMode.type === 'day'
       ? roundScoreLabel(leaderboardMode.round)
@@ -2345,7 +2351,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       open={leaderboardMenuOpen}
                       onToggle={event => setLeaderboardMenuOpen(event.currentTarget.open)}
                     >
-                      <summary className="list-none border-2 border-[#123c2f] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] marker:hidden [&::-webkit-details-marker]:hidden">
+                      <summary className="inline-flex h-9 cursor-pointer list-none items-center justify-center border-2 border-[#123c2f] bg-white px-3 text-[10px] font-black uppercase leading-none tracking-[0.1em] text-[#123c2f] shadow-[2px_2px_0_#d8cab0] marker:hidden [&::-webkit-details-marker]:hidden">
                         <span className="mr-2 text-[#657168]">View</span>{selectedBoardLabel}
                         <span className="ml-2 inline-block text-[#123c2f]">▾</span>
                       </summary>
@@ -2365,21 +2371,21 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               onClick={() => { setLeaderboardMode({ type: 'thru', round }); setLeaderboardMenuOpen(false) }}
                               className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'thru' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                             >
-                              Scores Through
+                              Through {roundMenuLabel(round)}
                             </button>
                             <button
                               type="button"
                               onClick={() => { setLeaderboardMode({ type: 'day', round }); setLeaderboardMenuOpen(false) }}
                               className={`block w-full px-3 py-2 text-left ${leaderboardMode.type === 'day' && leaderboardMode.round === round ? 'bg-[#fbf7ed] shadow-[inset_4px_0_0_#b58a3a]' : ''}`}
                             >
-                              Daily Winner
+                              {roundMenuLabel(round)} Only
                             </button>
                           </div>
                         ))}
                       </div>
                     </details>
                   )}
-                  {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{leaderboardMode.type === 'day' ? `${selectedBoardLabel} daily scores only` : `Standings through ${selectedBoardLabel.replace('Thru ', '')}`}</p> : null}
+                  {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{historicalBoardCaption(leaderboardMode)}</p> : null}
                   {!selectedBoardIsHistorical && <div className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c]" title="Auto-refresh countdown">
                     <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                       <path d="M13 8a5 5 0 1 1-1.46-3.54" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />
