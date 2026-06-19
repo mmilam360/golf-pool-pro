@@ -65,7 +65,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const serviceSupabase = createServiceClient() as any
   const { data: pool, error: poolError } = await serviceSupabase
     .from('gpp_pools')
-    .select('id, owner_id, is_locked, is_completed, payment_status, amount_paid_cents, gpp_tournaments(status)')
+    .select('id, owner_id, is_locked, is_completed, gpp_tournaments(status)')
     .eq('id', id)
     .maybeSingle()
   if (poolError || !pool) return NextResponse.json({ error: 'Pool not found.' }, { status: 404 })
@@ -73,7 +73,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
   const tournamentStatus = String(tournament?.status || '').toLowerCase()
   const entriesAreLocked = Boolean(pool.is_locked || pool.is_completed || tournamentStatus === 'live' || tournamentStatus === 'completed')
-  const paymentAlreadyCollected = Number(pool.amount_paid_cents || 0) > 0
 
   if (action === 'leave') {
     if (entriesAreLocked) {
@@ -103,10 +102,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (pool.is_completed || tournamentStatus === 'completed') {
     return NextResponse.json({ error: 'This pool is completed.' }, { status: 409 })
-  }
-
-  if (paymentAlreadyCollected) {
-    return NextResponse.json({ error: 'Pool payment is already recorded. Contact support to change entries.' }, { status: 409 })
   }
 
   const { data: entry, error: entryError } = await serviceSupabase
