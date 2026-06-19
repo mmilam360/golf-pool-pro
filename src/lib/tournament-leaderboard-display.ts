@@ -76,6 +76,12 @@ function scoreSortValue(player: GolfPlayer, now: Date) {
   return playerHasTournamentScore(player) || tournamentPlayerHasStarted(player, now) ? player.scoreToPar ?? 999 : 999
 }
 
+function tieScoreValue(player: LeaderboardPlayer, now: Date) {
+  if (isInactive(player)) return null
+  if (!playerHasTournamentScore(player) && tournamentPlayerNotStarted(player, now)) return null
+  return Number.isFinite(player.scoreToPar) ? player.scoreToPar : null
+}
+
 function teeTimeSortValue(player: GolfPlayer) {
   return parsedTeeTime(player)?.getTime() ?? Number.MAX_SAFE_INTEGER
 }
@@ -121,9 +127,22 @@ export function tournamentScoreClass(player: LeaderboardPlayer, now = new Date()
   return score < 0 ? 'text-[#b21e23]' : 'text-[#1f2a24]'
 }
 
-export function tournamentPositionLabel(player: LeaderboardPlayer, index: number, now = new Date()) {
+export function tournamentPositionLabel(player: LeaderboardPlayer, index: number, rowsOrNow: LeaderboardPlayer[] | Date = [], maybeNow = new Date()) {
+  const rows = Array.isArray(rowsOrNow) ? rowsOrNow : []
+  const now = rowsOrNow instanceof Date ? rowsOrNow : maybeNow
   if (!playerHasTournamentScore(player) && tournamentPlayerNotStarted(player, now)) return ''
   const raw = String(player.position || '').trim()
+  const score = tieScoreValue(player, now)
+  if (score !== null && rows.length > 0) {
+    const tiedIndexes = rows
+      .map((row, rowIndex) => tieScoreValue(row, now) === score ? rowIndex : -1)
+      .filter(rowIndex => rowIndex >= 0)
+    const firstTiedIndex = tiedIndexes[0]
+    if (firstTiedIndex !== undefined) {
+      const rank = String(firstTiedIndex + 1)
+      return tiedIndexes.length > 1 ? `T${rank}` : rank
+    }
+  }
   if (raw) return raw
   return String(index + 1)
 }

@@ -117,7 +117,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
                 return (
                   <Fragment key={`${player.id}-${index}`}>
                     <tr className={isPicked ? 'bg-[#eef7ef]' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'}>
-                      <td className={`border-b border-r border-[#eadfca] px-1 py-1 text-center text-[10px] font-black sm:px-2 sm:py-1.5 sm:text-xs ${isPicked ? 'text-[#123c2f]' : 'text-[#657168]'}`}>{tournamentPositionLabel(player, index, now)}</td>
+                      <td className={`border-b border-r border-[#eadfca] px-1 py-1 text-center text-[10px] font-black sm:px-2 sm:py-1.5 sm:text-xs ${isPicked ? 'text-[#123c2f]' : 'text-[#657168]'}`}>{tournamentPositionLabel(player, index, displayRows, now)}</td>
                       <td className={`border-b border-[#eadfca] px-1.5 py-1 sm:px-2 sm:py-1.5 ${isPicked ? 'shadow-[inset_3px_0_0_#123c2f]' : ''}`}>
                         <div className="flex min-w-0 items-center gap-1">
                           {groupLabel ? (

@@ -22,4 +22,15 @@ const duplicatedRows = [rows[2], rows[1], rows[1], rows[0], rows[0]]
 const dedupedIds = sortTournamentLeaderboardRows(duplicatedRows, now).map(player => player.id)
 assert.deepEqual(dedupedIds, ['under-par-finished', 'over-par-on-course', 'not-started-even'], 'duplicate full-field rows are removed by golfer identity')
 
+const tiedRows = sortTournamentLeaderboardRows([
+  { id: 'leader', name: 'Leader', status: 'active', scoreToPar: -7, position: '1', teeTime: '2026-06-18T10:00:00Z', thru: 'F', roundScore: '-1' },
+  { id: 'tie-a', name: 'Tie A', status: 'active', scoreToPar: -3, position: '2', teeTime: '2026-06-18T10:00:00Z', thru: 'F', roundScore: '-4' },
+  { id: 'tie-b', name: 'Tie B', status: 'active', scoreToPar: -3, position: '3', teeTime: '2026-06-18T10:00:00Z', thru: 'F', roundScore: 'E' },
+  { id: 'next', name: 'Next', status: 'active', scoreToPar: -2, position: '4', teeTime: '2026-06-18T10:00:00Z', thru: 'F', roundScore: '-5' },
+], now)
+assert.equal(tournamentPositionLabel(tiedRows[0], 0, tiedRows, now), '1', 'single leader should show position 1')
+assert.equal(tournamentPositionLabel(tiedRows[1], 1, tiedRows, now), 'T2', 'same-score golfers should share a tied tournament position')
+assert.equal(tournamentPositionLabel(tiedRows[2], 2, tiedRows, now), 'T2', 'second same-score golfer should share the tied tournament position')
+assert.equal(tournamentPositionLabel(tiedRows[3], 3, tiedRows, now), '4', 'rank after a two-player tie should use golf competition ranking')
+
 console.log('tournament leaderboard display verified')

@@ -3203,7 +3203,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                         {picksComplete ? 'Picks in' : `Needs ${Math.max((rowPickTarget || Number(pool.pick_count || 0)) - pickCount, 0)}`}
                       </span>
                     )}
-                    {!entry.is_removed && entry.user_id !== userId && pickCount === 0 && (
+                    {!entry.is_removed && entry.user_id !== userId && (
                       <button
                         type="button"
                         onClick={() => setRemoveTarget(entry.id)}
