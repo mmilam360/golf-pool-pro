@@ -39,7 +39,34 @@ const players = [
   },
 ]
 
-assert.deepEqual(availableCompletedRounds(players), [1, 2], 'only fully completed rounds should be selectable')
+assert.deepEqual(availableCompletedRounds(players), [1, 2], 'completed rounds should be selectable')
+
+const splitWavePlayers = [
+  {
+    id: 'early', name: 'Early Starter', firstName: 'Early', lastName: 'Starter', score: '-1', scoreToPar: -1, strokes: 0, thru: '4', roundScore: '-1', position: '1', status: 'active', country: '',
+    roundScores: [
+      { round: 1, roundScoreToPar: -2, cumulativeScoreToPar: -2, complete: true, holes: holes(-1) },
+      { round: 2, roundScoreToPar: 1, cumulativeScoreToPar: -1, complete: false, holes: holes(0).slice(0, 4) },
+    ],
+  },
+  {
+    id: 'holdover', name: 'Round One Holdover', firstName: 'Round', lastName: 'Holdover', score: '+7', scoreToPar: 7, strokes: 0, thru: '10*', roundScore: '+7', position: '156', status: 'active', country: '',
+    roundScores: [
+      { round: 1, roundScoreToPar: 7, cumulativeScoreToPar: 7, complete: false, holes: holes(1).slice(0, 10) },
+    ],
+  },
+]
+
+assert.deepEqual(availableCompletedRounds(splitWavePlayers), [1], 'prior round should stay selectable once the next round has started')
+assert.deepEqual(availableCompletedRounds(splitWavePlayers.map(player => ({ ...player, roundScores: player.roundScores.filter(round => round.round === 1) }))), [], 'incomplete opening round should not be selectable before the next round starts')
+
+const thursdayOnlyBoard = leaderboardForRoundOnly(splitWavePlayers, 1)
+const holdoverRound = thursdayOnlyBoard.find(player => player.name === 'Round One Holdover')
+assert.equal(holdoverRound?.status, 'active', 'holdover golfer should not be marked cut on the Thursday-only board')
+assert.equal(holdoverRound?.scoreToPar, 7)
+assert.equal(holdoverRound?.roundScore, '+7')
+assert.equal(holdoverRound?.thru, '10*')
+assert.deepEqual(thursdayOnlyBoard.find(player => player.name === 'Early Starter')?.roundScores?.map(round => round.round), [1], 'daily board should use only the selected round for status labels')
 
 const fridayBoard = leaderboardForCompletedRound(players, 2)
 const fridayCut = fridayBoard.find(player => player.name === 'Friday Cut')
@@ -47,6 +74,7 @@ assert.equal(fridayCut?.status, 'active', 'cut golfer should still count in hist
 assert.equal(fridayCut?.scoreToPar, 6)
 assert.equal(fridayCut?.roundScore, '+3')
 assert.equal(fridayCut?.thru, 'F')
+assert.deepEqual(fridayCut?.roundScores?.map(round => round.round), [1, 2], 'through-round board should trim later rounds out of status labels')
 
 const scored = scoreEntriesForLeaderboard(
   [

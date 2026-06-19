@@ -210,8 +210,13 @@ export function currentLeaderboardRound(leaderboard: GolfPlayer[]) {
   return null
 }
 
+function roundHasScore(round: NonNullable<GolfPlayer['roundScores']>[number]) {
+  return Number.isFinite(round.roundScoreToPar) || Number.isFinite(round.cumulativeScoreToPar) || Boolean(round.holes?.length)
+}
+
 export function availableCompletedRounds(leaderboard: GolfPlayer[]) {
   const players = repairWeekendCutStatuses(Array.isArray(leaderboard) ? leaderboard : [])
+  const activePlayers = players.filter(player => player.status === 'active')
   const rounds = new Set<number>()
   for (const player of players) {
     for (const round of player.roundScores || []) {
@@ -220,10 +225,16 @@ export function availableCompletedRounds(leaderboard: GolfPlayer[]) {
   }
 
   return Array.from(rounds)
-    .filter(roundNumber => players
-      .filter(player => player.status === 'active')
-      .every(player => player.roundScores?.some(round => round.round === roundNumber && round.complete))
-    )
+    .filter(roundNumber => {
+      const laterRoundStarted = players.some(player =>
+        player.roundScores?.some(round => round.round > roundNumber && roundHasScore(round))
+      )
+      return activePlayers.every(player => {
+        const round = player.roundScores?.find(item => item.round === roundNumber)
+        if (!round) return false
+        return round.complete || (laterRoundStarted && roundHasScore(round))
+      })
+    })
     .sort((a, b) => a - b)
 }
 
@@ -239,17 +250,29 @@ function inactiveRoundPlayer(player: GolfPlayer): GolfPlayer {
   }
 }
 
+function roundThruLabel(player: GolfPlayer, round: NonNullable<GolfPlayer['roundScores']>[number]) {
+  if (round.complete) return 'F'
+  return player.thru || (round.holes?.length ? String(round.holes.length) : '')
+}
+
+function roundsThrough(player: GolfPlayer, roundNumber: number) {
+  return (player.roundScores || []).filter(round => round.round <= roundNumber)
+}
+
 export function leaderboardForCompletedRound(leaderboard: GolfPlayer[], roundNumber: number): GolfPlayer[] {
   return repairWeekendCutStatuses(Array.isArray(leaderboard) ? leaderboard : [])
     .map(player => {
       const round = player.roundScores?.find(item => item.round === roundNumber)
-      if (!round?.complete) return inactiveRoundPlayer(player)
+      if (!round || !roundHasScore(round)) return inactiveRoundPlayer(player)
       return {
         ...player,
         score: formatScoreToPar(round.cumulativeScoreToPar),
         scoreToPar: round.cumulativeScoreToPar,
-        thru: 'F',
+        thru: roundThruLabel(player, round),
         roundScore: formatScoreToPar(round.roundScoreToPar),
+        roundScores: roundsThrough(player, roundNumber),
+        teeTime: undefined,
+        startTee: null,
         position: '',
         status: 'active' as const,
       }
@@ -260,13 +283,16 @@ export function leaderboardForRoundOnly(leaderboard: GolfPlayer[], roundNumber: 
   return repairWeekendCutStatuses(Array.isArray(leaderboard) ? leaderboard : [])
     .map(player => {
       const round = player.roundScores?.find(item => item.round === roundNumber)
-      if (!round?.complete) return inactiveRoundPlayer(player)
+      if (!round || !roundHasScore(round)) return inactiveRoundPlayer(player)
       return {
         ...player,
         score: formatScoreToPar(round.roundScoreToPar),
         scoreToPar: round.roundScoreToPar,
-        thru: 'F',
+        thru: roundThruLabel(player, round),
         roundScore: formatScoreToPar(round.roundScoreToPar),
+        roundScores: [round],
+        teeTime: undefined,
+        startTee: null,
         position: '',
         status: 'active' as const,
       }
