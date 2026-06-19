@@ -119,6 +119,24 @@ assert.equal(
 )
 
 assert.equal(
+  pickProgressLabel({ teeTime: '2026-06-19T16:00:00Z', thru: 'F', roundScore: '-4', status: 'active', isObStandIn: false, roundScores: [{ round: 1, complete: true }, { round: 2, complete: true }] }, timeZone, new Date('2026-06-19T22:00:00Z')),
+  '-4 R2',
+  'finished non-final rounds should show the round number without an extra F'
+)
+
+assert.equal(
+  tournamentThruLabel({ teeTime: '2026-06-19T16:00:00Z', thru: 'F', roundScore: '-4', status: 'active', roundScores: [{ round: 1, complete: true }, { round: 2, complete: true }] }, timeZone, new Date('2026-06-19T22:00:00Z')),
+  'R2',
+  'full tournament thru cell should show R2, not R2 F, after round two is complete'
+)
+
+assert.equal(
+  pickProgressLabel({ teeTime: '2026-06-21T18:00:00Z', thru: 'F', roundScore: '-2', status: 'active', isObStandIn: false, roundScores: [{ round: 1, complete: true }, { round: 2, complete: true }, { round: 3, complete: true }, { round: 4, complete: true }] }, timeZone, new Date('2026-06-21T23:00:00Z')),
+  '-2 F',
+  'finished final round should keep F'
+)
+
+assert.equal(
   leaderboardBackedPickProgressLabel(
     { name: 'Chris Gotterup', teeTime: undefined, thru: 'F', roundScore: '', status: 'active', isObStandIn: false },
     { name: 'Chris Gotterup', teeTime: '2026-05-16T18:30:00Z', thru: 'F', roundScore: '', status: 'active' },

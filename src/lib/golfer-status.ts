@@ -99,7 +99,7 @@ function currentRoundStatusLabel(player: GolferStatusFields) {
     ? Math.max(...rounds.map(round => Number(round.round)).filter(Number.isFinite))
     : null
   if (!roundNumber) return 'F'
-  return `R${roundNumber} F`
+  return roundNumber >= 4 ? 'F' : `R${roundNumber}`
 }
 
 export function pickProgressLabel(player: GolferStatusFields, timeZone: string, now = new Date()) {
