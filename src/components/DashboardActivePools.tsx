@@ -90,6 +90,110 @@ const DASHBOARD_ACTIVE_POOLS_CACHE_VERSION = 1
 
 type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
 
+type DashboardActivePoolsViewState = {
+  expandedPoolIds?: string[]
+  expandedEntryIds?: Record<string, string[]>
+  leaderboardModes?: Record<string, LeaderboardMode>
+  scrollX?: number
+  scrollY?: number
+  scrollSavedAt?: number
+  savedAt?: number
+}
+
+const DASHBOARD_ACTIVE_POOLS_VIEW_STATE_KEY_PREFIX = 'gpp-dashboard-active-pools-view-state-v1'
+const DASHBOARD_ACTIVE_POOLS_VIEW_STATE_MAX_AGE_MS = 6 * 60 * 60 * 1000
+const DASHBOARD_SCROLL_RESTORE_MAX_AGE_MS = 8000
+
+function dashboardActivePoolsViewStateKey(mode: 'player' | 'runner') {
+  return `${DASHBOARD_ACTIVE_POOLS_VIEW_STATE_KEY_PREFIX}:${mode}`
+}
+
+function readDashboardActivePoolsViewState(storageKey: string): DashboardActivePoolsViewState | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.sessionStorage.getItem(storageKey)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as DashboardActivePoolsViewState | null
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+    if (parsed.savedAt && Date.now() - parsed.savedAt > DASHBOARD_ACTIVE_POOLS_VIEW_STATE_MAX_AGE_MS) {
+      window.sessionStorage.removeItem(storageKey)
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeDashboardActivePoolsViewState(storageKey: string, patch: Partial<DashboardActivePoolsViewState>) {
+  if (typeof window === 'undefined') return
+  try {
+    const current = readDashboardActivePoolsViewState(storageKey) ?? {}
+    window.sessionStorage.setItem(storageKey, JSON.stringify({ ...current, ...patch, savedAt: Date.now() }))
+  } catch {
+    // Some restricted browser modes block session storage. The dashboard still works without it.
+  }
+}
+
+function serializeExpandedEntryIds(expandedEntryIds: Record<string, Set<string>>) {
+  return Object.fromEntries(Object.entries(expandedEntryIds).map(([poolId, entryIds]) => [poolId, [...entryIds]]))
+}
+
+function initialExpandedPoolIds(cards: ActivePoolCard[], storageKey: string) {
+  const activePoolIds = new Set(cards.map(card => card.pool.id))
+  const storedPoolIds = readDashboardActivePoolsViewState(storageKey)?.expandedPoolIds
+  if (Array.isArray(storedPoolIds)) return new Set(storedPoolIds.filter(poolId => activePoolIds.has(poolId)))
+  return new Set(cards[0]?.pool.id ? [cards[0].pool.id] : [])
+}
+
+function initialExpandedEntryIds(cards: ActivePoolCard[], storageKey: string) {
+  const activePoolIds = new Set(cards.map(card => card.pool.id))
+  const storedEntryIds = readDashboardActivePoolsViewState(storageKey)?.expandedEntryIds
+  if (!storedEntryIds) return {}
+  const next: Record<string, Set<string>> = {}
+  for (const [poolId, entryIds] of Object.entries(storedEntryIds)) {
+    if (activePoolIds.has(poolId) && Array.isArray(entryIds)) next[poolId] = new Set(entryIds)
+  }
+  return next
+}
+
+function storedLeaderboardMode(storageKey: string, poolId: string): LeaderboardMode | null {
+  const mode = readDashboardActivePoolsViewState(storageKey)?.leaderboardModes?.[poolId]
+  if (!mode || typeof mode !== 'object') return null
+  if (mode.type === 'current') return { type: 'current' }
+  if ((mode.type === 'thru' || mode.type === 'day') && Number.isInteger(mode.round)) return { type: mode.type, round: mode.round }
+  return null
+}
+
+function writeDashboardLeaderboardMode(storageKey: string, poolId: string, mode: LeaderboardMode) {
+  const currentModes = readDashboardActivePoolsViewState(storageKey)?.leaderboardModes ?? {}
+  writeDashboardActivePoolsViewState(storageKey, { leaderboardModes: { ...currentModes, [poolId]: mode } })
+}
+
+function scheduleDashboardScrollRestore(scrollY?: number, scrollX = 0) {
+  if (typeof window === 'undefined' || typeof scrollY !== 'number' || !Number.isFinite(scrollY)) return
+  let attempts = 0
+  const restore = () => {
+    if (Math.abs(window.scrollY - scrollY) > 1) window.scrollTo(scrollX, scrollY)
+    attempts += 1
+    if (attempts < 8) window.setTimeout(restore, attempts < 3 ? 0 : 120)
+  }
+  window.requestAnimationFrame(() => window.requestAnimationFrame(restore))
+}
+
+function restoreSavedDashboardScroll(storageKey: string) {
+  const stored = readDashboardActivePoolsViewState(storageKey)
+  if (!stored?.scrollSavedAt || Date.now() - stored.scrollSavedAt > DASHBOARD_SCROLL_RESTORE_MAX_AGE_MS) return
+  scheduleDashboardScrollRestore(stored.scrollY, stored.scrollX ?? 0)
+}
+
+function saveDashboardScrollPosition(storageKey: string) {
+  const scrollX = window.scrollX
+  const scrollY = window.scrollY
+  writeDashboardActivePoolsViewState(storageKey, { scrollX, scrollY, scrollSavedAt: Date.now() })
+  return { scrollX, scrollY }
+}
+
 function roundMenuLabel(round: number) {
   return `R${round}`
 }
@@ -568,7 +672,7 @@ function MyEntryPreTournamentBadges({ pool, entry }: { pool: PoolRecord; entry?:
   )
 }
 
-function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntryToggle, teeTimeZone, mode }: {
+function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntryToggle, teeTimeZone, mode, viewStateKey }: {
   pool: PoolRecord
   entries: EntryRecord[]
   currentEntryId?: string | null
@@ -576,6 +680,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   onEntryToggle: (entryId: string, open: boolean) => void
   teeTimeZone: string
   mode: 'player' | 'runner'
+  viewStateKey: string
 }) {
   const countScores = pool.count_scores || pool.pick_count || 0
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
@@ -583,7 +688,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const pickGroups: PickGroup[] = groupedFormat && Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json as PickGroup[] : []
   const baseLeaderboardRows = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
   const fieldRows = Array.isArray(tournament?.field_json) ? tournament.field_json : []
-  const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
+  const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>(() => storedLeaderboardMode(viewStateKey, pool.id) ?? { type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(baseLeaderboardRows), [baseLeaderboardRows])
   const hasPlayoffScores = useMemo(() => leaderboardHasPlayoffScores(baseLeaderboardRows), [baseLeaderboardRows])
@@ -595,6 +700,9 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     }
     if (leaderboardMode.type === 'day' && leaderboardMode.round === 1) setLeaderboardMode({ type: 'thru', round: 1 })
   }, [availableHistoricalRounds, leaderboardMode])
+  useEffect(() => {
+    writeDashboardLeaderboardMode(viewStateKey, pool.id, leaderboardMode)
+  }, [pool.id, leaderboardMode, viewStateKey])
   const leaderboardRows = useMemo(() => {
     if (leaderboardMode.type === 'thru') return leaderboardForCompletedRound(baseLeaderboardRows, leaderboardMode.round)
     if (leaderboardMode.type === 'day') return leaderboardForRoundOnly(baseLeaderboardRows, leaderboardMode.round)
@@ -1070,8 +1178,9 @@ function LockTimeBadge({ pool, tournament }: { pool: PoolRecord; tournament: Tou
 
 export default function DashboardActivePools({ cards, entriesByPool, mode = 'player', snapshot = false, userId = null }: { cards: ActivePoolCard[]; entriesByPool: Record<string, EntryRecord[]>; mode?: 'player' | 'runner'; snapshot?: boolean; userId?: string | null }) {
   const router = useRouter()
-  const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set(cards[0]?.pool.id ? [cards[0].pool.id] : []))
-  const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => ({}))
+  const viewStateKey = dashboardActivePoolsViewStateKey(mode)
+  const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => initialExpandedPoolIds(cards, viewStateKey))
+  const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => initialExpandedEntryIds(cards, viewStateKey))
   const [liveLeaderboardsByExternalId, setLiveLeaderboardsByExternalId] = useState<Record<string, LiveTournamentPayload>>({})
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [poolOrder, setPoolOrder] = useState<string[]>(() => cards.map(card => card.pool.id))
@@ -1105,7 +1214,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     async function fetchLiveLeaderboards() {
       const nextEntries = await Promise.all(activeExternalIds.map(async externalId => {
         try {
-          const res = await fetch(`/api/tournaments/leaderboard?id=${encodeURIComponent(externalId)}`)
+          const res = await fetch(`/api/tournaments/leaderboard?id=${encodeURIComponent(externalId)}`, { cache: 'no-store' })
           if (!res.ok) return [externalId, null] as const
           const data = await res.json()
           return [externalId, { leaderboard: data.leaderboard || null, cutLine: data.cutLine || null }] as const
@@ -1139,11 +1248,26 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   useEffect(() => {
     if (snapshot) return
     const refreshId = window.setInterval(() => {
+      const scrollPosition = saveDashboardScrollPosition(viewStateKey)
       router.refresh()
+      scheduleDashboardScrollRestore(scrollPosition.scrollY, scrollPosition.scrollX)
     }, 30000)
 
     return () => window.clearInterval(refreshId)
-  }, [router, snapshot])
+  }, [router, snapshot, viewStateKey])
+
+  useEffect(() => {
+    if (snapshot) return
+    restoreSavedDashboardScroll(viewStateKey)
+  }, [cards, snapshot, viewStateKey])
+
+  useEffect(() => {
+    if (cards.length === 0) return
+    writeDashboardActivePoolsViewState(viewStateKey, {
+      expandedPoolIds: [...expandedPoolIds],
+      expandedEntryIds: serializeExpandedEntryIds(expandedEntryIds),
+    })
+  }, [cards.length, expandedPoolIds, expandedEntryIds, viewStateKey])
 
   useEffect(() => {
     try {
@@ -1384,6 +1508,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                       })
                     }}
                     mode={mode}
+                    viewStateKey={viewStateKey}
                     teeTimeZone={teeTimeZone}
                   />
                   <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
