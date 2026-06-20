@@ -12,9 +12,11 @@ const email = buildPaymentDueReminderEmail({
   dueDateLabel: 'Saturday, Jun 20',
 })
 
-assert.equal(email.subject, 'Pool fee due today for 2026 Northern Ohio PGA U.S. Open Pool')
+assert.equal(email.subject, 'Quick reminder: pool fee due today for 2026 Northern Ohio PGA U.S. Open Pool')
+assert.match(email.text, /quick reminder: the pool fee/)
 assert.match(email.text, /due by the end of today/)
-assert.match(email.text, /live leaderboard will be hidden until the pool fee is paid/)
+assert.match(email.text, /When you have a minute today, please take care of it/)
+assert.match(email.text, /temporarily hide the leaderboard until the pool fee is paid/)
 assert.match(email.text, /Entries and picks are safe/)
 assert.match(email.text, /Active entries: 87/)
 assert.match(email.text, /Amount due: \$20/)
