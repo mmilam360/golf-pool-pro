@@ -136,11 +136,13 @@ function formatDateRange(start?: string | null, end?: string | null) {
 
 function isActivePool(pool: PoolRecord, tournament: Tournament | null) {
   if (pool.is_completed || tournament?.status === 'completed') return false
-  if (tournament?.status === 'live') return true
+  if (tournament?.status === 'live' || hasOnCourseScores(tournament?.leaderboard_json)) return true
   if (!tournament?.start_date) return true
 
   const today = todayDateOnly()
   const startDate = getDateOnly(tournament.start_date) || tournament.start_date
+  const endDate = getDateOnly(tournament.end_date || '')
+  if (endDate) return today <= endDate
   return startDate >= today
 }
 

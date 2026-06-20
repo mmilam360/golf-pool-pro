@@ -264,7 +264,7 @@ function historicalBoardCaption(mode: LeaderboardMode, hasPlayoffScores: boolean
 
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
   if (pool.is_completed || tournament?.status === 'completed') return 'Passed'
-  if (tournament?.status === 'live') return 'Live'
+  if (tournament?.status === 'live' || hasOnCourseScores(tournament?.leaderboard_json)) return 'Live'
   if (pool.is_locked) return 'Locked'
   return 'Open'
 }
@@ -277,7 +277,7 @@ function statusClass(label: string) {
 }
 
 function hasRecentScores(tournament: Tournament | null, nowMs?: number | null) {
-  if (tournament?.status !== 'live' || !tournament.last_scores_fetch) return false
+  if (!tournament?.last_scores_fetch) return false
   if (!hasOnCourseScores(tournament.leaderboard_json)) return false
   const lastFetchMs = new Date(tournament.last_scores_fetch).getTime()
   if (!Number.isFinite(lastFetchMs)) return false
