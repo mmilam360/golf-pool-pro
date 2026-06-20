@@ -1,21 +1,13 @@
-import { NextResponse } from 'next/server'
 import { syncTournaments } from '@/lib/tournament-sync'
-import { requireCronAuth } from '@/lib/cron-auth'
+import { runCronRoute } from '@/lib/cron-run-log'
 
 export const runtime = 'nodejs'
 
 export async function GET(request: Request) {
-  const authError = requireCronAuth(request)
-  if (authError) return authError
-
-  const { searchParams } = new URL(request.url)
-  const season = Number(searchParams.get('season')) || new Date().getFullYear()
-  const doLive = searchParams.get('live') === '1' || searchParams.get('live') === 'true'
-
-  try {
-    const result = await syncTournaments({ season, doLive })
-    return NextResponse.json({ ok: true, ...result })
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
-  }
+  return runCronRoute(request, async () => {
+    const { searchParams } = new URL(request.url)
+    const season = Number(searchParams.get('season')) || new Date().getFullYear()
+    const doLive = searchParams.get('live') === '1' || searchParams.get('live') === 'true'
+    return syncTournaments({ season, doLive })
+  })
 }

@@ -1,17 +1,13 @@
 export const runtime = 'nodejs'
 
-import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { refreshPgaTourFields } from '@/lib/tournament-sync'
 import { autoFinalizeGroupedPools } from '@/lib/grouped-pool-auto-lock'
 import { autoLockPools } from '@/lib/pool-auto-lock'
-import { requireCronAuth } from '@/lib/cron-auth'
+import { runCronRoute } from '@/lib/cron-run-log'
 
 export async function GET(request: Request) {
-  const authError = requireCronAuth(request)
-  if (authError) return authError
-
-  try {
+  return runCronRoute(request, async () => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!supabaseUrl || !supabaseKey) {
@@ -22,8 +18,7 @@ export async function GET(request: Request) {
     const fieldRefresh = await refreshPgaTourFields(supabase, season)
     const groupFinalization = await autoFinalizeGroupedPools(supabase)
     const poolLocks = await autoLockPools(supabase)
-    return NextResponse.json({
-      ok: true,
+    return {
       ...fieldRefresh,
       groupedPoolsAutoFinalized: groupFinalization.finalized,
       groupedPoolsChecked: groupFinalization.checked,
@@ -31,8 +26,6 @@ export async function GET(request: Request) {
       emptyEntriesAutoRemoved: poolLocks.emptyEntriesAutoRemoved,
       poolsCheckedForLock: poolLocks.checked,
       poolsSkippedGroupsPending: poolLocks.skippedGroupsPending,
-    })
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
-  }
+    }
+  })
 }

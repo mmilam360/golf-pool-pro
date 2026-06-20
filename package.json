@@ -19,6 +19,7 @@
     "test:run-it-back": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-run-it-back-defaults.mjs",
     "test:grouped-auto-lock": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-grouped-auto-lock.mjs",
     "test:pool-auto-lock": "npx tsx scripts/verify-pool-auto-lock.mjs",
+    "test:live-scoring-health": "npx tsx scripts/verify-live-scoring-health.mjs",
     "test:pick-lock-display": "npx tsx scripts/verify-pick-lock-display.mjs",
     "test:grouped-selected-picks": "node scripts/verify-grouped-selected-picks-summary.mjs",
     "test:open-pick-field-count": "node scripts/verify-open-pick-field-count.mjs",

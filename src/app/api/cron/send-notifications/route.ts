@@ -1,9 +1,8 @@
-import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { scoreEntriesForLeaderboard } from '@/lib/scoring'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { notificationPrefsAllow, recordNotificationEvent, sendPushToUser } from '@/lib/notifications/push'
-import { requireCronAuth } from '@/lib/cron-auth'
+import { runCronRoute } from '@/lib/cron-run-log'
 import type { GolfPlayer } from '@/lib/golf-api'
 import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
 import { totalPicksRequired } from '@/lib/pick-counts'
@@ -11,6 +10,7 @@ import { totalPicksRequired } from '@/lib/pick-counts'
 export const runtime = 'nodejs'
 
 type Prefs = { user_id: string; pick_deadline?: boolean; leaderboard_live?: boolean; took_lead?: boolean }
+type NotificationTournament = { id: string; name?: string | null; status?: string | null; last_scores_fetch?: string | null; leaderboard_json?: GolfPlayer[] | null }
 
 function dateKey(value?: string | null) {
   return value ? value.split('T')[0] : new Date().toISOString().slice(0, 10)
@@ -34,6 +34,27 @@ function hasRecentScores(tournament: any) {
 async function loadPrefs(supabase: any) {
   const { data } = await supabase.from('gpp_notification_preferences').select('*')
   return new Map<string, Prefs>((data || []).map((pref: Prefs) => [pref.user_id, pref]))
+}
+
+async function loadLiveTournamentBoards(supabase: any) {
+  const { data, error } = await supabase
+    .from('gpp_tournaments')
+    .select('id, name, status, last_scores_fetch, leaderboard_json')
+    .eq('status', 'live')
+    .limit(50)
+  if (error) throw error
+  return new Map<string, NotificationTournament>((data || []).map((tournament: NotificationTournament) => [tournament.id, tournament]))
+}
+
+async function loadPoolsForTournamentBoards(supabase: any, tournamentIds: string[], columns: string) {
+  if (tournamentIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('gpp_pools')
+    .select(columns)
+    .in('tournament_id', tournamentIds)
+    .eq('is_completed', false)
+  if (error) throw error
+  return data || []
 }
 
 async function sendOnce(params: {
@@ -114,18 +135,21 @@ async function sendPickDeadlineReminders(supabase: any, prefsByUser: Map<string,
   return { candidates, sent }
 }
 
-async function sendLeaderboardLiveAlerts(supabase: any, prefsByUser: Map<string, Prefs>) {
-  const { data: pools, error } = await supabase
-    .from('gpp_pools')
-    .select('id, name, owner_id, gpp_tournaments(name, status, last_scores_fetch, leaderboard_json)')
-    .eq('is_completed', false)
-  if (error) throw error
+async function sendLeaderboardLiveAlerts(supabase: any, prefsByUser: Map<string, Prefs>, liveTournaments: Map<string, NotificationTournament>) {
+  const tournamentsById = new Map(
+    [...liveTournaments.entries()].filter(([, tournament]) => hasRecentScores(tournament))
+  )
+  const pools = await loadPoolsForTournamentBoards(
+    supabase,
+    [...tournamentsById.keys()],
+    'id, name, owner_id, tournament_id'
+  )
 
   let sent = 0
   let candidates = 0
   for (const pool of pools || []) {
-    const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
-    if (!hasRecentScores(tournament)) continue
+    const tournament = tournamentsById.get(pool.tournament_id)
+    if (!tournament) continue
     const { data: entries } = await supabase
       .from('gpp_entries')
       .select('user_id, is_removed')
@@ -151,19 +175,25 @@ async function sendLeaderboardLiveAlerts(supabase: any, prefsByUser: Map<string,
   return { candidates, sent }
 }
 
-async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Prefs>) {
-  const { data: pools, error } = await supabase
-    .from('gpp_pools')
-    .select('id, name, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, gpp_tournaments(name, status, leaderboard_json)')
-    .eq('is_completed', false)
-  if (error) throw error
+async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Prefs>, liveTournaments: Map<string, NotificationTournament>) {
+  const tournamentsById = new Map(
+    [...liveTournaments.entries()].filter(([, tournament]) => {
+      const leaderboard = Array.isArray(tournament.leaderboard_json) ? tournament.leaderboard_json : []
+      return leaderboard.length > 0 && !hasWeekendCutStatusErrors(leaderboard)
+    })
+  )
+  const pools = await loadPoolsForTournamentBoards(
+    supabase,
+    [...tournamentsById.keys()],
+    'id, name, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, tournament_id'
+  )
 
   let sent = 0
   let candidates = 0
   for (const pool of pools || []) {
-    const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
+    const tournament = tournamentsById.get(pool.tournament_id)
     const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : []
-    if (tournament?.status !== 'live' || leaderboard.length === 0 || hasWeekendCutStatusErrors(leaderboard)) continue
+    if (leaderboard.length === 0) continue
     const { data: entryRows } = await supabase
       .from('gpp_entries')
       .select('id, user_id, display_name, golfer_picks, is_removed')
@@ -198,12 +228,13 @@ async function sendLeadChangeAlerts(supabase: any, prefsByUser: Map<string, Pref
 }
 
 export async function GET(request: Request) {
-  const authError = requireCronAuth(request)
-  if (authError) return authError
-  const supabase = createServiceClient() as any
-  const prefsByUser = await loadPrefs(supabase)
-  const pickDeadline = await sendPickDeadlineReminders(supabase, prefsByUser)
-  const leaderboardLive = await sendLeaderboardLiveAlerts(supabase, prefsByUser)
-  const tookLead = await sendLeadChangeAlerts(supabase, prefsByUser)
-  return NextResponse.json({ ok: true, pickDeadline, leaderboardLive, tookLead })
+  return runCronRoute(request, async () => {
+    const supabase = createServiceClient() as any
+    const prefsByUser = await loadPrefs(supabase)
+    const liveTournaments = await loadLiveTournamentBoards(supabase)
+    const pickDeadline = await sendPickDeadlineReminders(supabase, prefsByUser)
+    const leaderboardLive = await sendLeaderboardLiveAlerts(supabase, prefsByUser, liveTournaments)
+    const tookLead = await sendLeadChangeAlerts(supabase, prefsByUser, liveTournaments)
+    return { pickDeadline, leaderboardLive, tookLead }
+  })
 }
