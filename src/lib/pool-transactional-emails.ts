@@ -236,7 +236,7 @@ export function buildPaymentDueReminderEmail(params: {
     `Amount due: ${params.amountDueLabel}`,
     `Due date: ${params.dueDateLabel}`,
     '',
-    "When you have a minute today, please take care of it so everyone can keep following the live leaderboard. If it isn't paid by then, we'll temporarily hide the leaderboard until the pool fee is paid. Entries and picks are safe.",
+    "Please pay today to keep the live leaderboard visible. Otherwise, we'll temporarily hide the leaderboard until the pool fee is paid. Entries and picks are safe.",
     '',
     `Pay pool fee: ${settingsUrl}`,
     '',
@@ -252,7 +252,7 @@ export function buildPaymentDueReminderEmail(params: {
         <tr><td style="padding:12px 14px;border-bottom:1px solid #d8cab0;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Active entries</div><div style="font-size:16px;font-weight:800;color:#123c2f;">${params.activeEntryCount}</div></td></tr>
         <tr><td style="padding:12px 14px;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Amount due</div><div style="font-size:18px;font-weight:900;color:#123c2f;">${escapeHtml(params.amountDueLabel)}</div></td></tr>
       </table>
-      <p style="margin:0;color:#657168;font-size:14px;">When you have a minute today, please take care of it so everyone can keep following the live leaderboard. If it isn't paid by then, we'll temporarily hide the leaderboard until the pool fee is paid. Entries and picks are safe.</p>
+      <p style="margin:0;color:#657168;font-size:14px;">Please pay today to keep the live leaderboard visible. Otherwise, we'll temporarily hide the leaderboard until the pool fee is paid. Entries and picks are safe.</p>
     `,
     ctaHref: settingsUrl,
     ctaLabel: 'Pay pool fee',
