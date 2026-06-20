@@ -23,6 +23,34 @@ function currentRound(leaderboard: any[]) {
   return rounds.length ? Math.max(...rounds) : 0
 }
 
+function formatScoreToPar(scoreToPar: number) {
+  if (scoreToPar === 0) return 'E'
+  return scoreToPar > 0 ? `+${scoreToPar}` : String(scoreToPar)
+}
+
+function cutLineFromStoredLeaderboard(leaderboard: any[]) {
+  const cutScores = leaderboard
+    .filter(player => String(player?.status || '').toLowerCase() === 'cut')
+    .map(player => Number(player?.scoreToPar))
+    .filter(Number.isFinite)
+  if (cutScores.length === 0) return null
+
+  const firstCutScore = Math.min(...cutScores)
+  const madeCutScores = leaderboard
+    .filter(player => String(player?.status || '').toLowerCase() === 'active')
+    .map(player => Number(player?.scoreToPar))
+    .filter(score => Number.isFinite(score) && score < firstCutScore)
+  if (madeCutScores.length === 0) return null
+
+  const scoreToPar = Math.max(...madeCutScores)
+  return {
+    score: formatScoreToPar(scoreToPar),
+    scoreToPar,
+    count: madeCutScores.filter(score => score <= scoreToPar).length,
+    projected: false,
+  }
+}
+
 function cachedJson(body: unknown, init?: ResponseInit) {
   return NextResponse.json(body, {
     ...init,
@@ -65,7 +93,7 @@ export async function GET(request: Request) {
       status: tournament.status || 'upcoming',
       round: currentRound(leaderboard),
       leaderboard,
-      cutLine: null,
+      cutLine: cutLineFromStoredLeaderboard(leaderboard),
       lastScoresFetch: tournament.last_scores_fetch || null,
     })
   } catch {

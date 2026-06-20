@@ -94,6 +94,8 @@ type DashboardActivePoolsViewState = {
   expandedPoolIds?: string[]
   expandedEntryIds?: Record<string, string[]>
   leaderboardModes?: Record<string, LeaderboardMode>
+  scrollAnchorKey?: string
+  scrollAnchorOffset?: number
   scrollX?: number
   scrollY?: number
   scrollSavedAt?: number
@@ -170,13 +172,44 @@ function writeDashboardLeaderboardMode(storageKey: string, poolId: string, mode:
   writeDashboardActivePoolsViewState(storageKey, { leaderboardModes: { ...currentModes, [poolId]: mode } })
 }
 
-function scheduleDashboardScrollRestore(scrollY?: number, scrollX = 0) {
+function currentDashboardScrollAnchor() {
+  if (typeof document === 'undefined') return null
+  const anchors = Array.from(document.querySelectorAll<HTMLElement>('[data-dashboard-scroll-anchor]'))
+    .map(element => ({ element, rect: element.getBoundingClientRect(), key: element.dataset.dashboardScrollAnchor || '' }))
+    .filter(anchor => anchor.key && anchor.rect.height > 0)
+  if (anchors.length === 0) return null
+
+  const topBoundary = 80
+  const visibleBeforeTop = anchors
+    .filter(anchor => anchor.rect.top <= topBoundary && anchor.rect.bottom > 0)
+    .sort((a, b) => b.rect.top - a.rect.top)[0]
+  const visibleAfterTop = anchors
+    .filter(anchor => anchor.rect.top > topBoundary)
+    .sort((a, b) => a.rect.top - b.rect.top)[0]
+  const anchor = visibleBeforeTop || visibleAfterTop || anchors.at(-1)
+  if (!anchor) return null
+  return { key: anchor.key, offset: anchor.rect.top }
+}
+
+function findDashboardScrollAnchor(key: string) {
+  if (typeof document === 'undefined') return null
+  return Array.from(document.querySelectorAll<HTMLElement>('[data-dashboard-scroll-anchor]'))
+    .find(element => element.dataset.dashboardScrollAnchor === key) || null
+}
+
+function scheduleDashboardScrollRestore(scrollY?: number, scrollX = 0, anchorKey?: string, anchorOffset?: number) {
   if (typeof window === 'undefined' || typeof scrollY !== 'number' || !Number.isFinite(scrollY)) return
   let attempts = 0
   const restore = () => {
-    if (Math.abs(window.scrollY - scrollY) > 1) window.scrollTo(scrollX, scrollY)
+    const anchor = anchorKey ? findDashboardScrollAnchor(anchorKey) : null
+    if (anchor && typeof anchorOffset === 'number' && Number.isFinite(anchorOffset)) {
+      const delta = anchor.getBoundingClientRect().top - anchorOffset
+      if (Math.abs(delta) > 1) window.scrollBy(0, delta)
+    } else if (Math.abs(window.scrollY - scrollY) > 1) {
+      window.scrollTo(scrollX, scrollY)
+    }
     attempts += 1
-    if (attempts < 8) window.setTimeout(restore, attempts < 3 ? 0 : 120)
+    if (attempts < 14) window.setTimeout(restore, attempts < 4 ? 0 : 140)
   }
   window.requestAnimationFrame(() => window.requestAnimationFrame(restore))
 }
@@ -184,14 +217,21 @@ function scheduleDashboardScrollRestore(scrollY?: number, scrollX = 0) {
 function restoreSavedDashboardScroll(storageKey: string) {
   const stored = readDashboardActivePoolsViewState(storageKey)
   if (!stored?.scrollSavedAt || Date.now() - stored.scrollSavedAt > DASHBOARD_SCROLL_RESTORE_MAX_AGE_MS) return
-  scheduleDashboardScrollRestore(stored.scrollY, stored.scrollX ?? 0)
+  scheduleDashboardScrollRestore(stored.scrollY, stored.scrollX ?? 0, stored.scrollAnchorKey, stored.scrollAnchorOffset)
 }
 
 function saveDashboardScrollPosition(storageKey: string) {
   const scrollX = window.scrollX
   const scrollY = window.scrollY
-  writeDashboardActivePoolsViewState(storageKey, { scrollX, scrollY, scrollSavedAt: Date.now() })
-  return { scrollX, scrollY }
+  const anchor = currentDashboardScrollAnchor()
+  writeDashboardActivePoolsViewState(storageKey, {
+    scrollX,
+    scrollY,
+    scrollAnchorKey: anchor?.key,
+    scrollAnchorOffset: anchor?.offset,
+    scrollSavedAt: Date.now(),
+  })
+  return { scrollX, scrollY, anchorKey: anchor?.key, anchorOffset: anchor?.offset }
 }
 
 function roundMenuLabel(round: number) {
@@ -938,7 +978,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                 const showPreScoringWaiting = !scoringIsLive && !hasSubmittedPicks
                 const pickGridColumns = pickGridColumnCount(countScores)
                 return (
-                  <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#d8cab0] last:border-b-0">
+                  <details data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} data-dashboard-scroll-anchor={`entry:${entry.entryId}`} id={isCurrentEntry ? `dashboard-entry-${entry.entryId}` : undefined} key={entry.entryId} open={isOpen} onToggle={event => onEntryToggle(entry.entryId, event.currentTarget.open)} className="scroll-mt-28 group border-b-2 border-[#d8cab0] last:border-b-0">
                     <summary className={`grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px] items-center gap-1 px-2 py-2 text-left transition-colors sm:grid-cols-[44px_minmax(0,1fr)_74px_20px] sm:gap-2 [&::-webkit-details-marker]:hidden ${ownEntrySummaryBg(isCurrentEntry)}`}>
                       <div className="text-center text-xl font-black text-[#b21e23]">{entry.rank || '—'}</div>
                       <div className="min-w-0">
@@ -1028,7 +1068,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
                     const showPreScoringWaiting = !scoringIsLive && !hasSubmittedPicks
                     return (
                       <Fragment key={entry.entryId}>
-                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} className={`scroll-mt-28 transition-colors ${ownEntryRowBg(isCurrentEntry)}`}>
+                        <tr data-dashboard-entry-id={isCurrentEntry ? entry.entryId : undefined} data-dashboard-scroll-anchor={`entry:${entry.entryId}`} className={`scroll-mt-28 transition-colors ${ownEntryRowBg(isCurrentEntry)}`}>
                           <td className={`border-b border-r-2 border-[#d8cab0] px-1 py-1.5 text-center text-xl font-black text-[#b21e23] ${ownEntryRowBg(isCurrentEntry)}`}>{entry.rank || '—'}</td>
                           <td className={`border-b border-r-2 border-[#d8cab0] px-2 py-1.5 text-left ${ownEntryRowBg(isCurrentEntry)}`}>
                             <span className="flex min-w-0 items-center gap-1.5" title={entry.displayName}>
@@ -1250,7 +1290,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     const refreshId = window.setInterval(() => {
       const scrollPosition = saveDashboardScrollPosition(viewStateKey)
       router.refresh()
-      scheduleDashboardScrollRestore(scrollPosition.scrollY, scrollPosition.scrollX)
+      scheduleDashboardScrollRestore(scrollPosition.scrollY, scrollPosition.scrollX, scrollPosition.anchorKey, scrollPosition.anchorOffset)
     }, 30000)
 
     return () => window.clearInterval(refreshId)
@@ -1418,6 +1458,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                   return next
                 })
               }}
+              data-dashboard-scroll-anchor={`pool:${pool.id}`}
               className={`${useSinglePoolMobileLayout ? 'bg-transparent sm:bg-white' : index % 2 === 0 ? 'bg-white' : 'bg-[#fbf7ed]'} group`}
             >
               <summary

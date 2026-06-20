@@ -68,7 +68,51 @@ function parseCutScore(score: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function formatScoreToPar(scoreToPar: number) {
+  if (scoreToPar === 0) return 'E'
+  return scoreToPar > 0 ? `+${scoreToPar}` : String(scoreToPar)
+}
+
+function htmlLeaderboardPlayerObjects(html: string) {
+  return html.match(/\{[^{}]*"id":"[^"]+"[^{}]*"toPar":"[^"]+"[^{}]*\}/g) || []
+}
+
+export function parseOfficialCutPlayerIdsFromHtml(html: string) {
+  const ids = new Set<string>()
+  for (const object of htmlLeaderboardPlayerObjects(html)) {
+    if (!object.includes('"cut":true')) continue
+    const id = object.match(/"id":"([^"]+)"/)?.[1]
+    if (id) ids.add(id)
+  }
+  return ids
+}
+
+function parseOfficialCutLineFromHtml(html: string): GolfCutLine | null {
+  const madeCutScores: number[] = []
+  const cutScores: number[] = []
+  for (const object of htmlLeaderboardPlayerObjects(html)) {
+    const score = parseCutScore(object.match(/"toPar":"([^"]+)"/)?.[1])
+    if (score == null) continue
+    if (object.includes('"cut":true')) cutScores.push(score)
+    else madeCutScores.push(score)
+  }
+  if (cutScores.length === 0 || madeCutScores.length === 0) return null
+
+  const firstCutScore = Math.min(...cutScores)
+  const cutLineScore = Math.max(...madeCutScores.filter(score => score < firstCutScore))
+  if (!Number.isFinite(cutLineScore)) return null
+  return {
+    score: formatScoreToPar(cutLineScore),
+    scoreToPar: cutLineScore,
+    count: madeCutScores.filter(score => score <= cutLineScore).length,
+    projected: false,
+  }
+}
+
 export function parseProjectedCutLineFromHtml(html: string): GolfCutLine | null {
+  const officialCutLine = parseOfficialCutLineFromHtml(html)
+  if (officialCutLine) return officialCutLine
+
   const match = html.match(/"cut"\s*:\s*\{\s*"score"\s*:\s*"([^"]+)"\s*,\s*"count"\s*:\s*(\d+)\s*,\s*"proj"\s*:\s*(true|false)/)
   if (!match) return null
 
@@ -83,16 +127,22 @@ export function parseProjectedCutLineFromHtml(html: string): GolfCutLine | null 
   }
 }
 
-async function getProjectedCutLine(eventId: string): Promise<GolfCutLine | null> {
+type EspnLeaderboardMetadata = { cutLine: GolfCutLine | null; cutPlayerIds: Set<string> }
+
+async function getEspnLeaderboardMetadata(eventId: string): Promise<EspnLeaderboardMetadata> {
   try {
     const res = await fetch(`https://www.espn.com/golf/leaderboard?tournamentId=${encodeURIComponent(eventId)}`, {
       ...NEXT_REVALIDATE_FAST,
       headers: { 'user-agent': 'Mozilla/5.0 GolfPoolsPro/1.0' },
     })
-    if (!res.ok) return null
-    return parseProjectedCutLineFromHtml(await res.text())
+    if (!res.ok) return { cutLine: null, cutPlayerIds: new Set() }
+    const html = await res.text()
+    return {
+      cutLine: parseProjectedCutLineFromHtml(html),
+      cutPlayerIds: parseOfficialCutPlayerIdsFromHtml(html),
+    }
   } catch {
-    return null
+    return { cutLine: null, cutPlayerIds: new Set() }
   }
 }
 
@@ -311,6 +361,15 @@ export function applyOfficialCutStatus(players: GolfPlayer[], cutLine?: GolfCutL
   })
 }
 
+export function applyOfficialCutPlayerStatuses(players: GolfPlayer[], cutPlayerIds?: Set<string> | null) {
+  if (!cutPlayerIds?.size) return players
+  return players.map(player => {
+    if (!cutPlayerIds.has(String(player.id))) return player
+    if (player.status === 'wd' || player.status === 'dnq') return player
+    return { ...player, status: 'cut' as const, thru: '', roundScore: '', position: 'CUT' }
+  })
+}
+
 function hasWeekendRoundEvidence(player: GolfPlayer) {
   return (player.roundScores || []).some(round =>
     Number(round.round) >= 3 && (round.complete || (Array.isArray(round.holes) && round.holes.length > 0))
@@ -412,7 +471,7 @@ export async function getSchedule(season: number = new Date().getFullYear()): Pr
 }
 
 export async function getLeaderboard(eventId: string): Promise<GolfTournament | null> {
-  const cutLinePromise = getProjectedCutLine(eventId)
+  const metadataPromise = getEspnLeaderboardMetadata(eventId)
   const scoreboardRes = await fetch(ESPN_SCOREBOARD, NEXT_NO_STORE)
   if (scoreboardRes.ok) {
     const scoreboard = await scoreboardRes.json()
@@ -423,14 +482,14 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
       const rawPlayers = isUpcoming
         ? await enrichPlayersWithFirstRoundTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
         : await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
-      const cutLine = await cutLinePromise
-      const players = repairWeekendCutStatuses(inferInactiveStatusesFromRounds(applyOfficialCutStatus(rawPlayers, cutLine), event.status?.period || competition?.status?.period))
+      const metadata = await metadataPromise
+      const players = repairWeekendCutStatuses(inferInactiveStatusesFromRounds(applyOfficialCutStatus(applyOfficialCutPlayerStatuses(rawPlayers, metadata.cutPlayerIds), metadata.cutLine), event.status?.period || competition?.status?.period))
       const course = event.courses?.find?.((candidate: any) => candidate.host)?.name
         || event.courses?.[0]?.name
         || event.venue?.fullName
         || ''
       const location = event.venue?.address?.city || event.courses?.[0]?.address?.city || ''
-      const coreMetadata = course ? null : await getCoreEventMetadata(eventId)
+      const coreMetadata = course ? null : await getCoreEventMetadata(eventId).catch(() => null)
 
       return {
         id: event.id,
@@ -442,7 +501,7 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
         status: eventStatus(event),
         round: event.status?.period || competition?.status?.period || 0,
         leaderboard: players,
-        cutLine,
+        cutLine: metadata.cutLine,
       }
     }
   }
@@ -455,8 +514,8 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
   const rawPlayers = isUpcoming
     ? await enrichPlayersWithFirstRoundTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
     : await enrichPlayersWithTeeTimes(event.id, String(competition?.id || event.id), (competition?.competitors || []).map(mapCompetitorToPlayer))
-  const cutLine = await cutLinePromise
-  const players = repairWeekendCutStatuses(inferInactiveStatusesFromRounds(applyOfficialCutStatus(rawPlayers, cutLine), event.status?.period || competition?.status?.period))
+  const metadata = await metadataPromise
+  const players = repairWeekendCutStatuses(inferInactiveStatusesFromRounds(applyOfficialCutStatus(applyOfficialCutPlayerStatuses(rawPlayers, metadata.cutPlayerIds), metadata.cutLine), event.status?.period || competition?.status?.period))
 
   return {
     id: event.id,
@@ -468,6 +527,6 @@ export async function getLeaderboard(eventId: string): Promise<GolfTournament | 
     status: eventStatus(event),
     round: 0,
     leaderboard: players,
-    cutLine,
+    cutLine: metadata.cutLine,
   }
 }

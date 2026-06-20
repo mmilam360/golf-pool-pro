@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { applyOfficialCutStatus, mapCompetitorToPlayer, parseProjectedCutLineFromHtml } from '../src/lib/golf-api.ts'
+import { applyOfficialCutPlayerStatuses, applyOfficialCutStatus, mapCompetitorToPlayer, parseOfficialCutPlayerIdsFromHtml, parseProjectedCutLineFromHtml } from '../src/lib/golf-api.ts'
 import { repairWeekendCutStatuses } from '../src/lib/leaderboard-sanity.ts'
 
 function assert(condition, message) {
@@ -54,6 +54,13 @@ assert(cutLine?.scoreToPar === 3, `parses projected cut to par, got ${cutLine?.s
 assert(cutLine?.count === 72, `parses projected cut count, got ${cutLine?.count}`)
 assert(cutLine?.projected === true, 'parses projected cut flag')
 
+const postCutHtml = '{"name":"Made Cut","id":"made","toPar":"+4","status":"post"},{"name":"Missed Cut A","id":"cut-a","toPar":"+5","status":"post","cut":true,"detail":"CUT"},{"name":"Missed Cut B","id":"cut-b","toPar":"+7","status":"post","cut":true,"detail":"CUT"}'
+const officialCutIds = parseOfficialCutPlayerIdsFromHtml(postCutHtml)
+assert(officialCutIds.has('cut-a') && officialCutIds.has('cut-b') && officialCutIds.size === 2, 'parses ESPN per-player official cut flags')
+const officialCutLine = parseProjectedCutLineFromHtml(postCutHtml)
+assert(officialCutLine?.score === '+4', `infers official cut line from ESPN cut flags, got ${officialCutLine?.score}`)
+assert(officialCutLine?.projected === false, 'official cut flags produce a non-projected cut line')
+
 const weekendPlayerOverCutLine = mapCompetitorToPlayer({
   id: 'weekend-over-cut-line',
   athlete: { displayName: 'Weekend Player' },
@@ -89,6 +96,11 @@ const officialCutApplied = applyOfficialCutStatus([weekendPlayerOverCutLine, mis
 assert(officialCutApplied[0].status === 'active', 'keeps players active when they have weekend-round evidence')
 assert(officialCutApplied[1].status === 'cut', 'still marks players cut when they missed the official cut')
 assert(officialCutApplied[2].status === 'active', 'does not mark players cut when they are inside the official cut count')
+
+const officialCutFlagApplied = applyOfficialCutPlayerStatuses([missedCutPlayer, insideCutCountPlayer], new Set(['missed-cut']))
+assert(officialCutFlagApplied[0].status === 'cut', 'applies ESPN per-player official cut status')
+assert(officialCutFlagApplied[0].roundScore === '' && officialCutFlagApplied[0].thru === '', 'official cut rows do not look like active finished rounds')
+assert(officialCutFlagApplied[1].status === 'active', 'official cut flags do not affect unlisted players')
 
 const explicitCutWithWeekendEvidence = { ...weekendPlayerOverCutLine, status: 'cut', position: 'CUT' }
 const repairedCutStatus = repairWeekendCutStatuses([explicitCutWithWeekendEvidence])
