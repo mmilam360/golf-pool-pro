@@ -229,7 +229,7 @@ export function buildPaymentDueReminderEmail(params: {
   const runnerPrefix = params.runnerName ? `${params.runnerName}, ` : ''
   const subject = `Quick reminder: pool fee due today for ${poolName}`
   const text = [
-    `${runnerPrefix}quick reminder: the pool fee for ${poolName} is due by the end of today.`,
+    `${runnerPrefix}your pool fee is due today.`,
     '',
     `Tournament: ${tournamentName}`,
     `Active entries: ${params.activeEntryCount}`,
@@ -246,7 +246,7 @@ export function buildPaymentDueReminderEmail(params: {
     preheader: `${params.amountDueLabel} is due today so the leaderboard stays live.`,
     title: 'Quick reminder',
     bodyHtml: `
-      <p style="margin:0 0 14px;font-size:16px;">${escapeHtml(runnerPrefix)}quick reminder: the pool fee for <strong>${escapeHtml(poolName)}</strong> is due by the end of today.</p>
+      <p style="margin:0 0 14px;font-size:16px;">${escapeHtml(runnerPrefix)}your pool fee is due today.</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 0 18px;border:1px solid #d8cab0;background:#fbf7ed;">
         <tr><td style="padding:12px 14px;border-bottom:1px solid #d8cab0;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Tournament</div><div style="font-size:16px;font-weight:800;color:#123c2f;">${escapeHtml(tournamentName)}</div></td></tr>
         <tr><td style="padding:12px 14px;border-bottom:1px solid #d8cab0;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Active entries</div><div style="font-size:16px;font-weight:800;color:#123c2f;">${params.activeEntryCount}</div></td></tr>
