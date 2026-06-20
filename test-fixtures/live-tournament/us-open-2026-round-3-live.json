@@ -1,0 +1,5135 @@
+{
+  "capturedAt": "2026-06-20T20:17:20.094791+00:00",
+  "fixture": "us-open-2026-round-3-live",
+  "pools": [
+    {
+      "id": "fixture-pool-locked",
+      "is_completed": false,
+      "is_locked": true,
+      "tournament_id": "fixture-us-open-2026"
+    }
+  ],
+  "privacy": "Public tournament leaderboard data only, reduced to replay-safe score fields; no customer pool, entry, profile, email, or passcode rows.",
+  "scenarioNow": "2026-06-20T18:21:00.000Z",
+  "source": {
+    "external_id": "401811952",
+    "table": "gpp_tournaments"
+  },
+  "tournament": {
+    "end_date": "2026-06-21",
+    "external_id": "401811952",
+    "id": "fixture-us-open-2026",
+    "last_scores_fetch": "2026-06-20T18:20:00.000Z",
+    "leaderboard_json": [
+      {
+        "country": "USA",
+        "firstName": "Wyndham",
+        "id": "11119",
+        "lastName": "Clark",
+        "name": "Wyndham Clark",
+        "position": "1",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -6,
+            "round": 1,
+            "roundScoreToPar": -6
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -7,
+            "round": 2,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -6,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "-6",
+        "scoreToPar": -6,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T19:45Z",
+        "thru": "2"
+      },
+      {
+        "country": "USA",
+        "firstName": "Sam",
+        "id": "4426181",
+        "lastName": "Stevens",
+        "name": "Sam Stevens",
+        "position": "2",
+        "roundScore": "-1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -2,
+            "round": 1,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -3,
+            "round": 2,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -4,
+            "round": 3,
+            "roundScoreToPar": -1
+          }
+        ],
+        "score": "-4",
+        "scoreToPar": -4,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T19:34Z",
+        "thru": "2"
+      },
+      {
+        "country": "USA",
+        "firstName": "Xander",
+        "id": "10140",
+        "lastName": "Schauffele",
+        "name": "Xander Schauffele",
+        "position": "3",
+        "roundScore": "E",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -3,
+            "round": 2,
+            "roundScoreToPar": -4
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -3,
+            "round": 3,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "-3",
+        "scoreToPar": -3,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T19:34Z",
+        "thru": "2"
+      },
+      {
+        "country": "Northern Ireland",
+        "firstName": "Rory",
+        "id": "3470",
+        "lastName": "McIlroy",
+        "name": "Rory McIlroy",
+        "position": "4",
+        "roundScore": "-2",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 1,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -2,
+            "round": 3,
+            "roundScoreToPar": -2
+          }
+        ],
+        "score": "-2",
+        "scoreToPar": -2,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T18:12Z",
+        "thru": "8"
+      },
+      {
+        "country": "USA",
+        "firstName": "Sam",
+        "id": "9938",
+        "lastName": "Burns",
+        "name": "Sam Burns",
+        "position": "5",
+        "roundScore": "-1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 2,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -2,
+            "round": 3,
+            "roundScoreToPar": -1
+          }
+        ],
+        "score": "-2",
+        "scoreToPar": -2,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T19:01Z",
+        "thru": "5"
+      },
+      {
+        "country": "USA",
+        "firstName": "Maverick",
+        "id": "9530",
+        "lastName": "McNealy",
+        "name": "Maverick McNealy",
+        "position": "6",
+        "roundScore": "-1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -1,
+            "round": 3,
+            "roundScoreToPar": -1
+          }
+        ],
+        "score": "-1",
+        "scoreToPar": -1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T18:12Z",
+        "thru": "8"
+      },
+      {
+        "country": "USA",
+        "firstName": "Keith",
+        "id": "8906",
+        "lastName": "Mitchell",
+        "name": "Keith Mitchell",
+        "position": "7",
+        "roundScore": "-1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -1,
+            "round": 3,
+            "roundScoreToPar": -1
+          }
+        ],
+        "score": "-1",
+        "scoreToPar": -1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T18:23Z",
+        "thru": "7"
+      },
+      {
+        "country": "USA",
+        "firstName": "Sahith",
+        "id": "10980",
+        "lastName": "Theegala",
+        "name": "Sahith Theegala",
+        "position": "8",
+        "roundScore": "E",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 2,
+            "roundScoreToPar": -3
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -1,
+            "round": 3,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "-1",
+        "scoreToPar": -1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T19:01Z",
+        "thru": "5"
+      },
+      {
+        "country": "USA",
+        "firstName": "Collin",
+        "id": "10592",
+        "lastName": "Morikawa",
+        "name": "Collin Morikawa",
+        "position": "9",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -2,
+            "round": 2,
+            "roundScoreToPar": -5
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -1,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "-1",
+        "scoreToPar": -1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T19:23Z",
+        "thru": "3"
+      },
+      {
+        "country": "South Korea",
+        "firstName": "Tom",
+        "id": "4602673",
+        "lastName": "Kim",
+        "name": "Tom Kim",
+        "position": "10",
+        "roundScore": "+2",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -3,
+            "round": 2,
+            "roundScoreToPar": -3
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -1,
+            "round": 3,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "-1",
+        "scoreToPar": -1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T19:23Z",
+        "thru": "3"
+      },
+      {
+        "country": "England",
+        "firstName": "Matt",
+        "id": "9037",
+        "lastName": "Fitzpatrick",
+        "name": "Matt Fitzpatrick",
+        "position": "11",
+        "roundScore": "+2",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -3,
+            "round": 1,
+            "roundScoreToPar": -3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -3,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": -1,
+            "round": 3,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "-1",
+        "scoreToPar": -1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T19:45Z",
+        "thru": "2"
+      },
+      {
+        "country": "Argentina",
+        "firstName": "Emiliano",
+        "id": "5882",
+        "lastName": "Grillo",
+        "name": "Emiliano Grillo",
+        "position": "12",
+        "roundScore": "-3",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 3,
+            "roundScoreToPar": -3
+          }
+        ],
+        "score": "E",
+        "scoreToPar": 0,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T14:33Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Max",
+        "id": "11383",
+        "lastName": "McGreevy",
+        "name": "Max McGreevy",
+        "position": "13",
+        "roundScore": "-1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -2,
+            "round": 1,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 0,
+            "round": 3,
+            "roundScoreToPar": -1
+          }
+        ],
+        "score": "E",
+        "scoreToPar": 0,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T17:39Z",
+        "thru": "10"
+      },
+      {
+        "country": "England",
+        "firstName": "Alex",
+        "id": "4364865",
+        "lastName": "Fitzpatrick",
+        "name": "Alex Fitzpatrick",
+        "position": "14",
+        "roundScore": "E",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 0,
+            "round": 3,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "E",
+        "scoreToPar": 0,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T17:50Z",
+        "thru": "10"
+      },
+      {
+        "country": "Japan",
+        "firstName": "Ryo",
+        "id": "4858572",
+        "lastName": "Hisatsune",
+        "name": "Ryo Hisatsune",
+        "position": "15",
+        "roundScore": "E",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 0,
+            "round": 3,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "E",
+        "scoreToPar": 0,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T18:34Z",
+        "thru": "6"
+      },
+      {
+        "country": "USA",
+        "firstName": "Gary",
+        "id": "3550",
+        "lastName": "Woodland",
+        "name": "Gary Woodland",
+        "position": "16",
+        "roundScore": "E",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -3,
+            "round": 1,
+            "roundScoreToPar": -3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 0,
+            "round": 3,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "E",
+        "scoreToPar": 0,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T18:34Z",
+        "thru": "5"
+      },
+      {
+        "country": "USA",
+        "firstName": "Harry",
+        "id": "4844",
+        "lastName": "Higgs",
+        "name": "Harry Higgs",
+        "position": "17",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 2,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 0,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "E",
+        "scoreToPar": 0,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T19:12Z",
+        "thru": "4"
+      },
+      {
+        "country": "England",
+        "firstName": "Tommy",
+        "id": "5539",
+        "lastName": "Fleetwood",
+        "name": "Tommy Fleetwood",
+        "position": "18",
+        "roundScore": "E",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 1,
+            "round": 3,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+1",
+        "scoreToPar": 1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T16:50Z",
+        "thru": "14"
+      },
+      {
+        "country": "USA",
+        "firstName": "Ben",
+        "id": "6922",
+        "lastName": "Kohles",
+        "name": "Ben Kohles",
+        "position": "19",
+        "roundScore": "E",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 1,
+            "round": 3,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+1",
+        "scoreToPar": 1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T17:12Z",
+        "thru": "12"
+      },
+      {
+        "country": "Canada",
+        "firstName": "Corey",
+        "id": "9126",
+        "lastName": "Conners",
+        "name": "Corey Conners",
+        "position": "20",
+        "roundScore": "E",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 1,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 1,
+            "round": 3,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+1",
+        "scoreToPar": 1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T17:28Z",
+        "thru": "11"
+      },
+      {
+        "country": "USA",
+        "firstName": "Akshay",
+        "id": "4419142",
+        "lastName": "Bhatia",
+        "name": "Akshay Bhatia",
+        "position": "21",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 1,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+1",
+        "scoreToPar": 1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T18:23Z",
+        "thru": "7"
+      },
+      {
+        "country": "USA",
+        "firstName": "William",
+        "id": "5076025",
+        "lastName": "Mouw",
+        "name": "William Mouw",
+        "position": "22",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 1,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+1",
+        "scoreToPar": 1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T18:50Z",
+        "thru": "5"
+      },
+      {
+        "country": "USA",
+        "firstName": "Ryder",
+        "id": "5362517",
+        "lastName": "Cowan",
+        "name": "Ryder Cowan",
+        "position": "23",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -2,
+            "round": 1,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 1,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+1",
+        "scoreToPar": 1,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T18:50Z",
+        "thru": "5"
+      },
+      {
+        "country": "USA",
+        "firstName": "Ben",
+        "id": "4404992",
+        "lastName": "Griffin",
+        "name": "Ben Griffin",
+        "position": "24",
+        "roundScore": "E",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 2,
+            "round": 3,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+2",
+        "scoreToPar": 2,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T16:17Z",
+        "thru": "16"
+      },
+      {
+        "country": "USA",
+        "firstName": "Keegan",
+        "id": "4513",
+        "lastName": "Bradley",
+        "name": "Keegan Bradley",
+        "position": "25",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 2,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+2",
+        "scoreToPar": 2,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T17:01Z",
+        "thru": "13"
+      },
+      {
+        "country": "England",
+        "firstName": "Justin",
+        "id": "569",
+        "lastName": "Rose",
+        "name": "Justin Rose",
+        "position": "26",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 2,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+2",
+        "scoreToPar": 2,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T17:12Z",
+        "thru": "12"
+      },
+      {
+        "country": "Denmark",
+        "firstName": "Niklas",
+        "id": "4382434",
+        "lastName": "N\u00f8rgaard",
+        "name": "Niklas N\u00f8rgaard",
+        "position": "27",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 2,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+2",
+        "scoreToPar": 2,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T17:50Z",
+        "thru": "10"
+      },
+      {
+        "country": "USA",
+        "firstName": "Scottie",
+        "id": "9478",
+        "lastName": "Scheffler",
+        "name": "Scottie Scheffler",
+        "position": "28",
+        "roundScore": "+2",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 2,
+            "round": 3,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+2",
+        "scoreToPar": 2,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T18:01Z",
+        "thru": "9"
+      },
+      {
+        "country": "USA",
+        "firstName": "Justin",
+        "id": "4848",
+        "lastName": "Thomas",
+        "name": "Justin Thomas",
+        "position": "29",
+        "roundScore": "+3",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 2,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 2,
+            "round": 3,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+2",
+        "scoreToPar": 2,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T19:12Z",
+        "thru": "4"
+      },
+      {
+        "country": "USA",
+        "firstName": "Michael",
+        "id": "8974",
+        "lastName": "Kim",
+        "name": "Michael Kim",
+        "position": "30",
+        "roundScore": "E",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 3,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+3",
+        "scoreToPar": 3,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T14:06Z",
+        "thru": "F"
+      },
+      {
+        "country": "South Korea",
+        "firstName": "Sungjae",
+        "id": "11382",
+        "lastName": "Im",
+        "name": "Sungjae Im",
+        "position": "31",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+3",
+        "scoreToPar": 3,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T15:50Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "J.T.",
+        "id": "10505",
+        "lastName": "Poston",
+        "name": "J.T. Poston",
+        "position": "32",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 3,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+3",
+        "scoreToPar": 3,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T16:17Z",
+        "thru": "16"
+      },
+      {
+        "country": "England",
+        "firstName": "Aaron",
+        "id": "10906",
+        "lastName": "Rai",
+        "name": "Aaron Rai",
+        "position": "33",
+        "roundScore": "+2",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": -3
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 3,
+            "round": 3,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+3",
+        "scoreToPar": 3,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T17:28Z",
+        "thru": "11"
+      },
+      {
+        "country": "USA",
+        "firstName": "Zac",
+        "id": "9040",
+        "lastName": "Blair",
+        "name": "Zac Blair",
+        "position": "34",
+        "roundScore": "+2",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 3,
+            "round": 3,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+3",
+        "scoreToPar": 3,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T17:39Z",
+        "thru": "11"
+      },
+      {
+        "country": "USA",
+        "firstName": "Brian",
+        "id": "1225",
+        "lastName": "Harman",
+        "name": "Brian Harman",
+        "position": "35",
+        "roundScore": "+3",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 1,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 3,
+            "round": 3,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+3",
+        "scoreToPar": 3,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T18:01Z",
+        "thru": "9"
+      },
+      {
+        "country": "USA",
+        "firstName": "Pierceson",
+        "id": "4837368",
+        "lastName": "Coody",
+        "name": "Pierceson Coody",
+        "position": "36",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+4",
+        "scoreToPar": 4,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T15:28Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Dustin",
+        "id": "3448",
+        "lastName": "Johnson",
+        "name": "Dustin Johnson",
+        "position": "37",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -4,
+            "round": 1,
+            "roundScoreToPar": -4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+4",
+        "scoreToPar": 4,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T15:06Z",
+        "thru": "F"
+      },
+      {
+        "country": "England",
+        "firstName": "Tyrrell",
+        "id": "5553",
+        "lastName": "Hatton",
+        "name": "Tyrrell Hatton",
+        "position": "38",
+        "roundScore": "+2",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 3,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+4",
+        "scoreToPar": 4,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T15:39Z",
+        "thru": "F"
+      },
+      {
+        "country": "England",
+        "firstName": "John",
+        "id": "4671",
+        "lastName": "Parry",
+        "name": "John Parry",
+        "position": "39",
+        "roundScore": "+2",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 4,
+            "round": 3,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+4",
+        "scoreToPar": 4,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T16:28Z",
+        "thru": "15"
+      },
+      {
+        "country": "England",
+        "firstName": "Laurie",
+        "id": "5550",
+        "lastName": "Canter",
+        "name": "Laurie Canter",
+        "position": "40",
+        "roundScore": "+1",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 3,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T14:06Z",
+        "thru": "F"
+      },
+      {
+        "country": "Chile",
+        "firstName": "Joaqu\u00edn",
+        "id": "11099",
+        "lastName": "Niemann",
+        "name": "Joaqu\u00edn Niemann",
+        "position": "41",
+        "roundScore": "+2",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 1,
+            "roundScoreToPar": 8
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": -5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 3,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T14:55Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Cameron",
+        "id": "4425906",
+        "lastName": "Young",
+        "name": "Cameron Young",
+        "position": "42",
+        "roundScore": "+3",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 3,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T15:50Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Andrew",
+        "id": "5502",
+        "lastName": "Putnam",
+        "name": "Andrew Putnam",
+        "position": "43",
+        "roundScore": "+3",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 5,
+            "round": 3,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T16:28Z",
+        "thru": "15"
+      },
+      {
+        "country": "USA",
+        "firstName": "Bud",
+        "id": "5338",
+        "lastName": "Cauley",
+        "name": "Bud Cauley",
+        "position": "44",
+        "roundScore": "+2",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 3,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:55Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Jordan",
+        "id": "5467",
+        "lastName": "Spieth",
+        "name": "Jordan Spieth",
+        "position": "45",
+        "roundScore": "+3",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 3,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T14:55Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Michael",
+        "id": "4921329",
+        "lastName": "Brennan",
+        "name": "Michael Brennan",
+        "position": "46",
+        "roundScore": "+3",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 3,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T15:17Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Chris",
+        "id": "4690755",
+        "lastName": "Gotterup",
+        "name": "Chris Gotterup",
+        "position": "47",
+        "roundScore": "+3",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 1,
+            "roundScoreToPar": 5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 3,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:11Z",
+        "thru": "F"
+      },
+      {
+        "country": "Scotland",
+        "firstName": "Robert",
+        "id": "11378",
+        "lastName": "MacIntyre",
+        "name": "Robert MacIntyre",
+        "position": "48",
+        "roundScore": "+3",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 3,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:33Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Miles",
+        "id": "5209798",
+        "lastName": "Russell",
+        "name": "Miles Russell",
+        "position": "49",
+        "roundScore": "+4",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 3,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T14:17Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Jackson",
+        "id": "5215013",
+        "lastName": "Koivun",
+        "name": "Jackson Koivun",
+        "position": "50",
+        "roundScore": "+4",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 3,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T14:17Z",
+        "thru": "F"
+      },
+      {
+        "country": "New Zealand",
+        "firstName": "Ryan",
+        "id": "4251",
+        "lastName": "Fox",
+        "name": "Ryan Fox",
+        "position": "51",
+        "roundScore": "+4",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 3,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T15:17Z",
+        "thru": "F"
+      },
+      {
+        "country": "Spain",
+        "firstName": "Angel",
+        "id": "11469",
+        "lastName": "Hidalgo",
+        "name": "Angel Hidalgo",
+        "position": "52",
+        "roundScore": "+4",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 1,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 3,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T14:44Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Spencer",
+        "id": "4425905",
+        "lastName": "Tibbits",
+        "name": "Spencer Tibbits",
+        "position": "53",
+        "roundScore": "+5",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -2,
+            "round": 1,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 7,
+            "round": 3,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T16:06Z",
+        "thru": "17"
+      },
+      {
+        "country": "USA",
+        "firstName": "Ben",
+        "id": "5077389",
+        "lastName": "James",
+        "name": "Ben James",
+        "position": "54",
+        "roundScore": "+6",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 1,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 7,
+            "round": 3,
+            "roundScoreToPar": 6
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T16:39Z",
+        "thru": "15"
+      },
+      {
+        "country": "Sweden",
+        "firstName": "Ludvig",
+        "id": "4375972",
+        "lastName": "\u00c5berg",
+        "name": "Ludvig \u00c5berg",
+        "position": "55",
+        "roundScore": "+6",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 1,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 7,
+            "round": 3,
+            "roundScoreToPar": 6
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T16:50Z",
+        "thru": "14"
+      },
+      {
+        "country": "USA",
+        "firstName": "Johnny",
+        "id": "5217048",
+        "lastName": "Keefer",
+        "name": "Johnny Keefer",
+        "position": "56",
+        "roundScore": "+6",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 7,
+            "round": 3,
+            "roundScoreToPar": 6
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T17:01Z",
+        "thru": "13"
+      },
+      {
+        "country": "USA",
+        "firstName": "Jacob",
+        "id": "5054388",
+        "lastName": "Bridgeman",
+        "name": "Jacob Bridgeman",
+        "position": "57",
+        "roundScore": "+4",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 3,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:00Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Marek",
+        "id": "5362518",
+        "lastName": "Fleming",
+        "name": "Marek Fleming",
+        "position": "58",
+        "roundScore": "+4",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 3,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:33Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Kurt",
+        "id": "10364",
+        "lastName": "Kitayama",
+        "name": "Kurt Kitayama",
+        "position": "59",
+        "roundScore": "+6",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 3,
+            "roundScoreToPar": 6
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T15:39Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Max",
+        "id": "11101",
+        "lastName": "Greyserman",
+        "name": "Max Greyserman",
+        "position": "60",
+        "roundScore": "+6",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -1,
+            "round": 1,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 3,
+            "roundScoreToPar": 6
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T15:28Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Caleb",
+        "id": "5110034",
+        "lastName": "Surratt",
+        "name": "Caleb Surratt",
+        "position": "61",
+        "roundScore": "+5",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 1,
+            "roundScoreToPar": 5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": -1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 3,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:22Z",
+        "thru": "F"
+      },
+      {
+        "country": "Colombia",
+        "firstName": "Nico",
+        "id": "4408316",
+        "lastName": "Echavarria",
+        "name": "Nico Echavarria",
+        "position": "62",
+        "roundScore": "+5",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 3,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:44Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Jackson",
+        "id": "5203535",
+        "lastName": "Van Paris",
+        "name": "Jackson Van Paris",
+        "position": "63",
+        "roundScore": "+7",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 9,
+            "round": 3,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T16:39Z",
+        "thru": "15"
+      },
+      {
+        "country": "Belgium",
+        "firstName": "Adrien",
+        "id": "5076011",
+        "lastName": "Dumont de Chassart",
+        "name": "Adrien Dumont de Chassart",
+        "position": "64",
+        "roundScore": "+8",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 10,
+            "round": 3,
+            "roundScoreToPar": 8
+          }
+        ],
+        "score": "+10",
+        "scoreToPar": 10,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T16:06Z",
+        "thru": "17"
+      },
+      {
+        "country": "Japan",
+        "firstName": "Hideki",
+        "id": "5860",
+        "lastName": "Matsuyama",
+        "name": "Hideki Matsuyama",
+        "position": "65",
+        "roundScore": "+7",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 3,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:44Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Neal",
+        "id": "5209442",
+        "lastName": "Shipley",
+        "name": "Neal Shipley",
+        "position": "66",
+        "roundScore": "+7",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 3,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:55Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Eric",
+        "id": "5362521",
+        "lastName": "Lee",
+        "name": "Eric Lee",
+        "position": "67",
+        "roundScore": "+8",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 12,
+            "round": 3,
+            "roundScoreToPar": 8
+          }
+        ],
+        "score": "+12",
+        "scoreToPar": 12,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:11Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Patrick",
+        "id": "6825",
+        "lastName": "Rodgers",
+        "name": "Patrick Rodgers",
+        "position": "68",
+        "roundScore": "+10",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 13,
+            "round": 3,
+            "roundScoreToPar": 10
+          }
+        ],
+        "score": "+13",
+        "scoreToPar": 13,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T14:33Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Russell",
+        "id": "5409",
+        "lastName": "Henley",
+        "name": "Russell Henley",
+        "position": "69",
+        "roundScore": "+10",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 13,
+            "round": 3,
+            "roundScoreToPar": 10
+          }
+        ],
+        "score": "+13",
+        "scoreToPar": 13,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T15:06Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Peter",
+        "id": "1674",
+        "lastName": "Uihlein",
+        "name": "Peter Uihlein",
+        "position": "70",
+        "roundScore": "+10",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 14,
+            "round": 3,
+            "roundScoreToPar": 10
+          }
+        ],
+        "score": "+14",
+        "scoreToPar": 14,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:22Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "James",
+        "id": "4683800",
+        "lastName": "Nicholas",
+        "name": "James Nicholas",
+        "position": "71",
+        "roundScore": "+12",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 2,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 15,
+            "round": 3,
+            "roundScoreToPar": 12
+          }
+        ],
+        "score": "+15",
+        "scoreToPar": 15,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T14:44Z",
+        "thru": "F"
+      },
+      {
+        "country": "USA",
+        "firstName": "Dylan",
+        "id": "4423323",
+        "lastName": "Wu",
+        "name": "Dylan Wu",
+        "position": "72",
+        "roundScore": "+12",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 2,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 16,
+            "round": 3,
+            "roundScoreToPar": 12
+          }
+        ],
+        "score": "+16",
+        "scoreToPar": 16,
+        "startTee": 1,
+        "status": "active",
+        "strokes": 0,
+        "teeTime": "2026-06-20T13:00Z",
+        "thru": "F"
+      },
+      {
+        "country": "Norway",
+        "firstName": "Viktor",
+        "id": "4364873",
+        "lastName": "Hovland",
+        "name": "Viktor Hovland",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 1,
+            "roundScoreToPar": 6
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": -1
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:45Z",
+        "thru": ""
+      },
+      {
+        "country": "Italy",
+        "firstName": "Filippo",
+        "id": "4884239",
+        "lastName": "Celli",
+        "name": "Filippo Celli",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 1,
+            "roundScoreToPar": 5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:46Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Jackson",
+        "id": "4982182",
+        "lastName": "Suber",
+        "name": "Jackson Suber",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T16:56Z",
+        "thru": ""
+      },
+      {
+        "country": "Canada",
+        "firstName": "Nick",
+        "id": "3792",
+        "lastName": "Taylor",
+        "name": "Nick Taylor",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:13Z",
+        "thru": ""
+      },
+      {
+        "country": "Canada",
+        "firstName": "Sudarshan",
+        "id": "5143175",
+        "lastName": "Yellamaraju",
+        "name": "Sudarshan Yellamaraju",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T10:50Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Ryan",
+        "id": "5076021",
+        "lastName": "Gerard",
+        "name": "Ryan Gerard",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:56Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Billy",
+        "id": "1651",
+        "lastName": "Horschel",
+        "name": "Billy Horschel",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:29Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Andrew",
+        "id": "11332",
+        "lastName": "Novak",
+        "name": "Andrew Novak",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:02Z",
+        "thru": ""
+      },
+      {
+        "country": "England",
+        "firstName": "Matthew",
+        "id": "4390719",
+        "lastName": "Jordan",
+        "name": "Matthew Jordan",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:07Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Patrick",
+        "id": "5579",
+        "lastName": "Reed",
+        "name": "Patrick Reed",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:02Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Harris",
+        "id": "5408",
+        "lastName": "English",
+        "name": "Harris English",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:13Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Rickie",
+        "id": "3702",
+        "lastName": "Fowler",
+        "name": "Rickie Fowler",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 1,
+            "round": 1,
+            "roundScoreToPar": 1
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:51Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Bryson",
+        "id": "10046",
+        "lastName": "DeChambeau",
+        "name": "Bryson DeChambeau",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 2,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+5",
+        "scoreToPar": 5,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:45Z",
+        "thru": ""
+      },
+      {
+        "country": "South Korea",
+        "firstName": "Si",
+        "id": "7081",
+        "lastName": "Woo Kim",
+        "name": "Si Woo Kim",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": -1
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:51Z",
+        "thru": ""
+      },
+      {
+        "country": "England",
+        "firstName": "Nathan",
+        "id": "10914",
+        "lastName": "Kimsey",
+        "name": "Nathan Kimsey",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 1,
+            "roundScoreToPar": 6
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T16:56Z",
+        "thru": ""
+      },
+      {
+        "country": "Australia",
+        "firstName": "Cameron",
+        "id": "9131",
+        "lastName": "Smith",
+        "name": "Cameron Smith",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 1,
+            "roundScoreToPar": 5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:29Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Patrick",
+        "id": "6007",
+        "lastName": "Cantlay",
+        "name": "Patrick Cantlay",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:29Z",
+        "thru": ""
+      },
+      {
+        "country": "Australia",
+        "firstName": "Lucas",
+        "id": "10343",
+        "lastName": "Herbert",
+        "name": "Lucas Herbert",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:40Z",
+        "thru": ""
+      },
+      {
+        "country": "Sweden",
+        "firstName": "Alex",
+        "id": "3832",
+        "lastName": "Noren",
+        "name": "Alex Noren",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:13Z",
+        "thru": ""
+      },
+      {
+        "country": "Ireland",
+        "firstName": "Shane",
+        "id": "4587",
+        "lastName": "Lowry",
+        "name": "Shane Lowry",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:07Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Cole",
+        "id": "10047",
+        "lastName": "Hammer",
+        "name": "Cole Hammer",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:51Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Jack",
+        "id": "5362526",
+        "lastName": "Schoenberger",
+        "name": "Jack Schoenberger",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:51Z",
+        "thru": ""
+      },
+      {
+        "country": "Mexico",
+        "firstName": "Carlos",
+        "id": "5532",
+        "lastName": "Ortiz",
+        "name": "Carlos Ortiz",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:18Z",
+        "thru": ""
+      },
+      {
+        "country": "Norway",
+        "firstName": "Kristoffer",
+        "id": "4348470",
+        "lastName": "Reitan",
+        "name": "Kristoffer Reitan",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 0,
+            "round": 1,
+            "roundScoreToPar": 0
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 6
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:40Z",
+        "thru": ""
+      },
+      {
+        "country": "Spain",
+        "firstName": "Jon",
+        "id": "9780",
+        "lastName": "Rahm",
+        "name": "Jon Rahm",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": -2,
+            "round": 1,
+            "roundScoreToPar": -2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 2,
+            "roundScoreToPar": 8
+          }
+        ],
+        "score": "+6",
+        "scoreToPar": 6,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:29Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Brandon",
+        "id": "4355673",
+        "lastName": "Wu",
+        "name": "Brandon Wu",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 1,
+            "roundScoreToPar": 8
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 2,
+            "roundScoreToPar": -1
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:18Z",
+        "thru": ""
+      },
+      {
+        "country": "Japan",
+        "firstName": "Kaito",
+        "id": "4894340",
+        "lastName": "Onishi",
+        "name": "Kaito Onishi",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 2,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:57Z",
+        "thru": ""
+      },
+      {
+        "country": "Australia",
+        "firstName": "Min",
+        "id": "4410932",
+        "lastName": "Woo Lee",
+        "name": "Min Woo Lee",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:18Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Giuseppe",
+        "id": "5272338",
+        "lastName": "Puebla",
+        "name": "Giuseppe Puebla",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T13:02Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Jimmy",
+        "id": "10990",
+        "lastName": "Stanger",
+        "name": "Jimmy Stanger",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:18Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Bryan",
+        "id": "5289813",
+        "lastName": "Lee",
+        "name": "Bryan Lee",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:01Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Manav",
+        "id": "10994",
+        "lastName": "Shah",
+        "name": "Manav Shah",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T13:02Z",
+        "thru": ""
+      },
+      {
+        "country": "France",
+        "firstName": "Adrien",
+        "id": "6962",
+        "lastName": "Saddier",
+        "name": "Adrien Saddier",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 2,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:01Z",
+        "thru": ""
+      },
+      {
+        "country": "Austria",
+        "firstName": "Sepp",
+        "id": "8961",
+        "lastName": "Straka",
+        "name": "Sepp Straka",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 2,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:13Z",
+        "thru": ""
+      },
+      {
+        "country": "Argentina",
+        "firstName": "Alejandro",
+        "id": "4358081",
+        "lastName": "Tosti",
+        "name": "Alejandro Tosti",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 1,
+            "roundScoreToPar": 8
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 2,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:07Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Mason",
+        "id": "5289811",
+        "lastName": "Howell",
+        "name": "Mason Howell",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 1,
+            "roundScoreToPar": 8
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 2,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:24Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Jake",
+        "id": "9843",
+        "lastName": "Knapp",
+        "name": "Jake Knapp",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 2,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:12Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "J.J.",
+        "id": "10166",
+        "lastName": "Spaun",
+        "name": "J.J. Spaun",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 2,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:24Z",
+        "thru": ""
+      },
+      {
+        "country": "Colombia",
+        "firstName": "Marcelo",
+        "id": "7120",
+        "lastName": "Rozo",
+        "name": "Marcelo Rozo",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:40Z",
+        "thru": ""
+      },
+      {
+        "country": "Canada",
+        "firstName": "Ben",
+        "id": "8910",
+        "lastName": "Silverman",
+        "name": "Ben Silverman",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:18Z",
+        "thru": ""
+      },
+      {
+        "country": "Australia",
+        "firstName": "Adam",
+        "id": "388",
+        "lastName": "Scott",
+        "name": "Adam Scott",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 2,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+8",
+        "scoreToPar": 8,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:13Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Chris",
+        "id": "3449",
+        "lastName": "Kirk",
+        "name": "Chris Kirk",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 1,
+            "roundScoreToPar": 8
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:12Z",
+        "thru": ""
+      },
+      {
+        "country": "Spain",
+        "firstName": "David",
+        "id": "4895429",
+        "lastName": "Puig",
+        "name": "David Puig",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:34Z",
+        "thru": ""
+      },
+      {
+        "country": "China",
+        "firstName": "Carl",
+        "id": "9951",
+        "lastName": "Yuan",
+        "name": "Carl Yuan",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:18Z",
+        "thru": ""
+      },
+      {
+        "country": "France",
+        "firstName": "Ugo",
+        "id": "4418567",
+        "lastName": "Coussaud",
+        "name": "Ugo Coussaud",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 1,
+            "roundScoreToPar": 6
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:01Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Alex",
+        "id": "9484",
+        "lastName": "Smalley",
+        "name": "Alex Smalley",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 1,
+            "roundScoreToPar": 6
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:07Z",
+        "thru": ""
+      },
+      {
+        "country": "Japan",
+        "firstName": "Taihei",
+        "id": "4691550",
+        "lastName": "Sato",
+        "name": "Taihei Sato",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 1,
+            "roundScoreToPar": 5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:40Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Jackson",
+        "id": "5344766",
+        "lastName": "Herrington",
+        "name": "Jackson Herrington",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 1,
+            "roundScoreToPar": 5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T16:56Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "J.B.",
+        "id": "1067",
+        "lastName": "Holmes",
+        "name": "J.B. Holmes",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 1,
+            "roundScoreToPar": 5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:46Z",
+        "thru": ""
+      },
+      {
+        "country": "Denmark",
+        "firstName": "Nicolai",
+        "id": "11250",
+        "lastName": "H\u00f8jgaard",
+        "name": "Nicolai H\u00f8jgaard",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:18Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Chandler",
+        "id": "4587989",
+        "lastName": "Phillips",
+        "name": "Chandler Phillips",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T16:45Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Kevin",
+        "id": "4408320",
+        "lastName": "Roy",
+        "name": "Kevin Roy",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:23Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Preston",
+        "id": "5210226",
+        "lastName": "Stout",
+        "name": "Preston Stout",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+9",
+        "scoreToPar": 9,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:34Z",
+        "thru": ""
+      },
+      {
+        "country": "Japan",
+        "firstName": "Ryuichi",
+        "id": "4699297",
+        "lastName": "Oiwa",
+        "name": "Ryuichi Oiwa",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 8,
+            "round": 1,
+            "roundScoreToPar": 8
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 10,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+10",
+        "scoreToPar": 10,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:46Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Daniel",
+        "id": "9025",
+        "lastName": "Berger",
+        "name": "Daniel Berger",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 10,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+10",
+        "scoreToPar": 10,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:51Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Brandon",
+        "id": "2201886",
+        "lastName": "Holtz",
+        "name": "Brandon Holtz",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 1,
+            "roundScoreToPar": 6
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 10,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+10",
+        "scoreToPar": 10,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:46Z",
+        "thru": ""
+      },
+      {
+        "country": "South Africa",
+        "firstName": "Jayden",
+        "id": "4604053",
+        "lastName": "Schaper",
+        "name": "Jayden Schaper",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 1,
+            "roundScoreToPar": 5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 10,
+            "round": 2,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+10",
+        "scoreToPar": 10,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T16:56Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Davis",
+        "id": "4602218",
+        "lastName": "Thompson",
+        "name": "Davis Thompson",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 10,
+            "round": 2,
+            "roundScoreToPar": 6
+          }
+        ],
+        "score": "+10",
+        "scoreToPar": 10,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:34Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Brooks",
+        "id": "6798",
+        "lastName": "Koepka",
+        "name": "Brooks Koepka",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 3,
+            "round": 1,
+            "roundScoreToPar": 3
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 10,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+10",
+        "scoreToPar": 10,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:40Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Hamilton",
+        "id": "5343786",
+        "lastName": "Coleman",
+        "name": "Hamilton Coleman",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 1,
+            "roundScoreToPar": 11
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 2,
+            "roundScoreToPar": 0
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T16:45Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Cooper",
+        "id": "5027437",
+        "lastName": "Dossey",
+        "name": "Cooper Dossey",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 1,
+            "roundScoreToPar": 9
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T16:56Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Logan",
+        "id": "5362522",
+        "lastName": "Reilly",
+        "name": "Logan Reilly",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 1,
+            "roundScoreToPar": 9
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 2,
+            "roundScoreToPar": 2
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:57Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Taylor",
+        "id": "4372851",
+        "lastName": "Montgomery",
+        "name": "Taylor Montgomery",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T16:45Z",
+        "thru": ""
+      },
+      {
+        "country": "Ireland",
+        "firstName": "Padraig",
+        "id": "186",
+        "lastName": "Harrington",
+        "name": "Padraig Harrington",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 2,
+            "roundScoreToPar": 4
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:29Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Jake",
+        "id": "5326067",
+        "lastName": "Peacock",
+        "name": "Jake Peacock",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 1,
+            "roundScoreToPar": 6
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 2,
+            "roundScoreToPar": 5
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:57Z",
+        "thru": ""
+      },
+      {
+        "country": "England",
+        "firstName": "Harry",
+        "id": "4589438",
+        "lastName": "Hall",
+        "name": "Harry Hall",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:23Z",
+        "thru": ""
+      },
+      {
+        "country": "Argentina",
+        "firstName": "Mateo",
+        "id": "5344763",
+        "lastName": "Pulcini",
+        "name": "Mateo Pulcini",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:51Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Ethan",
+        "id": "5293232",
+        "lastName": "Fang",
+        "name": "Ethan Fang",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 4,
+            "round": 1,
+            "roundScoreToPar": 4
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+11",
+        "scoreToPar": 11,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T16:56Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Nick",
+        "id": "10048",
+        "lastName": "Hardy",
+        "name": "Nick Hardy",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 1,
+            "roundScoreToPar": 9
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 12,
+            "round": 2,
+            "roundScoreToPar": 3
+          }
+        ],
+        "score": "+12",
+        "scoreToPar": 12,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:51Z",
+        "thru": ""
+      },
+      {
+        "country": "South Africa",
+        "firstName": "Hennie",
+        "id": "9899",
+        "lastName": "Du Plessis",
+        "name": "Hennie Du Plessis",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 1,
+            "roundScoreToPar": 6
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 12,
+            "round": 2,
+            "roundScoreToPar": 6
+          }
+        ],
+        "score": "+12",
+        "scoreToPar": 12,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T10:50Z",
+        "thru": ""
+      },
+      {
+        "country": "Northern Ireland",
+        "firstName": "Graeme",
+        "id": "301",
+        "lastName": "McDowell",
+        "name": "Graeme McDowell",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 6,
+            "round": 1,
+            "roundScoreToPar": 6
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 12,
+            "round": 2,
+            "roundScoreToPar": 6
+          }
+        ],
+        "score": "+12",
+        "scoreToPar": 12,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:29Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Chase",
+        "id": "5362520",
+        "lastName": "Kyes",
+        "name": "Chase Kyes",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 1,
+            "roundScoreToPar": 5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 12,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+12",
+        "scoreToPar": 12,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T17:07Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Vaughn",
+        "id": "5362519",
+        "lastName": "Harber",
+        "name": "Vaughn Harber",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 5,
+            "round": 1,
+            "roundScoreToPar": 5
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 12,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+12",
+        "scoreToPar": 12,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:57Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Matt",
+        "id": "4901368",
+        "lastName": "McCarty",
+        "name": "Matt McCarty",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 2,
+            "round": 1,
+            "roundScoreToPar": 2
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 12,
+            "round": 2,
+            "roundScoreToPar": 10
+          }
+        ],
+        "score": "+12",
+        "scoreToPar": 12,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:40Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Jake",
+        "id": "5289156",
+        "lastName": "Sollon",
+        "name": "Jake Sollon",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 12,
+            "round": 1,
+            "roundScoreToPar": 12
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 13,
+            "round": 2,
+            "roundScoreToPar": 1
+          }
+        ],
+        "score": "+13",
+        "scoreToPar": 13,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T13:02Z",
+        "thru": ""
+      },
+      {
+        "country": "Germany",
+        "firstName": "Matti",
+        "id": "4566443",
+        "lastName": "Schmid",
+        "name": "Matti Schmid",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 14,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+14",
+        "scoreToPar": 14,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T11:12Z",
+        "thru": ""
+      },
+      {
+        "country": "South Korea",
+        "firstName": "T.K.",
+        "id": "4567001",
+        "lastName": "Kim",
+        "name": "T.K. Kim",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 1,
+            "roundScoreToPar": 9
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 16,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+16",
+        "scoreToPar": 16,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T13:02Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Matthew",
+        "id": "5362523",
+        "lastName": "Robles",
+        "name": "Matthew Robles",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 16,
+            "round": 2,
+            "roundScoreToPar": 9
+          }
+        ],
+        "score": "+16",
+        "scoreToPar": 16,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T13:02Z",
+        "thru": ""
+      },
+      {
+        "country": "Spain",
+        "firstName": "Rocco",
+        "id": "5289692",
+        "lastName": "Repetto Taylor",
+        "name": "Rocco Repetto Taylor",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 11,
+            "round": 1,
+            "roundScoreToPar": 11
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 17,
+            "round": 2,
+            "roundScoreToPar": 6
+          }
+        ],
+        "score": "+17",
+        "scoreToPar": 17,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T10:50Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Robbie",
+        "id": "5277550",
+        "lastName": "Higgins",
+        "name": "Robbie Higgins",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 12,
+            "round": 1,
+            "roundScoreToPar": 12
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 19,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+19",
+        "scoreToPar": 19,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:57Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Jackson",
+        "id": "5360549",
+        "lastName": "Ormond",
+        "name": "Jackson Ormond",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 10,
+            "round": 1,
+            "roundScoreToPar": 10
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 20,
+            "round": 2,
+            "roundScoreToPar": 10
+          }
+        ],
+        "score": "+20",
+        "scoreToPar": 20,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:46Z",
+        "thru": ""
+      },
+      {
+        "country": "Iceland",
+        "firstName": "Arni",
+        "id": "5362524",
+        "lastName": "Sveinsson",
+        "name": "Arni Sveinsson",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 14,
+            "round": 1,
+            "roundScoreToPar": 14
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 21,
+            "round": 2,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+21",
+        "scoreToPar": 21,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T12:40Z",
+        "thru": ""
+      },
+      {
+        "country": "USA",
+        "firstName": "Greyson",
+        "id": "5327840",
+        "lastName": "Leach",
+        "name": "Greyson Leach",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 9,
+            "round": 1,
+            "roundScoreToPar": 9
+          },
+          {
+            "complete": true,
+            "cumulativeScoreToPar": 21,
+            "round": 2,
+            "roundScoreToPar": 12
+          }
+        ],
+        "score": "+21",
+        "scoreToPar": 21,
+        "startTee": 1,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-19T18:57Z",
+        "thru": ""
+      },
+      {
+        "country": "Australia",
+        "firstName": "Jason",
+        "id": "1680",
+        "lastName": "Day",
+        "name": "Jason Day",
+        "position": "CUT",
+        "roundScore": "",
+        "roundScores": [
+          {
+            "complete": false,
+            "cumulativeScoreToPar": 7,
+            "round": 1,
+            "roundScoreToPar": 7
+          }
+        ],
+        "score": "+7",
+        "scoreToPar": 7,
+        "startTee": 10,
+        "status": "cut",
+        "strokes": 0,
+        "teeTime": "2026-06-18T19:14Z",
+        "thru": ""
+      }
+    ],
+    "name": "U.S. Open",
+    "start_date": "2026-06-18",
+    "status": "live"
+  }
+}
