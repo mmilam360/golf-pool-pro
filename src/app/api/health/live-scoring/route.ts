@@ -12,6 +12,10 @@ function staleAfterMinutes(request: Request) {
   return Number.isFinite(value) && value > 0 ? value : 15
 }
 
+function isRealEspnEventId(value?: string | null) {
+  return Boolean(value && /^\d{3,20}$/.test(value))
+}
+
 export async function GET(request: Request) {
   const authError = requireCronAuth(request)
   if (authError) return authError
@@ -31,7 +35,8 @@ export async function GET(request: Request) {
 
     if (tournamentError) throw tournamentError
 
-    const tournamentIds = (tournaments || []).map((tournament: any) => tournament.id)
+    const realTournaments = (tournaments || []).filter((tournament: any) => isRealEspnEventId(tournament.external_id))
+    const tournamentIds = realTournaments.map((tournament: any) => tournament.id)
     let pools: any[] = []
     if (tournamentIds.length > 0) {
       const { data, error } = await supabase
@@ -54,7 +59,7 @@ export async function GET(request: Request) {
     if (cronError) throw cronError
 
     const summary = summarizeLiveScoringHealth({
-      tournaments: tournaments || [],
+      tournaments: realTournaments,
       pools,
       cronRuns: cronRuns || [],
       staleAfterMinutes: staleAfterMinutes(request),
