@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, entryMovementSincePriorRank, leaderboardForCompletedRound, leaderboardForRoundOnly, leaderboardHasPlayoffScores, normalizePickName, scoreEntriesForLeaderboard, type EntryMovement, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
-import { formatDateOnly } from '@/lib/date-utils'
+import { formatDateOnly, getDateOnly, todayDateOnly } from '@/lib/date-utils'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import { groupForPick, type PickGroup } from '@/lib/pool-formats'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
@@ -262,9 +262,27 @@ function historicalBoardCaption(mode: LeaderboardMode, hasPlayoffScores: boolean
   return isFinalRound(mode.round, hasPlayoffScores) ? 'Final standings' : `Standings through ${roundMenuLabel(mode.round)}`
 }
 
+function tournamentDateWindowIsActive(tournament: Tournament | null) {
+  const startDate = getDateOnly(tournament?.start_date || '')
+  if (!startDate) return false
+  const today = todayDateOnly()
+  const endDate = getDateOnly(tournament?.end_date || '')
+  return endDate ? startDate <= today && today <= endDate : startDate <= today
+}
+
+function hasLeaderboardRows(tournament: Tournament | null) {
+  return Array.isArray(tournament?.leaderboard_json) && tournament.leaderboard_json.length > 0
+}
+
+function tournamentIsInProgress(tournament: Tournament | null) {
+  if (tournament?.status === 'live') return true
+  if (hasOnCourseScores(tournament?.leaderboard_json)) return true
+  return tournamentDateWindowIsActive(tournament) && hasLeaderboardRows(tournament)
+}
+
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
   if (pool.is_completed || tournament?.status === 'completed') return 'Passed'
-  if (tournament?.status === 'live' || hasOnCourseScores(tournament?.leaderboard_json)) return 'Live'
+  if (tournamentIsInProgress(tournament)) return 'Live'
   if (pool.is_locked) return 'Locked'
   return 'Open'
 }
@@ -286,8 +304,8 @@ function hasRecentScores(tournament: Tournament | null, nowMs?: number | null) {
 }
 
 function hasEventBegun(tournament: Tournament | null) {
-  if (tournament?.status === 'live' || tournament?.status === 'completed') return true
-  if (hasOnCourseScores(tournament?.leaderboard_json)) return true
+  if (tournament?.status === 'completed') return true
+  if (tournamentIsInProgress(tournament)) return true
   return false
 }
 
@@ -309,11 +327,11 @@ function StatusBadge({ label, locked }: { label: string; locked: boolean }) {
   )
 }
 
-function LiveScoreStrip() {
+function LiveScoreStrip({ pulsing = false }: { pulsing?: boolean }) {
   return (
     <div className="mt-0.5 flex w-full items-center justify-center gap-1 border-t border-[#f0c8c3] bg-[#fff1ef] px-1 py-[2px] text-[8px] font-black uppercase leading-none tracking-[0.08em] text-[#b21e23] sm:text-[9px]">
       <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
-        <span className="absolute inline-flex h-full w-full animate-ping bg-[#b21e23] opacity-60" />
+        {pulsing ? <span className="absolute inline-flex h-full w-full animate-ping bg-[#b21e23] opacity-60" /> : null}
         <span className="relative inline-flex h-full w-full bg-[#b21e23]" />
       </span>
       Live
@@ -1525,13 +1543,13 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                     </div>
                   ) : null}
                   {eventBegun ? (
-                    <div className={`flex min-h-10 w-full shrink-0 flex-col items-center justify-center border border-[#123c2f] bg-white px-1 text-[13px] font-black uppercase leading-none text-[#111] shadow-[1px_1px_0_#d8cab0] sm:min-h-11 sm:px-2 sm:text-base sm:shadow-[2px_2px_0_#d8cab0] ${scoresAreLive ? 'py-0.5' : 'py-1.5'}`}>
+                    <div className={`flex min-h-10 w-full shrink-0 flex-col items-center justify-center border border-[#123c2f] bg-white px-1 text-[13px] font-black uppercase leading-none text-[#111] shadow-[1px_1px_0_#d8cab0] sm:min-h-11 sm:px-2 sm:text-base sm:shadow-[2px_2px_0_#d8cab0] ${label === 'Live' ? 'py-0.5' : 'py-1.5'}`}>
                       <div className="flex items-center gap-1 sm:gap-2">
                         {rankPreview?.rank ? <span className="text-[#123c2f]">#{rankPreview.rank}</span> : <span className="text-[#657168]">—</span>}
                         <span className="text-[#657168]">/</span>
                         <span className={scoreClass(rankPreview?.totalScore ?? null)}>{formatScore(rankPreview?.totalScore ?? null)}</span>
                       </div>
-                      {scoresAreLive ? <LiveScoreStrip /> : null}
+                      {label === 'Live' ? <LiveScoreStrip pulsing={scoresAreLive} /> : null}
                     </div>
                   ) : null}
                 </div>
