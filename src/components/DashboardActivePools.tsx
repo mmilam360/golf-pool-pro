@@ -276,12 +276,13 @@ function statusClass(label: string) {
   return 'border-[#cfe0d3] bg-[#eef7ef] text-[#1f6b4a]'
 }
 
-function hasRecentScores(tournament: Tournament | null) {
+function hasRecentScores(tournament: Tournament | null, nowMs?: number | null) {
   if (tournament?.status !== 'live' || !tournament.last_scores_fetch) return false
   if (!hasOnCourseScores(tournament.leaderboard_json)) return false
   const lastFetchMs = new Date(tournament.last_scores_fetch).getTime()
   if (!Number.isFinite(lastFetchMs)) return false
-  return Date.now() - lastFetchMs <= 5 * 60 * 1000
+  if (!nowMs) return false
+  return nowMs - lastFetchMs <= 5 * 60 * 1000
 }
 
 function hasEventBegun(tournament: Tournament | null) {
@@ -325,11 +326,12 @@ function scoreBadgeClass(score: number | null | undefined) {
   return 'border-[#d8cab0] bg-white text-[#111]'
 }
 
-function formatScoreFreshness(value?: string | null) {
+function formatScoreFreshness(value?: string | null, nowMs?: number | null) {
   if (!value) return null
   const updatedMs = new Date(value).getTime()
   if (!Number.isFinite(updatedMs)) return null
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - updatedMs) / 1000))
+  if (!nowMs) return null
+  const diffSeconds = Math.max(0, Math.floor((nowMs - updatedMs) / 1000))
   if (diffSeconds < 60) return 'Updated just now'
   const diffMinutes = Math.floor(diffSeconds / 60)
   if (diffMinutes < 60) return `Updated ${diffMinutes}m ago`
@@ -712,7 +714,7 @@ function MyEntryPreTournamentBadges({ pool, entry }: { pool: PoolRecord; entry?:
   )
 }
 
-function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntryToggle, teeTimeZone, mode, viewStateKey }: {
+function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntryToggle, teeTimeZone, mode, viewStateKey, nowMs }: {
   pool: PoolRecord
   entries: EntryRecord[]
   currentEntryId?: string | null
@@ -721,6 +723,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   teeTimeZone: string
   mode: 'player' | 'runner'
   viewStateKey: string
+  nowMs: number | null
 }) {
   const countScores = pool.count_scores || pool.pick_count || 0
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
@@ -801,7 +804,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
   const currentMovementToday = currentScoredEntry && leaderboardModeIsCurrent && priorMovementEntries.length > 0
     ? entryMovementSincePriorRank(currentScoredEntry, priorMovementEntries)
     : null
-  const scoreFreshness = formatScoreFreshness(tournament?.last_scores_fetch)
+  const scoreFreshness = formatScoreFreshness(tournament?.last_scores_fetch, nowMs)
   const boardSectionRef = useRef<HTMLDivElement>(null)
   const fixedMyEntryBarRef = useRef<HTMLDivElement>(null)
   const [fixedMyEntryBarState, setFixedMyEntryBarState] = useState<'before' | 'shown' | 'after'>('before')
@@ -1223,6 +1226,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const [expandedEntryIds, setExpandedEntryIds] = useState<Record<string, Set<string>>>(() => initialExpandedEntryIds(cards, viewStateKey))
   const [liveLeaderboardsByExternalId, setLiveLeaderboardsByExternalId] = useState<Record<string, LiveTournamentPayload>>({})
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
+  const [nowMs, setNowMs] = useState<number | null>(null)
   const [poolOrder, setPoolOrder] = useState<string[]>(() => cards.map(card => card.pool.id))
   const [poolOrderHydrated, setPoolOrderHydrated] = useState(false)
   const [sortMode, setSortMode] = useState(false)
@@ -1283,6 +1287,13 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   useEffect(() => {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
     if (detected) setTeeTimeZone(detected)
+  }, [])
+
+  useEffect(() => {
+    const updateNow = () => setNowMs(Date.now())
+    updateNow()
+    const intervalId = window.setInterval(updateNow, 30000)
+    return () => window.clearInterval(intervalId)
   }, [])
 
   useEffect(() => {
@@ -1413,7 +1424,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   if (cards.length === 0) return null
 
   return (
-    <section className={useSinglePoolMobileLayout ? 'border-0 bg-transparent shadow-none sm:border-2 sm:border-[#123c2f] sm:bg-white sm:shadow-[7px_7px_0_#d8cab0]' : 'border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]'}>
+    <section data-dashboard-active-pools="true" className={useSinglePoolMobileLayout ? 'border-0 bg-transparent shadow-none sm:border-2 sm:border-[#123c2f] sm:bg-white sm:shadow-[7px_7px_0_#d8cab0]' : 'border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]'}>
       <div className={`${useSinglePoolMobileLayout ? 'hidden sm:flex' : 'flex'} items-center justify-between gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-3 py-2 text-white sm:px-5 sm:py-3`}>
         <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#d7c99f] sm:text-xs sm:tracking-[0.22em]">Active pools</h2>
         <div className="flex items-center gap-2">
@@ -1441,7 +1452,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
           const rankPreview = entry ? buildRankPreview(entry, effectivePool, poolEntries) : null
           const openEntryIds = expandedEntryIds[pool.id] ?? null
           const eventBegun = hasEventBegun(effectiveTournament)
-          const scoresAreLive = hasRecentScores(effectiveTournament)
+          const scoresAreLive = hasRecentScores(effectiveTournament, nowMs)
           const tournamentDisplayName = displayTournamentName(effectiveTournament?.name) || 'Tournament'
           const canReorderPools = canSortPools && sortMode
           const isPoolOpen = !canReorderPools && (useSinglePoolMobileLayout || expandedPoolIds.has(pool.id))
@@ -1551,6 +1562,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                     mode={mode}
                     viewStateKey={viewStateKey}
                     teeTimeZone={teeTimeZone}
+                    nowMs={nowMs}
                   />
                   <div className="border-t border-[#eadfca] bg-[#fbf7ed] px-3 py-3 sm:px-5 sm:py-4">
                     <TournamentLeaderboard

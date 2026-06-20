@@ -19,6 +19,7 @@ type Props = {
 }
 
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
+const HYDRATION_SAFE_NOW = new Date(0)
 
 function normalizedName(name?: string | null) {
   return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ')
@@ -28,11 +29,11 @@ function statusLabel(player: GolfPlayer, timeZone: string) {
   return tournamentThruLabel(player, timeZone)
 }
 
-function updatedLabel(value?: string | null) {
+function updatedLabel(value?: string | null, timeZone = DEFAULT_TEE_TIME_ZONE) {
   if (!value) return ''
   const parsed = new Date(value)
   if (!Number.isFinite(parsed.getTime())) return ''
-  return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  return parsed.toLocaleTimeString('en-US', { timeZone, hour: 'numeric', minute: '2-digit' })
 }
 
 function todayLabel(player: GolfPlayer, timeZone: string) {
@@ -56,8 +57,8 @@ function shouldShowCutLineAfter(rows: GolfPlayer[], index: number, cutLine?: Gol
 export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated, defaultOpen = false, pickedGolfers = [], cutLine, pickGroups = [] }: Props) {
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
   const [isOpen, setIsOpen] = useState(defaultOpen)
+  const [now, setNow] = useState(HYDRATION_SAFE_NOW)
   const rows = Array.isArray(leaderboard) ? leaderboard : []
-  const now = new Date()
   const displayRows = sortTournamentLeaderboardRows(rows, now)
   const hasOfficialCuts = displayRows.some(player => player.status === 'cut') && cutLine && !cutLine.projected
   const hasGroupBadges = pickGroups.length > 0
@@ -72,9 +73,16 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
     if (detected) setTeeTimeZone(detected)
   }, [])
 
+  useEffect(() => {
+    const updateNow = () => setNow(new Date())
+    updateNow()
+    const intervalId = window.setInterval(updateNow, 30000)
+    return () => window.clearInterval(intervalId)
+  }, [])
+
   if (rows.length === 0) return null
 
-  const updated = updatedLabel(lastUpdated)
+  const updated = updatedLabel(lastUpdated, teeTimeZone)
   const pickedNames = new Set(pickedGolfers.map(normalizedName).filter(Boolean))
   const hasPickedGolfers = pickedNames.size > 0
 

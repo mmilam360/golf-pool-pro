@@ -13,6 +13,11 @@ function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || Boolean((window.navigator as any).standalone)
 }
 
+function dashboardHasActivePools() {
+  if (typeof document === 'undefined') return false
+  return Boolean(document.querySelector('[data-dashboard-active-pools="true"]'))
+}
+
 function ChevronIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -49,12 +54,20 @@ export function MobileInstallPrompt() {
 
   useEffect(() => {
     const editPicksRoute = /^\/pool\/[^/]+$/.test(pathname) && hash === '#make-picks'
-    const shouldOfferInstall = !editPicksRoute && (pathname === '/dashboard' || /^\/pool\/[^/]+$/.test(pathname))
+    const shouldOfferInstall = !editPicksRoute && pathname === '/dashboard'
     const dismissedBefore = window.localStorage.getItem('gpp-install-dismissed') === 'true'
     setDismissed(dismissedBefore)
 
     const compactScreen = window.matchMedia('(max-width: 900px)').matches
-    setReady(shouldOfferInstall && compactScreen && !dismissedBefore && !isStandalone())
+    let showTimer: number | null = null
+    const canShow = shouldOfferInstall && compactScreen && !dismissedBefore && !isStandalone() && !dashboardHasActivePools()
+    if (canShow) {
+      showTimer = window.setTimeout(() => {
+        if (!dashboardHasActivePools()) setReady(true)
+      }, 1500)
+    } else {
+      setReady(false)
+    }
 
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault()
@@ -62,7 +75,10 @@ export function MobileInstallPrompt() {
     }
 
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+    return () => {
+      if (showTimer) window.clearTimeout(showTimer)
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+    }
   }, [hash, pathname])
 
   const platform = useMemo(() => {
@@ -89,18 +105,18 @@ export function MobileInstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-3 left-1/2 z-50 w-[22rem] max-w-[calc(100vw-1.5rem)] -translate-x-1/2 border-2 border-[#123c2f] bg-[#fbf7ed]/95 p-3 text-[#111] shadow-[4px_4px_0_#00442c] backdrop-blur">
+    <div className={`fixed bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] right-3 z-50 max-w-[calc(100vw-1.5rem)] border-2 border-[#123c2f] bg-[#fbf7ed]/95 text-[#111] shadow-[3px_3px_0_#00442c] backdrop-blur ${expanded ? 'w-[21rem] p-3' : 'w-auto p-1.5'}`}>
       <div className="flex items-start justify-between gap-2">
         <button type="button" onClick={() => setExpanded(value => !value)} className="flex min-w-0 flex-1 items-start gap-2 text-left" aria-expanded={expanded}>
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center border border-[#123c2f] bg-white text-[#123c2f]">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#123c2f] bg-white text-[#123c2f]">
             <ChevronIcon expanded={expanded} />
           </span>
-          <span className="min-w-0">
-            <span className="block font-display text-[11px] font-black uppercase tracking-[0.08em] text-[#005b3c]">Install Golf Pools Pro</span>
-            <span className="block text-[11px] font-semibold leading-4 text-stone-700">Add it to your home screen so the pool is one tap away.</span>
+          <span className={`min-w-0 ${expanded ? '' : 'pr-1'}`}>
+            <span className="block whitespace-nowrap font-display text-[11px] font-black uppercase tracking-[0.08em] text-[#005b3c]">Install app</span>
+            {expanded ? <span className="block text-[11px] font-semibold leading-4 text-stone-700">Add Golf Pools Pro to your home screen.</span> : null}
           </span>
         </button>
-        <button type="button" onClick={close} className="border border-[#111] bg-white px-2 py-1 text-[9px] font-black uppercase text-[#111]">
+        <button type="button" onClick={close} className="border border-[#111] bg-white px-2 py-1.5 text-[9px] font-black uppercase text-[#111]">
           Hide
         </button>
       </div>
