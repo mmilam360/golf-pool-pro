@@ -368,7 +368,7 @@ function PoolCard({ pool, entries, nextOpenTournament }: { pool: PoolRecord; ent
 export default async function ManagePoolsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) redirect('/login?redirect=%2Fmanage-pools')
 
   const { data: ownedPools } = await supabase
     .from('gpp_pools')

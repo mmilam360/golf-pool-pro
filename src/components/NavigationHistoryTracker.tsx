@@ -41,18 +41,44 @@ export function NavigationHistoryTracker() {
   const pathname = usePathname()
 
   useEffect(() => {
-    try {
-      const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
-      const lastCurrent = window.sessionStorage.getItem(CURRENT_ROUTE_KEY)
-      if (!current || current === lastCurrent) return
-      if (lastCurrent && isSafeBackRoute(lastCurrent)) {
-        window.sessionStorage.setItem(PREVIOUS_ROUTE_KEY, lastCurrent)
+    const trackCurrentRoute = () => {
+      try {
+        const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
+        const lastCurrent = window.sessionStorage.getItem(CURRENT_ROUTE_KEY)
+        if (!current || current === lastCurrent) return
+        if (lastCurrent && isSafeBackRoute(lastCurrent)) {
+          window.sessionStorage.setItem(PREVIOUS_ROUTE_KEY, lastCurrent)
+        }
+        if (isSafeBackRoute(current)) {
+          window.sessionStorage.setItem(CURRENT_ROUTE_KEY, current)
+        }
+      } catch {
+        // sessionStorage can be unavailable in private/restricted browsing; back button falls back safely.
       }
-      if (isSafeBackRoute(current)) {
-        window.sessionStorage.setItem(CURRENT_ROUTE_KEY, current)
-      }
-    } catch {
-      // sessionStorage can be unavailable in private/restricted browsing; back button falls back safely.
+    }
+
+    const originalPushState = window.history.pushState
+    const originalReplaceState = window.history.replaceState
+    const notifyRouteChange = () => window.setTimeout(trackCurrentRoute, 0)
+    window.history.pushState = function pushState(...args) {
+      const result = originalPushState.apply(this, args)
+      notifyRouteChange()
+      return result
+    }
+    window.history.replaceState = function replaceState(...args) {
+      const result = originalReplaceState.apply(this, args)
+      notifyRouteChange()
+      return result
+    }
+
+    trackCurrentRoute()
+    window.addEventListener('hashchange', trackCurrentRoute)
+    window.addEventListener('popstate', trackCurrentRoute)
+    return () => {
+      window.history.pushState = originalPushState
+      window.history.replaceState = originalReplaceState
+      window.removeEventListener('hashchange', trackCurrentRoute)
+      window.removeEventListener('popstate', trackCurrentRoute)
     }
   }, [pathname])
 

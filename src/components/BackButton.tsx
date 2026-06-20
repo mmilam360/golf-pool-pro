@@ -28,7 +28,7 @@ function safeBackTarget(fallbackHref: string) {
     const referrer = document.referrer ? new URL(document.referrer) : null
     if (!referrer || referrer.origin !== window.location.origin) return fallbackHref
 
-    const target = `${referrer.pathname}${referrer.search}`
+    const target = `${referrer.pathname}${referrer.search}${referrer.hash}`
     if (blockedBackTargets.some(path => referrer.pathname === path || referrer.pathname.startsWith(`${path}/`))) {
       return fallbackHref
     }
@@ -42,6 +42,7 @@ function safeBackTarget(fallbackHref: string) {
 export function BackButton({ fallbackHref = '/dashboard', label = 'Back', className = '' }: BackButtonProps) {
   const router = useRouter()
   const [target, setTarget] = useState(fallbackHref)
+  const [navigating, setNavigating] = useState(false)
 
   useEffect(() => {
     const nextTarget = safeBackTarget(fallbackHref)
@@ -50,14 +51,18 @@ export function BackButton({ fallbackHref = '/dashboard', label = 'Back', classN
   }, [fallbackHref, router])
 
   function goBack() {
-    router.push(target)
+    if (navigating) return
+    setNavigating(true)
+    router.replace(target)
   }
 
   return (
     <button
       type="button"
       onClick={goBack}
-      className={`mb-4 inline-flex items-center gap-2 border-2 border-[#123c2f] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] transition-colors hover:bg-[#fbf7ed] ${className}`}
+      disabled={navigating}
+      aria-busy={navigating}
+      className={`mb-4 inline-flex items-center gap-2 border-2 border-[#123c2f] bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] transition-colors hover:bg-[#fbf7ed] disabled:cursor-wait disabled:opacity-60 ${className}`}
     >
       <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M10 3 5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />

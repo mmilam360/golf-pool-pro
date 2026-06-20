@@ -46,7 +46,9 @@ function SignOutButton({ className = '' }: { className?: string }) {
 export default function AppHeader() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const currentPath = `${pathname || '/dashboard'}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+  const searchKey = searchParams.toString()
+  const [clientHash, setClientHash] = useState('')
+  const currentPath = `${pathname || '/dashboard'}${searchKey ? `?${searchKey}` : ''}${clientHash}`
   const [menuOpen, setMenuOpen] = useState(false)
   const [signedIn, setSignedIn] = useState(false)
 
@@ -69,8 +71,15 @@ export default function AppHeader() {
   }, [])
 
   useEffect(() => {
+    const updateHash = () => setClientHash(window.location.hash || '')
+    updateHash()
+    window.addEventListener('hashchange', updateHash)
+    return () => window.removeEventListener('hashchange', updateHash)
+  }, [])
+
+  useEffect(() => {
     setMenuOpen(false)
-  }, [pathname])
+  }, [pathname, searchKey])
 
   const closeMenu = () => setMenuOpen(false)
   const logoHref = signedIn ? '/dashboard' : '/'

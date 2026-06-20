@@ -311,7 +311,7 @@ function WinnerTrophyIcon() {
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) redirect('/login?redirect=%2Fdashboard')
 
   const [ownedPoolsResult, entriesResult, pendingInvitesResult, dismissedFinalResultsResult, upcomingTournamentsResult] = await Promise.all([
     supabase

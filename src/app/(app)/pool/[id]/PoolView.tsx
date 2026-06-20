@@ -438,7 +438,8 @@ function historicalBoardCaption(mode: LeaderboardMode, hasPlayoffScores: boolean
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, guestEntryToken = '', initialHighlightedEntryId = null }: Props) {
   const router = useRouter()
   const guestMode = Boolean(guestEntryToken)
-  const [tab, setTab] = useState<Tab>(guestMode ? 'my-entry' : publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry')
+  const defaultTab: Tab = guestMode ? 'my-entry' : publicView ? 'leaderboard' : initialMyEntry?.golfer_picks?.length ? 'leaderboard' : 'my-entry'
+  const [tab, setTab] = useState<Tab>(defaultTab)
   const [entries, setEntries] = useState(initialEntries)
   const entriesRef = useRef(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
@@ -462,6 +463,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [publicLeaderboardUrl, setPublicLeaderboardUrl] = useState('')
   const [removeTarget, setRemoveTarget] = useState<string | null>(null)
   const [removeReason, setRemoveReason] = useState('')
+  const [removingEntryId, setRemovingEntryId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState(pool.name)
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [showLockConfirm, setShowLockConfirm] = useState(false)
@@ -526,13 +528,31 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         setTab('leaderboard')
       } else if (requestedTab === 'my-entry' && !publicView) {
         setTab('my-entry')
+      } else {
+        setTab(defaultTab)
       }
     }
 
     applyRouteState()
     window.addEventListener('hashchange', applyRouteState)
-    return () => window.removeEventListener('hashchange', applyRouteState)
-  }, [isOwner, publicView])
+    window.addEventListener('popstate', applyRouteState)
+    return () => {
+      window.removeEventListener('hashchange', applyRouteState)
+      window.removeEventListener('popstate', applyRouteState)
+    }
+  }, [defaultTab, isOwner, publicView])
+
+  const selectPoolTab = useCallback((nextTab: Tab) => {
+    setEntryEditOnly(false)
+    setTab(nextTab)
+    if (typeof window === 'undefined' || guestMode || publicView) return
+    const url = new URL(window.location.href)
+    url.hash = ''
+    url.searchParams.set('tab', nextTab)
+    const nextPath = `${url.pathname}${url.search}`
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    if (nextPath !== currentPath) window.history.pushState({}, '', nextPath)
+  }, [guestMode, publicView])
 
   useEffect(() => {
     if (!initialHighlightedEntryId) return
@@ -1482,30 +1502,38 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
   // Remove entry: owners can remove entrants; signed-in non-owners can leave their own unlocked pool.
   async function removeEntry(entryId: string) {
+    if (removingEntryId) return
     const leavingOwnEntry = !isOwner && myEntry?.id === entryId
-    const res = await fetch(`/api/pools/${pool.id}/entries`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(leavingOwnEntry ? { action: 'leave', entryId } : { entryId, removedReason: removeReason }),
-    })
-    const data = await res.json().catch(() => ({}))
-    if (res.ok) {
-      const nextRemovedReason = leavingOwnEntry ? 'Left pool' : data.removedReason || removeReason || 'Removed by pool runner'
-      setEntries(current => current.map(e => e.id === entryId ? { ...e, is_removed: true, removed_reason: nextRemovedReason } : e))
-      setRemoveTarget(null); setRemoveReason('')
-      if (leavingOwnEntry) {
-        setMyEntry(null)
-        setMyPicks([])
-        setEntryNameValue('')
-        setFullNameValue('')
-        showToast('You left the pool.', 'success')
+    setRemovingEntryId(entryId)
+    try {
+      const res = await fetch(`/api/pools/${pool.id}/entries`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(leavingOwnEntry ? { action: 'leave', entryId } : { entryId, removedReason: removeReason }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        const nextRemovedReason = leavingOwnEntry ? 'Left pool' : data.removedReason || removeReason || 'Removed by pool runner'
+        setEntries(current => current.map(e => e.id === entryId ? { ...e, is_removed: true, removed_reason: nextRemovedReason } : e))
+        setRemoveTarget(null); setRemoveReason('')
+        if (leavingOwnEntry) {
+          setMyEntry(null)
+          setMyPicks([])
+          setEntryNameValue('')
+          setFullNameValue('')
+          showToast('You left the pool.', 'success')
+        } else {
+          showToast('Entry removed.', 'success')
+          refreshPaymentQuote()
+          void refreshPoolEntries()
+        }
       } else {
-        showToast('Entry removed.', 'success')
-        refreshPaymentQuote()
+        showToast(data.error || (leavingOwnEntry ? 'Could not leave pool.' : 'Could not remove entry.'), 'error')
       }
-      router.refresh()
-    } else {
-      showToast(data.error || (leavingOwnEntry ? 'Could not leave pool.' : 'Could not remove entry.'), 'error')
+    } catch {
+      showToast(leavingOwnEntry ? 'Could not leave pool.' : 'Could not remove entry.', 'error')
+    } finally {
+      setRemovingEntryId(null)
     }
   }
 
@@ -2288,7 +2316,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {!entryEditOnly && !publicView && !guestMode && (
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-none p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-entry', ...(isOwner ? ['pool-settings'] as Tab[] : [])] as Tab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)}
+          <button key={t} onClick={() => selectPoolTab(t)}
             className={`px-4 py-2 rounded-none text-sm font-medium transition-colors ${
               tab === t ? 'bg-white text-emerald-900' : 'text-stone-600 hover:text-emerald-800'
             }`}>
@@ -3207,9 +3235,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       <button
                         type="button"
                         onClick={() => setRemoveTarget(entry.id)}
-                        className="px-2 text-xs text-red-700 hover:text-red-800"
+                        disabled={Boolean(removingEntryId)}
+                        className="px-2 text-xs text-red-700 hover:text-red-800 disabled:cursor-wait disabled:opacity-50"
                       >
-                        Remove
+                        {removingEntryId === entry.id ? 'Removing...' : 'Remove'}
                       </button>
                     )}
                   </div>
@@ -3303,14 +3332,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 value={removeReason}
                 onChange={e => setRemoveReason(e.target.value)}
                 placeholder="Reason"
-                className="mb-4 w-full rounded-none border border-stone-300 bg-white px-4 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                disabled={Boolean(removingEntryId)}
+                className="mb-4 w-full rounded-none border border-stone-300 bg-white px-4 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100 disabled:cursor-wait disabled:bg-stone-100"
               />
             )}
             <div className="flex justify-end gap-3">
-              <button onClick={() => { setRemoveTarget(null); setRemoveReason('') }}
-                className="px-4 py-2 text-sm font-semibold text-stone-600 hover:text-stone-900">Cancel</button>
-              <button onClick={() => removeEntry(removeTarget)}
-                className="rounded-none bg-[#b21e23] px-4 py-2 text-sm font-black uppercase text-white hover:bg-[#8a1719]">{removingOwnEntry ? 'Leave pool' : 'Remove'}</button>
+              <button disabled={Boolean(removingEntryId)} onClick={() => { setRemoveTarget(null); setRemoveReason('') }}
+                className="px-4 py-2 text-sm font-semibold text-stone-600 hover:text-stone-900 disabled:cursor-wait disabled:opacity-50">Cancel</button>
+              <button disabled={Boolean(removingEntryId)} onClick={() => removeEntry(removeTarget)}
+                className="rounded-none bg-[#b21e23] px-4 py-2 text-sm font-black uppercase text-white hover:bg-[#8a1719] disabled:cursor-wait disabled:opacity-60">{removingEntryId === removeTarget ? (removingOwnEntry ? 'Leaving...' : 'Removing...') : removingOwnEntry ? 'Leave pool' : 'Remove'}</button>
             </div>
           </div>
         </div>
