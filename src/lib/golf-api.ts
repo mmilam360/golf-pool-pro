@@ -146,6 +146,10 @@ async function getEspnLeaderboardMetadata(eventId: string): Promise<EspnLeaderbo
   }
 }
 
+export async function getEspnLeaderboardCutLine(eventId: string): Promise<GolfCutLine | null> {
+  return (await getEspnLeaderboardMetadata(eventId)).cutLine
+}
+
 function splitName(name: string) {
   const parts = name.trim().split(/\s+/)
   return { firstName: parts[0] || '', lastName: parts.slice(1).join(' ') }

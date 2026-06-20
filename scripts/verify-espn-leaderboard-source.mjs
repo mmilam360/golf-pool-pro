@@ -109,12 +109,17 @@ assert(repairedCutStatus[0].position === 'CUT', 'repair does not invent rank dat
 
 const golfApi = readFileSync(new URL('../src/lib/golf-api.ts', import.meta.url), 'utf8')
 const tournamentSync = readFileSync(new URL('../src/lib/tournament-sync.ts', import.meta.url), 'utf8')
+const leaderboardRoute = readFileSync(new URL('../src/app/api/tournaments/leaderboard/route.ts', import.meta.url), 'utf8')
 assert(!golfApi.includes('pgatour-api'), 'golf-api should not use PGA Tour leaderboard APIs')
 assert(!tournamentSync.includes('pgatour-api'), 'tournament-sync should not use PGA Tour field APIs')
 assert(!tournamentSync.includes('pgachampionship.com/players'), 'tournament-sync should not scrape PGA Championship player page')
 assert(
   golfApi.includes('competitors/${playerId}/linescores?lang=en&region=us`, NEXT_NO_STORE'),
   'per-player linescore fetch must be no-store so today/thru does not lag behind total score'
+)
+assert(
+  golfApi.includes('export async function getEspnLeaderboardCutLine') && leaderboardRoute.includes('getEspnLeaderboardCutLine(eventId)'),
+  'stored full leaderboard route must still fetch ESPN cut metadata so projected cut lines show before official CUT statuses'
 )
 
 console.log('ESPN leaderboard source verification passed')

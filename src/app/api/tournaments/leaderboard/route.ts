@@ -1,6 +1,7 @@
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
+import { getEspnLeaderboardCutLine } from '@/lib/golf-api'
 import { createServiceClient } from '@/lib/supabase/service'
 
 function validEventId(eventId: string | null) {
@@ -83,6 +84,9 @@ export async function GET(request: Request) {
       return cachedJson({ error: 'Leaderboard unavailable' }, { status: 502 })
     }
 
+    const cutLine = await getEspnLeaderboardCutLine(eventId).catch(() => null)
+      || cutLineFromStoredLeaderboard(leaderboard)
+
     return cachedJson({
       id: tournament.external_id || tournament.id,
       name: tournament.name,
@@ -93,7 +97,7 @@ export async function GET(request: Request) {
       status: tournament.status || 'upcoming',
       round: currentRound(leaderboard),
       leaderboard,
-      cutLine: cutLineFromStoredLeaderboard(leaderboard),
+      cutLine,
       lastScoresFetch: tournament.last_scores_fetch || null,
     })
   } catch {
