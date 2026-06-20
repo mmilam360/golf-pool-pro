@@ -34,6 +34,33 @@ function toDateOnly(value: string | null | undefined) {
   return value?.split('T')[0] || value || null
 }
 
+function todayDateOnly(now: Date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+}
+
+function tournamentWindowIncludesToday(row: { start_date?: string | null; end_date?: string | null }, now: Date) {
+  const startDate = toDateOnly(row.start_date)
+  if (!startDate) return false
+  const today = todayDateOnly(now)
+  const endDate = toDateOnly(row.end_date)
+  return endDate ? startDate <= today && today <= endDate : startDate <= today
+}
+
+function hasStoredLeaderboard(existing: any) {
+  return Array.isArray(existing?.leaderboard_json) && existing.leaderboard_json.length > 0
+}
+
+export function shouldPreserveLiveTournamentStatus(status: string, existing: any, row: { start_date?: string | null; end_date?: string | null }, now: Date) {
+  if (String(status || '').toLowerCase() !== 'upcoming') return false
+  if (String(existing?.status || '').toLowerCase() !== 'live' && !hasStoredLeaderboard(existing)) return false
+  return tournamentWindowIncludesToday(row, now)
+}
+
 function getStatus(event: any) {
   if (event.status === 'live' || event.status === 'completed') return event.status
 
@@ -563,6 +590,9 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       now,
       activation.activatedExternalIds.has(row.external_id),
     )
+    if (shouldPreserveLiveTournamentStatus(status, existing, row, now)) {
+      status = 'live'
+    }
     row.status = status
 
     const liveLeaderboard = (status === 'live' || status === 'completed') ? await getLeaderboard(row.external_id).catch(() => null) : null
@@ -724,6 +754,7 @@ export async function syncTournaments({
   season?: number
   doLive?: boolean
 } = {}): Promise<TournamentSyncResult> {
+  const now = new Date()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -870,7 +901,10 @@ export async function syncTournaments({
       }
     }
 
-    const effectiveStatus = completedStatusFromFinalRound(status, leaderboardPlayers || players, leaderboardRound || bestEvent.status?.period || bestEvent.competitions?.[0]?.status?.period)
+    let effectiveStatus = completedStatusFromFinalRound(status, leaderboardPlayers || players, leaderboardRound || bestEvent.status?.period || bestEvent.competitions?.[0]?.status?.period)
+    if (shouldPreserveLiveTournamentStatus(effectiveStatus, existing, row, now)) {
+      effectiveStatus = 'live'
+    }
     row.status = effectiveStatus
     if (effectiveStatus === 'completed' && leaderboardPlayers?.length) {
       row.leaderboard_json = leaderboardPlayers

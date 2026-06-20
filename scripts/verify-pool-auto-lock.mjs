@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { emptyEntryIdsForAutoRemoval, entryHasSubmittedPicks } from '../src/lib/entry-picks.ts'
 import { firstTeeTimeFromField, groupsAreReady, tournamentIsDueToLock, tournamentIsInLiveActivationWindow } from '../src/lib/pool-auto-lock.ts'
-import { liveSyncActivationForTournament, resolveLiveSyncStatus } from '../src/lib/tournament-sync.ts'
+import { liveSyncActivationForTournament, resolveLiveSyncStatus, shouldPreserveLiveTournamentStatus } from '../src/lib/tournament-sync.ts'
 
 const today = '2026-06-04'
 const firstTee = '2026-06-04T12:00:00Z'
@@ -28,6 +28,24 @@ assert.equal(resolveLiveSyncStatus('live', [{ teeTime: firstTee }], new Date('20
 assert.equal(resolveLiveSyncStatus('completed', [{ teeTime: firstTee }], new Date('2026-06-04T00:05:00Z'), false), 'upcoming', 'ESPN early-completed status is ignored before first tee when stored tee times exist')
 assert.equal(resolveLiveSyncStatus('live', [{ teeTime: firstTee }], new Date('2026-06-04T11:55:00Z'), false), 'live', 'ESPN live status is accepted inside first-tee window')
 assert.equal(resolveLiveSyncStatus('upcoming', [{ teeTime: firstTee }], new Date('2026-06-04T11:55:00Z'), true), 'live', 'first-tee activation can promote upcoming to live')
+assert.equal(shouldPreserveLiveTournamentStatus(
+  'upcoming',
+  { status: 'live', leaderboard_json: [{ name: 'Scottie Scheffler' }] },
+  { start_date: '2026-06-04', end_date: '2026-06-07' },
+  new Date('2026-06-04T16:00:00Z')
+), true, 'schedule sync cannot downgrade an active in-window tournament with stored leaderboard rows')
+assert.equal(shouldPreserveLiveTournamentStatus(
+  'upcoming',
+  { status: 'live', leaderboard_json: [{ name: 'Scottie Scheffler' }] },
+  { start_date: '2026-06-04', end_date: '2026-06-07' },
+  new Date('2026-06-08T16:00:00Z')
+), false, 'live preservation stops after the tournament window')
+assert.equal(shouldPreserveLiveTournamentStatus(
+  'completed',
+  { status: 'live', leaderboard_json: [{ name: 'Scottie Scheffler' }] },
+  { start_date: '2026-06-04', end_date: '2026-06-07' },
+  new Date('2026-06-06T16:00:00Z')
+), false, 'completed status is never downgraded by preservation guard')
 
 assert.equal(groupsAreReady({ id: 'p1', game_format: 'standard' }), true, 'standard pools do not need group finalization')
 assert.equal(groupsAreReady({ id: 'p1', game_format: 'ranked_groups', groups_finalized_at: null }), false, 'ranked pools wait for finalized groups')
