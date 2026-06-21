@@ -34,10 +34,28 @@ function getTournament(pool: PoolRow) {
   return Array.isArray(tournament) ? tournament[0] || null : tournament || null
 }
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase()
+}
+
 function maskEmail(email: string) {
   const [local, domain] = email.split('@')
   if (!local || !domain) return '***'
   return `${local.slice(0, 2)}***@${domain}`
+}
+
+async function paymentReminderAlreadySent(supabase: any, poolId: string, recipient: string) {
+  const { data, error } = await supabase
+    .from('gpp_email_events')
+    .select('id')
+    .eq('pool_id', poolId)
+    .eq('email_type', EMAIL_TYPE)
+    .eq('status', 'sent')
+    .ilike('recipient', normalizeEmail(recipient))
+    .limit(1)
+
+  if (error) throw error
+  return Boolean(data?.length)
 }
 
 function dueDateOnly(startDate?: string | null) {
@@ -144,10 +162,11 @@ export async function GET(request: Request) {
         continue
       }
 
+      const normalizedRecipient = normalizeEmail(recipient)
       const payload = {
         poolId: pool.id,
         poolName: pool.name || 'Pool',
-        recipient: maskEmail(recipient),
+        recipient: maskEmail(normalizedRecipient),
         tournamentName: tournament?.name || 'Tournament',
         activeEntryCount: entryCount,
         amountDue: formatMoney(quote.amountDueCents),
@@ -158,12 +177,17 @@ export async function GET(request: Request) {
 
       if (dryRun) continue
 
-      const dedupeKey = `${EMAIL_TYPE}:${pool.id}:${today}`
+      if (await paymentReminderAlreadySent(supabase, pool.id, normalizedRecipient)) {
+        duplicate += 1
+        continue
+      }
+
+      const dedupeKey = `${EMAIL_TYPE}:${pool.id}:${normalizedRecipient}`
       const reservation = await reserveEmailEvent(supabase, {
         poolId: pool.id,
         emailType: EMAIL_TYPE,
         dedupeKey,
-        recipient,
+        recipient: normalizedRecipient,
         payload: {
           poolName: pool.name,
           tournamentName: tournament?.name,
@@ -181,7 +205,7 @@ export async function GET(request: Request) {
       try {
         const result = await sendPaymentDueReminderEmail({
           origin: siteOrigin(),
-          recipient,
+          recipient: normalizedRecipient,
           poolId: pool.id,
           poolName: pool.name || 'Pool',
           tournamentName: tournament?.name || 'Tournament',
@@ -193,7 +217,7 @@ export async function GET(request: Request) {
 
         if ((result as any).sent) {
           await finishEmailEvent(supabase, reservation.id, 'sent')
-          sent.push({ poolId: pool.id, poolName: pool.name, recipient: maskEmail(recipient), subject: result.subject })
+          sent.push({ poolId: pool.id, poolName: pool.name, recipient: maskEmail(normalizedRecipient), subject: result.subject })
         } else if ((result as any).skipped) {
           await finishEmailEvent(supabase, reservation.id, 'skipped', 'missing_email_provider_key')
           skipped += 1

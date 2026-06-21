@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, leaderboardForCompletedRound, leaderboardForRoundOnly, leaderboardHasPlayoffScores, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
-import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
+import { getPoolPaymentStatus, getTournamentSaturday, isPaymentHideGraceActive, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
@@ -735,7 +735,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       : isPoolFeePastDue(tournament?.start_date)
         ? `Payment is due${feeDueDate ? ` by ${feeDueDate}` : ' now'}.`
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
-  const leaderboardIsHidden = isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
+  const paymentHideGraceActive = isPaymentHideGraceActive(pool.id)
+  const leaderboardIsHidden = !paymentHideGraceActive && isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner
   const activeField = useMemo(() => field.filter(player => String(player.status || '').toLowerCase() !== 'wd'), [field])

@@ -8,6 +8,19 @@ export const OVERSIZE_ENTRY_BLOCK = 100
 export const OVERSIZE_BLOCK_PRICE_CENTS = 1000
 export const LIFETIME_ACCESS_CENTS = 20000
 
+const PAYMENT_HIDE_GRACE_UNTIL_BY_POOL_ID: Record<string, string> = {
+  // Temporary NOPGA grace through Sunday night ET so the live board stays visible while payment is resolved.
+  '60fad9f4-3018-4286-93b8-f124fb66eb5c': '2026-06-22T04:00:00.000Z',
+}
+
+export function isPaymentHideGraceActive(poolId?: string | null, now = new Date()) {
+  if (!poolId) return false
+  const graceUntil = PAYMENT_HIDE_GRACE_UNTIL_BY_POOL_ID[poolId]
+  if (!graceUntil) return false
+  const graceUntilMs = new Date(graceUntil).getTime()
+  return Number.isFinite(graceUntilMs) && now.getTime() < graceUntilMs
+}
+
 type PromoLike = {
   free_pool?: boolean | null
   discount_cents?: number | null

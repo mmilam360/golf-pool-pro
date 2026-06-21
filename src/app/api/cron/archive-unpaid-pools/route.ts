@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { getPoolPaymentStatus, isPoolFeePastDue } from '@/lib/payments/pricing'
+import { getPoolPaymentStatus, isPaymentHideGraceActive, isPoolFeePastDue } from '@/lib/payments/pricing'
 import { runCronRoute } from '@/lib/cron-run-log'
 
 export const runtime = 'nodejs'
@@ -30,8 +30,14 @@ export async function GET(request: Request) {
 
     let activatedFree = 0
     let archived = 0
+    let skippedGrace = 0
 
     for (const pool of pools || []) {
+      if (isPaymentHideGraceActive(pool.id)) {
+        skippedGrace += 1
+        continue
+      }
+
       const { count, error: countError } = await supabase
         .from('gpp_entries')
         .select('id', { count: 'exact', head: true })
@@ -60,6 +66,6 @@ export async function GET(request: Request) {
       }
     }
 
-    return { archived, activatedFree }
+    return { archived, activatedFree, skippedGrace }
   })
 }
