@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -46,13 +46,12 @@ export default function ResetPasswordPage() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     let active = true
 
     async function prepareRecoverySession() {
-      const client = createClient()
       const url = new URL(window.location.href)
       const code = url.searchParams.get('code')
       const hash = new URLSearchParams(url.hash.replace(/^#/, ''))
@@ -60,19 +59,27 @@ export default function ResetPasswordPage() {
       const refreshToken = hash.get('refresh_token')
 
       try {
+        let hasRecoverySession = false
+
         if (code) {
-          const { error } = await client.auth.exchangeCodeForSession(code)
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
           if (error) throw error
+          hasRecoverySession = Boolean(data.session)
           window.history.replaceState({}, '', '/reset-password')
         } else if (accessToken && refreshToken) {
-          const { error } = await client.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
           if (error) throw error
+          hasRecoverySession = Boolean(data.session)
           window.history.replaceState({}, '', '/reset-password')
         }
 
-        const { data } = await client.auth.getSession()
+        if (!hasRecoverySession) {
+          const { data } = await supabase.auth.getSession()
+          hasRecoverySession = Boolean(data.session)
+        }
+
         if (!active) return
-        setSessionReady(Boolean(data.session))
+        setSessionReady(hasRecoverySession)
       } catch {
         if (!active) return
         setSessionReady(false)
@@ -83,7 +90,7 @@ export default function ResetPasswordPage() {
 
     prepareRecoverySession()
     return () => { active = false }
-  }, [])
+  }, [supabase])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
