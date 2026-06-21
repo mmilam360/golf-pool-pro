@@ -1,7 +1,22 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
+
+function createPasswordResetClient() {
+  return createSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        persistSession: false,
+      },
+    }
+  )
+}
 
 function EyeIcon({ visible }: { visible: boolean }) {
   return visible ? (
@@ -46,7 +61,7 @@ export default function ResetPasswordPage() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createPasswordResetClient(), [])
 
   useEffect(() => {
     let active = true
