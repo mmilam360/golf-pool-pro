@@ -109,7 +109,6 @@ export async function finalizeCompletedPoolResults(
     for (const pool of (pools || []) as PoolRow[]) {
       result.poolsChecked++
       if (pool.results_finalized_at) {
-        await addFinalEmailResult(result, sendFinalResultsEmailsForPool(supabase, { pool, tournament }))
         result.skipped++
         continue
       }
