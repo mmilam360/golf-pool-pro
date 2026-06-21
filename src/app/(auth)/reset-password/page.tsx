@@ -1,12 +1,12 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
-function createPasswordResetClient() {
+function createPasswordResetClient(url = process.env.NEXT_PUBLIC_SUPABASE_URL!) {
   return createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    url,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       auth: {
@@ -16,6 +16,23 @@ function createPasswordResetClient() {
       },
     }
   )
+}
+
+function decodeBase64Url(value: string) {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=')
+  return atob(padded)
+}
+
+function getSupabaseUrlFromAccessToken(accessToken: string | null) {
+  if (!accessToken) return undefined
+  try {
+    const payload = JSON.parse(decodeBase64Url(accessToken.split('.')[1] || '')) as { iss?: unknown }
+    if (typeof payload.iss !== 'string') return undefined
+    return new URL(payload.iss).origin
+  } catch {
+    return undefined
+  }
 }
 
 function EyeIcon({ visible }: { visible: boolean }) {
@@ -61,7 +78,8 @@ export default function ResetPasswordPage() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const supabase = useMemo(() => createPasswordResetClient(), [])
+  const defaultSupabase = useMemo(() => createPasswordResetClient(), [])
+  const recoverySupabaseRef = useRef(defaultSupabase)
 
   useEffect(() => {
     let active = true
@@ -75,21 +93,25 @@ export default function ResetPasswordPage() {
 
       try {
         let hasRecoverySession = false
+        const recoverySupabase = accessToken
+          ? createPasswordResetClient(getSupabaseUrlFromAccessToken(accessToken))
+          : defaultSupabase
+        recoverySupabaseRef.current = recoverySupabase
 
         if (code) {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+          const { data, error } = await recoverySupabase.auth.exchangeCodeForSession(code)
           if (error) throw error
           hasRecoverySession = Boolean(data.session)
           window.history.replaceState({}, '', '/reset-password')
         } else if (accessToken && refreshToken) {
-          const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          const { data, error } = await recoverySupabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
           if (error) throw error
           hasRecoverySession = Boolean(data.session)
           window.history.replaceState({}, '', '/reset-password')
         }
 
         if (!hasRecoverySession) {
-          const { data } = await supabase.auth.getSession()
+          const { data } = await recoverySupabase.auth.getSession()
           hasRecoverySession = Boolean(data.session)
         }
 
@@ -105,7 +127,7 @@ export default function ResetPasswordPage() {
 
     prepareRecoverySession()
     return () => { active = false }
-  }, [supabase])
+  }, [defaultSupabase])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -120,7 +142,7 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true)
-    const { error } = await supabase.auth.updateUser({ password })
+    const { error } = await recoverySupabaseRef.current.auth.updateUser({ password })
     setLoading(false)
 
     if (error) {
