@@ -18,9 +18,9 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
   const [poolResult, entriesResult] = await Promise.all([
     supabase
       .from('gpp_pools')
-      .select('id, name, pick_count, count_scores, is_locked, is_completed, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, gpp_tournaments(id, external_id, name, course, location, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch)')
+      .select('id, tournament_id, name, pick_count, count_scores, is_locked, is_completed, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status')
       .eq('id', id)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('gpp_entries')
       .select('id, pool_id, display_name, golfer_picks, total_score, counting_scores, rank, is_removed, created_at')
@@ -28,12 +28,20 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
       .eq('is_removed', false)
       .order('created_at', { ascending: true }),
   ])
-  const { data: poolData } = poolResult
+  if (poolResult.error) throw poolResult.error
+  if (entriesResult.error) throw entriesResult.error
 
-  const pool = poolData as any
+  const pool = poolResult.data as any
   if (!pool) notFound()
 
-  const tournament = await hydrateFinalLeaderboard(pool.gpp_tournaments as any)
+  const { data: tournamentData, error: tournamentError } = await supabase
+    .from('gpp_tournaments')
+    .select('id, external_id, name, course, location, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch')
+    .eq('id', pool.tournament_id)
+    .maybeSingle()
+  if (tournamentError) throw tournamentError
+
+  const tournament = await hydrateFinalLeaderboard(tournamentData as any)
   const publicPool = {
     id: pool.id,
     name: pool.name,
