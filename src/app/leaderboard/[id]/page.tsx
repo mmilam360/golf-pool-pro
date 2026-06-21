@@ -18,7 +18,7 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
   const [poolResult, entriesResult] = await Promise.all([
     supabase
       .from('gpp_pools')
-      .select('id, tournament_id, name, pick_count, count_scores, is_locked, is_completed, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status')
+      .select('id, tournament_id, name, pick_count, count_scores, is_locked, is_completed, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, amount_paid_cents')
       .eq('id', id)
       .maybeSingle(),
     supabase
@@ -57,7 +57,7 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
     ob_rule_enabled: pool.ob_rule_enabled,
     ob_penalty_strokes: pool.ob_penalty_strokes,
     payment_status: pool.payment_status,
-    amount_paid_cents: 0,
+    amount_paid_cents: Number(pool.amount_paid_cents || 0),
     passcode: '',
   }
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
