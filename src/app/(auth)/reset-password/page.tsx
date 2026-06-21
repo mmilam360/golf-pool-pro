@@ -4,10 +4,19 @@ import Link from 'next/link'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
+type RecoverySession = {
+  accessToken: string
+  supabaseUrl: string
+}
+
+function getAnonKey() {
+  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+}
+
 function createPasswordResetClient(url = process.env.NEXT_PUBLIC_SUPABASE_URL!) {
   return createSupabaseClient<Database>(
     url,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    getAnonKey(),
     {
       auth: {
         autoRefreshToken: false,
@@ -79,7 +88,7 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const defaultSupabase = useMemo(() => createPasswordResetClient(), [])
-  const recoverySupabaseRef = useRef(defaultSupabase)
+  const recoverySessionRef = useRef<RecoverySession | null>(null)
 
   useEffect(() => {
     let active = true
@@ -89,30 +98,27 @@ export default function ResetPasswordPage() {
       const code = url.searchParams.get('code')
       const hash = new URLSearchParams(url.hash.replace(/^#/, ''))
       const accessToken = hash.get('access_token')
-      const refreshToken = hash.get('refresh_token')
 
       try {
         let hasRecoverySession = false
-        const recoverySupabase = accessToken
-          ? createPasswordResetClient(getSupabaseUrlFromAccessToken(accessToken))
-          : defaultSupabase
-        recoverySupabaseRef.current = recoverySupabase
+        const supabaseUrl = getSupabaseUrlFromAccessToken(accessToken) || process.env.NEXT_PUBLIC_SUPABASE_URL!
 
-        if (code) {
+        if (accessToken) {
+          recoverySessionRef.current = { accessToken, supabaseUrl }
+          hasRecoverySession = true
+          window.history.replaceState({}, '', '/reset-password')
+        } else if (code) {
+          const recoverySupabase = createPasswordResetClient(supabaseUrl)
           const { data, error } = await recoverySupabase.auth.exchangeCodeForSession(code)
           if (error) throw error
-          hasRecoverySession = Boolean(data.session)
+          if (data.session?.access_token) {
+            recoverySessionRef.current = {
+              accessToken: data.session.access_token,
+              supabaseUrl,
+            }
+          }
+          hasRecoverySession = Boolean(data.session?.access_token)
           window.history.replaceState({}, '', '/reset-password')
-        } else if (accessToken && refreshToken) {
-          const { data, error } = await recoverySupabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-          if (error) throw error
-          hasRecoverySession = Boolean(data.session)
-          window.history.replaceState({}, '', '/reset-password')
-        }
-
-        if (!hasRecoverySession) {
-          const { data } = await recoverySupabase.auth.getSession()
-          hasRecoverySession = Boolean(data.session)
         }
 
         if (!active) return
@@ -141,16 +147,35 @@ export default function ResetPasswordPage() {
       return
     }
 
-    setLoading(true)
-    const { error } = await recoverySupabaseRef.current.auth.updateUser({ password })
-    setLoading(false)
-
-    if (error) {
-      setError(error.message)
+    const recoverySession = recoverySessionRef.current
+    if (!recoverySession) {
+      setError('This reset link is expired or opened without the recovery session. Request a new reset link and open it in the same browser.')
       return
     }
 
-    setSuccess(true)
+    setLoading(true)
+    try {
+      const response = await fetch(`${recoverySession.supabaseUrl}/auth/v1/user`, {
+        method: 'PUT',
+        headers: {
+          apikey: getAnonKey(),
+          Authorization: `Bearer ${recoverySession.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      })
+      const result = await response.json().catch(() => null) as { message?: string; msg?: string; error_description?: string } | null
+
+      if (!response.ok) {
+        throw new Error(result?.message || result?.msg || result?.error_description || 'Password could not be updated. Request a fresh reset link and try again.')
+      }
+
+      setSuccess(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Password could not be updated. Request a fresh reset link and try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (success) {
