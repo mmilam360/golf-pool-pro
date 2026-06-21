@@ -10,7 +10,7 @@ import { trackGppEvent } from '@/lib/posthog-events'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, leaderboardForCompletedRound, leaderboardForRoundOnly, leaderboardHasPlayoffScores, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { getPoolPaymentStatus, getTournamentSaturday, isPaymentHideGraceActive, isPoolFeePastDue } from '@/lib/payments/pricing'
-import { formatDateOnly, formatDateOnlyWeekday } from '@/lib/date-utils'
+import { formatDateOnly, formatDateOnlyWeekday, getDateOnly, todayDateOnly } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
@@ -666,6 +666,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const submittedPickCount = activeEntries.length - entriesNeedingPicks.length
   const isLocked = poolLocked
   const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
+  const tournamentEndDate = getDateOnly(tournament?.end_date)
+  const tournamentIsPastOrCompleted = Boolean(
+    pool.is_completed ||
+    tournament?.status === 'completed' ||
+    (tournamentEndDate && tournamentEndDate < todayDateOnly())
+  )
   const showLivePulse = hasRecentOnCourseScores(tournament, leaderboard)
   const availableHistoricalRounds = useMemo(() => availableCompletedRounds(leaderboard), [leaderboard])
   const hasPlayoffScores = useMemo(() => leaderboardHasPlayoffScores(leaderboard), [leaderboard])
@@ -702,21 +708,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const paymentCollectionOpen = isLocked || scoringIsLive
   const feeDueDate = formatShortDate(getTournamentSaturday(tournament?.start_date))
   const amountPaidCents = paymentQuote?.amountPaidCents ?? Number(pool.amount_paid_cents || 0)
+  const paymentStatusForDisplay = tournamentIsPastOrCompleted ? 'active' : paymentStatus
+  const showPaymentActions = !tournamentIsPastOrCompleted && paymentStatus !== 'active'
   const savedCards = paymentQuote?.savedCards || []
   const selectedSavedCard = savedCards.find(card => card.id === selectedSavedCardId) || null
   const useSavedCard = Boolean(selectedSavedCard && finalAmountDueCents > 0)
-  const feeLabel = paymentStatus === 'active'
-    ? (amountPaidCents > 0 ? 'Paid' : 'Free')
+  const feeLabel = paymentStatusForDisplay === 'active'
+    ? (amountPaidCents > 0 ? 'Paid' : 'Closed')
     : finalAmountDueCents === 0
       ? 'Free'
       : paymentCollectionOpen
         ? `${formatCents(finalAmountDueCents)} due`
         : `${formatCents(finalAmountDueCents)} current fee`
-  const feeStatusLabel = paymentStatus === 'active' && amountPaidCents > 0
+  const feeStatusLabel = paymentStatusForDisplay === 'active' && amountPaidCents > 0
     ? 'Paid'
-    : finalAmountDueCents === 0
+    : paymentStatusForDisplay === 'active' && tournamentIsPastOrCompleted
+      ? 'Closed'
+      : finalAmountDueCents === 0
       ? 'Free'
-      : paymentStatus === 'active'
+      : paymentStatusForDisplay === 'active'
         ? 'Paid'
         : 'Unpaid'
   const feeStatusClass = feeStatusLabel === 'Paid'
@@ -727,16 +737,18 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         ? 'border-amber-200 bg-amber-50 text-amber-900'
         : 'border-stone-300 bg-white text-stone-700'
   const feeTimingText = finalAmountDueCents === 0
-    ? paymentStatus === 'active'
+    ? paymentStatusForDisplay === 'active'
       ? (amountPaidCents > 0 ? `Results are live. Amount paid: ${formatCents(amountPaidCents)}.` : 'Results are live.')
       : 'No pool fee with the current entry count.'
-    : paymentStatus === 'active'
-      ? `Results are live. Amount paid: ${formatCents(amountPaidCents)}.`
+    : paymentStatusForDisplay === 'active'
+      ? amountPaidCents > 0
+        ? `Results are live. Amount paid: ${formatCents(amountPaidCents)}.`
+        : 'Results are live.'
       : isPoolFeePastDue(tournament?.start_date)
         ? `Payment is due${feeDueDate ? ` by ${feeDueDate}` : ' now'}.`
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
   const paymentHideGraceActive = isPaymentHideGraceActive(pool.id)
-  const leaderboardIsHidden = !paymentHideGraceActive && isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
+  const leaderboardIsHidden = !tournamentIsPastOrCompleted && !paymentHideGraceActive && isPoolFeePastDue(tournament?.start_date) && paymentStatus !== 'active'
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner
   const activeField = useMemo(() => field.filter(player => String(player.status || '').toLowerCase() !== 'wd'), [field])
@@ -1077,7 +1089,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     let cancelled = false
 
     async function mountSquareCard() {
-      if (!isOwner || tab !== 'pool-settings' || !paymentQuote || paymentQuote.paymentStatus === 'active') return
+      if (!isOwner || tab !== 'pool-settings' || !paymentQuote || paymentQuote.paymentStatus === 'active' || !showPaymentActions) return
       if (!paymentCollectionOpen) return
       if (paymentQuote.requiresCustomQuote || finalAmountDueCents <= 0 || useSavedCard) return
       if (!paymentQuote.square.applicationId || !paymentQuote.square.locationId) return
@@ -1108,17 +1120,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     return () => {
       cancelled = true
     }
-  }, [finalAmountDueCents, isOwner, paymentQuote, paymentCollectionOpen, showToast, tab, useSavedCard])
+  }, [finalAmountDueCents, isOwner, paymentQuote, paymentCollectionOpen, showPaymentActions, showToast, tab, useSavedCard])
 
   useEffect(() => {
-    const shouldKeepCard = isOwner && tab === 'pool-settings' && paymentQuote?.paymentStatus !== 'active' && paymentCollectionOpen && finalAmountDueCents > 0 && !useSavedCard
+    const shouldKeepCard = isOwner && tab === 'pool-settings' && showPaymentActions && paymentQuote?.paymentStatus !== 'active' && paymentCollectionOpen && finalAmountDueCents > 0 && !useSavedCard
     if (shouldKeepCard) return
     if (paymentCardRef.current) {
       paymentCardRef.current.destroy?.()
       paymentCardRef.current = null
     }
     setPaymentCardReady(false)
-  }, [finalAmountDueCents, isOwner, paymentCollectionOpen, tab, paymentQuote?.paymentStatus, useSavedCard])
+  }, [finalAmountDueCents, isOwner, paymentCollectionOpen, showPaymentActions, tab, paymentQuote?.paymentStatus, useSavedCard])
 
   async function activatePool() {
     if (!paymentQuote) {
@@ -2273,7 +2285,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         </div>
       )}
 
-      {!entryEditOnly && isOwner && paymentStatus !== 'active' && (
+      {!entryEditOnly && isOwner && showPaymentActions && (
         <div className="mb-6 rounded-none border-2 border-amber-300 bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -2976,7 +2988,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-800">Pool fee</p>
                 <h3 className="mt-1 text-2xl font-black text-emerald-950">{feeLabel}</h3>
-                {paymentStatus === 'active' && amountPaidCents > 0 && (
+                {paymentStatusForDisplay === 'active' && amountPaidCents > 0 && (
                   <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-emerald-800">Amount paid: {formatCents(amountPaidCents)}</p>
                 )}
                 <p className="mt-1 text-sm text-stone-600">
@@ -2990,10 +3002,10 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               <span className={`inline-flex w-fit border px-3 py-1 text-xs font-black uppercase tracking-[0.08em] ${feeStatusClass}`}>{feeStatusLabel}</span>
             </div>
 
-            {paymentStatus !== 'active' && paymentQuote?.requiresCustomQuote && (
+            {showPaymentActions && paymentQuote?.requiresCustomQuote && (
               <p className="mt-4 border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">This pool needs manual pricing.</p>
             )}
-            {paymentStatus !== 'active' && !paymentQuote?.requiresCustomQuote && (
+            {showPaymentActions && !paymentQuote?.requiresCustomQuote && (
               <div className="mt-4 space-y-4">
                 {!paymentCollectionOpen ? (
                   <p className="border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Payment opens after you lock picks.</p>

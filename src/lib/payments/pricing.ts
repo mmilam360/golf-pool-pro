@@ -79,11 +79,12 @@ export function getPromoDiscountCents(amountDueCents: number, promo: PromoLike |
 }
 
 export function getPoolPaymentStatus(storedStatus: PoolPaymentStatus | string | null | undefined, activeEntryCount: number, amountPaidCents = 0, hasLifetimeAccess = false): PoolPaymentStatus {
-  const quote = getPoolPaymentQuote(activeEntryCount, amountPaidCents, hasLifetimeAccess)
-  if (quote.amountDueCents <= 0) return 'active'
   if (storedStatus === 'refunded') return 'refunded'
   if (storedStatus === 'archived_unpaid') return 'archived_unpaid'
-  if (storedStatus === 'active') return 'payment_due'
+  if (storedStatus === 'active') return 'active'
+
+  const quote = getPoolPaymentQuote(activeEntryCount, amountPaidCents, hasLifetimeAccess)
+  if (quote.amountDueCents <= 0) return 'active'
   return (storedStatus as PoolPaymentStatus) || 'draft'
 }
 
