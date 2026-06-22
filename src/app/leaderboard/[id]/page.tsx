@@ -7,8 +7,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import PoolView from '@/app/(app)/pool/[id]/PoolView'
 import { hydrateFinalLeaderboard } from '@/lib/fresh-final-leaderboard'
-import { lockedOrScoring, picksAreVisibleForPool } from '@/lib/pool-state'
-import { submittedPickCount } from '@/lib/entry-picks'
+import { derivePublicLeaderboardState, sanitizePublicLeaderboardEntries } from '@/lib/public-leaderboard-state'
 
 export default async function PublicLeaderboardPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ entry?: string }> }) {
   const { id } = await params
@@ -19,12 +18,12 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
   const [poolResult, entriesResult] = await Promise.all([
     supabase
       .from('gpp_pools')
-      .select('id, tournament_id, name, pick_count, count_scores, is_locked, is_completed, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, amount_paid_cents')
+      .select('id, tournament_id, name, pick_count, count_scores, is_locked, is_completed, results_finalized_at, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, amount_paid_cents')
       .eq('id', id)
       .maybeSingle(),
     supabase
       .from('gpp_entries')
-      .select('id, pool_id, display_name, golfer_picks, total_score, counting_scores, rank, is_removed, created_at')
+      .select('id, pool_id, display_name, golfer_picks, submitted_pick_count, total_score, counting_scores, rank, is_removed, created_at')
       .eq('pool_id', id)
       .eq('is_removed', false)
       .order('created_at', { ascending: true }),
@@ -50,6 +49,7 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
     count_scores: pool.count_scores,
     is_locked: pool.is_locked,
     is_completed: pool.is_completed,
+    results_finalized_at: pool.results_finalized_at,
     game_format: pool.game_format,
     group_count: pool.group_count,
     picks_per_group: pool.picks_per_group,
@@ -61,34 +61,12 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
     amount_paid_cents: Number(pool.amount_paid_cents || 0),
     passcode: '',
   }
-  const picksAreVisible = picksAreVisibleForPool(publicPool, tournament)
-  const preLockJoinOpen = !lockedOrScoring(publicPool, tournament)
+  const { picksAreVisible, preLockJoinOpen } = derivePublicLeaderboardState(publicPool, tournament)
   const joinHref = `/pool/join?pool=${encodeURIComponent(pool.id)}`
   const signInHref = `/login?redirect=${encodeURIComponent('/dashboard')}`
 
   const { data: entries } = entriesResult
-
-  const safeEntries = ((entries || []) as any[]).map((entry: any) => {
-    const pickCount = submittedPickCount(entry)
-    const publicEntry = {
-      ...entry,
-      user_id: null,
-      full_name: null,
-      full_name_confirmed_at: null,
-      account_email: '',
-      account_full_name: '',
-      account_full_name_confirmed_at: null,
-      notification_email: null,
-      guest_entry_token_hash: null,
-    }
-    if (picksAreVisible) return publicEntry
-    return {
-      ...publicEntry,
-      submitted_pick_count: pickCount,
-      golfer_picks: [],
-      picks_hidden: true,
-    }
-  })
+  const safeEntries = sanitizePublicLeaderboardEntries((entries || []) as any[], picksAreVisible)
 
   return (
     <main className="min-h-screen bg-[#fbf7ed] px-4 py-6 text-[#1f2a24] sm:px-6 lg:px-8">

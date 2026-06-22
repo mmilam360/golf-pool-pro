@@ -47,6 +47,7 @@
     "test:join-full-name-account-flow": "node scripts/verify-join-full-name-account-flow.mjs",
     "test:full-name-reminder-account-fallback": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-full-name-reminder-account-fallback.mjs",
     "test:public-leaderboard-join-cta": "node scripts/verify-public-leaderboard-join-cta.mjs",
+    "test:public-leaderboard-states": "npx tsx scripts/verify-public-leaderboard-states.ts",
     "test:pick-counts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pick-count-rules.mjs",
     "test:guest-join-flow": "node scripts/verify-guest-join-flow.mjs",
     "smoke:deployment": "node scripts/smoke-deployment.mjs",

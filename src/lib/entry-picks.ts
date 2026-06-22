@@ -6,8 +6,11 @@ export type EntryPickFields = {
 
 export function submittedPickCount(entry: Pick<EntryPickFields, 'golfer_picks' | 'submitted_pick_count'> | null | undefined) {
   const picks = Array.isArray(entry?.golfer_picks) ? entry.golfer_picks : []
-  const storedCount = Number(entry?.submitted_pick_count)
-  return Number.isFinite(storedCount) ? storedCount : picks.length
+  if (entry?.submitted_pick_count != null) {
+    const storedCount = Number(entry.submitted_pick_count)
+    if (Number.isFinite(storedCount)) return storedCount
+  }
+  return picks.length
 }
 
 export function entryNeedsPicks(entry: Pick<EntryPickFields, 'golfer_picks' | 'submitted_pick_count'>, requiredPickCount: number) {

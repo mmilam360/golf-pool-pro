@@ -10,9 +10,10 @@ const guestEntryRoute = readFileSync('src/app/api/pool/guest-entry/route.ts', 'u
 const managePools = readFileSync('src/app/(app)/manage-pools/page.tsx', 'utf8')
 
 assert(publicLeaderboard.includes('preLockJoinOpen'), 'public leaderboard must compute pre-lock join state')
-assert(publicLeaderboard.includes('picksAreVisibleForPool(publicPool, tournament)'), 'public leaderboard pick masking must use shared pool-state visibility')
-assert(publicLeaderboard.includes('!lockedOrScoring(publicPool, tournament)'), 'public leaderboard join prompt must use shared locked/scoring state')
-assert(publicLeaderboard.includes('submittedPickCount(entry)'), 'public leaderboard hidden-pick metadata must use shared submitted-pick count')
+assert(publicLeaderboard.includes('derivePublicLeaderboardState(publicPool, tournament)'), 'public leaderboard state must use shared public leaderboard helper')
+assert(publicLeaderboard.includes('sanitizePublicLeaderboardEntries((entries || []) as any[], picksAreVisible)'), 'public leaderboard masking must use shared sanitizer')
+assert(publicLeaderboard.includes('results_finalized_at'), 'public leaderboard must pass finalized-result state to shared helpers')
+assert(publicLeaderboard.includes('submitted_pick_count'), 'public leaderboard must fetch submitted-pick metadata for hidden picks')
 assert(!publicLeaderboard.includes('hasOnCourseScores'), 'public leaderboard must not carry its own scoring evidence rule')
 assert(publicLeaderboard.includes('Trying to join this pool?'), 'public leaderboard must show the pre-lock join prompt')
 assert(publicLeaderboard.includes('Join pool'), 'public leaderboard must have a Join pool action')

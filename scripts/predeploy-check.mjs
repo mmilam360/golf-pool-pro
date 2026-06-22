@@ -25,6 +25,7 @@ const checks = [
   ['npm', ['run', 'test:join-full-name-account-flow']],
   ['npm', ['run', 'test:full-name-reminder-account-fallback']],
   ['npm', ['run', 'test:public-leaderboard-join-cta']],
+  ['npm', ['run', 'test:public-leaderboard-states']],
   ['npm', ['run', 'test:run-it-back']],
   ['npm', ['run', 'test:grouped-auto-lock']],
   ['npm', ['run', 'test:pool-invites']],

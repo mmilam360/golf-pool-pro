@@ -338,3 +338,29 @@ npm run test:reliability-hardening
 npm run test:public-leaderboard-join-cta
 npm run lint
 ```
+
+## Loop 7 cleanup — public leaderboard state scenarios
+
+This pass added a real public-board state harness for the exact states that can break during tournament week.
+
+Changes made:
+
+- Added `src/lib/public-leaderboard-state.ts` for public board state and entry sanitizing.
+- Public `/leaderboard/[id]` now calls `derivePublicLeaderboardState(...)` and `sanitizePublicLeaderboardEntries(...)` instead of doing masking inline.
+- Public leaderboard queries now include `results_finalized_at` and `submitted_pick_count` so final boards and hidden-pick progress use the right metadata.
+- Fixed `submittedPickCount(...)` so `submitted_pick_count: null` falls back to real pick-array length instead of counting as zero.
+- Added `test:public-leaderboard-states` covering:
+  - pre-lock public board hides pick names but preserves submitted count,
+  - locked board shows submitted picks before scoring,
+  - live board shows picks when leaderboard rows exist even if status downgrades,
+  - past/final board keeps rank/score/counting scores even if tournament state is stale or payment is archived unpaid.
+- Added the new test to `predeploy:check`.
+
+Extra verification commands:
+
+```bash
+npm run test:public-leaderboard-states
+npm run test:public-leaderboard-join-cta
+npm run test:reliability-hardening
+npm run lint
+```
