@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { getPoolPaymentStatus } from '../src/lib/payments/pricing'
 import { auditProdReadiness } from '../src/lib/prod-readiness'
 import { deriveBoardVisibility, derivePaymentState, entriesMissingFrozenResults, finalPool, lockedOrScoring, picksAreVisibleForPool, poolDashboardStatus, poolIsActiveForDashboard, tournamentHasScoringEvidence } from '../src/lib/pool-state'
+import { shouldPreserveLiveTournamentStatus } from '../src/lib/tournament-sync'
 
 assert.equal(getPoolPaymentStatus('active', 18, 0), 'payment_due', 'stored active cannot hide a real balance due')
 assert.equal(getPoolPaymentStatus('archived_unpaid', 5, 0), 'active', 'free/paid pools recover to active')
@@ -12,6 +13,7 @@ const finalArchivedPool = { id: 'pool-final', name: 'Final', is_completed: true,
 const completedTournament = { id: 't1', name: 'Finished Event', status: 'completed', leaderboard_json: [{ name: 'Scottie Scheffler' }] }
 assert.equal(finalPool(finalArchivedPool, completedTournament), true, 'completed tournament/pool resolves as final')
 assert.equal(lockedOrScoring({ is_locked: false }, { status: 'live', leaderboard_json: [] }), true, 'live tournament resolves as scoring')
+assert.equal(lockedOrScoring({ is_completed: true }, { status: 'upcoming', leaderboard_json: [] }), true, 'completed pool resolves as locked/scoring even if tournament row is stale')
 assert.equal(tournamentHasScoringEvidence({ status: 'upcoming', start_date: '2026-06-22', end_date: '2026-06-22', leaderboard_json: [{ name: 'Scottie Scheffler' }] }, new Date('2026-06-22T16:00:00Z')), true, 'date-window leaderboard rows count as scoring evidence')
 assert.equal(poolDashboardStatus({ is_locked: false }, { status: 'upcoming', start_date: '2026-06-22', end_date: '2026-06-22', leaderboard_json: [{ name: 'Scottie Scheffler' }] }, new Date('2026-06-22T16:00:00Z')), 'Live', 'dashboard status stays Live when ESPN status downgrades but board rows exist')
 assert.equal(poolIsActiveForDashboard({ is_completed: false }, { status: 'upcoming', start_date: '2026-06-22', end_date: '2026-06-22', leaderboard_json: [{ name: 'Scottie Scheffler' }] }, new Date('2026-06-22T16:00:00Z')), true, 'dashboard keeps downgraded in-window scoring pool active')
@@ -92,6 +94,16 @@ const staleStatusReadiness = auditProdReadiness({
   cronRuns: [],
 })
 assert.equal(staleStatusReadiness.issues.some(issue => issue.code === 'TOURNAMENT_STATUS_STALE_WITH_LEADERBOARD'), true, 'prod-readiness audit catches replayed status downgrade with saved live fixture')
+assert.equal(
+  shouldPreserveLiveTournamentStatus('upcoming', { status: 'live', leaderboard_json: liveTournamentFixture.tournament.leaderboard_json }, liveTournamentFixture.tournament, new Date(liveTournamentFixture.scenarioNow)),
+  true,
+  'live sync preserves live status when ESPN downgrades an in-window tournament with stored leaderboard rows'
+)
+assert.equal(
+  shouldPreserveLiveTournamentStatus('upcoming', { status: 'live', leaderboard_json: liveTournamentFixture.tournament.leaderboard_json }, { ...liveTournamentFixture.tournament, start_date: '2026-07-01', end_date: '2026-07-04' }, new Date(liveTournamentFixture.scenarioNow)),
+  false,
+  'live sync does not preserve stale live status outside the tournament window'
+)
 
 const defaultAuditSkipsTestFixtures = auditProdReadiness({
   checkedAt: now,
@@ -119,6 +131,8 @@ assert.ok(
 )
 assert.equal(poolView.includes('leaderboardIsHidden'), false, 'pool view should not retain dead billing-based leaderboard-hide state')
 assert.equal(poolView.includes('Leaderboard hidden until the pool fee is paid'), false, 'billing-blocked leaderboard copy should not exist')
+assert.ok(poolView.includes('tournamentHasScoringEvidence(tournamentWithCurrentLeaderboard)'), 'pool view scoring state should use shared pool-state scoring evidence')
+assert.ok(poolView.includes('lockedOrScoring(effectivePoolState, tournamentWithCurrentLeaderboard)'), 'pool view pick/payment lock state should use shared pool-state locked/scoring helper')
 assert.ok(poolView.includes('setLeaderboardLastUpdated(data.lastScoresFetch || null)'), 'client score freshness should use stored API timestamp')
 assert.ok(tournamentSync.includes('async function fetchScoreboardEventById(eventId: string)'), 'live sync should support direct event fetch by external_id')
 assert.ok(tournamentSync.includes('for (const externalId of activation.activatedExternalIds)'), 'live sync should direct-fetch activated DB tournaments')

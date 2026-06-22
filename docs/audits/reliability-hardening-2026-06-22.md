@@ -275,3 +275,23 @@ npm run test:dashboard-runner-player-parity
 npm run test:dashboard-reorder-ui
 npm run test:dashboard-pool-name-width
 ```
+
+## Loop 4 cleanup — PoolView and live-sync state reuse
+
+This loop continued the first-principles cleanup by pushing more duplicated tournament state decisions through `src/lib/pool-state.ts`.
+
+Changes made:
+
+- `lockedOrScoring()` now treats a completed pool as locked/scoring even if the tournament row is stale.
+- `PoolView` now derives `scoringIsLive`, pick locks, payment-collection timing, and invite availability from shared pool-state helpers instead of local status checks.
+- `tournament-sync` now reuses the shared tournament date-window and stored-leaderboard helpers when preserving live status after an ESPN downgrade.
+- `verify-reliability-hardening` now behavior-tests live-status preservation with the saved U.S. Open replay fixture, and checks that PoolView stays wired to the shared state helpers.
+
+Extra verification commands:
+
+```bash
+npm run test:reliability-hardening
+npm run test:live-tournament-replay
+npm run test:live-scoring-health
+npm run lint
+```

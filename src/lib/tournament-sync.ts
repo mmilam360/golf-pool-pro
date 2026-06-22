@@ -8,6 +8,7 @@ import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, s
 import { recordNotificationEvent, sendPushToUser } from './notifications/push'
 import { hasPostCutRoundEvidence, hasWeekendCutStatusErrors, repairWeekendCutStatuses, finalBoardHasEnoughEvidence } from './leaderboard-sanity'
 import { sendWdPickAlertsForTournament } from './wd-pick-alerts'
+import { hasStoredLeaderboard, tournamentDateWindowIncludes } from './pool-state'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 const ESPN_EVENT_URL = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${eventId}`
@@ -34,31 +35,10 @@ function toDateOnly(value: string | null | undefined) {
   return value?.split('T')[0] || value || null
 }
 
-function todayDateOnly(now: Date) {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/New_York',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now)
-}
-
-function tournamentWindowIncludesToday(row: { start_date?: string | null; end_date?: string | null }, now: Date) {
-  const startDate = toDateOnly(row.start_date)
-  if (!startDate) return false
-  const today = todayDateOnly(now)
-  const endDate = toDateOnly(row.end_date)
-  return endDate ? startDate <= today && today <= endDate : startDate <= today
-}
-
-function hasStoredLeaderboard(existing: any) {
-  return Array.isArray(existing?.leaderboard_json) && existing.leaderboard_json.length > 0
-}
-
 export function shouldPreserveLiveTournamentStatus(status: string, existing: any, row: { start_date?: string | null; end_date?: string | null }, now: Date) {
   if (String(status || '').toLowerCase() !== 'upcoming') return false
   if (String(existing?.status || '').toLowerCase() !== 'live' && !hasStoredLeaderboard(existing)) return false
-  return tournamentWindowIncludesToday(row, now)
+  return tournamentDateWindowIncludes(row, now)
 }
 
 function getStatus(event: any) {

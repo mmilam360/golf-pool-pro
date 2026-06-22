@@ -19,6 +19,7 @@ import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, normalizeEntryName } from '@/lib/entry-name'
 import { buildFrozenResultEntry, hasCompleteFrozenResults } from '@/lib/frozen-results'
 import { pickGridColumnCount } from '@/lib/pick-card-layout'
+import { finalPool, lockedOrScoring, tournamentHasScoringEvidence } from '@/lib/pool-state'
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -665,11 +666,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const wdPicksNoEmail = entriesWithWdPicks.filter(item => !runnerCanEmailEntry(item.entry))
   const submittedPickCount = activeEntries.length - entriesNeedingPicks.length
   const isLocked = poolLocked
-  const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
+  const tournamentWithCurrentLeaderboard = { ...(tournament || {}), leaderboard_json: leaderboard }
+  const effectivePoolState = { ...(pool || {}), is_locked: isLocked }
+  const scoringIsLive = tournamentHasScoringEvidence(tournamentWithCurrentLeaderboard)
   const tournamentEndDate = getDateOnly(tournament?.end_date)
   const tournamentIsPastOrCompleted = Boolean(
-    pool.is_completed ||
-    tournament?.status === 'completed' ||
+    finalPool(effectivePoolState, tournamentWithCurrentLeaderboard) ||
     (tournamentEndDate && tournamentEndDate < todayDateOnly())
   )
   const showLivePulse = hasRecentOnCourseScores(tournament, leaderboard)
@@ -701,11 +703,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (leaderboardMode.type === 'day' && leaderboardMode.round === 1) setLeaderboardMode({ type: 'thru', round: 1 })
   }, [availableHistoricalRounds, leaderboardMode, leaderboardModeIsCurrent])
   const groupsNeedLock = groupedFormat && !groupsFinalized
-  const picksAreLocked = isLocked || scoringIsLive
+  const picksAreLocked = lockedOrScoring(effectivePoolState, tournamentWithCurrentLeaderboard)
   const pickSelectionOpen = !picksAreLocked && !groupsNeedLock
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
-  const paymentCollectionOpen = isLocked || scoringIsLive
+  const paymentCollectionOpen = picksAreLocked
   const feeDueDate = formatShortDate(getTournamentSaturday(tournament?.start_date))
   const amountPaidCents = paymentQuote?.amountPaidCents ?? Number(pool.amount_paid_cents || 0)
   const paymentStatusForDisplay = tournamentIsPastOrCompleted ? 'active' : paymentStatus
@@ -747,7 +749,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       : isPoolFeePastDue(tournament?.start_date)
         ? `Payment is due${feeDueDate ? ` by ${feeDueDate}` : ' now'}.`
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
-  const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
+  const canInvitePlayers = isOwner && !picksAreLocked
   const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner
   const activeField = useMemo(() => field.filter(player => String(player.status || '').toLowerCase() !== 'wd'), [field])
   const fieldReady = activeField.length > 0

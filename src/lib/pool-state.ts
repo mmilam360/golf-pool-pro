@@ -107,7 +107,7 @@ export function finalPool(pool?: PoolStateInput | null, tournament?: TournamentS
 }
 
 export function lockedOrScoring(pool?: PoolStateInput | null, tournament?: TournamentStateInput | null) {
-  return Boolean(pool?.is_locked || tournamentHasScoringEvidence(tournament))
+  return Boolean(pool?.is_locked || finalPool(pool, tournament) || tournamentHasScoringEvidence(tournament))
 }
 
 export function poolDashboardStatus(pool?: PoolStateInput | null, tournament?: TournamentStateInput | null, now = new Date()): PoolDashboardStatus {
