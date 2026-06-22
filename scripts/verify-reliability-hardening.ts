@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { getPoolPaymentStatus } from '../src/lib/payments/pricing'
 import { auditProdReadiness } from '../src/lib/prod-readiness'
-import { deriveBoardVisibility, derivePaymentState, entriesMissingFrozenResults, finalPool, lockedOrScoring } from '../src/lib/pool-state'
+import { deriveBoardVisibility, derivePaymentState, entriesMissingFrozenResults, finalPool, lockedOrScoring, picksAreVisibleForPool, poolDashboardStatus, poolIsActiveForDashboard, tournamentHasScoringEvidence } from '../src/lib/pool-state'
 
 assert.equal(getPoolPaymentStatus('active', 18, 0), 'payment_due', 'stored active cannot hide a real balance due')
 assert.equal(getPoolPaymentStatus('archived_unpaid', 5, 0), 'active', 'free/paid pools recover to active')
@@ -11,6 +12,10 @@ const finalArchivedPool = { id: 'pool-final', name: 'Final', is_completed: true,
 const completedTournament = { id: 't1', name: 'Finished Event', status: 'completed', leaderboard_json: [{ name: 'Scottie Scheffler' }] }
 assert.equal(finalPool(finalArchivedPool, completedTournament), true, 'completed tournament/pool resolves as final')
 assert.equal(lockedOrScoring({ is_locked: false }, { status: 'live', leaderboard_json: [] }), true, 'live tournament resolves as scoring')
+assert.equal(tournamentHasScoringEvidence({ status: 'upcoming', start_date: '2026-06-22', end_date: '2026-06-22', leaderboard_json: [{ name: 'Scottie Scheffler' }] }, new Date('2026-06-22T16:00:00Z')), true, 'date-window leaderboard rows count as scoring evidence')
+assert.equal(poolDashboardStatus({ is_locked: false }, { status: 'upcoming', start_date: '2026-06-22', end_date: '2026-06-22', leaderboard_json: [{ name: 'Scottie Scheffler' }] }, new Date('2026-06-22T16:00:00Z')), 'Live', 'dashboard status stays Live when ESPN status downgrades but board rows exist')
+assert.equal(poolIsActiveForDashboard({ is_completed: false }, { status: 'upcoming', start_date: '2026-06-22', end_date: '2026-06-22', leaderboard_json: [{ name: 'Scottie Scheffler' }] }, new Date('2026-06-22T16:00:00Z')), true, 'dashboard keeps downgraded in-window scoring pool active')
+assert.equal(picksAreVisibleForPool({ is_locked: false }, { status: 'upcoming', start_date: '2026-06-22', end_date: '2026-06-22', leaderboard_json: [{ name: 'Scottie Scheffler' }] }, new Date('2026-06-22T16:00:00Z')), true, 'picks reveal when scoring evidence exists even if status says upcoming')
 assert.deepEqual(
   deriveBoardVisibility({ pool: finalArchivedPool, tournament: completedTournament }),
   { state: 'visible_final', canShowLeaderboard: true, hiddenByBilling: false },
@@ -72,6 +77,21 @@ const codes = new Set(audit.issues.map(issue => issue.code))
 for (const expected of ['FINAL_POOL_ARCHIVED_UNPAID', 'FINAL_POOL_MISSING_FROZEN_RESULTS', 'ACTIVE_STATUS_WITH_BALANCE_DUE', 'LIVE_SCORE_STALE', 'UPCOMING_POOL_FIELD_NOT_READY', 'UPCOMING_POOL_FIELD_STALE', 'GROUPED_POOL_DUE_WITHOUT_GROUPS', 'NO_CRON_RUN_HISTORY']) {
   assert.equal(codes.has(expected), true, `prod-readiness audit should emit ${expected}`)
 }
+
+const liveTournamentFixture = JSON.parse(readFileSync(join('test-fixtures', 'live-tournament', 'us-open-2026-round-3-live.json'), 'utf8'))
+const staleStatusReadiness = auditProdReadiness({
+  checkedAt: new Date(liveTournamentFixture.scenarioNow),
+  usingServiceRole: true,
+  includeTestPools: true,
+  pools: [{
+    ...liveTournamentFixture.pools[0],
+    name: 'Replay pool',
+    gpp_tournaments: { ...liveTournamentFixture.tournament, status: 'upcoming' },
+  }],
+  entries: [],
+  cronRuns: [],
+})
+assert.equal(staleStatusReadiness.issues.some(issue => issue.code === 'TOURNAMENT_STATUS_STALE_WITH_LEADERBOARD'), true, 'prod-readiness audit catches replayed status downgrade with saved live fixture')
 
 const defaultAuditSkipsTestFixtures = auditProdReadiness({
   checkedAt: now,

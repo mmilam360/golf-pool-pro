@@ -1,5 +1,5 @@
-import { APP_DATE_TIME_ZONE, getDateOnly, todayDateOnly } from './date-utils'
-import { hasOnCourseScores } from './golf-live'
+import { getDateOnly } from './date-utils'
+import { jsonRows, tournamentDateWindowIncludes, tournamentHasOnCourseScores } from './pool-state'
 
 type HealthTournament = {
   id: string
@@ -43,15 +43,7 @@ function minutesSince(value: string | null | undefined, now: Date) {
 }
 
 function leaderboardRows(tournament: HealthTournament) {
-  return Array.isArray(tournament.leaderboard_json) ? tournament.leaderboard_json.length : 0
-}
-
-function dateWindowIncludesToday(tournament: HealthTournament, now: Date) {
-  const startDate = getDateOnly(tournament.start_date)
-  if (!startDate) return false
-  const today = todayDateOnly(APP_DATE_TIME_ZONE, now)
-  const endDate = getDateOnly(tournament.end_date)
-  return endDate ? startDate <= today && today <= endDate : startDate <= today
+  return jsonRows(tournament.leaderboard_json).length
 }
 
 function latestCronRun(runs: HealthCronRun[], status: string) {
@@ -82,9 +74,9 @@ export function summarizeLiveScoringHealth(params: {
     const status = String(tournament.status || 'upcoming').toLowerCase()
     const rows = leaderboardRows(tournament)
     const scoreAgeMinutes = minutesSince(tournament.last_scores_fetch, now)
-    const inDateWindow = dateWindowIncludesToday(tournament, now)
+    const inDateWindow = tournamentDateWindowIncludes(tournament, now)
     const livePools = (poolsByTournament.get(tournament.id) || []).filter(pool => !pool.is_completed).length
-    const hasOnCourse = hasOnCourseScores(Array.isArray(tournament.leaderboard_json) ? tournament.leaderboard_json : [])
+    const hasOnCourse = tournamentHasOnCourseScores(tournament)
 
     if (inDateWindow && status === 'upcoming' && rows > 0) {
       issues.push({

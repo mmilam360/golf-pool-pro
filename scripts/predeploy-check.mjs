@@ -15,6 +15,8 @@ const checks = [
   ['npm', ['run', 'test:transactional-email-headers']],
   ['npm', ['run', 'test:payment-due-reminder-email']],
   ['npm', ['run', 'test:reliability-hardening']],
+  ['npm', ['run', 'test:live-scoring-health']],
+  ['npm', ['run', 'test:live-tournament-replay']],
   ['npm', ['run', 'test:support-email-route']],
   ['npm', ['run', 'test:reminder-edit-links']],
   ['npm', ['run', 'test:runner-reminder-access']],

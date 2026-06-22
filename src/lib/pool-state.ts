@@ -1,4 +1,7 @@
 import { getPoolPaymentQuote, getPoolPaymentStatus, type PoolPaymentStatus } from './payments/pricing'
+import { APP_DATE_TIME_ZONE, getDateOnly, todayDateOnly } from './date-utils'
+import type { GolfPlayer } from './golf-api'
+import { hasOnCourseScores } from './golf-live'
 
 export const LIVE_SCORE_STALE_MINUTES = 12
 export const FIELD_STALE_DAYS = 2
@@ -49,6 +52,7 @@ export type PaymentState = {
 }
 
 export type BoardVisibilityState = 'visible_final' | 'visible_live' | 'visible_pre_scoring'
+export type PoolDashboardStatus = 'Passed' | 'Live' | 'Locked' | 'Open'
 
 export type BoardVisibility = {
   state: BoardVisibilityState
@@ -76,12 +80,57 @@ export function hasStoredLeaderboard(tournament?: TournamentStateInput | null) {
   return jsonRows(tournament?.leaderboard_json).length > 0
 }
 
+export function tournamentHasOnCourseScores(tournament?: TournamentStateInput | null) {
+  return hasOnCourseScores(jsonRows(tournament?.leaderboard_json) as GolfPlayer[])
+}
+
+export function tournamentDateWindowIncludes(tournament?: TournamentStateInput | null, now = new Date()) {
+  const startDate = getDateOnly(tournament?.start_date || '')
+  if (!startDate) return false
+  const today = todayDateOnly(APP_DATE_TIME_ZONE, now)
+  const endDate = getDateOnly(tournament?.end_date || '')
+  return endDate ? startDate <= today && today <= endDate : startDate <= today
+}
+
+export function tournamentIsInProgress(tournament?: TournamentStateInput | null, now = new Date()) {
+  if (tournamentIsLive(tournament)) return true
+  if (tournamentHasOnCourseScores(tournament)) return true
+  return tournamentDateWindowIncludes(tournament, now) && hasStoredLeaderboard(tournament)
+}
+
+export function tournamentHasScoringEvidence(tournament?: TournamentStateInput | null, now = new Date()) {
+  return tournamentIsLive(tournament) || tournamentIsCompleted(tournament) || tournamentHasOnCourseScores(tournament) || tournamentIsInProgress(tournament, now)
+}
+
 export function finalPool(pool?: PoolStateInput | null, tournament?: TournamentStateInput | null) {
   return Boolean(pool?.is_completed || pool?.results_finalized_at || tournamentIsCompleted(tournament))
 }
 
 export function lockedOrScoring(pool?: PoolStateInput | null, tournament?: TournamentStateInput | null) {
-  return Boolean(pool?.is_locked || tournamentIsLive(tournament) || tournamentIsCompleted(tournament) || hasStoredLeaderboard(tournament))
+  return Boolean(pool?.is_locked || tournamentHasScoringEvidence(tournament))
+}
+
+export function poolDashboardStatus(pool?: PoolStateInput | null, tournament?: TournamentStateInput | null, now = new Date()): PoolDashboardStatus {
+  if (finalPool(pool, tournament)) return 'Passed'
+  if (tournamentIsInProgress(tournament, now)) return 'Live'
+  if (pool?.is_locked) return 'Locked'
+  return 'Open'
+}
+
+export function poolIsActiveForDashboard(pool?: PoolStateInput | null, tournament?: TournamentStateInput | null, now = new Date()) {
+  if (finalPool(pool, tournament)) return false
+  if (tournamentIsInProgress(tournament, now)) return true
+  if (!tournament?.start_date) return true
+
+  const today = todayDateOnly(APP_DATE_TIME_ZONE, now)
+  const startDate = getDateOnly(tournament.start_date) || tournament.start_date
+  const endDate = getDateOnly(tournament.end_date || '')
+  if (endDate) return today <= endDate
+  return startDate >= today
+}
+
+export function picksAreVisibleForPool(pool?: PoolStateInput | null, tournament?: TournamentStateInput | null, now = new Date()) {
+  return Boolean(pool?.is_locked || tournamentHasScoringEvidence(tournament, now))
 }
 
 export function derivePaymentState(input: {
@@ -106,7 +155,7 @@ export function deriveBoardVisibility(input: { pool?: PoolStateInput | null; tou
   if (finalPool(input.pool, input.tournament)) {
     return { state: 'visible_final', canShowLeaderboard: true, hiddenByBilling: false }
   }
-  if (tournamentIsLive(input.tournament) || hasStoredLeaderboard(input.tournament)) {
+  if (tournamentHasScoringEvidence(input.tournament)) {
     return { state: 'visible_live', canShowLeaderboard: true, hiddenByBilling: false }
   }
   return { state: 'visible_pre_scoring', canShowLeaderboard: true, hiddenByBilling: false }

@@ -1,4 +1,4 @@
-import { activeEntries, daysFromToday, derivePaymentState, entriesMissingFrozenResults, entryHasSubmittedPicks, FIELD_STALE_DAYS, fieldAgeDays, finalPool, groupedPoolNeedsGroups, jsonRows, LIVE_SCORE_STALE_MINUTES, liveScoresAreStale, lockedOrScoring, minutesAgo, tournamentIsLive, upcomingFieldReadinessWindow, type EntryStateInput, type PoolStateInput, type TournamentStateInput } from './pool-state'
+import { activeEntries, daysFromToday, derivePaymentState, entriesMissingFrozenResults, entryHasSubmittedPicks, FIELD_STALE_DAYS, fieldAgeDays, finalPool, groupedPoolNeedsGroups, hasStoredLeaderboard, jsonRows, LIVE_SCORE_STALE_MINUTES, liveScoresAreStale, lockedOrScoring, minutesAgo, normalizeTournamentStatus, tournamentDateWindowIncludes, tournamentIsLive, upcomingFieldReadinessWindow, type EntryStateInput, type PoolStateInput, type TournamentStateInput } from './pool-state'
 
 const SEVERITY_RANK = { critical: 0, high: 1, medium: 2, low: 3, info: 4 } as const
 
@@ -164,6 +164,16 @@ export function auditProdReadiness(input: {
           staleMinutes,
         })
       }
+    }
+
+    if (!isFinal && normalizeTournamentStatus(tournament?.status) === 'upcoming' && tournamentDateWindowIncludes(tournament, now) && hasStoredLeaderboard(tournament)) {
+      issue(issues, 'high', 'TOURNAMENT_STATUS_STALE_WITH_LEADERBOARD', 'Tournament is inside its date window with stored leaderboard rows but status is still upcoming.', {
+        pool: poolLabel,
+        tournament: tournament?.name,
+        startDate: tournament?.start_date,
+        endDate: tournament?.end_date,
+        leaderboardRows: jsonRows(tournament?.leaderboard_json).length,
+      })
     }
 
     if (!isFinal && upcomingFieldReadinessWindow(tournament, fieldWindowDays, now)) {

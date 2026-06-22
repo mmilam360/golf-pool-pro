@@ -2,9 +2,9 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { APP_DATE_TIME_ZONE, getDateOnly, todayDateOnly } from '../src/lib/date-utils.ts'
 import { hasOnCourseScores } from '../src/lib/golf-live.ts'
 import { summarizeLiveScoringHealth } from '../src/lib/live-scoring-health.ts'
+import { picksAreVisibleForPool, poolDashboardStatus, poolIsActiveForDashboard } from '../src/lib/pool-state.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const fixturePath = join(__dirname, '..', 'test-fixtures', 'live-tournament', 'us-open-2026-round-3-live.json')
@@ -23,40 +23,16 @@ function leaderboardRows(tournament) {
   return Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json.length : 0
 }
 
-function dateWindowIncludes(tournament, at) {
-  const startDate = getDateOnly(tournament?.start_date || '')
-  if (!startDate) return false
-  const today = todayDateOnly(APP_DATE_TIME_ZONE, at)
-  const endDate = getDateOnly(tournament?.end_date || '')
-  return endDate ? startDate <= today && today <= endDate : startDate <= today
-}
-
-function tournamentIsInProgress(tournament, at) {
-  if (tournament?.status === 'live') return true
-  if (hasOnCourseScores(tournament?.leaderboard_json)) return true
-  return dateWindowIncludes(tournament, at) && leaderboardRows(tournament) > 0
-}
-
 function poolIsActive(pool, tournament, at) {
-  if (pool.is_completed || tournament?.status === 'completed') return false
-  if (tournamentIsInProgress(tournament, at)) return true
-  if (!tournament?.start_date) return true
-  const today = todayDateOnly(APP_DATE_TIME_ZONE, at)
-  const startDate = getDateOnly(tournament.start_date) || tournament.start_date
-  const endDate = getDateOnly(tournament.end_date || '')
-  if (endDate) return today <= endDate
-  return startDate >= today
+  return poolIsActiveForDashboard(pool, tournament, at)
 }
 
 function collapsedCardStatus(pool, tournament, at) {
-  if (pool.is_completed || tournament?.status === 'completed') return 'Passed'
-  if (tournamentIsInProgress(tournament, at)) return 'Live'
-  if (pool.is_locked) return 'Locked'
-  return 'Open'
+  return poolDashboardStatus(pool, tournament, at)
 }
 
 function picksAreVisible(pool, tournament) {
-  return Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(tournament?.leaderboard_json))
+  return picksAreVisibleForPool(pool, tournament, now)
 }
 
 function healthFor(tournament, options = {}) {

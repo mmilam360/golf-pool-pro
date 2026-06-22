@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, entryMovementSincePriorRank, leaderboardForCompletedRound, leaderboardForRoundOnly, leaderboardHasPlayoffScores, normalizePickName, scoreEntriesForLeaderboard, type EntryMovement, type PickScore, type ScoredEntry } from '@/lib/scoring'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { hasOnCourseScores } from '@/lib/golf-live'
-import { formatDateOnly, getDateOnly, todayDateOnly } from '@/lib/date-utils'
+import { formatDateOnly } from '@/lib/date-utils'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import { groupForPick, type PickGroup } from '@/lib/pool-formats'
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard'
@@ -16,6 +16,7 @@ import { getPickLockBadgeText } from '@/lib/pick-lock-display'
 import { applySavedPoolOrder, movePoolId } from '@/lib/dashboard-pool-order'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { frozenResultsForEntries, hasCompleteFrozenResults } from '@/lib/frozen-results'
+import { poolDashboardStatus, tournamentIsInProgress as sharedTournamentIsInProgress, tournamentHasScoringEvidence } from '@/lib/pool-state'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -262,29 +263,12 @@ function historicalBoardCaption(mode: LeaderboardMode, hasPlayoffScores: boolean
   return isFinalRound(mode.round, hasPlayoffScores) ? 'Final standings' : `Standings through ${roundMenuLabel(mode.round)}`
 }
 
-function tournamentDateWindowIsActive(tournament: Tournament | null) {
-  const startDate = getDateOnly(tournament?.start_date || '')
-  if (!startDate) return false
-  const today = todayDateOnly()
-  const endDate = getDateOnly(tournament?.end_date || '')
-  return endDate ? startDate <= today && today <= endDate : startDate <= today
-}
-
-function hasLeaderboardRows(tournament: Tournament | null) {
-  return Array.isArray(tournament?.leaderboard_json) && tournament.leaderboard_json.length > 0
-}
-
 function tournamentIsInProgress(tournament: Tournament | null) {
-  if (tournament?.status === 'live') return true
-  if (hasOnCourseScores(tournament?.leaderboard_json)) return true
-  return tournamentDateWindowIsActive(tournament) && hasLeaderboardRows(tournament)
+  return sharedTournamentIsInProgress(tournament)
 }
 
 function statusLabel(pool: PoolRecord, tournament: Tournament | null) {
-  if (pool.is_completed || tournament?.status === 'completed') return 'Passed'
-  if (tournamentIsInProgress(tournament)) return 'Live'
-  if (pool.is_locked) return 'Locked'
-  return 'Open'
+  return poolDashboardStatus(pool, tournament)
 }
 
 function statusClass(label: string) {
@@ -593,7 +577,7 @@ function OpenPicksBar({ pool, tournament, mode, entry }: { pool: PoolRecord; tou
 function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[], selectedLeaderboard?: GolfPlayer[], forceScoring = false): ScoredEntry[] {
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] ?? null : pool.gpp_tournaments ?? null
   const leaderboard = selectedLeaderboard || (Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : [])
-  const canShowRank = forceScoring || Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard))
+  const canShowRank = forceScoring || Boolean(pool.is_locked || tournamentHasScoringEvidence({ ...tournament, leaderboard_json: leaderboard }))
 
   if (!forceScoring && !selectedLeaderboard && pool.is_completed && hasCompleteFrozenResults(allEntries)) {
     return frozenResultsForEntries(allEntries)
@@ -778,7 +762,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
     : leaderboardMode.type === 'thru' && leaderboardMode.round > 1
       ? roundScoreLabel(leaderboardMode.round)
       : null
-  const scoringIsLive = leaderboardRows.length > 0 && Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboardRows))
+  const scoringIsLive = leaderboardRows.length > 0 && Boolean(pool.is_locked || tournamentHasScoringEvidence({ ...tournament, leaderboard_json: leaderboardRows }))
   const leaderboardByName = playerStatusByName(leaderboardRows, fieldRows)
   const preScoringPlayerByName = playerStatusByName(baseLeaderboardRows, fieldRows)
   const scoredEntries = scoringIsLive

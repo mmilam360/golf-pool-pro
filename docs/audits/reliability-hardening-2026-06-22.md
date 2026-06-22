@@ -253,3 +253,25 @@ npm run test:reliability-hardening
 npm run audit:prod-readiness -- --json
 npm run audit:prod-readiness -- --json --include-test-pools
 ```
+
+## Loop 3 cleanup — saved live replay fixture wiring
+
+The next loop used the saved U.S. Open live fixture (`test-fixtures/live-tournament/us-open-2026-round-3-live.json`) to keep hard-to-reproduce tournament-week states testable after the tournament ended.
+
+Changes made:
+
+- `pool-state.ts` now owns the shared tournament scoring evidence rules: date-window + stored leaderboard rows, on-course scores, live/completed status, dashboard status, dashboard active/passed membership, and pick visibility.
+- `DashboardActivePools`, dashboard page masking/scoring, and `live-scoring-health` now use those shared helpers instead of duplicating slightly different logic.
+- `verify-live-tournament-replay` now asserts the saved fixture against the shared helpers for active-pool membership, collapsed-card status, and pick visibility.
+- `verify-reliability-hardening` now replays the saved fixture with status forced back to `upcoming` and expects `TOURNAMENT_STATUS_STALE_WITH_LEADERBOARD`.
+- `predeploy:check` now runs `test:live-scoring-health` and `test:live-tournament-replay`, so the saved tournament-week fixture stays in the deploy gate.
+
+Extra verification commands:
+
+```bash
+npm run test:live-scoring-health
+npm run test:live-tournament-replay
+npm run test:dashboard-runner-player-parity
+npm run test:dashboard-reorder-ui
+npm run test:dashboard-pool-name-width
+```

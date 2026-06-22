@@ -11,7 +11,7 @@ import { acceptPoolInvite, declinePoolInvite } from '@/app/(app)/pool-invites/ac
 import { dismissFinalResultAnnouncement } from '@/app/(app)/dashboard/final-result-actions'
 import { scoreEntriesForLeaderboard, type ScoredEntry } from '@/lib/scoring'
 import { selectFinalResultAnnouncement, type FinalResultAnnouncementCandidate } from '@/lib/final-result-announcements'
-import { hasOnCourseScores } from '@/lib/golf-live'
+import { picksAreVisibleForPool, poolIsActiveForDashboard, tournamentHasScoringEvidence } from '@/lib/pool-state'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 import { hydrateFinalLeaderboards } from '@/lib/fresh-final-leaderboard'
 import { displayTournamentName } from '@/lib/tournament-name'
@@ -135,15 +135,7 @@ function formatDateRange(start?: string | null, end?: string | null) {
 }
 
 function isActivePool(pool: PoolRecord, tournament: Tournament | null) {
-  if (pool.is_completed || tournament?.status === 'completed') return false
-  if (tournament?.status === 'live' || hasOnCourseScores(tournament?.leaderboard_json)) return true
-  if (!tournament?.start_date) return true
-
-  const today = todayDateOnly()
-  const startDate = getDateOnly(tournament.start_date) || tournament.start_date
-  const endDate = getDateOnly(tournament.end_date || '')
-  if (endDate) return today <= endDate
-  return startDate >= today
+  return poolIsActiveForDashboard(pool, tournament)
 }
 
 function shouldHydrateActiveTournamentJson(pool: PoolRecord, tournament: Tournament | null) {
@@ -156,9 +148,7 @@ function shouldHydrateActiveTournamentJson(pool: PoolRecord, tournament: Tournam
 }
 
 function hasEventBegun(tournament: Tournament | null) {
-  if (tournament?.status === 'live' || tournament?.status === 'completed') return true
-  if (hasOnCourseScores(tournament?.leaderboard_json)) return true
-  return false
+  return tournamentHasScoringEvidence(tournament)
 }
 
 function isUpcomingEntry(pool: PoolRecord, tournament: Tournament | null) {
@@ -166,7 +156,7 @@ function isUpcomingEntry(pool: PoolRecord, tournament: Tournament | null) {
 }
 
 function picksAreVisible(pool: PoolRecord, tournament: Tournament | null) {
-  return Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(tournament?.leaderboard_json))
+  return picksAreVisibleForPool(pool, tournament)
 }
 
 function entryForDashboardBoard(entry: EntryRecord, pool?: PoolRecord | null, revealPicks = false): EntryRecord {
@@ -235,7 +225,7 @@ function formatScore(score: number | null) {
 function buildScoredEntries(pool: PoolRecord, allEntries: EntryRecord[]): ScoredEntry[] {
   const tournament = getTournament(pool)
   const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
-  const canShowRank = Boolean(pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard))
+  const canShowRank = Boolean(pool.is_locked || tournamentHasScoringEvidence({ ...tournament, leaderboard_json: leaderboard }))
 
   if (pool.is_completed && hasCompleteFrozenResults(allEntries)) {
     return frozenResultsForEntries(allEntries)
