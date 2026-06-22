@@ -229,3 +229,27 @@ Split `tournament-sync.ts` into:
 - No removal of old RPCs/columns until schema/types are regenerated and staging migration replay passes.
 - No broad rewrite of `PoolView`/`DashboardActivePools` without acceptance tests.
 - No new noisy cron jobs until the shared audit rules are stable.
+
+## Loop 2 cleanup — 2026-06-22
+
+The second reliability loop moved the read-only audit from a one-off script into reusable pure rules:
+
+- `src/lib/pool-state.ts` centralizes pool/final/locked/scoring/payment/field-readiness helpers.
+- `src/lib/prod-readiness.ts` owns production readiness issue detection, issue sorting, formatting, and test-fixture filtering.
+- `scripts/audit-prod-readiness.ts` is now a thin Supabase query/CLI wrapper around the shared readiness engine.
+- `scripts/verify-reliability-hardening.ts` now tests behavior with fixtures instead of relying only on fragile source-string checks.
+
+Operational cleanup from the same loop:
+
+- Deleted the expired pool-specific payment-hide grace table.
+- Removed the dead `leaderboardIsHidden` branch and billing-blocked leaderboard copy from `PoolView`.
+- Stopped treating finalized no-pick/test entries as missing frozen scores.
+- Default readiness audit now skips QA/test fixture pools so customer readiness is not hidden by internal test data; pass `--include-test-pools` when intentionally investigating fixtures.
+
+Verification commands:
+
+```bash
+npm run test:reliability-hardening
+npm run audit:prod-readiness -- --json
+npm run audit:prod-readiness -- --json --include-test-pools
+```

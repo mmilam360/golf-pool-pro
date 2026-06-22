@@ -747,7 +747,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       : isPoolFeePastDue(tournament?.start_date)
         ? `Payment is due${feeDueDate ? ` by ${feeDueDate}` : ' now'}.`
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
-  const leaderboardIsHidden = false
   const canInvitePlayers = isOwner && !isLocked && !scoringIsLive
   const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner
   const activeField = useMemo(() => field.filter(player => String(player.status || '').toLowerCase() !== 'wd'), [field])
@@ -2345,19 +2344,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       {/* Leaderboard Tab */}
       {tab === 'leaderboard' && (
         <div>
-          {leaderboardIsHidden ? (
-            <div className="rounded-none border-2 border-amber-300 bg-[#fbf7ed] p-8 text-center shadow-[5px_5px_0_#d8cab0]">
-              <p className="font-display text-2xl font-bold text-emerald-950">Leaderboard hidden until the pool fee is paid</p>
-              <p className="mx-auto mt-2 max-w-xl text-sm text-stone-700">
-                Entries are safe. The host can activate this pool from the Admin tab to restore live standings.
-              </p>
-              {isOwner && (
-                <button onClick={reviewActivation} className="gpp-3d gpp-button-3d gpp-button-wrap mt-5 text-sm">
-                  <span className="gpp-button-face px-5 py-2">Pay pool fee</span>
-                </button>
-              )}
-            </div>
-          ) : scoredEntries.length === 0 ? (
+          {scoredEntries.length === 0 ? (
             <div className="bg-white rounded-none p-8 border border-stone-200 text-center">
               <p className="text-stone-600">No entries yet. Share passcode <span className="text-emerald-700 font-mono">{pool.passcode}</span></p>
             </div>
