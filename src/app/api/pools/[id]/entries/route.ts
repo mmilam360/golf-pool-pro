@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { entryProcessIsClosed } from '@/lib/entry-process-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -65,14 +66,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const serviceSupabase = createServiceClient() as any
   const { data: pool, error: poolError } = await serviceSupabase
     .from('gpp_pools')
-    .select('id, owner_id, is_locked, is_completed, gpp_tournaments(status)')
+    .select('id, owner_id, is_locked, is_completed, results_finalized_at, gpp_tournaments(status, start_date, end_date, leaderboard_json)')
     .eq('id', id)
     .maybeSingle()
   if (poolError || !pool) return NextResponse.json({ error: 'Pool not found.' }, { status: 404 })
 
   const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
-  const tournamentStatus = String(tournament?.status || '').toLowerCase()
-  const entriesAreLocked = Boolean(pool.is_locked || pool.is_completed || tournamentStatus === 'live' || tournamentStatus === 'completed')
+  const entriesAreLocked = entryProcessIsClosed(pool, tournament)
 
   if (action === 'leave') {
     if (entriesAreLocked) {
@@ -100,7 +100,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (pool.owner_id !== user.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
-  if (pool.is_completed || tournamentStatus === 'completed') {
+  if (pool.is_completed || String(tournament?.status || '').toLowerCase() === 'completed') {
     return NextResponse.json({ error: 'This pool is completed.' }, { status: 409 })
   }
 

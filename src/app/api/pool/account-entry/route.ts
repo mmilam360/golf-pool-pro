@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { normalizeEntryDisplayName, normalizeFullName } from '@/lib/guest-entry'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, entryNameTaken, isDuplicateEntryNameError } from '@/lib/entry-name'
 import { validatePickSubmission } from '@/lib/pick-submission-validation'
+import { entryProcessIsClosed } from '@/lib/entry-process-state'
 
 export const runtime = 'nodejs'
 
@@ -33,7 +34,7 @@ export async function PATCH(request: Request) {
     const supabase = createServiceClient() as any
     const { data: entry, error: entryError } = await supabase
       .from('gpp_entries')
-      .select('id, pool_id, user_id, gpp_pools(is_locked, is_completed, pick_count, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, gpp_tournaments(status, field_json, leaderboard_json))')
+      .select('id, pool_id, user_id, gpp_pools(is_locked, is_completed, results_finalized_at, pick_count, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, gpp_tournaments(status, start_date, end_date, field_json, leaderboard_json))')
       .eq('id', entryId)
       .eq('pool_id', poolId)
       .eq('user_id', user.id)
@@ -44,7 +45,7 @@ export async function PATCH(request: Request) {
 
     const pool = Array.isArray(entry.gpp_pools) ? entry.gpp_pools[0] : entry.gpp_pools
     const tournament = Array.isArray(pool?.gpp_tournaments) ? pool.gpp_tournaments[0] : pool?.gpp_tournaments
-    const picksClosed = pool?.is_locked || pool?.is_completed || tournament?.status === 'live' || tournament?.status === 'completed'
+    const picksClosed = entryProcessIsClosed(pool, tournament)
 
     const update: Record<string, unknown> = {}
     if (body.displayName !== undefined) {

@@ -364,3 +364,28 @@ npm run test:public-leaderboard-join-cta
 npm run test:reliability-hardening
 npm run lint
 ```
+
+## Loop 8 cleanup — entry process closure state
+
+This pass audited the entry/join path after the public-board work and found the same stale-status risk in entry routes.
+
+Changes made:
+
+- Added `src/lib/entry-process-state.ts` so join/save/edit/remove flows use one entry-closed rule.
+- `lockedOrScoring(...)` now accepts an injected `now`, so tests can replay status-downgrade cases deterministically.
+- Guest join lookup/create/update, signed-in account entry updates, runner entry removal/leave checks, and signed-in join now use `entryProcessIsClosed(...)`.
+- Those routes now fetch `results_finalized_at`, `start_date`, `end_date`, and `leaderboard_json` where needed, so a stale tournament status cannot reopen entries once leaderboard rows prove scoring.
+- Updated the stale `test:guest-join-flow` verifier to match the current join flow.
+- Added `test:entry-process-state` covering pre-lock open, locked closed, live/completed closed, finalized/archived closed, and status-downgraded live-scoring closed.
+- Added `test:guest-join-flow` and `test:entry-process-state` to `predeploy:check`.
+
+Extra verification commands:
+
+```bash
+npm run test:guest-join-flow
+npm run test:entry-process-state
+npm run test:join-full-name-account-flow
+npm run test:pick-submission-validation
+npm run test:pick-counts
+npm run lint
+```

@@ -6,6 +6,9 @@ function assert(condition, message) {
 
 const migration = readFileSync('supabase/migrations/20260603_guest_join_flow.sql', 'utf8')
 const joinPage = readFileSync('src/app/(app)/pool/join/page.tsx', 'utf8')
+const guestEntryRoute = readFileSync('src/app/api/pool/guest-entry/route.ts', 'utf8')
+const accountEntryRoute = readFileSync('src/app/api/pool/account-entry/route.ts', 'utf8')
+const poolEntriesRoute = readFileSync('src/app/api/pools/[id]/entries/route.ts', 'utf8')
 const types = readFileSync('src/types/database.ts', 'utf8')
 
 assert(migration.includes('alter column user_id drop not null'), 'guest migration must allow entries without a user_id')
@@ -20,20 +23,35 @@ assert(migration.includes("jsonb_array_elements(coalesce(v_tournament.field_json
 assert(migration.includes("jsonb_array_elements(coalesce(to_jsonb(v_pool)->'pick_groups_json', '[]'::jsonb))"), 'grouped guest save must validate picks against locked groups')
 assert(migration.includes('selected.pick_count <>'), 'grouped guest save must enforce picks per locked group')
 
-assert(joinPage.includes("type JoinStep = 'code' | 'name' | 'picks' | 'saved'"), 'join page must be a no-auth multi-step flow')
-assert(joinPage.includes('Guest picks can’t be edited after saving.'), 'guest pick screen must explain one-time save')
-assert(joinPage.includes('Pick 12 golfers to save') || joinPage.includes('Pick ${requiredPickCount} golfers to save'), 'save button must stay disabled until complete')
-assert(joinPage.includes('Create account to link entry'), 'saved screen must offer account linking after picks are saved')
-assert(joinPage.includes('Sign in to connect account'), 'join page must offer optional sign-in before saving picks')
-assert(joinPage.includes('gpp_claim_guest_entry'), 'signed-in entrants must automatically link saved entries')
-assert(joinPage.includes('quick My Entry view'), 'account CTA must mention quick My Entry view')
-assert(joinPage.includes("/pool/${poolId}?tab=my-entry"), 'claim flow must land account users on My Entry')
-assert(!joinPage.includes('/login?redirect=${encodeURIComponent(currentJoinRedirect())}'), 'join flow must not redirect to login before entry save')
+assert(joinPage.includes("params.get('pool')"), 'join page must accept public leaderboard pool-id links')
+assert(joinPage.includes('showPasscodeInput = !directPoolLink'), 'join page must hide passcode boxes for direct public-board links')
+assert(joinPage.includes('directPoolName'), 'join page should show pool context for direct public-board links')
+assert(joinPage.includes('Full name'), 'join page must collect pool-runner full name')
+assert(joinPage.includes('Leaderboard name'), 'join page must collect leaderboard name')
+assert(joinPage.includes('Only the pool runner sees this.'), 'join page must explain full-name privacy')
+assert(joinPage.includes('Account sign in'), 'join page must offer optional sign-in')
+assert(joinPage.includes('Make Picks'), 'join page must land entrants in the pick-making flow')
+assert(joinPage.includes("fetch('/api/pool/guest-entry'"), 'guest join must create an entry without requiring auth')
+assert(joinPage.includes('entryProcessIsClosed(pool, tournament)'), 'signed-in join must use shared entry-closed state')
+assert(joinPage.includes("/pool/${data.poolId}?guest=${encodeURIComponent(data.token)}"), 'guest join must return to pool with guest token')
+assert(joinPage.includes('DUPLICATE_ENTRY_NAME_MESSAGE'), 'signed-in join must show duplicate-entry-name copy')
+
+for (const [label, source] of [
+  ['guest entry route', guestEntryRoute],
+  ['account entry route', accountEntryRoute],
+  ['pool entries route', poolEntriesRoute],
+]) {
+  assert(source.includes('entryProcessIsClosed'), `${label} must use shared entry-closed state`)
+  assert(source.includes('leaderboard_json'), `${label} must fetch leaderboard rows so status downgrades cannot reopen entries`)
+  assert(source.includes('results_finalized_at'), `${label} must fetch finalized-result state so final pools stay closed`)
+}
 
 const poolPage = readFileSync('src/app/(app)/pool/[id]/page.tsx', 'utf8')
 const poolView = readFileSync('src/app/(app)/pool/[id]/PoolView.tsx', 'utf8')
-assert(poolPage.includes("initialTab={requestedTab === 'my-entry' ? 'my-entry'"), 'pool page must pass safe tab deeplinks')
-assert(poolView.includes('initialTab?: Tab'), 'PoolView must accept an initial tab')
+assert(poolPage.includes('guestEntryToken={usingGuestToken ? guestToken : \'\'}'), 'pool page must pass guest tokens into PoolView')
+assert(poolView.includes("guestMode ? 'my-entry'"), 'guest users must land on My Entry after joining')
+assert(poolView.includes("new URLSearchParams(window.location.search).get('tab')"), 'PoolView must own safe tab route state')
+assert(poolView.includes('type Tab'), 'PoolView must keep explicit tab states')
 assert(poolView.includes('initialHighlightedEntryId?: string | null'), 'PoolView must accept a public leaderboard entry highlight')
 
 const proxy = readFileSync('src/proxy.ts', 'utf8')

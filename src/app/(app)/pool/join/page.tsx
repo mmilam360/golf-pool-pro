@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { useRouter } from 'next/navigation'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, normalizeEntryName } from '@/lib/entry-name'
+import { entryProcessIsClosed } from '@/lib/entry-process-state'
 
 type ResumeEntry = { poolId: string; token: string; poolName: string; tournamentName: string; displayName: string }
 
@@ -212,7 +213,7 @@ export default function JoinPoolPage() {
 
     const { data: pool, error: poolError } = await supabase
       .from('gpp_pools')
-      .select('id, is_locked, gpp_tournaments(status, start_date)')
+      .select('id, is_locked, is_completed, results_finalized_at, gpp_tournaments(status, start_date, end_date, leaderboard_json)')
       .eq('passcode', normalizedPasscode)
       .single()
 
@@ -224,7 +225,7 @@ export default function JoinPoolPage() {
     const tournament = Array.isArray((pool as any).gpp_tournaments)
       ? (pool as any).gpp_tournaments[0]
       : (pool as any).gpp_tournaments
-    const picksClosed = pool.is_locked || tournament?.status === 'live' || tournament?.status === 'completed'
+    const picksClosed = entryProcessIsClosed(pool, tournament)
 
     if (picksClosed) {
       setError('This pool is locked. Picks have closed.')
