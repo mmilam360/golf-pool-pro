@@ -2140,8 +2140,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       const link = document.createElement('a')
       link.href = url
       link.download = file.name
+      link.rel = 'noopener'
+      link.style.display = 'none'
+      document.body.appendChild(link)
       link.click()
-      URL.revokeObjectURL(url)
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
       trackGppEvent('final_share_downloaded', {
         pool_id: pool.id,
         tournament: tournament?.name || null,

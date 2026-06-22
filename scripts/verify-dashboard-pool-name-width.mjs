@@ -5,8 +5,8 @@ const dashboard = readFileSync('src/components/DashboardActivePools.tsx', 'utf8'
 const poolView = readFileSync('src/app/(app)/pool/[id]/PoolView.tsx', 'utf8')
 
 assert.ok(
-  dashboard.includes("eventBegun ? 'grid-cols-[32px_minmax(0,1fr)_auto_78px] sm:grid-cols-[40px_minmax(0,1fr)_auto_108px]' : 'grid-cols-[32px_minmax(0,1fr)_auto] sm:grid-cols-[40px_minmax(0,1fr)_auto]'"),
-  'dashboard active-pool switcher should use auto status columns and no fixed empty score column before live scoring'
+  dashboard.includes("eventBegun ? 'grid-cols-[32px_minmax(0,1fr)_90px] sm:grid-cols-[40px_minmax(0,1fr)_110px]' : 'grid-cols-[32px_minmax(0,1fr)_auto] sm:grid-cols-[40px_minmax(0,1fr)_auto]'"),
+  'dashboard active-pool switcher should use auto status columns before live scoring and only reserve the compact score column after the event begins'
 )
 assert.ok(
   !dashboard.includes("grid-cols-[32px_minmax(0,1fr)_64px_96px]"),
@@ -21,10 +21,10 @@ assert.ok(
   'dashboard board subtitle should use wider/lower-tracking pool-name treatment'
 )
 assert.ok(
-  dashboard.includes('className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2"') &&
-  dashboard.includes('className="min-w-0 truncate pb-0.5 text-base font-black leading-tight text-[#0f2f25] sm:text-lg" title={pool.name}>{pool.name}</p>') &&
-  dashboard.includes('{formatEntryCount(poolEntries.length)}'),
-  'dashboard switcher pool name should stay readable while truncating and show the right-aligned entry count inline'
+  dashboard.includes('className="flex min-w-0 items-center gap-1.5"') &&
+  dashboard.includes('className="min-w-0 flex-1 truncate pb-0.5 text-lg font-black leading-tight text-[#0f2f25] sm:text-xl" title={pool.name}>{pool.name}</p>') &&
+  dashboard.includes('{formatEntryCount(entries.length)}'),
+  'dashboard switcher pool name should stay readable while truncating and the expanded board should show the entry count'
 )
 assert.ok(
   poolView.includes('className="mx-auto mt-1 max-w-[98%] truncate text-[10px] font-black uppercase tracking-[0.04em] text-[#005b3c] sm:text-xs sm:tracking-[0.08em]" title={poolName}>{poolName}</p>'),

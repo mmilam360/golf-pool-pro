@@ -52,7 +52,7 @@ assert.ok(
   'edit-only route should hide owner group-lock admin prompt'
 )
 assert.ok(
-  poolView.includes("{!entryEditOnly && isOwner && paymentStatus !== 'active' && ("),
+  poolView.includes('{!entryEditOnly && isOwner && showPaymentActions && ('),
   'edit-only route should hide owner payment prompt'
 )
 assert.ok(
@@ -76,8 +76,8 @@ assert.ok(
   'mobile install prompt should identify pool edit-picks routes'
 )
 assert.ok(
-  mobileInstallPrompt.includes("const shouldOfferInstall = !editPicksRoute && (pathname === '/dashboard' || /^\\/pool\\/[^/]+$/.test(pathname))"),
-  'mobile install prompt should stay hidden on the edit-picks route while remaining available on dashboard and normal pool pages'
+  mobileInstallPrompt.includes("const shouldOfferInstall = !editPicksRoute && pathname === '/dashboard'"),
+  'mobile install prompt should stay hidden on edit-picks routes and only offer from dashboard when no active pools are shown'
 )
 assert.ok(
   poolView.includes("const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner"),
@@ -108,7 +108,7 @@ assert.ok(
   'remove/leave confirmation modal should render outside the owner-only Pool Settings block so non-owners can confirm Leave pool'
 )
 assert.ok(
-  poolView.includes("{removingOwnEntry ? 'Leave pool' : 'Remove entry'}"),
+  poolView.includes("{removingOwnEntry ? 'Leave pool' : `Remove ${removeTargetName}`}") && poolView.includes("removingOwnEntry ? 'Leave pool' : 'Remove'"),
   'Leave pool confirmation should use player-facing copy instead of owner removal copy'
 )
 assert.ok(

@@ -237,6 +237,8 @@ export default function FinalResultPopup({ announcement, dismissAction }: Props)
       const link = document.createElement('a')
       link.href = blobUrl
       link.download = fileName
+      link.rel = 'noopener'
+      link.style.display = 'none'
       document.body.appendChild(link)
       link.click()
       link.remove()

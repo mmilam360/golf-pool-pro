@@ -11,7 +11,7 @@ assert.ok(source.includes('title="Move up"') && source.includes('title="Move dow
 assert.ok(source.includes("const canSortPools = mode === 'player' && orderedCards.length > 1"), 'sort button should only show for player dashboards with multiple active pools')
 assert.ok(source.includes("{sortMode ? 'Done' : 'Sort'}"), 'active pools header should use Sort/Done toggle')
 assert.ok(source.includes('const canReorderPools = canSortPools && sortMode'), 'row reorder controls should only show while sort mode is enabled')
-assert.ok(source.includes('const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => new Set(cards[0]?.pool.id ? [cards[0].pool.id] : []))'), 'dashboard should open the first pool on initial load')
+assert.ok(source.includes('function initialExpandedPoolIds(cards: ActivePoolCard[], storageKey: string)') && source.includes('const [expandedPoolIds, setExpandedPoolIds] = useState<Set<string>>(() => initialExpandedPoolIds(cards, viewStateKey))'), 'dashboard should open the first available/saved pool on initial load')
 assert.ok(source.includes('const [sortAutoExpandSuppressed, setSortAutoExpandSuppressed] = useState(false)'), 'dashboard should track when sort mode has suppressed auto expansion')
 assert.ok(source.includes('function handleSortModeToggle()') && source.includes('setExpandedPoolIds(new Set())') && source.includes('setSortAutoExpandSuppressed(true)'), 'entering/leaving sort mode should collapse all pools and suppress auto expansion')
 assert.ok(source.includes('if (!poolOrderHydrated || !savedTopPoolId || sortMode || sortAutoExpandSuppressed) return'), 'saved-order auto expansion should not run during or after sort mode')

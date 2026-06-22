@@ -11,13 +11,13 @@ assert.ok(
 )
 
 assert.ok(
-  dashboard.includes('grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2'),
-  'dashboard pool-card header should keep pool name and entry count inline'
+  dashboard.includes('className="flex min-w-0 items-center gap-1.5"') && dashboard.includes('className="min-w-0 flex-1 truncate pb-0.5 text-lg font-black leading-tight text-[#0f2f25] sm:text-xl" title={pool.name}>{pool.name}</p>'),
+  'dashboard pool-card header should keep pool name readable with flexible truncation'
 )
 
 assert.ok(
-  dashboard.includes('{formatEntryCount(poolEntries.length)}'),
-  'dashboard pool-card header should use the active entry count for each pool'
+  dashboard.includes('{formatEntryCount(entries.length)}'),
+  'dashboard expanded board header should show the active entry count for each pool'
 )
 
 assert.ok(
@@ -50,18 +50,28 @@ assert.ok(
   'dashboard pick status labels should merge field rows so tee times remain available before/live scoring'
 )
 
-const paritySnippets = [
+const sharedParitySnippets = [
   'gpp-board-frame border-[10px] border-[#123c2f] md:border-[16px]',
   'gpp-score-face border-2 border-[#d8b45d] bg-[#f7f7f2] text-center',
-  'mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]',
   'grid min-h-[58px] cursor-pointer list-none grid-cols-[34px_minmax(0,1fr)_58px_18px]',
   'w-full table-fixed border-collapse text-[12px] text-[#111]',
   'border-b-2 border-r-2 border-[#d8cab0]',
-  'gpp-board-post mx-auto -mt-[4px] h-36 w-20',
 ]
-for (const snippet of paritySnippets) {
+for (const snippet of sharedParitySnippets) {
   assert.ok(dashboard.includes(snippet), `dashboard board should keep pool-page visual parity for: ${snippet}`)
   assert.ok(poolView.includes(snippet), `pool page should contain the matching board snippet for: ${snippet}`)
 }
+
+assert.ok(
+  dashboard.includes('mx-auto max-w-[66%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[76%] sm:text-3xl sm:tracking-[0.16em]') &&
+  poolView.includes('mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]'),
+  'dashboard and pool page should keep the accepted board title treatment with dashboard allowing room for entry-count badge'
+)
+
+assert.ok(
+  dashboard.includes('gpp-board-post relative z-0 mx-auto -mt-[4px] h-36 w-20') &&
+  poolView.includes('gpp-board-post mx-auto -mt-[4px] h-36 w-20'),
+  'dashboard and pool page should keep matching board posts, with dashboard post layered behind sticky dashboard controls'
+)
 
 console.log('dashboard runner/player parity verified')
