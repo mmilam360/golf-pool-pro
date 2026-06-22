@@ -1,4 +1,4 @@
-import { getPoolPaymentQuote, getPromoDiscountCents } from '../src/lib/payments/pricing.ts'
+import { getPoolPaymentQuote, getPoolPaymentStatus, getPromoDiscountCents } from '../src/lib/payments/pricing.ts'
 
 const cases = [
   [5, 0],
@@ -29,6 +29,23 @@ if (targetPriceDiscount !== 3100) {
 const noDiscountBelowTarget = getPromoDiscountCents(800, { target_amount_cents: 900 })
 if (noDiscountBelowTarget !== 0) {
   throw new Error(`Expected no discount below target price, got ${noDiscountBelowTarget}`)
+}
+
+const paymentStatusCases = [
+  ['draft', 18, 0, 'payment_due'],
+  ['active', 5, 0, 'active'],
+  ['active', 18, 0, 'payment_due'],
+  ['payment_due', 18, 0, 'payment_due'],
+  ['archived_unpaid', 18, 0, 'archived_unpaid'],
+  ['archived_unpaid', 5, 0, 'active'],
+  ['refunded', 18, 0, 'refunded'],
+]
+
+for (const [storedStatus, entries, paid, expected] of paymentStatusCases) {
+  const actual = getPoolPaymentStatus(storedStatus, entries, paid)
+  if (actual !== expected) {
+    throw new Error(`Expected ${storedStatus} with ${entries} entries and ${paid} paid to resolve to ${expected}, got ${actual}`)
+  }
 }
 
 console.log('pool pricing checks passed')

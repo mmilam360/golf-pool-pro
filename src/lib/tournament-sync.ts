@@ -6,7 +6,7 @@ import { autoLockPools, firstTeeTimeFromField, tournamentIsInLiveActivationWindo
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
 import { fieldFingerprint, looksLikePlaceholderField, recordFieldFetchAttempt, shouldAlertOnFieldFailures } from './field-quality'
 import { recordNotificationEvent, sendPushToUser } from './notifications/push'
-import { hasPostCutRoundEvidence, hasWeekendCutStatusErrors, repairWeekendCutStatuses } from './leaderboard-sanity'
+import { hasPostCutRoundEvidence, hasWeekendCutStatusErrors, repairWeekendCutStatuses, finalBoardHasEnoughEvidence } from './leaderboard-sanity'
 import { sendWdPickAlertsForTournament } from './wd-pick-alerts'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
@@ -177,12 +177,20 @@ async function fetchScoreboardEvents() {
   return data.events || []
 }
 
-async function fetchEventSpecificField(eventId: string) {
+async function fetchScoreboardEventById(eventId: string) {
   try {
     const res = await fetch(ESPN_EVENT_URL(eventId), { cache: 'no-store' })
-    if (!res.ok) return []
+    if (!res.ok) return null
     const data = await res.json()
-    const event = (data.events || [])[0]
+    return (data.events || [])[0] || null
+  } catch {
+    return null
+  }
+}
+
+async function fetchEventSpecificField(eventId: string) {
+  try {
+    const event = await fetchScoreboardEventById(eventId)
     if (!event) return []
     const competition = event.competitions?.[0]
     const rawPlayers = (competition?.competitors || []).map(mapCompetitorToPlayer)
@@ -563,6 +571,14 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
   result.emptyEntriesAutoRemoved = poolLock.emptyEntriesAutoRemoved
 
   const scoreboardEvents = await fetchScoreboardEvents()
+  const scoreboardEventIds = new Set(scoreboardEvents.map((event: any) => String(event.id)))
+  for (const externalId of activation.activatedExternalIds) {
+    if (scoreboardEventIds.has(externalId)) continue
+    const event = await fetchScoreboardEventById(externalId)
+    if (!event) continue
+    scoreboardEvents.push(event)
+    scoreboardEventIds.add(externalId)
+  }
   result.fetched = scoreboardEvents.length
 
   const liveTournamentIds: string[] = []
@@ -696,7 +712,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       const hasStoredFinalBoard = String(existing.status || '').toLowerCase() === 'completed'
         && effectiveStatus === 'completed'
         && Array.isArray(existing.leaderboard_json)
-        && existing.leaderboard_json.length > 0
+        && finalBoardHasEnoughEvidence(existing.leaderboard_json)
         && !hasWeekendCutStatusErrors(existing.leaderboard_json)
 
       if (hasStoredFinalBoard) {
@@ -915,7 +931,7 @@ export async function syncTournaments({
       const hasStoredFinalBoard = String(existing.status || '').toLowerCase() === 'completed'
         && effectiveStatus === 'completed'
         && Array.isArray(existing.leaderboard_json)
-        && existing.leaderboard_json.length > 0
+        && finalBoardHasEnoughEvidence(existing.leaderboard_json)
         && !hasWeekendCutStatusErrors(existing.leaderboard_json)
 
       if (hasStoredFinalBoard) {

@@ -9,11 +9,12 @@ export async function GET(request: Request) {
     const supabase = createServiceClient() as any
     const { data: tournaments, error: tournamentError } = await supabase
       .from('gpp_tournaments')
-      .select('id, start_date')
+      .select('id, start_date, status')
 
     if (tournamentError) throw tournamentError
 
     const tournamentIds = (tournaments || [])
+      .filter((tournament: any) => String(tournament.status || '').toLowerCase() !== 'completed')
       .filter((tournament: any) => isPoolFeePastDue(tournament.start_date))
       .map((tournament: any) => tournament.id)
     if (tournamentIds.length === 0) {
@@ -25,6 +26,8 @@ export async function GET(request: Request) {
       .select('id, payment_status, amount_paid_cents')
       .in('tournament_id', tournamentIds)
       .in('payment_status', ['draft', 'active', 'payment_due'])
+      .eq('is_completed', false)
+      .is('results_finalized_at', null)
 
     if (error) throw error
 

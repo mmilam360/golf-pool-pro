@@ -13,6 +13,8 @@ const checks = [
   ['npm', ['run', 'test:edit-picks-simplified-route']],
   ['npm', ['run', 'test:entry-saved-email-quota']],
   ['npm', ['run', 'test:transactional-email-headers']],
+  ['npm', ['run', 'test:payment-due-reminder-email']],
+  ['npm', ['run', 'test:reliability-hardening']],
   ['npm', ['run', 'test:support-email-route']],
   ['npm', ['run', 'test:reminder-edit-links']],
   ['npm', ['run', 'test:runner-reminder-access']],

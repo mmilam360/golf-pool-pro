@@ -4,7 +4,7 @@ import { easternNowParts, shouldAutoFinalizeGroups } from './grouped-pool-auto-l
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
 import { buildPickGroups, type PoolGameFormat } from './pool-formats'
 import { hydrateFieldWithOwgr } from './owgr'
-import { isFieldAcceptableForLock } from './field-quality'
+import { isFieldAcceptableForLock, fieldFingerprint } from './field-quality'
 
 type AutoLockTournament = {
   id: string
@@ -13,6 +13,7 @@ type AutoLockTournament = {
   start_date?: string | null
   field_json?: unknown
   leaderboard_json?: unknown
+  last_field_fetch?: string | null
 }
 
 type AutoLockPool = {
@@ -71,7 +72,7 @@ export async function autoFinalizeGroupedPools(supabase: SupabaseClient<any>, op
 
   const { data: pools, error } = await supabase
     .from('gpp_pools')
-    .select('id, passcode, tournament_id, game_format, group_count, pick_groups_json, groups_finalized_at, gpp_tournaments(id, external_id, name, start_date, field_json, leaderboard_json)')
+    .select('id, passcode, tournament_id, game_format, group_count, pick_groups_json, groups_finalized_at, gpp_tournaments(id, external_id, name, start_date, field_json, leaderboard_json, last_field_fetch)')
     .in('game_format', ['ranked_groups', 'random_groups'])
     .is('groups_finalized_at', null)
     .limit(500)
@@ -92,13 +93,14 @@ export async function autoFinalizeGroupedPools(supabase: SupabaseClient<any>, op
     const fresh = await fetchEarlyField(tournament)
     let fieldSnapshot: GolfPlayer[] = fresh.players
     let fieldSource: 'pga_tour' | 'stored' = 'pga_tour'
-    const lastUpdated: string | null = fresh.lastUpdated
+    let lastUpdated: string | null = fresh.lastUpdated
 
     if (fieldSnapshot.length > 0 && tournament?.id) {
       // Persist the fresh field so the live leaderboard sync later sees the
       // corrected roster and WD statuses.
       await supabase.from('gpp_tournaments').update({
         field_json: fieldSnapshot,
+        field_fingerprint: fieldFingerprint(fieldSnapshot),
         field_source: 'pga_tour',
         last_field_fetch: lastUpdated || new Date().toISOString(),
       }).eq('id', tournament.id)
@@ -108,6 +110,7 @@ export async function autoFinalizeGroupedPools(supabase: SupabaseClient<any>, op
     if (fieldSnapshot.length === 0) {
       fieldSnapshot = storedField(tournament)
       fieldSource = 'stored'
+      lastUpdated = tournament?.last_field_fetch || null
     }
 
     if (fieldSnapshot.length === 0) {

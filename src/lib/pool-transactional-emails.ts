@@ -236,14 +236,14 @@ export function buildPaymentDueReminderEmail(params: {
     `Amount due: ${params.amountDueLabel}`,
     `Due date: ${params.dueDateLabel}`,
     '',
-    "Please pay today to keep the live leaderboard visible. Otherwise, we'll temporarily hide the leaderboard until the pool fee is paid. Entries and picks are safe.",
+    'Please pay today so the host side stays current. Entries, picks, and leaderboards stay visible.',
     '',
     `Pay pool fee: ${settingsUrl}`,
     '',
     'Golf Pools Pro',
   ].join('\n')
   const html = emailShell({
-    preheader: `${params.amountDueLabel} is due today so the leaderboard stays live.`,
+    preheader: `${params.amountDueLabel} is due today for ${poolName}.`,
     title: 'Quick reminder',
     bodyHtml: `
       <p style="margin:0 0 14px;font-size:16px;">${escapeHtml(runnerPrefix)}your pool fee is due today.</p>
@@ -252,7 +252,7 @@ export function buildPaymentDueReminderEmail(params: {
         <tr><td style="padding:12px 14px;border-bottom:1px solid #d8cab0;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Active entries</div><div style="font-size:16px;font-weight:800;color:#123c2f;">${params.activeEntryCount}</div></td></tr>
         <tr><td style="padding:12px 14px;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Amount due</div><div style="font-size:18px;font-weight:900;color:#123c2f;">${escapeHtml(params.amountDueLabel)}</div></td></tr>
       </table>
-      <p style="margin:0;color:#657168;font-size:14px;">Please pay today to keep the live leaderboard visible. Otherwise, we'll temporarily hide the leaderboard until the pool fee is paid. Entries and picks are safe.</p>
+      <p style="margin:0;color:#657168;font-size:14px;">Please pay today so the host side stays current. Entries, picks, and leaderboards stay visible.</p>
     `,
     ctaHref: settingsUrl,
     ctaLabel: 'Pay pool fee',

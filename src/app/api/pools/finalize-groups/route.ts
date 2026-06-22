@@ -7,7 +7,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from '@/lib/pga-tour-field'
 import { buildPickGroups, type PoolGameFormat } from '@/lib/pool-formats'
 import { hydrateFieldWithOwgr } from '@/lib/owgr'
-import { isFieldAcceptableForLock } from '@/lib/field-quality'
+import { isFieldAcceptableForLock, fieldFingerprint } from '@/lib/field-quality'
 
 export async function POST(request: Request) {
   try {
@@ -89,6 +89,7 @@ export async function POST(request: Request) {
         // Persist the fresh field to the tournament record
         await supabase.from('gpp_tournaments').update({
           field_json: fieldSnapshot,
+          field_fingerprint: fieldFingerprint(fieldSnapshot),
           field_source: 'pga_tour',
           last_field_fetch: lastUpdated || new Date().toISOString(),
         }).eq('id', tournament.id)
