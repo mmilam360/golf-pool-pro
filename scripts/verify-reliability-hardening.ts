@@ -2,12 +2,35 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { getPoolPaymentStatus } from '../src/lib/payments/pricing'
+import { derivePoolFeeDisplay, formatPoolFeeCents, formatPoolFeeShortDate } from '../src/lib/pool-fee-display'
 import { auditProdReadiness } from '../src/lib/prod-readiness'
 import { deriveBoardVisibility, derivePaymentState, entriesMissingFrozenResults, finalPool, lockedOrScoring, picksAreVisibleForPool, poolDashboardStatus, poolIsActiveForDashboard, tournamentHasScoringEvidence } from '../src/lib/pool-state'
-import { shouldPreserveLiveTournamentStatus } from '../src/lib/tournament-sync'
+import { shouldPreserveLiveTournamentStatus, liveSyncActivationForTournament, resolveLiveSyncStatus } from '../src/lib/tournament-sync'
+import { entryNeedsPicks, submittedPickCount } from '../src/lib/entry-picks'
+
+const now = new Date('2026-06-22T15:00:00Z')
 
 assert.equal(getPoolPaymentStatus('active', 18, 0), 'payment_due', 'stored active cannot hide a real balance due')
 assert.equal(getPoolPaymentStatus('archived_unpaid', 5, 0), 'active', 'free/paid pools recover to active')
+assert.equal(submittedPickCount({ submitted_pick_count: 7, golfer_picks: [] }), 7, 'submitted pick count respects hidden-pick metadata')
+assert.equal(submittedPickCount({ golfer_picks: ['A', 'B'] }), 2, 'submitted pick count falls back to stored picks')
+assert.equal(entryNeedsPicks({ submitted_pick_count: 7, golfer_picks: [] }, 8), true, 'entry pick progress detects incomplete hidden picks')
+assert.equal(entryNeedsPicks({ submitted_pick_count: 8, golfer_picks: [] }, 8), false, 'entry pick progress accepts complete hidden picks')
+assert.deepEqual(
+  liveSyncActivationForTournament({ status: 'upcoming', start_date: '2026-06-22', field_json: [] }, '2026-06-22', now),
+  { shouldActivate: true, dateFallback: true },
+  'live sync uses date fallback when tee times are missing on tournament day'
+)
+assert.deepEqual(
+  liveSyncActivationForTournament({ status: 'upcoming', start_date: '2026-06-22', field_json: [{ teeTime: '2026-06-22T15:04:00.000Z' }] }, '2026-06-22', now),
+  { shouldActivate: true, dateFallback: false },
+  'live sync activates inside the first-tee lock window'
+)
+assert.equal(
+  resolveLiveSyncStatus('live', [{ teeTime: '2026-06-22T16:00:00.000Z' }], new Date('2026-06-22T15:00:00.000Z'), false),
+  'upcoming',
+  'live sync ignores ESPN live status before first tee activation window'
+)
 
 const finalArchivedPool = { id: 'pool-final', name: 'Final', is_completed: true, payment_status: 'archived_unpaid' }
 const completedTournament = { id: 't1', name: 'Finished Event', status: 'completed', leaderboard_json: [{ name: 'Scottie Scheffler' }] }
@@ -24,6 +47,34 @@ assert.deepEqual(
   'final board visibility is independent of billing/archive state'
 )
 assert.equal(derivePaymentState({ storedStatus: 'active', activeEntryCount: 18, amountPaidCents: 0 }).amountDueCents, 1300)
+assert.equal(formatPoolFeeCents(1300), '$13.00', 'fee display preserves cents formatting used by PoolView')
+assert.equal(formatPoolFeeShortDate('2026-06-20'), '06/20/26', 'fee display keeps short date formatting')
+assert.deepEqual(
+  derivePoolFeeDisplay({
+    paymentStatus: 'payment_due',
+    finalAmountDueCents: 1300,
+    amountPaidCents: 0,
+    paymentCollectionOpen: true,
+    tournamentIsPastOrCompleted: false,
+    tournamentStartDate: '2026-06-18',
+    now,
+  }),
+  {
+    paymentStatusForDisplay: 'payment_due',
+    showPaymentActions: true,
+    feeDueDate: '06/20/26',
+    feeLabel: '$13.00 due',
+    feeStatusLabel: 'Unpaid',
+    feeStatusClass: 'border-amber-200 bg-amber-50 text-amber-900',
+    feeTimingText: 'Payment is due by 06/20/26.',
+  },
+  'pool fee display keeps due-state copy and classes out of PoolView'
+)
+assert.equal(
+  derivePoolFeeDisplay({ paymentStatus: 'archived_unpaid', finalAmountDueCents: 1300, amountPaidCents: 0, paymentCollectionOpen: true, tournamentIsPastOrCompleted: true }).showPaymentActions,
+  false,
+  'past/final pool fee state does not show payment actions'
+)
 
 const frozenMissing = entriesMissingFrozenResults([
   { id: 'ok', is_removed: false, golfer_picks: ['Rory McIlroy'], rank: 1, total_score: -8, counting_scores: [{ name: 'Rory McIlroy' }] },
@@ -33,7 +84,6 @@ const frozenMissing = entriesMissingFrozenResults([
 ])
 assert.deepEqual(frozenMissing.map(entry => entry.id), ['missing'], 'frozen-result check ignores removed entries and no-pick entries')
 
-const now = new Date('2026-06-22T15:00:00Z')
 const audit = auditProdReadiness({
   checkedAt: now,
   usingServiceRole: true,

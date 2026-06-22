@@ -2,6 +2,7 @@ import { getPoolPaymentQuote, getPoolPaymentStatus, type PoolPaymentStatus } fro
 import { APP_DATE_TIME_ZONE, getDateOnly, todayDateOnly } from './date-utils'
 import type { GolfPlayer } from './golf-api'
 import { hasOnCourseScores } from './golf-live'
+import { entryHasSubmittedPicks as entryPickHasSubmittedPicks } from './entry-picks'
 
 export const LIVE_SCORE_STALE_MINUTES = 12
 export const FIELD_STALE_DAYS = 2
@@ -165,9 +166,7 @@ export function activeEntries<T extends EntryStateInput>(entries: T[] | null | u
   return (entries || []).filter(entry => !entry.is_removed)
 }
 
-export function entryHasSubmittedPicks(entry: EntryStateInput) {
-  return Array.isArray(entry.golfer_picks) && entry.golfer_picks.some(pick => typeof pick === 'string' ? pick.trim().length > 0 : Boolean(pick))
-}
+export const entryHasSubmittedPicks = entryPickHasSubmittedPicks
 
 export function entriesMissingFrozenResults<T extends EntryStateInput>(entries: T[] | null | undefined) {
   return activeEntries(entries).filter(entry => {

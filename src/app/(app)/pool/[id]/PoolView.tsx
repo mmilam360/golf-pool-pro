@@ -9,8 +9,8 @@ import { createClient } from '@/lib/supabase/client'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { LeverageMarker, LeverageMarkerCorner, LeverageMarkerLegend, ObMarker, ObMarkerCorner } from '@/components/LeverageMarkers'
 import { availableCompletedRounds, buildHarePickMap, buildTortoisePickMap, currentLeaderboardRound, leaderboardForCompletedRound, leaderboardForRoundOnly, leaderboardHasPlayoffScores, normalizePickName, scoreEntriesForLeaderboard, type PickScore, type ScoredEntry } from '@/lib/scoring'
-import { getPoolPaymentStatus, getTournamentSaturday, isPoolFeePastDue } from '@/lib/payments/pricing'
-import { formatDateOnly, formatDateOnlyWeekday, getDateOnly, todayDateOnly } from '@/lib/date-utils'
+import { getPoolPaymentStatus } from '@/lib/payments/pricing'
+import { formatDateOnlyWeekday, getDateOnly, todayDateOnly } from '@/lib/date-utils'
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
@@ -20,6 +20,8 @@ import { DUPLICATE_ENTRY_NAME_MESSAGE, normalizeEntryName } from '@/lib/entry-na
 import { buildFrozenResultEntry, hasCompleteFrozenResults } from '@/lib/frozen-results'
 import { pickGridColumnCount } from '@/lib/pick-card-layout'
 import { finalPool, lockedOrScoring, tournamentHasScoringEvidence } from '@/lib/pool-state'
+import { derivePoolFeeDisplay, formatPoolFeeCents, formatPoolFeeShortDate } from '@/lib/pool-fee-display'
+import { entryNeedsPicks, submittedPickCount as countSubmittedPicks } from '@/lib/entry-picks'
 
 type PaymentQuote = {
   activeEntryCount: number
@@ -639,15 +641,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const entryRequiredPickCount = groupedFormat
     ? ((pickGroups.length || Number(pool.group_count || 0)) * picksPerGroup) || Number(pool.pick_count || 0)
     : Number(pool.pick_count || 0)
-  const pickCountForEntry = (entry: any) => {
-    const picks = Array.isArray(entry?.golfer_picks) ? entry.golfer_picks as string[] : []
-    return Number(entry?.submitted_pick_count ?? picks.length)
-  }
-  const entriesNeedingPicks = activeEntries.filter(entry => {
-    const pickCount = pickCountForEntry(entry)
-    if (entryRequiredPickCount <= 0) return pickCount <= 0
-    return pickCount < entryRequiredPickCount
-  })
+  const entriesNeedingPicks = activeEntries.filter(entry => entryNeedsPicks(entry, entryRequiredPickCount))
   const entriesNeedingPicksWithEmail = entriesNeedingPicks.filter(entry => runnerCanEmailEntry(entry))
   const entriesNeedingPicksNoEmail = entriesNeedingPicks.filter(entry => !runnerCanEmailEntry(entry))
   const wdPickNames = useMemo(() => new Set(field
@@ -708,47 +702,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
   const finalAmountDueCents = appliedPromo ? appliedPromo.amountDueCents : baseAmountDueCents
   const paymentCollectionOpen = picksAreLocked
-  const feeDueDate = formatShortDate(getTournamentSaturday(tournament?.start_date))
   const amountPaidCents = paymentQuote?.amountPaidCents ?? Number(pool.amount_paid_cents || 0)
-  const paymentStatusForDisplay = tournamentIsPastOrCompleted ? 'active' : paymentStatus
-  const showPaymentActions = !tournamentIsPastOrCompleted && paymentStatus !== 'active'
+  const {
+    paymentStatusForDisplay,
+    showPaymentActions,
+    feeLabel,
+    feeStatusLabel,
+    feeStatusClass,
+    feeTimingText,
+  } = derivePoolFeeDisplay({
+    paymentStatus,
+    finalAmountDueCents,
+    amountPaidCents,
+    paymentCollectionOpen,
+    tournamentIsPastOrCompleted,
+    tournamentStartDate: tournament?.start_date,
+  })
   const savedCards = paymentQuote?.savedCards || []
   const selectedSavedCard = savedCards.find(card => card.id === selectedSavedCardId) || null
   const useSavedCard = Boolean(selectedSavedCard && finalAmountDueCents > 0)
-  const feeLabel = paymentStatusForDisplay === 'active'
-    ? (amountPaidCents > 0 ? 'Paid' : 'Closed')
-    : finalAmountDueCents === 0
-      ? 'Free'
-      : paymentCollectionOpen
-        ? `${formatCents(finalAmountDueCents)} due`
-        : `${formatCents(finalAmountDueCents)} current fee`
-  const feeStatusLabel = paymentStatusForDisplay === 'active' && amountPaidCents > 0
-    ? 'Paid'
-    : paymentStatusForDisplay === 'active' && tournamentIsPastOrCompleted
-      ? 'Closed'
-      : finalAmountDueCents === 0
-      ? 'Free'
-      : paymentStatusForDisplay === 'active'
-        ? 'Paid'
-        : 'Unpaid'
-  const feeStatusClass = feeStatusLabel === 'Paid'
-    ? 'border-[#b58a3a] bg-[#fff4cf] text-[#7a5a19]'
-    : feeStatusLabel === 'Free'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-      : paymentCollectionOpen
-        ? 'border-amber-200 bg-amber-50 text-amber-900'
-        : 'border-stone-300 bg-white text-stone-700'
-  const feeTimingText = finalAmountDueCents === 0
-    ? paymentStatusForDisplay === 'active'
-      ? (amountPaidCents > 0 ? `Results are live. Amount paid: ${formatCents(amountPaidCents)}.` : 'Results are live.')
-      : 'No pool fee with the current entry count.'
-    : paymentStatusForDisplay === 'active'
-      ? amountPaidCents > 0
-        ? `Results are live. Amount paid: ${formatCents(amountPaidCents)}.`
-        : 'Results are live.'
-      : isPoolFeePastDue(tournament?.start_date)
-        ? `Payment is due${feeDueDate ? ` by ${feeDueDate}` : ' now'}.`
-        : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
   const canInvitePlayers = isOwner && !picksAreLocked
   const canLeaveOwnEntry = !guestMode && Boolean(myEntry) && !isOwner
   const activeField = useMemo(() => field.filter(player => String(player.status || '').toLowerCase() !== 'wd'), [field])
@@ -1010,21 +982,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   useEffect(() => {
     refreshPaymentQuote()
   }, [refreshPaymentQuote, activeEntries.length])
-
-  function formatCents(cents: number | null | undefined) {
-    if (cents == null) return 'Custom'
-    if (cents === 0) return '$0'
-    return `$${(cents / 100).toFixed(2)}`
-  }
-
-  function formatShortDate(value?: string | Date | null) {
-    if (!value) return null
-    if (typeof value === 'string') return formatDateOnly(value)
-    const date = value instanceof Date ? value : new Date(value)
-    if (Number.isNaN(date.getTime())) return null
-    return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCFullYear()).slice(-2)}`
-  }
-
 
   function reviewActivation() {
     setTab('pool-settings')
@@ -2312,7 +2269,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           <PoolInvitePrepPanel
             poolName={poolName}
             tournamentName={tournament?.name || 'Tournament'}
-            startDateLabel={formatShortDate(tournament?.start_date) || 'Date TBA'}
+            startDateLabel={formatPoolFeeShortDate(tournament?.start_date) || 'Date TBA'}
             entryCount={activeEntries.length}
             submittedPickCount={submittedPickCount}
             passcode={pool.passcode}
@@ -2981,14 +2938,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-800">Pool fee</p>
                 <h3 className="mt-1 text-2xl font-black text-emerald-950">{feeLabel}</h3>
                 {paymentStatusForDisplay === 'active' && amountPaidCents > 0 && (
-                  <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-emerald-800">Amount paid: {formatCents(amountPaidCents)}</p>
+                  <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-emerald-800">Amount paid: {formatPoolFeeCents(amountPaidCents)}</p>
                 )}
                 <p className="mt-1 text-sm text-stone-600">
                   {(paymentQuote?.activeEntryCount ?? activeEntries.length)} active {(paymentQuote?.activeEntryCount ?? activeEntries.length) === 1 ? 'entry' : 'entries'} · first 5 free · $20 max through 100 · +$10 per started 100 after
                 </p>
                 {feeTimingText && <p className="mt-2 text-sm font-semibold text-stone-700">{feeTimingText}</p>}
                 {appliedPromo && (
-                  <p className="mt-1 text-sm font-semibold text-emerald-800">{appliedPromo.code}: {formatCents(appliedPromo.discountCents)} off</p>
+                  <p className="mt-1 text-sm font-semibold text-emerald-800">{appliedPromo.code}: {formatPoolFeeCents(appliedPromo.discountCents)} off</p>
                 )}
               </div>
               <span className={`inline-flex w-fit border px-3 py-1 text-xs font-black uppercase tracking-[0.08em] ${feeStatusClass}`}>{feeStatusLabel}</span>
@@ -3035,7 +2992,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                               </button>
                             </div>
                             {appliedPromo && (
-                              <p className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">{appliedPromo.label} · {formatCents(appliedPromo.discountCents)} discount</p>
+                              <p className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">{appliedPromo.label} · {formatPoolFeeCents(appliedPromo.discountCents)} discount</p>
                             )}
                           </div>
                         )}
@@ -3105,7 +3062,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       disabled={paymentLoading || !paymentQuote || (!useSavedCard && !paymentCardReady && finalAmountDueCents > 0)}
                       className="w-full border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {paymentLoading ? 'Processing...' : finalAmountDueCents === 0 ? 'Open results' : `Pay ${formatCents(finalAmountDueCents)}`}
+                      {paymentLoading ? 'Processing...' : finalAmountDueCents === 0 ? 'Open results' : `Pay ${formatPoolFeeCents(finalAmountDueCents)}`}
                     </button>
                   </>
                 )}
@@ -3217,7 +3174,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </button>
             </div>
             {entries.map(entry => {
-              const pickCount = pickCountForEntry(entry)
+              const pickCount = countSubmittedPicks(entry)
               const rowPickTarget = entryRequiredPickCount || Number(pool.pick_count || 0)
               const picksComplete = rowPickTarget > 0 ? pickCount >= rowPickTarget : pickCount > 0
               return (

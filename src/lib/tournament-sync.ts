@@ -9,6 +9,7 @@ import { recordNotificationEvent, sendPushToUser } from './notifications/push'
 import { hasPostCutRoundEvidence, hasWeekendCutStatusErrors, repairWeekendCutStatuses, finalBoardHasEnoughEvidence } from './leaderboard-sanity'
 import { sendWdPickAlertsForTournament } from './wd-pick-alerts'
 import { hasStoredLeaderboard, tournamentDateWindowIncludes } from './pool-state'
+import { APP_DATE_TIME_ZONE, todayDateOnly } from './date-utils'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 const ESPN_EVENT_URL = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${eventId}`
@@ -500,12 +501,7 @@ async function liveSyncActivationState(supabase: any, now: Date) {
 
   if (error) throw error
 
-  const today = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/New_York',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now)
+  const today = todayDateOnly(APP_DATE_TIME_ZONE, now)
   const activatedExternalIds = new Set<string>()
   let hasLiveTournament = false
   let hasDateFallbackDue = false

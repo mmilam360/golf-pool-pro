@@ -295,3 +295,26 @@ npm run test:live-tournament-replay
 npm run test:live-scoring-health
 npm run lint
 ```
+
+## Loop 5 cleanup — fee display, pick counts, and sync date helpers
+
+This pass moved more PoolView rules into pure helpers while keeping the diff small and covered by behavior tests.
+
+Changes made:
+
+- Added `src/lib/pool-fee-display.ts` for pool-fee label/status/timing copy and fee/date formatting.
+- Replaced PoolView's local fee display logic with `derivePoolFeeDisplay(...)`.
+- Added `submittedPickCount(...)` and `entryNeedsPicks(...)` to `src/lib/entry-picks.ts` so hidden-pick metadata and visible picks use one count rule.
+- Rewired PoolView's runner missing-picks counts and entry rows through the shared entry-picks helper.
+- Reused `date-utils.todayDateOnly(...)` inside live tournament sync activation instead of another local date formatter.
+- Reused the entry-picks submitted-pick helper from `pool-state.ts` so final-result readiness and auto-lock logic agree.
+
+Extra verification commands:
+
+```bash
+npm run test:reliability-hardening
+npm run test:pool-auto-lock
+npm run test:live-tournament-replay
+npm run test:live-scoring-health
+npm run lint
+```
