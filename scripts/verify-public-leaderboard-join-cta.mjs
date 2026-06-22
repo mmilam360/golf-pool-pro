@@ -13,7 +13,7 @@ assert(publicLeaderboard.includes('preLockJoinOpen'), 'public leaderboard must c
 assert(publicLeaderboard.includes('derivePublicLeaderboardState(publicPool, tournament)'), 'public leaderboard state must use shared public leaderboard helper')
 assert(publicLeaderboard.includes('sanitizePublicLeaderboardEntries((entries || []) as any[], picksAreVisible)'), 'public leaderboard masking must use shared sanitizer')
 assert(publicLeaderboard.includes('results_finalized_at'), 'public leaderboard must pass finalized-result state to shared helpers')
-assert(publicLeaderboard.includes('submitted_pick_count'), 'public leaderboard must fetch submitted-pick metadata for hidden picks')
+assert(publicLeaderboard.includes('sanitizePublicLeaderboardEntries'), 'public leaderboard hidden-pick count must go through shared sanitizer')
 assert(!publicLeaderboard.includes('hasOnCourseScores'), 'public leaderboard must not carry its own scoring evidence rule')
 assert(publicLeaderboard.includes('Trying to join this pool?'), 'public leaderboard must show the pre-lock join prompt')
 assert(publicLeaderboard.includes('Join pool'), 'public leaderboard must have a Join pool action')

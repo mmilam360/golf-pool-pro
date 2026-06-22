@@ -23,7 +23,7 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
       .maybeSingle(),
     supabase
       .from('gpp_entries')
-      .select('id, pool_id, display_name, golfer_picks, submitted_pick_count, total_score, counting_scores, rank, is_removed, created_at')
+      .select('id, pool_id, display_name, golfer_picks, total_score, counting_scores, rank, is_removed, created_at')
       .eq('pool_id', id)
       .eq('is_removed', false)
       .order('created_at', { ascending: true }),

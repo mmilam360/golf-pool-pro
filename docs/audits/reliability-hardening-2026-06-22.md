@@ -347,7 +347,7 @@ Changes made:
 
 - Added `src/lib/public-leaderboard-state.ts` for public board state and entry sanitizing.
 - Public `/leaderboard/[id]` now calls `derivePublicLeaderboardState(...)` and `sanitizePublicLeaderboardEntries(...)` instead of doing masking inline.
-- Public leaderboard queries now include `results_finalized_at` and `submitted_pick_count` so final boards and hidden-pick progress use the right metadata.
+- Public leaderboard queries now include `results_finalized_at` so final boards use the right metadata.
 - Fixed `submittedPickCount(...)` so `submitted_pick_count: null` falls back to real pick-array length instead of counting as zero.
 - Added `test:public-leaderboard-states` covering:
   - pre-lock public board hides pick names but preserves submitted count,
