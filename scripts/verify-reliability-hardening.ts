@@ -41,6 +41,8 @@ assert.equal(tournamentHasScoringEvidence({ status: 'upcoming', start_date: '202
 assert.equal(poolDashboardStatus({ is_locked: false }, { status: 'upcoming', start_date: '2026-06-22', end_date: '2026-06-22', leaderboard_json: [{ name: 'Scottie Scheffler' }] }, new Date('2026-06-22T16:00:00Z')), 'Live', 'dashboard status stays Live when ESPN status downgrades but board rows exist')
 assert.equal(poolIsActiveForDashboard({ is_completed: false }, { status: 'upcoming', start_date: '2026-06-22', end_date: '2026-06-22', leaderboard_json: [{ name: 'Scottie Scheffler' }] }, new Date('2026-06-22T16:00:00Z')), true, 'dashboard keeps downgraded in-window scoring pool active')
 assert.equal(picksAreVisibleForPool({ is_locked: false }, { status: 'upcoming', start_date: '2026-06-22', end_date: '2026-06-22', leaderboard_json: [{ name: 'Scottie Scheffler' }] }, new Date('2026-06-22T16:00:00Z')), true, 'picks reveal when scoring evidence exists even if status says upcoming')
+assert.equal(picksAreVisibleForPool({ is_completed: true }, { status: 'upcoming', leaderboard_json: [] }), true, 'public/final pool picks stay visible even if tournament row is stale')
+assert.equal(lockedOrScoring({ is_locked: false, is_completed: false }, { status: 'upcoming', leaderboard_json: [] }), false, 'pre-lock public leaderboard can still show join prompt before scoring')
 assert.deepEqual(
   deriveBoardVisibility({ pool: finalArchivedPool, tournament: completedTournament }),
   { state: 'visible_final', canShowLeaderboard: true, hiddenByBilling: false },

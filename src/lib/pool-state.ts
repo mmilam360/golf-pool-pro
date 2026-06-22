@@ -131,7 +131,7 @@ export function poolIsActiveForDashboard(pool?: PoolStateInput | null, tournamen
 }
 
 export function picksAreVisibleForPool(pool?: PoolStateInput | null, tournament?: TournamentStateInput | null, now = new Date()) {
-  return Boolean(pool?.is_locked || tournamentHasScoringEvidence(tournament, now))
+  return Boolean(pool?.is_locked || finalPool(pool, tournament) || tournamentHasScoringEvidence(tournament, now))
 }
 
 export function derivePaymentState(input: {

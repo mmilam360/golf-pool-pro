@@ -10,6 +10,10 @@ const guestEntryRoute = readFileSync('src/app/api/pool/guest-entry/route.ts', 'u
 const managePools = readFileSync('src/app/(app)/manage-pools/page.tsx', 'utf8')
 
 assert(publicLeaderboard.includes('preLockJoinOpen'), 'public leaderboard must compute pre-lock join state')
+assert(publicLeaderboard.includes('picksAreVisibleForPool(publicPool, tournament)'), 'public leaderboard pick masking must use shared pool-state visibility')
+assert(publicLeaderboard.includes('!lockedOrScoring(publicPool, tournament)'), 'public leaderboard join prompt must use shared locked/scoring state')
+assert(publicLeaderboard.includes('submittedPickCount(entry)'), 'public leaderboard hidden-pick metadata must use shared submitted-pick count')
+assert(!publicLeaderboard.includes('hasOnCourseScores'), 'public leaderboard must not carry its own scoring evidence rule')
 assert(publicLeaderboard.includes('Trying to join this pool?'), 'public leaderboard must show the pre-lock join prompt')
 assert(publicLeaderboard.includes('Join pool'), 'public leaderboard must have a Join pool action')
 assert(publicLeaderboard.includes('`/pool/join?pool=${encodeURIComponent(pool.id)}`'), 'public join action must use pool id, not expose the passcode in the public URL')

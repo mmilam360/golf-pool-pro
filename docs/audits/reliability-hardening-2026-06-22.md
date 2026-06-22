@@ -318,3 +318,23 @@ npm run test:live-tournament-replay
 npm run test:live-scoring-health
 npm run lint
 ```
+
+## Loop 6 cleanup — public leaderboard state sharing
+
+This pass targeted the public `/leaderboard/[id]` route because several live tournament-week issues showed up there, not only inside the authenticated pool page.
+
+Changes made:
+
+- Public leaderboard now uses `picksAreVisibleForPool(publicPool, tournament)` instead of its own local scoring/locked check.
+- Public leaderboard join prompt now uses `!lockedOrScoring(publicPool, tournament)` instead of a separate `is_locked/is_completed/scoringIsLive` expression.
+- Public leaderboard hidden-pick metadata now uses `submittedPickCount(entry)` from `entry-picks.ts`.
+- `picksAreVisibleForPool(...)` now treats completed/final pools as visible even if the tournament row is stale.
+- The public leaderboard verifier now asserts the route is wired to shared helpers and no longer carries its own `hasOnCourseScores` rule.
+
+Extra verification commands:
+
+```bash
+npm run test:reliability-hardening
+npm run test:public-leaderboard-join-cta
+npm run lint
+```

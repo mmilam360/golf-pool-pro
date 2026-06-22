@@ -6,8 +6,9 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import PoolView from '@/app/(app)/pool/[id]/PoolView'
-import { hasOnCourseScores } from '@/lib/golf-live'
 import { hydrateFinalLeaderboard } from '@/lib/fresh-final-leaderboard'
+import { lockedOrScoring, picksAreVisibleForPool } from '@/lib/pool-state'
+import { submittedPickCount } from '@/lib/entry-picks'
 
 export default async function PublicLeaderboardPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ entry?: string }> }) {
   const { id } = await params
@@ -60,17 +61,15 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
     amount_paid_cents: Number(pool.amount_paid_cents || 0),
     passcode: '',
   }
-  const leaderboard = Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json : []
-  const scoringIsLive = tournament?.status === 'live' || tournament?.status === 'completed' || hasOnCourseScores(leaderboard)
-  const picksAreVisible = pool.is_locked || scoringIsLive
-  const preLockJoinOpen = !pool.is_locked && !pool.is_completed && !scoringIsLive
+  const picksAreVisible = picksAreVisibleForPool(publicPool, tournament)
+  const preLockJoinOpen = !lockedOrScoring(publicPool, tournament)
   const joinHref = `/pool/join?pool=${encodeURIComponent(pool.id)}`
   const signInHref = `/login?redirect=${encodeURIComponent('/dashboard')}`
 
   const { data: entries } = entriesResult
 
   const safeEntries = ((entries || []) as any[]).map((entry: any) => {
-    const submittedPickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
+    const pickCount = submittedPickCount(entry)
     const publicEntry = {
       ...entry,
       user_id: null,
@@ -85,7 +84,7 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
     if (picksAreVisible) return publicEntry
     return {
       ...publicEntry,
-      submitted_pick_count: submittedPickCount,
+      submitted_pick_count: pickCount,
       golfer_picks: [],
       picks_hidden: true,
     }
