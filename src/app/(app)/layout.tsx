@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import AppHeader from '@/components/AppHeader'
 import RunnerIncompletePicksReminder from '@/components/RunnerIncompletePicksReminder'
@@ -5,6 +6,8 @@ import FullNameConfirmationPrompt from '@/components/FullNameConfirmationPrompt'
 import { createClient } from '@/lib/supabase/server'
 import { totalPicksRequired } from '@/lib/pick-counts'
 import { entryNeedsConfirmedFullName, hasConfirmedFullName } from '@/lib/full-name-confirmation'
+
+export const dynamic = 'force-dynamic'
 
 type RunnerPool = {
   id: string
@@ -160,18 +163,28 @@ async function getRunnerIncompletePickReminders(): Promise<RunnerReminderPool[]>
     .filter((pool): pool is RunnerReminderPool => Boolean(pool))
 }
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+async function AppShellPrompts() {
   const [incompletePickReminders, fullNamePromptData] = await Promise.all([
     getRunnerIncompletePickReminders(),
     getFullNamePromptData(),
   ])
 
   return (
+    <>
+      {fullNamePromptData && fullNamePromptData.entries.length > 0 ? <FullNameConfirmationPrompt {...fullNamePromptData} /> : null}
+      <RunnerIncompletePicksReminder pools={incompletePickReminders} />
+    </>
+  )
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
     <div className="min-h-screen scorecard-paper text-[#1f2a24]">
       <AppHeader />
       <main className="mx-auto max-w-7xl flex-1 px-4 py-8 sm:px-5 md:px-8 md:py-10">{children}</main>
-      {fullNamePromptData && fullNamePromptData.entries.length > 0 ? <FullNameConfirmationPrompt {...fullNamePromptData} /> : null}
-      <RunnerIncompletePicksReminder pools={incompletePickReminders} />
+      <Suspense fallback={null}>
+        <AppShellPrompts />
+      </Suspense>
       <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-5 text-center text-sm text-[#657168]">
         <div>
           <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
