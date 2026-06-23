@@ -40,13 +40,15 @@ export function derivePoolFeeDisplay(input: {
   const showPaymentActions = !input.tournamentIsPastOrCompleted && input.paymentStatus !== 'active'
   const feeDueDate = formatPoolFeeShortDate(getTournamentSaturday(input.tournamentStartDate))
 
-  const feeLabel = paymentStatusForDisplay === 'active'
-    ? (input.amountPaidCents > 0 ? 'Paid' : 'Closed')
-    : input.finalAmountDueCents === 0
-      ? 'Free'
-      : input.paymentCollectionOpen
-        ? `${formatPoolFeeCents(input.finalAmountDueCents)} due`
-        : `${formatPoolFeeCents(input.finalAmountDueCents)} current fee`
+  const feeLabel = paymentStatusForDisplay === 'active' && input.amountPaidCents > 0
+    ? 'Paid'
+    : paymentStatusForDisplay === 'active' && input.tournamentIsPastOrCompleted
+      ? 'Closed'
+      : input.finalAmountDueCents === 0
+        ? 'Free'
+        : input.paymentCollectionOpen
+          ? `${formatPoolFeeCents(input.finalAmountDueCents)} due`
+          : `${formatPoolFeeCents(input.finalAmountDueCents)} current fee`
 
   const feeStatusLabel = paymentStatusForDisplay === 'active' && input.amountPaidCents > 0
     ? 'Paid'
@@ -67,13 +69,19 @@ export function derivePoolFeeDisplay(input: {
         : 'border-stone-300 bg-white text-stone-700'
 
   const feeTimingText = input.finalAmountDueCents === 0
-    ? paymentStatusForDisplay === 'active'
+    ? input.tournamentIsPastOrCompleted
       ? (input.amountPaidCents > 0 ? `Results are live. Amount paid: ${formatPoolFeeCents(input.amountPaidCents)}.` : 'Results are live.')
-      : 'No pool fee with the current entry count.'
+      : input.amountPaidCents > 0
+        ? `Paid. No pool fee due for the current entry count.`
+        : 'No pool fee with the current entry count.'
     : paymentStatusForDisplay === 'active'
-      ? input.amountPaidCents > 0
-        ? `Results are live. Amount paid: ${formatPoolFeeCents(input.amountPaidCents)}.`
-        : 'Results are live.'
+      ? input.tournamentIsPastOrCompleted
+        ? input.amountPaidCents > 0
+          ? `Results are live. Amount paid: ${formatPoolFeeCents(input.amountPaidCents)}.`
+          : 'Results are live.'
+        : input.amountPaidCents > 0
+          ? `Paid. Amount paid: ${formatPoolFeeCents(input.amountPaidCents)}.`
+          : 'No payment due for the current entry count.'
       : isPoolFeePastDue(input.tournamentStartDate, input.now)
         ? `Payment is due${feeDueDate ? ` by ${feeDueDate}` : ' now'}.`
         : `Final fee is due Saturday of tournament week${feeDueDate ? ` (${feeDueDate})` : ''}.`
