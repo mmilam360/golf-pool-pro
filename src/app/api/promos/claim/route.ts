@@ -100,6 +100,10 @@ export async function POST(request: Request) {
     const { promoCode: rawPromoCode, source } = await request.json()
     const promoCode = normalizePromoCode(rawPromoCode)
     if (!promoCode) return NextResponse.json({ error: 'Missing promo code' }, { status: 400 })
+    const claimSource = typeof source === 'string' ? source.slice(0, 80) : 'signup-link'
+    if (promoCode === 'FIRSTPOOL9' && claimSource !== 'first-pool-9') {
+      return NextResponse.json({ error: 'Promo code is not valid.' }, { status: 404 })
+    }
 
     const serviceSupabase = createServiceClient() as any
     const { data: firstOwnedPool } = await serviceSupabase
@@ -135,7 +139,7 @@ export async function POST(request: Request) {
       .upsert({
         user_id: user.id,
         promo_code_id: promo.id,
-        source: typeof source === 'string' ? source.slice(0, 80) : 'signup-link',
+        source: claimSource,
       } as any, { onConflict: 'user_id' })
 
     if (claimError) return NextResponse.json({ error: 'Promo could not be saved.' }, { status: 500 })

@@ -123,6 +123,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Promo code has already been used.' }, { status: 409 })
       }
 
+      if (promoRow.code === 'FIRSTPOOL9') {
+        const { data: claimedOffer } = await serviceSupabase
+          .from('gpp_user_promo_claims')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('promo_code_id', promoRow.id)
+          .maybeSingle()
+
+        if (!claimedOffer) {
+          return NextResponse.json({ error: 'This offer only works from the invite link.' }, { status: 409 })
+        }
+      }
+
       const { data: firstOwnedPool } = await serviceSupabase
         .from('gpp_pools')
         .select('id')

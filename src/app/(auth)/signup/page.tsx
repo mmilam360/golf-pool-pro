@@ -39,7 +39,7 @@ function PasswordInput({ value, onChange, label }: { value: string; onChange: (v
   )
 }
 
-export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode?: string } = {}) {
+export default function SignupPage({ defaultPromoCode = '', promoSource = '' }: { defaultPromoCode?: string; promoSource?: string } = {}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -55,9 +55,20 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
   const router = useRouter()
   const supabase = createClient()
 
+  function signupPromoFromParams(params: URLSearchParams) {
+    if (!defaultPromoCode) return ''
+    return params.get('promo') || defaultPromoCode
+  }
+
+  function dashboardPromoRedirect(promoCode: string) {
+    const params = new URLSearchParams({ promo: promoCode })
+    if (promoSource) params.set('promoSource', promoSource)
+    return `/dashboard?${params.toString()}`
+  }
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    setSignupPromoCode(params.get('promo') || defaultPromoCode)
+    setSignupPromoCode(signupPromoFromParams(params))
     const redirectParam = params.get('redirect') || ''
     setJoiningPool(redirectParam.startsWith('/pool/join'))
     setLinkingEntry(redirectParam.startsWith('/pool/join?claim='))
@@ -67,15 +78,15 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
     if (typeof window === 'undefined') return '/login'
     const params = new URLSearchParams(window.location.search)
     const redirectParam = params.get('redirect')
-    const promoParam = params.get('promo') || signupPromoCode
-    const redirectWithPromo = redirectParam || (promoParam ? `/dashboard?promo=${encodeURIComponent(promoParam)}` : '')
+    const promoParam = signupPromoFromParams(params) || signupPromoCode
+    const redirectWithPromo = redirectParam || (promoParam ? dashboardPromoRedirect(promoParam) : '')
     return redirectWithPromo ? `/login?redirect=${encodeURIComponent(redirectWithPromo)}` : '/login'
   }
 
   function getSafeRedirect() {
     const params = new URLSearchParams(window.location.search)
     const redirectParam = params.get('redirect')
-    const promoParam = params.get('promo') || signupPromoCode
+    const promoParam = signupPromoFromParams(params) || signupPromoCode
     if (redirectParam && !redirectParam.includes('\\')) {
       try {
         const url = new URL(redirectParam, window.location.origin)
@@ -84,7 +95,7 @@ export default function SignupPage({ defaultPromoCode = '' }: { defaultPromoCode
         }
       } catch {}
     }
-    if (promoParam) return `/dashboard?promo=${encodeURIComponent(promoParam)}`
+    if (promoParam) return dashboardPromoRedirect(promoParam)
     return '/dashboard'
   }
 

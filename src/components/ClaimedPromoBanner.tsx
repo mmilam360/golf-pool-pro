@@ -14,11 +14,12 @@ export default function ClaimedPromoBanner() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const promoCode = params.get('promo')
-    const request = promoCode
+    const promoSource = params.get('promoSource')
+    const request = promoCode && promoSource
       ? fetch('/api/promos/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promoCode, source: 'signup-link' }),
+        body: JSON.stringify({ promoCode, source: promoSource.slice(0, 80) }),
       })
       : fetch('/api/promos/claim')
 
