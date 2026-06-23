@@ -65,6 +65,12 @@ export function getPromoDiscountCents(amountDueCents: number, promo: PromoLike |
   return Math.min(amountDueCents, Math.max(0, Number(promo.discount_cents || 0)))
 }
 
+export function getRedeemedPromoCreditCents(activeEntryCount: number, promo: PromoLike | null | undefined, recordedDiscountCents = 0) {
+  const fullPriceQuote = getPoolPaymentQuote(activeEntryCount, 0)
+  const currentDiscountCents = getPromoDiscountCents(fullPriceQuote.amountDueCents, promo)
+  return Math.max(0, Number(recordedDiscountCents || 0), currentDiscountCents)
+}
+
 export function getPoolPaymentStatus(storedStatus: PoolPaymentStatus | string | null | undefined, activeEntryCount: number, amountPaidCents = 0, hasLifetimeAccess = false): PoolPaymentStatus {
   if (storedStatus === 'refunded') return 'refunded'
 

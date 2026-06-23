@@ -1,4 +1,4 @@
-import { getPoolPaymentQuote, getPoolPaymentStatus, getPromoDiscountCents } from '../src/lib/payments/pricing.ts'
+import { getPoolPaymentQuote, getPoolPaymentStatus, getPromoDiscountCents, getRedeemedPromoCreditCents } from '../src/lib/payments/pricing.ts'
 
 const cases = [
   [5, 0],
@@ -29,6 +29,21 @@ if (targetPriceDiscount !== 3100) {
 const noDiscountBelowTarget = getPromoDiscountCents(800, { target_amount_cents: 900 })
 if (noDiscountBelowTarget !== 0) {
   throw new Error(`Expected no discount below target price, got ${noDiscountBelowTarget}`)
+}
+
+const firstPoolNineCredit = getRedeemedPromoCreditCents(87, { target_amount_cents: 900 }, 400)
+if (firstPoolNineCredit !== 1100) {
+  throw new Error(`Expected redeemed first-pool cap to credit the current $20 fee down to $9, got ${firstPoolNineCredit}`)
+}
+
+const fixedRecordedCredit = getRedeemedPromoCreditCents(87, { discount_cents: 500 }, 700)
+if (fixedRecordedCredit !== 700) {
+  throw new Error(`Expected redeemed promo credit to preserve recorded discount, got ${fixedRecordedCredit}`)
+}
+
+const redeemedCapQuote = getPoolPaymentQuote(87, 900 + firstPoolNineCredit)
+if (redeemedCapQuote.amountDueCents !== 0) {
+  throw new Error(`Expected first-pool cap with $9 paid to leave no balance, got ${redeemedCapQuote.amountDueCents}`)
 }
 
 const paymentStatusCases = [

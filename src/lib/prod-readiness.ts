@@ -1,4 +1,5 @@
 import { activeEntries, daysFromToday, derivePaymentState, entriesMissingFrozenResults, entryHasSubmittedPicks, FIELD_STALE_DAYS, fieldAgeDays, finalPool, groupedPoolNeedsGroups, hasStoredLeaderboard, jsonRows, LIVE_SCORE_STALE_MINUTES, liveScoresAreStale, lockedOrScoring, minutesAgo, normalizeTournamentStatus, tournamentDateWindowIncludes, tournamentIsLive, upcomingFieldReadinessWindow, type EntryStateInput, type PoolStateInput, type TournamentStateInput } from './pool-state'
+import { getRedeemedPromoCreditCents } from './payments/pricing'
 
 const SEVERITY_RANK = { critical: 0, high: 1, medium: 2, low: 3, info: 4 } as const
 
@@ -32,6 +33,12 @@ type ReadinessEntry = EntryStateInput & {
   pool_id?: string | null
 }
 
+type ReadinessPromoRedemption = {
+  pool_id?: string | null
+  discount_cents?: number | null
+  gpp_promo_codes?: Record<string, unknown> | Record<string, unknown>[] | null
+}
+
 function normalizeTournament(pool: PoolWithTournament) {
   const value = pool?.gpp_tournaments
   if (Array.isArray(value)) return value[0] || null
@@ -40,6 +47,21 @@ function normalizeTournament(pool: PoolWithTournament) {
 
 function activeEntriesForPool(entriesByPool: Map<string, ReadinessEntry[]>, poolId?: string | null) {
   return poolId ? activeEntries(entriesByPool.get(poolId) || []) : []
+}
+
+function normalizeRedeemedPromo(redemption: ReadinessPromoRedemption) {
+  const value = redemption.gpp_promo_codes
+  if (Array.isArray(value)) return value[0] || null
+  return value || null
+}
+
+function promoCreditForPool(redemptionsByPool: Map<string, ReadinessPromoRedemption[]>, poolId: string | null | undefined, activeEntryCount: number) {
+  if (!poolId) return 0
+  const redemptions = redemptionsByPool.get(poolId) || []
+  return redemptions.reduce((total, redemption) => {
+    const promo = normalizeRedeemedPromo(redemption)
+    return total + getRedeemedPromoCreditCents(activeEntryCount, promo as any, Number(redemption.discount_cents || 0))
+  }, 0)
 }
 
 export function isOperationalTestPool(pool: PoolWithTournament, tournament?: TournamentStateInput | null) {
@@ -75,6 +97,7 @@ export function formatProdReadinessIssue(item: ProdReadinessIssue) {
 export function auditProdReadiness(input: {
   pools: PoolWithTournament[]
   entries: ReadinessEntry[]
+  promoRedemptions?: ReadinessPromoRedemption[] | null
   cronRuns?: unknown[] | null
   checkedAt?: Date
   usingServiceRole?: boolean
@@ -87,6 +110,7 @@ export function auditProdReadiness(input: {
   let skippedTestPools = 0
   const issues: ProdReadinessIssue[] = []
   const entriesByPool = new Map<string, ReadinessEntry[]>()
+  const redemptionsByPool = new Map<string, ReadinessPromoRedemption[]>()
 
   if (!input.usingServiceRole) {
     issue(issues, 'medium', 'AUDIT_USING_ANON_KEY', 'Audit is using anon key; RLS may hide production rows. Prefer SUPABASE_SERVICE_ROLE_KEY for read-only ops audit.')
@@ -99,6 +123,13 @@ export function auditProdReadiness(input: {
     entriesByPool.set(entry.pool_id, list)
   }
 
+  for (const redemption of input.promoRedemptions || []) {
+    if (!redemption.pool_id) continue
+    const list = redemptionsByPool.get(redemption.pool_id) || []
+    list.push(redemption)
+    redemptionsByPool.set(redemption.pool_id, list)
+  }
+
   for (const pool of input.pools || []) {
     const tournament = normalizeTournament(pool)
     if (!input.includeTestPools && isOperationalTestPool(pool, tournament)) {
@@ -107,10 +138,11 @@ export function auditProdReadiness(input: {
     }
     const currentEntries = activeEntriesForPool(entriesByPool, pool.id)
     const entryCount = currentEntries.length
+    const promoCreditCents = promoCreditForPool(redemptionsByPool, pool.id, entryCount)
     const payment = derivePaymentState({
       storedStatus: pool.payment_status,
       activeEntryCount: entryCount,
-      amountPaidCents: pool.amount_paid_cents,
+      amountPaidCents: Number(pool.amount_paid_cents || 0) + promoCreditCents,
     })
     const isFinal = finalPool(pool, tournament)
     const poolLabel = `${pool.name || 'Unnamed pool'} (${pool.id})`
@@ -128,7 +160,9 @@ export function auditProdReadiness(input: {
       issue(issues, 'high', 'ACTIVE_STATUS_WITH_BALANCE_DUE', 'Pool is stored active even though active entry count implies a balance due.', {
         pool: poolLabel,
         entryCount,
-        amountPaidCents: payment.amountPaidCents,
+        amountPaidCents: Number(pool.amount_paid_cents || 0),
+        promoCreditCents,
+        creditedCents: payment.amountPaidCents,
         expectedFeeCents: payment.expectedFeeCents,
         dueCents: payment.amountDueCents,
       })

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createSquarePayment } from '@/lib/payments/square'
-import { getPoolPaymentQuote, getPromoDiscountCents } from '@/lib/payments/pricing'
+import { getPoolPaymentQuote, getPromoDiscountCents, getRedeemedPromoCreditCents } from '@/lib/payments/pricing'
 
 export const runtime = 'nodejs'
 
@@ -63,10 +63,17 @@ export async function POST(request: Request) {
 
     const activeEntryCount = count || 0
     const amountPaidCents = Number((pool as any).amount_paid_cents || 0)
-    const quote = getPoolPaymentQuote(activeEntryCount, amountPaidCents)
+    const serviceSupabase = createServiceClient() as any
+    const { data: redeemedPromo } = await serviceSupabase
+      .from('gpp_promo_redemptions')
+      .select('id, discount_cents, gpp_promo_codes(code, free_pool, discount_cents, target_amount_cents)')
+      .eq('pool_id', poolId)
+      .maybeSingle()
+    const redeemedPromoCode = Array.isArray(redeemedPromo?.gpp_promo_codes) ? redeemedPromo.gpp_promo_codes[0] : redeemedPromo?.gpp_promo_codes
+    const promoCreditCents = redeemedPromo ? getRedeemedPromoCreditCents(activeEntryCount, redeemedPromoCode, Number(redeemedPromo.discount_cents || 0)) : 0
+    const quote = getPoolPaymentQuote(activeEntryCount, amountPaidCents + promoCreditCents)
     let discountCents = 0
     let promo: any = null
-    const serviceSupabase = createServiceClient() as any
 
     const { data: tournament, error: tournamentError } = await supabase
       .from('gpp_tournaments')
@@ -85,13 +92,7 @@ export async function POST(request: Request) {
     }
 
     if (promoCode && quote.amountDueCents > 0) {
-      const { data: existingRedemption } = await serviceSupabase
-        .from('gpp_promo_redemptions')
-        .select('id')
-        .eq('pool_id', poolId)
-        .maybeSingle()
-
-      if (existingRedemption) {
+      if (redeemedPromo) {
         return NextResponse.json({ error: 'A promo code is already applied to this pool.' }, { status: 409 })
       }
 

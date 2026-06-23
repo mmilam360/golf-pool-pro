@@ -133,6 +133,23 @@ for (const expected of ['FINAL_POOL_ARCHIVED_UNPAID', 'FINAL_POOL_MISSING_FROZEN
   assert.equal(codes.has(expected), true, `prod-readiness audit should emit ${expected}`)
 }
 
+const promoCoveredAudit = auditProdReadiness({
+  checkedAt: now,
+  usingServiceRole: true,
+  pools: [{
+    id: 'first-pool-9',
+    name: 'First pool 9 cap',
+    is_locked: true,
+    payment_status: 'active',
+    amount_paid_cents: 900,
+    gpp_tournaments: { id: 'promo-t', name: 'Locked Event', status: 'live', leaderboard_json: [{ name: 'Rory McIlroy' }], last_scores_fetch: now.toISOString() },
+  }],
+  entries: Array.from({ length: 87 }, (_, index) => ({ id: `promo-entry-${index}`, pool_id: 'first-pool-9', is_removed: false })),
+  promoRedemptions: [{ pool_id: 'first-pool-9', discount_cents: 400, gpp_promo_codes: { code: 'FIRSTPOOL9', target_amount_cents: 900 } }],
+  cronRuns: [{}],
+})
+assert.equal(promoCoveredAudit.issues.some(issue => issue.code === 'ACTIVE_STATUS_WITH_BALANCE_DUE'), false, 'prod-readiness audit credits redeemed target-price promos before flagging active pools as due')
+
 const liveTournamentFixture = JSON.parse(readFileSync(join('test-fixtures', 'live-tournament', 'us-open-2026-round-3-live.json'), 'utf8'))
 const staleStatusReadiness = auditProdReadiness({
   checkedAt: new Date(liveTournamentFixture.scenarioNow),
@@ -169,12 +186,17 @@ assert.equal(defaultAuditSkipsTestFixtures.issues.some(issue => issue.code === '
 assert.equal(defaultAuditSkipsTestFixtures.skippedTestPools, 1, 'prod readiness reports skipped QA/test fixture count')
 
 const pricing = readFileSync('src/lib/payments/pricing.ts', 'utf8')
+const paymentQuoteRoute = readFileSync('src/app/api/payments/square/quote/route.ts', 'utf8')
+const createPaymentRoute = readFileSync('src/app/api/payments/square/create-payment/route.ts', 'utf8')
 const archiveUnpaid = readFileSync('src/app/api/cron/archive-unpaid-pools/route.ts', 'utf8')
 const poolView = readFileSync('src/app/(app)/pool/[id]/PoolView.tsx', 'utf8')
 const tournamentSync = readFileSync('src/lib/tournament-sync.ts', 'utf8')
 const paymentEmail = readFileSync('src/lib/pool-transactional-emails.ts', 'utf8')
 
 assert.equal(pricing.includes('isPaymentHideGraceActive'), false, 'temporary payment-hide grace table should be gone')
+assert.ok(pricing.includes('getRedeemedPromoCreditCents'), 'pricing should expose redeemed promo credit for first-pool capped offers')
+assert.ok(paymentQuoteRoute.includes('getRedeemedPromoCreditCents') && paymentQuoteRoute.includes('promoCreditCents'), 'payment quote route should credit redeemed promos before deriving due/payment status')
+assert.ok(createPaymentRoute.includes('getRedeemedPromoCreditCents') && createPaymentRoute.includes('promoCreditCents'), 'payment create route should not charge again when a redeemed capped promo covers the current fee')
 assert.equal(archiveUnpaid.includes('isPaymentHideGraceActive'), false, 'archive cron should not depend on temporary pool-specific grace')
 assert.ok(
   archiveUnpaid.includes("String(tournament.status || '').toLowerCase() !== 'completed'")
