@@ -17,6 +17,7 @@ export function TournamentSeoPage({
   tournamentName,
   poolType,
   description,
+  headlineArticle = 'a',
   venueName,
   venueLocation,
   tournamentDates,
@@ -28,6 +29,7 @@ export function TournamentSeoPage({
   tournamentName: string
   poolType: string
   description: string
+  headlineArticle?: 'a' | 'an'
   venueName?: string
   venueLocation?: string
   tournamentDates?: string
@@ -50,7 +52,7 @@ export function TournamentSeoPage({
 
       <main className="mx-auto max-w-5xl px-5 py-12 md:py-16">
         <p className="w-fit border-y border-[#b58a3a] py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#8a6724]">{poolType}</p>
-        <h1 className="mt-5 font-display text-4xl font-black leading-tight text-[#0f2f25] md:text-6xl">Run a {tournamentName} pool people actually check.</h1>
+        <h1 className="mt-5 font-display text-4xl font-black leading-tight text-[#0f2f25] md:text-6xl">Run {headlineArticle} {tournamentName} pool people actually check.</h1>
         <p className="mt-5 max-w-3xl text-lg leading-8 text-[#4f5b52]">{description}</p>
 
         {hasEventDetails ? (

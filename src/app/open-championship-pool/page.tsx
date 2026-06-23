@@ -12,6 +12,7 @@ export default function OpenChampionshipPoolPage() {
     <TournamentSeoPage
       tournamentName="Open Championship"
       poolType="Open Championship pool"
+      headlineArticle="an"
       description="Golf Pools Pro helps your group make picks, lock entries before tee time, and follow one live board through the Open Championship weekend."
     />
   )
