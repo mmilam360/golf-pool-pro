@@ -82,6 +82,11 @@ const setupSteps = [
   ['03', 'Watch the board move', 'Follow live scoring, cut drama, and the Sunday chase from one leaderboard.'],
 ]
 
+const heroTestimonial = {
+  source: 'Pool group feedback',
+  quote: 'This was the most fun our group has had in a pool. Everyone kept checking the live board, and the group text was blowing up. You knew who to root for, who to root against, and why your card was moving.',
+}
+
 const pricingRows = [
   ['First 5 entries', 'Free'],
   ['6 to 100 entries', '$1 each, $20 max'],
@@ -254,13 +259,12 @@ export default function Home() {
             <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#4f5b52] sm:text-lg sm:leading-8">
               Create the pool in minutes. Send one link. Players pick themselves. Then spend Thursday through Sunday watching the board do its thing.
             </p>
-            <div className="mx-auto mt-6 grid max-w-2xl gap-2 text-left sm:grid-cols-3">
-              {['Players join free', '13 entries costs $8', 'Live board all week'].map(item => (
-                <div key={item} className="border-2 border-[#123c2f] bg-white px-3 py-2 text-center text-[11px] font-black uppercase tracking-[0.08em] text-[#123c2f] shadow-[4px_4px_0_#d8cab0]">
-                  {item}
-                </div>
-              ))}
-            </div>
+            <figure className="mx-auto mt-6 max-w-3xl border-2 border-[#123c2f] bg-white px-5 py-4 text-left shadow-[5px_5px_0_#d8cab0] sm:px-6">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">{heroTestimonial.source}</p>
+              <blockquote className="mt-2 text-base font-semibold leading-7 text-[#0f2f25] sm:text-lg sm:leading-8">
+                &quot;{heroTestimonial.quote}&quot;
+              </blockquote>
+            </figure>
             <div className="mt-5 flex justify-center">
               <Link href="/signup" className="border-2 border-[#123c2f] bg-[#123c2f] px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[4px_4px_0_#d8cab0] transition-colors hover:bg-[#0f2f25]">
                 Create a pool
