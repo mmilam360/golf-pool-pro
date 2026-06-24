@@ -8,6 +8,7 @@ const joinPage = readFileSync('src/app/(app)/pool/join/page.tsx', 'utf8')
 const accountPage = readFileSync('src/app/(app)/account/page.tsx', 'utf8')
 const accountClient = readFileSync('src/components/AccountClient.tsx', 'utf8')
 const signupRoute = readFileSync('src/app/api/auth/signup/route.ts', 'utf8')
+const claimGuestEntryRoute = readFileSync('src/app/api/pool/claim-guest-entry/route.ts', 'utf8')
 
 assert(joinPage.includes('accountFullNameConfirmed'), 'join page must track whether the account full name is explicitly confirmed')
 assert(joinPage.includes('accountHasDisplayName'), 'join page must know whether the account already has a default leaderboard name')
@@ -56,6 +57,10 @@ assert(
 assert(
   signupRoute.includes('display_name: displayName,\n      full_name: fullName,\n      full_name_confirmed_at: confirmedAt,'),
   'signup must save both default leaderboard name and private full name to gpp_profiles',
+)
+assert(
+  claimGuestEntryRoute.includes('display_name: guestEntry.display_name || guestEntry.full_name,\n        full_name: guestEntry.full_name,\n        full_name_confirmed_at: guestEntry.full_name_confirmed_at,'),
+  'claiming a guest entry must save both entry display name and private full name to gpp_profiles',
 )
 
 console.log('join full-name account flow verifier passed')
