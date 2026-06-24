@@ -7,7 +7,7 @@ function loadEnv(path) {
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) continue
     const [key, ...rest] = trimmed.split('=')
-    if (!process.env[key]) process.env[key] = rest.join('=').trim().replace(/^['"]|['"]$/g, '')
+    if (!process.env[key]) process.env[key] = rest.join('=').trim().replace(/^["']|["']$/g, '')
   }
 }
 
@@ -27,12 +27,37 @@ const headers = {
   Accept: 'application/json',
 }
 
-const columnProbe = await fetch(`${supabaseUrl}/rest/v1/gpp_entries?select=id,user_id,notification_email,guest_entry_token_hash,claimed_at&limit=0`, { headers })
-if (!columnProbe.ok) {
-  console.error('Guest entry columns missing or unavailable:')
-  console.error(await columnProbe.text())
-  process.exit(1)
+async function assertColumns(table, columns) {
+  const params = new URLSearchParams({
+    select: columns.join(','),
+    limit: '0',
+  })
+  const res = await fetch(`${supabaseUrl}/rest/v1/${table}?${params}`, { headers })
+  if (!res.ok) {
+    console.error(`${table} columns missing or unavailable:`)
+    console.error(await res.text())
+    process.exit(1)
+  }
 }
+
+await assertColumns('gpp_entries', [
+  'id',
+  'user_id',
+  'display_name',
+  'full_name',
+  'full_name_confirmed_at',
+  'notification_email',
+  'guest_entry_token_hash',
+  'claimed_at',
+])
+
+await assertColumns('gpp_profiles', [
+  'id',
+  'display_name',
+  'full_name',
+  'full_name_confirmed_at',
+  'email',
+])
 
 const rpcProbe = await fetch(`${supabaseUrl}/rest/v1/rpc/gpp_guest_join_payload`, {
   method: 'POST',
