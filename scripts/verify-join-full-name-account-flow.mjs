@@ -5,6 +5,9 @@ function assert(condition, message) {
 }
 
 const joinPage = readFileSync('src/app/(app)/pool/join/page.tsx', 'utf8')
+const accountPage = readFileSync('src/app/(app)/account/page.tsx', 'utf8')
+const accountClient = readFileSync('src/components/AccountClient.tsx', 'utf8')
+const signupRoute = readFileSync('src/app/api/auth/signup/route.ts', 'utf8')
 
 assert(joinPage.includes('accountFullNameConfirmed'), 'join page must track whether the account full name is explicitly confirmed')
 assert(joinPage.includes('accountHasDisplayName'), 'join page must know whether the account already has a default leaderboard name')
@@ -37,5 +40,22 @@ assert(joinPage.includes('Shown on this pool\'s leaderboard. Your account name s
 assert(joinPage.includes('display_name: displayName'), 'signed-in join must still save the editable leaderboard name on the entry')
 assert(joinPage.includes('full_name: runnerName'), 'new entry must still store the private full name copied from account or first capture')
 assert(joinPage.includes('full_name_confirmed_at: confirmedAt'), 'new entry must mark the full name as confirmed')
+
+assert(
+  accountPage.includes("select('display_name, full_name, full_name_confirmed_at, email')"),
+  'account page must load both default leaderboard name and private full name from gpp_profiles',
+)
+assert(
+  accountClient.includes(".from('gpp_profiles')\n      .upsert({ id: user.id, email: user.email || email, display_name: trimmedName, full_name: trimmedFullName, full_name_confirmed_at: confirmedAt })"),
+  'account settings must save both default leaderboard name and private full name to gpp_profiles',
+)
+assert(
+  accountClient.includes('display_name: trimmedName,\n        full_name: trimmedFullName,'),
+  'account settings must also keep auth metadata aligned for both names',
+)
+assert(
+  signupRoute.includes('display_name: displayName,\n      full_name: fullName,\n      full_name_confirmed_at: confirmedAt,'),
+  'signup must save both default leaderboard name and private full name to gpp_profiles',
+)
 
 console.log('join full-name account flow verifier passed')
