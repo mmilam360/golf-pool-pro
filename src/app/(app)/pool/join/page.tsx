@@ -14,6 +14,8 @@ export default function JoinPoolPage() {
   const [guestName, setGuestName] = useState('')
   const [fullName, setFullName] = useState('')
   const [accountFullNameConfirmed, setAccountFullNameConfirmed] = useState(false)
+  const [accountHasDisplayName, setAccountHasDisplayName] = useState(false)
+  const [accountDefaultDisplayName, setAccountDefaultDisplayName] = useState('')
   const [leaderboardNameEdited, setLeaderboardNameEdited] = useState(false)
   const [resumeEntry, setResumeEntry] = useState<ResumeEntry | null>(null)
   const [directPoolLink, setDirectPoolLink] = useState(false)
@@ -77,6 +79,8 @@ export default function JoinPoolPage() {
       if (!user) {
         setIsSignedIn(false)
         setAccountFullNameConfirmed(false)
+        setAccountHasDisplayName(false)
+        setAccountDefaultDisplayName('')
         setAuthChecked(true)
         return
       }
@@ -88,9 +92,12 @@ export default function JoinPoolPage() {
         .maybeSingle()
 
       if (cancelled) return
-      const accountName = profile?.display_name?.trim() || user.email?.split('@')[0] || ''
+      const profileDisplayName = profile?.display_name?.trim() || ''
+      const accountName = profileDisplayName || user.email?.split('@')[0] || ''
       const accountFullName = profile?.full_name_confirmed_at ? profile?.full_name?.trim() || '' : ''
       setIsSignedIn(true)
+      setAccountHasDisplayName(Boolean(profileDisplayName))
+      setAccountDefaultDisplayName(accountName)
       setGuestName(current => current.trim() ? current : accountName)
       setFullName(current => current.trim() ? current : accountFullName)
       setAccountFullNameConfirmed(Boolean(accountFullName))
@@ -236,8 +243,8 @@ export default function JoinPoolPage() {
     const profilePayload: Record<string, unknown> = {
       id: user.id,
       email: user.email || '',
-      display_name: displayName,
     }
+    if (!accountHasDisplayName) profilePayload.display_name = accountDefaultDisplayName || displayName
     if (!accountFullNameConfirmed) {
       profilePayload.full_name = runnerName
       profilePayload.full_name_confirmed_at = confirmedAt
@@ -256,7 +263,6 @@ export default function JoinPoolPage() {
     await supabase.auth.updateUser({
       data: {
         ...user.user_metadata,
-        display_name: displayName,
         ...(!accountFullNameConfirmed ? { full_name: runnerName } : {}),
       },
     }).catch(() => undefined)
@@ -423,7 +429,9 @@ export default function JoinPoolPage() {
               onInput={e => e.currentTarget.setCustomValidity('')}
               className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             />
-            {!isSignedIn && (
+            {isSignedIn ? (
+              <p className="mt-1 text-xs font-semibold text-stone-500">Shown on this pool's leaderboard. Your account name stays the same.</p>
+            ) : (
               <p className="mt-1 text-xs font-semibold text-stone-500">Shown on the leaderboard. Edit it if you want a nickname or first name.</p>
             )}
           </div>
