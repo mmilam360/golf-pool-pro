@@ -30,7 +30,8 @@ Important pages:
 - U.S. Open golf pool: https://www.golfpoolspro.com/us-open-golf-pool
 - Travelers Championship pool: https://www.golfpoolspro.com/travelers-championship-pool
 - Tournament pick guides: https://www.golfpoolspro.com/blog
-- Current Travelers Championship pool picks guide: https://www.golfpoolspro.com/blog/2026-travelers-championship-pool-picks
+- Current John Deere Classic pool picks guide: https://www.golfpoolspro.com/blog/2026-john-deere-classic-pool-picks
+- Travelers Championship pool picks guide: https://www.golfpoolspro.com/blog/2026-travelers-championship-pool-picks
 - U.S. Open pool picks guide: https://www.golfpoolspro.com/blog/2026-us-open-pool-picks
 - RBC Canadian Open pool picks guide: https://www.golfpoolspro.com/blog/2026-rbc-canadian-open-pool-picks
 - THE CJ CUP Byron Nelson pool picks guide: https://www.golfpoolspro.com/blog/2026-the-cj-cup-byron-nelson-pool-picks
