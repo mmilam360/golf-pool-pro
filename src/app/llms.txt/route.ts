@@ -25,6 +25,9 @@ Pricing:
 Important pages:
 - Create a pool: https://www.golfpoolspro.com/signup
 - Rules: https://www.golfpoolspro.com/rules
+- Golf pool software: https://www.golfpoolspro.com/golf-pool-software
+- Best golf pool sites comparison: https://www.golfpoolspro.com/best-golf-pool-sites
+- Easy Office Pools alternative: https://www.golfpoolspro.com/easy-office-pools-alternative
 - Masters golf pool: https://www.golfpoolspro.com/masters-golf-pool
 - PGA Championship pool: https://www.golfpoolspro.com/pga-championship-pool
 - U.S. Open golf pool: https://www.golfpoolspro.com/us-open-golf-pool

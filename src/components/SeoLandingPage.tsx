@@ -12,6 +12,7 @@ type SeoLandingPageProps = {
   primaryCta?: string
   sections: SeoLandingSection[]
   bullets: string[]
+  relatedLinks?: { href: string; label: string }[]
 }
 
 export function SeoLandingPage({
@@ -21,6 +22,7 @@ export function SeoLandingPage({
   primaryCta = 'Create a pool',
   sections,
   bullets,
+  relatedLinks = [],
 }: SeoLandingPageProps) {
   return (
     <div className="min-h-screen scorecard-paper text-[#1f2a24]">
@@ -60,6 +62,22 @@ export function SeoLandingPage({
             ))}
           </div>
         </section>
+
+        {relatedLinks.length > 0 && (
+          <section className="mt-12 border-2 border-[#123c2f] bg-[#fffdf8] p-6 shadow-[7px_7px_0_#d8cab0]">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#8a6724]">Related guide</p>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="max-w-2xl leading-7 text-[#4f5b52]">Compare golf pool sites before you pick a platform for the next major.</p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {relatedLinks.map(link => (
+                  <Link key={link.href} href={link.href} className="border-2 border-[#123c2f] bg-[#fbf7ed] px-4 py-2 text-center text-sm font-extrabold text-[#123c2f]">
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="mt-12 border-2 border-[#123c2f] bg-[#0f2f25] p-6 text-white shadow-[7px_7px_0_#d8cab0] md:p-8">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f3df9c]">Tournament week ready</p>

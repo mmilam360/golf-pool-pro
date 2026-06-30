@@ -35,6 +35,7 @@ export default function EasyOfficePoolsAlternativePage() {
         'Open Picks, Tiered Picks, and Clubhouse Chaos formats',
         'Signup posters with QR codes',
       ]}
+      relatedLinks={[{ href: '/best-golf-pool-sites', label: 'Compare top golf pool sites' }]}
     />
   )
 }
