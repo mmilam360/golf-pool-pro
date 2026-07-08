@@ -25,6 +25,7 @@ export function TournamentSeoPage({
   chatterNotes = [],
   guideHref,
   guideLabel,
+  courseNotesHeading,
 }: {
   tournamentName: string
   poolType: string
@@ -37,6 +38,7 @@ export function TournamentSeoPage({
   chatterNotes?: TalkingPoint[]
   guideHref?: string
   guideLabel?: string
+  courseNotesHeading?: string
 }) {
   const hasEventDetails = venueName || venueLocation || tournamentDates
   const hasCourseNotes = courseNotes.length > 0
@@ -109,7 +111,7 @@ export function TournamentSeoPage({
             {hasCourseNotes ? (
               <div className="border-2 border-[#123c2f] bg-white p-6 shadow-[7px_7px_0_#d8cab0]">
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#8a6724]">Course talking points</p>
-                <h2 className="mt-3 font-display text-3xl font-black text-[#0f2f25]">Give the pool some Shinnecock flavor.</h2>
+                <h2 className="mt-3 font-display text-3xl font-black text-[#0f2f25]">{courseNotesHeading || `Give the pool some ${tournamentName} flavor.`}</h2>
                 <div className="mt-5 divide-y divide-[#e7dcc7]">
                   {courseNotes.map(note => (
                     <div key={note.title} className="py-4 first:pt-0 last:pb-0">

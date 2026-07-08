@@ -48,6 +48,7 @@ export default function UsOpenGolfPoolPage() {
       tournamentDates="June 18-21, 2026"
       courseNotes={shinnecockNotes}
       chatterNotes={scraperChatter}
+      courseNotesHeading="Give the pool some Shinnecock flavor."
     />
   )
 }

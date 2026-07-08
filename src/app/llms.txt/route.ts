@@ -31,6 +31,7 @@ Important pages:
 - Masters golf pool: https://www.golfpoolspro.com/masters-golf-pool
 - PGA Championship pool: https://www.golfpoolspro.com/pga-championship-pool
 - U.S. Open golf pool: https://www.golfpoolspro.com/us-open-golf-pool
+- Genesis Scottish Open pool: https://www.golfpoolspro.com/genesis-scottish-open-pool
 - Travelers Championship pool: https://www.golfpoolspro.com/travelers-championship-pool
 - Tournament pick guides: https://www.golfpoolspro.com/blog
 - Current Genesis Scottish Open pool picks guide: https://www.golfpoolspro.com/blog/2026-genesis-scottish-open-pool-picks

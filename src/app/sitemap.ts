@@ -94,6 +94,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${siteUrl}/genesis-scottish-open-pool`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
       url: `${siteUrl}/open-championship-pool`,
       lastModified,
       changeFrequency: 'monthly',
