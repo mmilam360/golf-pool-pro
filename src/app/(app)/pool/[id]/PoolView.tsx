@@ -772,6 +772,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           : `${picksLeftToSave} picks left.`
   const guestPicksSaved = guestMode && showGuestSavePanel
   const showSavePicksControls = !guestPicksSaved && pickSelectionOpen && (fieldReady || (groupedFormat && pickGroups.length > 0))
+  const golferListScrollClass = showSavePicksControls ? 'max-h-[calc(100svh-17rem)] sm:max-h-[28rem]' : 'max-h-[28rem]'
   const showGroupPreview = groupedFormat && groupsNeedLock && (fieldReady || pickGroups.length > 0)
   const showPickList = !guestPicksSaved && ((pickSelectionOpen && (fieldReady || (groupedFormat && pickGroups.length > 0))) || showGroupPreview)
   const showSelectedPicks = !guestPicksSaved && (myPicks.length > 0 || (!groupsNeedLock && (fieldReady || (groupedFormat && pickGroups.length > 0))))
@@ -2642,7 +2643,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       {/* My Team Tab */}
       {tab === 'my-entry' && (
-        <div id="make-picks" className={`scroll-mt-24 space-y-6 ${showSavePicksControls ? 'pb-28 sm:pb-0' : ''}`}>
+        <div id="make-picks" className={`scroll-mt-24 space-y-6 ${showSavePicksControls ? 'pt-[5.25rem] sm:pt-0' : ''}`}>
           {!myEntry ? (
             <div className="bg-white rounded-none p-8 border border-stone-200 text-center">
               <p className="text-stone-600">You haven't joined this pool yet.</p>
@@ -2704,6 +2705,30 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               )}
 
               {entryDetailsPanel}
+
+              {showSavePicksControls && (
+                <>
+                  <div className="fixed left-4 right-4 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[260] mx-auto max-w-md border-2 border-[#123c2f] bg-[#fbf7ed] p-3 shadow-[5px_5px_0_#d8cab0] sm:hidden" aria-live="polite">
+                    <div className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-black leading-tight text-[#123c2f]">{pickProgressText}</p>
+                          <span className={`shrink-0 border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] ${savePicksStatusClass}`}>{savePicksStatusLabel}</span>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-[#657168]">{savePicksHelperText}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={savePicks}
+                        disabled={savePicksDisabled}
+                        className="shrink-0 border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:border-stone-300 disabled:bg-stone-200 disabled:text-stone-500 disabled:opacity-100"
+                      >
+                        {savePicksLabel}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {showSavePicksControls && (
                 <div className="sticky top-3 z-[120] mb-4 hidden border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[5px_5px_0_#d8cab0] sm:block" aria-live="polite">
@@ -2891,7 +2916,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                       </div>
                     )}
                   </div>
-                  <div className="max-h-[28rem] overflow-y-auto">
+                  <div className={`${golferListScrollClass} overflow-y-auto`}>
                     {groupedFormat ? (
                       pickGroups.length > 0 ? (
                         <div className="p-2 sm:p-3">
@@ -3321,28 +3346,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {showSavePicksControls && (
-        <div className="fixed inset-x-0 bottom-0 z-[260] border-t-2 border-[#123c2f] bg-[#fbf7ed] px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-[0_-14px_36px_rgba(15,47,37,0.28)] sm:hidden" aria-live="polite">
-          <div className="mx-auto flex max-w-4xl items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-black leading-tight text-[#123c2f]">{pickProgressText}</p>
-                <span className={`shrink-0 border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] ${savePicksStatusClass}`}>{savePicksStatusLabel}</span>
-              </div>
-              <p className="mt-0.5 truncate text-xs font-semibold text-[#657168]">{savePicksHelperText}</p>
-            </div>
-            <button
-              type="button"
-              onClick={savePicks}
-              disabled={savePicksDisabled}
-              className="shrink-0 border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:border-stone-300 disabled:bg-stone-200 disabled:text-stone-500 disabled:opacity-100"
-            >
-              {savePicksLabel}
-            </button>
-          </div>
         </div>
       )}
 
