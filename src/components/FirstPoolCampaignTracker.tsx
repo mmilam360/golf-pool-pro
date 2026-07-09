@@ -9,11 +9,18 @@ type CampaignCtaProps = {
   location: string
   children: React.ReactNode
   className?: string
+  campaign?: string
+  eventPrefix?: string
 }
 
-export function FirstPoolCampaignTracker() {
+type CampaignTrackerProps = {
+  campaign?: string
+  eventPrefix?: string
+}
+
+export function FirstPoolCampaignTracker({ campaign = 'first_pool_9_fb', eventPrefix = 'first_pool_9' }: CampaignTrackerProps = {}) {
   useEffect(() => {
-    trackGppEvent('first_pool_9_landing_view', { campaign: 'first_pool_9_fb' })
+    trackGppEvent(`${eventPrefix}_landing_view`, { campaign })
 
     const sections = Array.from(document.querySelectorAll<HTMLElement>('[data-campaign-section]'))
     const seen = new Set<string>()
@@ -24,8 +31,8 @@ export function FirstPoolCampaignTracker() {
           const section = entry.target.getAttribute('data-campaign-section')
           if (!section || seen.has(section)) continue
           seen.add(section)
-          trackGppEvent('first_pool_9_section_view', {
-            campaign: 'first_pool_9_fb',
+          trackGppEvent(`${eventPrefix}_section_view`, {
+            campaign,
             section,
           })
         }
@@ -35,17 +42,17 @@ export function FirstPoolCampaignTracker() {
 
     sections.forEach(section => observer.observe(section))
     return () => observer.disconnect()
-  }, [])
+  }, [campaign, eventPrefix])
 
   return null
 }
 
-export function FirstPoolCampaignLink({ href, location, children, className }: CampaignCtaProps) {
+export function FirstPoolCampaignLink({ href, location, children, className, campaign = 'first_pool_9_fb', eventPrefix = 'first_pool_9' }: CampaignCtaProps) {
   return (
     <Link
       href={href}
       className={className}
-      onClick={() => trackGppEvent('first_pool_9_cta_clicked', { campaign: 'first_pool_9_fb', location })}
+      onClick={() => trackGppEvent(`${eventPrefix}_cta_clicked`, { campaign, location })}
     >
       {children}
     </Link>

@@ -39,6 +39,14 @@ function PasswordInput({ value, onChange, label }: { value: string; onChange: (v
   )
 }
 
+function getSignupPromoTicket(promoCode: string) {
+  if (promoCode.trim().toUpperCase() === 'FIRSTPOOL5') {
+    return { price: '$5', heading: 'Run your first pool for $5.' }
+  }
+
+  return { price: '$9', heading: 'Run your first pool for $9.' }
+}
+
 export default function SignupPage({ defaultPromoCode = '', promoSource = '' }: { defaultPromoCode?: string; promoSource?: string } = {}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -54,6 +62,7 @@ export default function SignupPage({ defaultPromoCode = '', promoSource = '' }: 
   const [linkingEntry, setLinkingEntry] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const signupPromoTicket = getSignupPromoTicket(signupPromoCode)
 
   function signupPromoFromParams(params: URLSearchParams) {
     if (!defaultPromoCode) return ''
@@ -150,14 +159,14 @@ export default function SignupPage({ defaultPromoCode = '', promoSource = '' }: 
             <div className="flex items-center justify-center border-b-2 border-[#123c2f] bg-white px-4 py-4 text-center sm:border-b-0 sm:border-r-2 sm:border-dashed">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">First pool</p>
-                <p className="mt-1 text-4xl font-black leading-none text-[#123c2f]">$9</p>
+                <p className="mt-1 text-4xl font-black leading-none text-[#123c2f]">{signupPromoTicket.price}</p>
                 <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">cap</p>
               </div>
             </div>
             <div className="px-4 py-4">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Early pool runner ticket</p>
               <h1 className="mt-1 text-xl font-black uppercase leading-tight tracking-[-0.03em] text-[#0f2f25]">
-                Run your first pool for $9.
+                {signupPromoTicket.heading}
               </h1>
               <p className="mt-2 text-sm font-semibold leading-5 text-stone-700">
                 Saved to your account. Applies at checkout.

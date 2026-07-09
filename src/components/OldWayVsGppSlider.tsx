@@ -55,12 +55,12 @@ function GppPanel() {
           </div>
         ))}
       </div>
-      <p className="mt-3 text-xs font-semibold leading-5 text-stone-700">Made for phones, live standings, invite links, and fewer rule arguments.</p>
+      <p className="mt-3 text-xs font-semibold leading-5 text-stone-700">Made for phones, live standings, clear rooting interests, and fewer rule arguments.</p>
     </div>
   )
 }
 
-export function OldWayVsGppSlider() {
+export function OldWayVsGppSlider({ eventPrefix = 'first_pool_9' }: { eventPrefix?: string } = {}) {
   const [value, setValue] = useState(55)
 
   return (
@@ -88,7 +88,7 @@ export function OldWayVsGppSlider() {
           type="range"
           value={value}
           onChange={(event) => setValue(Number(event.target.value))}
-          onPointerUp={() => trackGppEvent('first_pool_9_compare_slider_changed', { value })}
+          onPointerUp={() => trackGppEvent(`${eventPrefix}_compare_slider_changed`, { value })}
         />
       </div>
     </div>
