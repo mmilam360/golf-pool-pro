@@ -43,6 +43,7 @@
     "test:entry-saved-email-quota": "node scripts/verify-entry-saved-email-quota.mjs",
     "test:transactional-email-headers": "node scripts/verify-transactional-email-headers.mjs",
     "test:payment-due-reminder-email": "npx tsx scripts/verify-payment-due-reminder-email.mjs",
+    "test:open-runner-email": "npx tsx scripts/verify-open-runner-email.mjs",
     "test:reliability-hardening": "npx tsx scripts/verify-reliability-hardening.ts",
     "test:support-email-route": "node scripts/verify-support-email-route.mjs",
     "test:reminder-edit-links": "node scripts/verify-reminder-edit-links.mjs",
