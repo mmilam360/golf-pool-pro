@@ -118,21 +118,6 @@ export default function FirstPoolFivePage() {
 
       <FirstPoolValueSection offerCapDollars={5} />
 
-      <section data-campaign-section="why" className="border-b-2 border-[#123c2f] bg-white/80 py-10">
-        <div className="mx-auto grid max-w-7xl gap-4 px-4 md:grid-cols-3 md:px-8">
-          {[
-            ['Built for phones', 'Players enter picks and check standings without pinching around a spreadsheet.'],
-            ['Rooting interests', 'The live board makes it clear who each player needs to pass or fade.'],
-            ['Simple to run', 'Pool rules, entries, locks, and scoring stay in one place during tournament week.'],
-          ].map(([title, body]) => (
-            <div key={title} className="border-2 border-[#123c2f] bg-[#fbf7ed] p-5 shadow-[4px_4px_0_#d8cab0]">
-              <h2 className="font-display text-2xl text-[#123c2f]">{title}</h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-stone-700">{body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       <section data-campaign-section="signup" id="signup" className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-[0.9fr_1.1fr] md:px-8 md:py-14">
         <div className="flex flex-col justify-center">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#8a6724]">Claim the offer</p>

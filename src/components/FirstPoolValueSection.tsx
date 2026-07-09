@@ -35,6 +35,12 @@ function getOfferRows(offerCapCents: number) {
   })
 }
 
+const FEATURE_CARDS = [
+  ['Built for phones', 'Players enter picks and check standings without pinching around a spreadsheet.'],
+  ['Rooting interests', 'The live board makes it clear who each player needs to pass or fade.'],
+  ['Simple to run', 'Pool rules, entries, locks, and scoring stay in one place during tournament week.'],
+]
+
 export function FirstPoolValueSection({ offerCapDollars }: FirstPoolValueSectionProps) {
   const offerCapCents = offerCapDollars * 100
   const offerRows = getOfferRows(offerCapCents)
@@ -91,17 +97,25 @@ export function FirstPoolValueSection({ offerCapDollars }: FirstPoolValueSection
           </div>
         </div>
 
-        <div className="self-start border-2 border-[#123c2f] bg-[#123c2f] p-5 text-white shadow-[7px_7px_0_#d8cab0]">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d8b45d]">More fun than office-pool software</p>
-          <h3 className="mt-2 font-display text-4xl leading-none text-white sm:text-5xl">
-            A live board people actually check.
-          </h3>
-          <p className="mt-4 text-sm font-semibold leading-6 text-[#efe7d6]">
-            Old pool sites feel like admin work. GPP gives your group a live leaderboard with picks, scores, and rooting interests in one place.
-          </p>
-          <p className="mt-5 border-t-2 border-[#d8b45d] pt-5 text-base font-black leading-7 text-white">
-            Players pick on phones. The board shows who to root for and against. Rules and scoring stay out of the group text.
-          </p>
+        <div className="space-y-4">
+          <div className="border-2 border-[#123c2f] bg-[#123c2f] p-5 text-white shadow-[7px_7px_0_#d8cab0]">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d8b45d]">More fun than office-pool software</p>
+            <h3 className="mt-2 font-display text-4xl leading-none text-white sm:text-5xl">
+              A live board people actually check.
+            </h3>
+            <p className="mt-4 text-sm font-semibold leading-6 text-[#efe7d6]">
+              Old pool sites feel like admin work. GPP gives your group a live leaderboard with picks, scores, and rooting interests in one place.
+            </p>
+          </div>
+
+          <div className="grid gap-4">
+            {FEATURE_CARDS.map(([title, body]) => (
+              <div key={title} className="border-2 border-[#123c2f] bg-[#fbf7ed] p-5 shadow-[4px_4px_0_#d8cab0]">
+                <h4 className="font-display text-2xl leading-none text-[#123c2f]">{title}</h4>
+                <p className="mt-2 text-sm font-semibold leading-6 text-stone-700">{body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
