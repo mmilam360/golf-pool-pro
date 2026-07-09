@@ -91,44 +91,17 @@ export function FirstPoolValueSection({ offerCapDollars }: FirstPoolValueSection
           </div>
         </div>
 
-        <div className="border-2 border-[#123c2f] bg-[#123c2f] p-4 text-white shadow-[7px_7px_0_#d8cab0] sm:p-5">
+        <div className="self-start border-2 border-[#123c2f] bg-[#123c2f] p-5 text-white shadow-[7px_7px_0_#d8cab0]">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d8b45d]">More fun than office-pool software</p>
           <h3 className="mt-2 font-display text-4xl leading-none text-white sm:text-5xl">
-            Give the group something to check.
+            A live board people actually check.
           </h3>
           <p className="mt-4 text-sm font-semibold leading-6 text-[#efe7d6]">
-            Old pool tools feel like admin work. GPP feels like a tournament board for your crew: picks on phones, live standings, and a clear view of which golfers can move an entry up or wreck the card.
+            Old pool sites feel like admin work. GPP gives your group a live leaderboard with picks, scores, and rooting interests in one place.
           </p>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {[
-              ['Phone-first picks', 'Players make picks on their phones. You are not chasing names in the group text.'],
-              ['Live rooting interests', 'The board makes it obvious who each entry needs to pass or fade.'],
-              ['Cleaner pool week', 'Rules, locks, cuts, and scoring stay in the pool instead of the group text.'],
-              ['Looks like golf', 'Cream paper, hard borders, red numbers, and a board people recognize.'],
-            ].map(([title, body]) => (
-              <div key={title} className="border-2 border-[#d8b45d] bg-[#fbf7ed] p-3 text-[#1f2a24]">
-                <h4 className="font-display text-xl leading-none text-[#123c2f]">{title}</h4>
-                <p className="mt-2 text-xs font-semibold leading-5 text-stone-700">{body}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 border-2 border-[#d8b45d] bg-[#fbf7ed] p-3 text-[#1f2a24]">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Tournament-week rhythm</p>
-            <div className="mt-3 space-y-2">
-              {[
-                ['Thu', 'Picks are in. Everyone has a board to watch.'],
-                ['Fri', 'The cut line starts hurting feelings.'],
-                ['Sun', 'The leaderboard shows who needs one more birdie.'],
-              ].map(([day, body]) => (
-                <div key={day} className="grid grid-cols-[44px_1fr] items-center border-2 border-[#123c2f] bg-white text-sm font-bold">
-                  <div className="border-r-2 border-[#123c2f] px-2 py-2 text-center font-display text-[#b21e23]">{day}</div>
-                  <div className="px-3 py-2 text-stone-700">{body}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <p className="mt-5 border-t-2 border-[#d8b45d] pt-5 text-base font-black leading-7 text-white">
+            Players pick on phones. The board shows who to root for and against. Rules and scoring stay out of the group text.
+          </p>
         </div>
       </div>
     </section>
