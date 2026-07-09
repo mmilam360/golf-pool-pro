@@ -86,7 +86,7 @@ export function FirstPoolValueSection({ offerCapDollars }: FirstPoolValueSection
             </div>
 
             <div className="border-t-2 border-dashed border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-sm font-semibold leading-6 text-stone-700 sm:px-5">
-              Example: an 18-player first pool is {offerRows.find(row => row.entryCount === 18)?.offerPrice}, not {offerRows.find(row => row.entryCount === 18)?.gppPrice}. Compared with a flat $20 pool site, that keeps {formatMoney(offerRows.find(row => row.entryCount === 18)?.flatFeeSavings || 0)} in your pocket.
+              For 18 players, your first pool is {offerRows.find(row => row.entryCount === 18)?.offerPrice}, not {offerRows.find(row => row.entryCount === 18)?.gppPrice}. Compared with a flat $20 pool site, that keeps {formatMoney(offerRows.find(row => row.entryCount === 18)?.flatFeeSavings || 0)} in your pocket.
             </div>
           </div>
         </div>
