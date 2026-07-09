@@ -3,7 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import SignupPage from '@/app/(auth)/signup/page'
 import { FirstPoolCampaignLink, FirstPoolCampaignTracker } from '@/components/FirstPoolCampaignTracker'
-import { OldWayVsGppSlider } from '@/components/OldWayVsGppSlider'
+import { FirstPoolValueSection } from '@/components/FirstPoolValueSection'
 
 export const metadata: Metadata = {
   title: 'First pool capped at $5 | Golf Pools Pro',
@@ -116,28 +116,7 @@ export default function FirstPoolFivePage() {
         </div>
       </section>
 
-      <section data-campaign-section="compare" className="border-y-2 border-[#123c2f] bg-[#f7f0df] py-10 md:py-14">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 md:grid-cols-[0.85fr_1.15fr] md:px-8">
-          <div className="flex flex-col justify-center">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#8a6724]">Why switch</p>
-            <h2 className="mt-2 font-display text-4xl leading-none text-[#123c2f] sm:text-5xl">Looks like golf. Works like software.</h2>
-            <p className="mt-4 text-base font-semibold leading-7 text-stone-700">
-              If your current pool page feels like an old admin screen, players notice. GPP gives them a cleaner mobile board without making setup harder.
-            </p>
-            <div className="mt-5 border-2 border-[#123c2f] bg-white p-4 shadow-[4px_4px_0_#d8cab0]">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Small pool pricing example</p>
-              <div className="mt-2 grid grid-cols-[1fr_auto] gap-2 text-sm font-bold text-stone-700">
-                <span>18-player pool on a flat $20 site</span>
-                <span>$20</span>
-                <span>18-player pool on Golf Pools Pro</span>
-                <span>$13</span>
-              </div>
-              <p className="mt-3 border-t-2 border-dashed border-[#d8cab0] pt-3 font-display text-3xl leading-none text-[#b21e23]">Save $7 on an 18-player pool.</p>
-            </div>
-          </div>
-          <OldWayVsGppSlider eventPrefix="first_pool_5" />
-        </div>
-      </section>
+      <FirstPoolValueSection offerCapDollars={5} />
 
       <section data-campaign-section="why" className="border-b-2 border-[#123c2f] bg-white/80 py-10">
         <div className="mx-auto grid max-w-7xl gap-4 px-4 md:grid-cols-3 md:px-8">
