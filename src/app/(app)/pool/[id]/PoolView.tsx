@@ -764,12 +764,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const savePicksHelperText = saving
     ? 'Saving to the pool.'
     : picksComplete
-      ? picksChangedSinceSave ? 'Tap save before you leave this page.' : 'Your picks are saved to the pool.'
+      ? picksChangedSinceSave ? 'Save before leaving.' : 'Your picks are saved to the pool.'
       : groupedFormat && groupedGroupsRemaining > 0
         ? `${groupedGroupsRemaining} group${groupedGroupsRemaining === 1 ? '' : 's'} left.`
         : picksLeftToSave === 1
           ? '1 pick left.'
           : `${picksLeftToSave} picks left.`
+  const poolPickRuleSummary = groupedFormat
+    ? `${groupsNeedLock ? 'Groups pending' : `Pick ${picksPerGroup} per group`} · top ${pool.count_scores} count`
+    : `Top ${pool.count_scores} of ${pickTargetCount || pool.pick_count} count`
+  const obPenaltyStrokes = pool.ob_rule_enabled ? (pool.ob_penalty_strokes || 2) : 0
+  const obRuleSummary = pool.ob_rule_enabled ? `OB active · +${obPenaltyStrokes}` : 'OB off'
   const guestPicksSaved = guestMode && showGuestSavePanel
   const showSavePicksControls = !guestPicksSaved && pickSelectionOpen && (fieldReady || (groupedFormat && pickGroups.length > 0))
   const golferListScrollClass = showSavePicksControls ? 'max-h-[calc(100svh-17rem)] sm:max-h-[28rem]' : 'max-h-[28rem]'
@@ -2643,7 +2648,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       {/* My Team Tab */}
       {tab === 'my-entry' && (
-        <div id="make-picks" className={`scroll-mt-24 space-y-6 ${showSavePicksControls ? 'pt-[5.25rem] sm:pt-0' : ''}`}>
+        <div id="make-picks" className="scroll-mt-[7rem] space-y-6">
           {!myEntry ? (
             <div className="bg-white rounded-none p-8 border border-stone-200 text-center">
               <p className="text-stone-600">You haven't joined this pool yet.</p>
@@ -2658,53 +2663,50 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 </div>
               )}
 
+              {entryDetailsPanel}
+
               {!guestPicksSaved && (
-              <div className="mb-4 border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[5px_5px_0_#d8cab0]">
-                <div className="flex flex-col gap-3 border-b border-[#d8cab0] bg-[#123c2f] px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f3df9c]">Make picks</p>
-                    <h2 className="text-xl font-black text-white">{groupsNeedLock ? 'Picks open soon. Review the groups now.' : `Pick ${requiredPickCount || pool.pick_count}. Best ${pool.count_scores} count.`}</h2>
+                <div className="mb-4 border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[5px_5px_0_#d8cab0]">
+                  <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Pool rules</p>
+                      <div className="relative mt-2 flex flex-wrap items-center gap-2">
+                        <span className="border border-[#123c2f] bg-white px-2.5 py-1 text-xs font-black uppercase tracking-[0.08em] text-[#123c2f]">{poolPickRuleSummary}</span>
+                        <span className="border border-[#d8cab0] bg-white px-2.5 py-1 text-xs font-black uppercase tracking-[0.08em] text-[#657168]">{obRuleSummary}</span>
+                        <details open={obRulesOpen} onToggle={event => setObRulesOpen(event.currentTarget.open)}>
+                          <summary className="flex h-7 w-7 cursor-pointer list-none items-center justify-center border border-[#123c2f] bg-white text-xs font-black text-[#123c2f] [&::-webkit-details-marker]:hidden" aria-label="How OB works">
+                            <span aria-hidden="true">i</span>
+                          </summary>
+                          <div className="absolute left-0 top-full z-[130] mt-2 w-full border border-[#d8cab0] bg-white p-3 text-xs font-semibold leading-5 text-stone-700 shadow-[4px_4px_0_#d8cab0] sm:left-auto sm:right-0 sm:w-80">
+                            <p className="font-black uppercase tracking-[0.1em] text-[#123c2f]">How OB works</p>
+                            <p className="mt-2">If one of your golfers misses the cut, withdraws, or never posts a usable score, that pick is out of bounds.</p>
+                            <p className="mt-2">When an OB pick is needed to fill your counted scores, the app uses the worst active counted score in the pool plus {obPenaltyStrokes || 2} strokes.</p>
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                    {pickSelectionOpen && fieldReady ? (
+                      <button type="button" onClick={savePicks} disabled={savePicksDisabled}
+                        className="hidden border-2 border-[#123c2f] bg-[#123c2f] px-5 py-2 text-sm font-black uppercase text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:border-stone-300 disabled:bg-stone-200 disabled:text-stone-500 disabled:opacity-100 sm:inline-flex">
+                        {savePicksLabel}
+                      </button>
+                    ) : groupsNeedLock ? (
+                      <span className="w-fit border border-[#b58a3a] bg-[#fff4cf] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#7a5a19]">Picks open soon</span>
+                    ) : picksAreLocked ? (
+                      <span className="w-fit border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-800">Picks closed</span>
+                    ) : (
+                      <span className="w-fit border border-[#b58a3a] bg-[#fff4cf] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#7a5a19]">Field pending</span>
+                    )}
                   </div>
-                  {pickSelectionOpen && fieldReady ? (
-                    <button onClick={savePicks} disabled={savePicksDisabled}
-                      className="border-2 border-[#f3df9c] bg-[#f3df9c] px-5 py-2 text-sm font-black uppercase text-[#123c2f] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:border-stone-300 disabled:bg-stone-200 disabled:text-stone-500 disabled:opacity-100">
-                      {savePicksLabel}
-                    </button>
-                  ) : groupsNeedLock ? (
-                    <span className="w-fit border border-[#f3df9c] bg-[#f3df9c] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Picks open soon</span>
-                  ) : picksAreLocked ? (
-                    <span className="w-fit border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-800">Picks closed</span>
-                  ) : (
-                    <span className="w-fit border border-[#f3df9c] bg-[#f3df9c] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Field pending</span>
-                  )}
-                </div>
-                <div className="p-4">
                   {groupsNeedLock && (
-                    <div className="mb-4 border-2 border-[#b58a3a] bg-[#fff4cf] p-3 shadow-[4px_4px_0_#d8cab0]">
-                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#7a5a19]">Picks open soon</p>
-                      <p className="mt-1 text-sm font-semibold leading-6 text-[#1f2a24]">
-                        {isOwner ? 'Review the groups now. Players can see this preview, but picking stays off until you lock groups. Groups also auto-lock Tuesday morning ET once the field is set.' : 'The pool runner is reviewing the groups. You can check the field now, but picks stay off until groups are locked. Groups auto-lock Tuesday morning ET once the field is set.'}
+                    <div className="border-t border-[#d8cab0] bg-[#fff4cf] px-4 py-3">
+                      <p className="text-sm font-semibold leading-6 text-[#1f2a24]">
+                        {isOwner ? 'Review the groups now. Players can see this preview, but picking stays off until you lock groups.' : 'The pool runner is reviewing groups. You can check the field now, but picks stay off until groups lock.'}
                       </p>
                     </div>
                   )}
-                  {!guestMode && (
-                  <details className="group border border-[#d8cab0] bg-white" open={obRulesOpen} onToggle={event => setObRulesOpen(event.currentTarget.open)}>
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] text-[#123c2f] [&::-webkit-details-marker]:hidden">
-                      <span>How OB works</span>
-                      <span className={`border border-[#123c2f] px-1.5 py-0.5 text-[10px] ${obRulesOpen ? 'bg-[#123c2f] text-white' : 'bg-white text-[#123c2f]'}`}>{obRulesOpen ? 'Close' : 'Open'}</span>
-                    </summary>
-                    <div className="space-y-2 border-t border-[#d8cab0] px-3 py-3 text-sm leading-6 text-stone-700">
-                      <p>If one of your golfers misses the cut, withdraws, or never posts a usable score, that pick is out of bounds.</p>
-                      <p>When an OB pick is needed to fill your counted scores, the app uses the worst active counted score in the pool plus {pool.ob_rule_enabled ? pool.ob_penalty_strokes : 2} strokes.</p>
-                      <p className="border border-[#eadfca] bg-[#fbf7ed] px-2 py-2 text-xs font-semibold text-[#1f2a24]">Example: if your pool counts 4 golfers and only 3 of yours are active, the missing counted spot gets the worst active score plus the OB penalty.</p>
-                    </div>
-                  </details>
-                  )}
                 </div>
-              </div>
               )}
-
-              {entryDetailsPanel}
 
               {showSavePicksControls && (
                 <>
