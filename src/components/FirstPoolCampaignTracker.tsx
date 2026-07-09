@@ -52,7 +52,17 @@ export function FirstPoolCampaignLink({ href, location, children, className, cam
     <Link
       href={href}
       className={className}
-      onClick={() => trackGppEvent(`${eventPrefix}_cta_clicked`, { campaign, location })}
+      onClick={(event) => {
+        trackGppEvent(`${eventPrefix}_cta_clicked`, { campaign, location })
+
+        if (!href.startsWith('#')) return
+        const target = document.querySelector<HTMLElement>(href)
+        if (!target) return
+
+        event.preventDefault()
+        window.history.pushState(null, '', href)
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }}
     >
       {children}
     </Link>
