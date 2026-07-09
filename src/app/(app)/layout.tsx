@@ -6,6 +6,7 @@ import FullNameConfirmationPrompt from '@/components/FullNameConfirmationPrompt'
 import { createClient } from '@/lib/supabase/server'
 import { totalPicksRequired } from '@/lib/pick-counts'
 import { entryNeedsConfirmedFullName, hasConfirmedFullName } from '@/lib/full-name-confirmation'
+import { poolIsPastMissingPicksReminderGracePeriod } from '@/lib/incomplete-picks-reminder'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +22,7 @@ type RunnerPool = {
   groups_finalized_at?: string | null
   is_locked?: boolean | null
   is_completed?: boolean | null
+  created_at?: string | null
   gpp_tournaments?: { status?: string | null } | { status?: string | null }[] | null
 }
 
@@ -109,15 +111,23 @@ async function getRunnerIncompletePickReminders(): Promise<RunnerReminderPool[]>
 
   const { data: pools } = await supabase
     .from('gpp_pools')
-    .select('id, name, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, is_locked, is_completed, gpp_tournaments(status)')
+    .select('id, name, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, is_locked, is_completed, created_at, gpp_tournaments(status)')
     .eq('owner_id', user.id)
     .eq('is_completed', false)
     .order('created_at', { ascending: false })
 
+  const reminderNow = new Date()
   const openPools = ((pools || []) as RunnerPool[]).filter(pool => {
     const status = getTournamentStatus(pool)
     const groupsPending = pool.game_format && pool.game_format !== 'standard' && !pool.groups_finalized_at
-    return !pool.is_locked && !pool.is_completed && !groupsPending && status !== 'live' && status !== 'completed'
+    return (
+      poolIsPastMissingPicksReminderGracePeriod(pool.created_at, reminderNow) &&
+      !pool.is_locked &&
+      !pool.is_completed &&
+      !groupsPending &&
+      status !== 'live' &&
+      status !== 'completed'
+    )
   })
 
   if (openPools.length === 0) return []
