@@ -94,7 +94,12 @@ function Toast({ message, tone }: { message: string; tone: Tone }) {
       : 'border-[#8a6724] bg-[#fbf7ed] text-[#5f4617]'
 
   return (
-    <div className={`fixed right-4 top-4 z-50 max-w-sm border-2 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#d8cab0] ${toneClass}`}>
+    <div
+      role={tone === 'error' ? 'alert' : 'status'}
+      aria-live={tone === 'error' ? 'assertive' : 'polite'}
+      aria-atomic="true"
+      className={`fixed right-4 top-4 z-50 max-w-sm border-2 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#d8cab0] ${toneClass}`}
+    >
       {message}
     </div>
   )

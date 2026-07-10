@@ -480,7 +480,7 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
         </label>
         <label className="block text-sm font-bold text-[#1f2a24] md:col-span-2">
           Custom note / payment instructions <span className="font-semibold text-[#657168]">({hostNote.length}/{CUSTOM_NOTE_MAX_CHARS})</span>
-          <input value={hostNote} maxLength={CUSTOM_NOTE_MAX_CHARS} onChange={event => setHostNote(event.target.value.slice(0, CUSTOM_NOTE_MAX_CHARS))} placeholder="Pay Michael cash, Venmo @michaelmay, or PayPal @michaelmay" className="mt-1 w-full rounded-none border border-[#d8cab0] bg-[#fffdf8] px-3 py-2 text-sm font-semibold text-[#1f2a24] outline-none focus:border-[#123c2f]" />
+          <input value={hostNote} maxLength={CUSTOM_NOTE_MAX_CHARS} onChange={event => setHostNote(event.target.value.slice(0, CUSTOM_NOTE_MAX_CHARS))} placeholder="Host instructions, if needed" className="mt-1 w-full rounded-none border border-[#d8cab0] bg-[#fffdf8] px-3 py-2 text-sm font-semibold text-[#1f2a24] outline-none focus:border-[#123c2f]" />
         </label>
         <label className="block text-sm font-bold text-[#1f2a24]">
           Add your logo
@@ -490,7 +490,14 @@ export default function PoolPosterClient({ pool, tournament, joinUrl, hostName }
           <input type="checkbox" checked={inkSaver} onChange={event => setInkSaver(event.target.checked)} className="h-5 w-5 accent-[#123c2f]" />
           Ink saver
         </label>
-        {exportStatus ? <p className="text-xs font-black uppercase tracking-[0.14em] text-[#1f6b4a] md:col-span-2">{exportStatus}</p> : null}
+        <p
+          role={exportStatus.startsWith('Download failed') ? 'alert' : 'status'}
+          aria-live={exportStatus.startsWith('Download failed') ? 'assertive' : 'polite'}
+          aria-atomic="true"
+          className={`${exportStatus ? '' : 'sr-only'} text-xs font-black uppercase tracking-[0.14em] text-[#1f6b4a] md:col-span-2`}
+        >
+          {exportStatus}
+        </p>
       </div>
 
       <div ref={scaleHostRef} className="mx-auto max-w-6xl pb-8 print:m-0 print:max-w-none print:p-0">

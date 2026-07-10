@@ -110,11 +110,11 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
           <table className="w-full table-fixed border-collapse text-xs sm:text-sm">
             <thead className="sticky top-0 z-10 bg-[#123c2f] text-[9px] font-black uppercase tracking-[0.08em] text-white sm:text-[10px] sm:tracking-[0.12em]">
               <tr>
-                <th className="w-9 border-r border-[#2c5b4c] px-1 py-1.5 text-center sm:w-12 sm:px-2 sm:py-2">Pos</th>
-                <th className="px-1.5 py-1.5 text-left sm:px-2 sm:py-2">Golfer</th>
-                <th className="w-12 border-l border-[#2c5b4c] px-1 py-1.5 text-center sm:w-16 sm:px-2 sm:py-2">Tot</th>
-                <th className="w-12 border-l border-[#2c5b4c] px-1 py-1.5 text-center sm:w-16 sm:px-2 sm:py-2">Today</th>
-                <th className="w-10 border-l border-[#2c5b4c] px-1 py-1.5 text-center sm:w-14 sm:px-2 sm:py-2">Thru</th>
+                <th scope="col" className="w-9 border-r border-[#2c5b4c] px-1 py-1.5 text-center sm:w-12 sm:px-2 sm:py-2">Pos</th>
+                <th scope="col" className="px-1.5 py-1.5 text-left sm:px-2 sm:py-2">Golfer</th>
+                <th scope="col" className="w-12 border-l border-[#2c5b4c] px-1 py-1.5 text-center sm:w-16 sm:px-2 sm:py-2">Tot</th>
+                <th scope="col" className="w-12 border-l border-[#2c5b4c] px-1 py-1.5 text-center sm:w-16 sm:px-2 sm:py-2">Today</th>
+                <th scope="col" className="w-10 border-l border-[#2c5b4c] px-1 py-1.5 text-center sm:w-14 sm:px-2 sm:py-2">Thru</th>
               </tr>
             </thead>
             <tbody>
