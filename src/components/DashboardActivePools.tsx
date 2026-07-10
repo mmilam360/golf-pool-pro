@@ -915,7 +915,7 @@ function InlineLeaderboard({ pool, entries, currentEntryId, openEntryIds, onEntr
               <span className="absolute right-2 top-2 border border-[#d8cab0] bg-white px-1.5 py-0.5 text-[8px] font-black uppercase leading-none tracking-[0.08em] text-[#657168] sm:right-3 sm:top-3 sm:px-2 sm:py-1 sm:text-[10px]">
                 {formatEntryCount(entries.length)}
               </span>
-              <p className="mx-auto max-w-[66%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[76%] sm:text-3xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
+              <p className="mx-auto mt-5 max-w-[98%] truncate text-[19px] font-black uppercase leading-none tracking-[0.06em] text-[#111] sm:mt-0 sm:max-w-[76%] sm:text-3xl sm:tracking-[0.16em]" title={boardTitle(tournament)}>{boardTitle(tournament)}</p>
               <p className="mx-auto mt-1 max-w-[98%] truncate text-[10px] font-black uppercase tracking-[0.04em] text-[#005b3c] sm:text-xs sm:tracking-[0.08em]" title={pool.name}>{pool.name}</p>
               <div className="mt-2 flex w-full flex-wrap items-center justify-center gap-2">
                 {showJumpToMyEntry ? (
