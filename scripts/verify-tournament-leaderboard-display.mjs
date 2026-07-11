@@ -33,4 +33,15 @@ assert.equal(tournamentPositionLabel(tiedRows[1], 1, tiedRows, now), 'T2', 'same
 assert.equal(tournamentPositionLabel(tiedRows[2], 2, tiedRows, now), 'T2', 'second same-score golfer should share the tied tournament position')
 assert.equal(tournamentPositionLabel(tiedRows[3], 3, tiedRows, now), '4', 'rank after a two-player tie should use golf competition ranking')
 
+const weekendStatusRows = sortTournamentLeaderboardRows([
+  { id: 'leader', name: 'Leader', status: 'active', scoreToPar: -7, position: '1', thru: 'F', roundScore: '-2', roundScores: [{ round: 3, complete: true }] },
+  { id: 'stale-cut', name: 'Made Cut Golfer', status: 'cut', scoreToPar: -3, position: 'CUT', thru: '8', roundScore: '-1', roundScores: [{ round: 3, complete: false }] },
+  { id: 'true-cut', name: 'True Cut Golfer', status: 'cut', scoreToPar: 2, position: 'CUT', thru: '', roundScore: '', roundScores: [{ round: 1, complete: true }, { round: 2, complete: true }] },
+], now)
+assert.equal(weekendStatusRows[1].id, 'stale-cut', 'full tournament board keeps a made-cut golfer in live score order')
+assert.equal(weekendStatusRows[1].status, 'active', 'full tournament board repairs stale CUT status when round-three evidence exists')
+assert.equal(tournamentPositionLabel(weekendStatusRows[1], 1, weekendStatusRows, now), '2', 'repaired made-cut golfer receives a live tournament position instead of CUT')
+assert.equal(weekendStatusRows[2].status, 'cut', 'full tournament board preserves a true two-round missed cut')
+assert.equal(tournamentPositionLabel(weekendStatusRows[2], 2, weekendStatusRows, now), 'CUT', 'true missed cut still displays CUT')
+
 console.log('tournament leaderboard display verified')

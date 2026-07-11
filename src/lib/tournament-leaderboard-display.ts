@@ -1,4 +1,5 @@
 import type { GolfPlayer } from './golf-api'
+import { repairWeekendCutStatuses } from './leaderboard-sanity'
 
 type LeaderboardPlayer = Pick<GolfPlayer, 'status' | 'thru' | 'roundScore' | 'scoreToPar' | 'position' | 'teeTime' | 'roundScores'>
 
@@ -88,7 +89,7 @@ function teeTimeSortValue(player: GolfPlayer) {
 
 export function sortTournamentLeaderboardRows(rows: GolfPlayer[], now = new Date()) {
   const seen = new Set<string>()
-  const uniqueRows = rows.filter(player => {
+  const uniqueRows = repairWeekendCutStatuses(rows).filter(player => {
     const identity = playerIdentity(player)
     if (seen.has(identity)) return false
     seen.add(identity)
