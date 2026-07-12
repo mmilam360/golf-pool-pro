@@ -36,13 +36,15 @@ assert.ok(
 )
 
 assert.ok(
-  (dashboardPage.match(/gpp_tournaments\([^)]*field_json[^)]*leaderboard_json/g) || []).length >= 3,
-  'dashboard page should select tournament field/leaderboard JSON through pool relationships so RLS cannot leave the expanded tournament leaderboard empty'
+  !dashboardPage.includes('gpp_tournaments(id, name, external_id, start_date, end_date, status, field_json, leaderboard_json') &&
+  dashboardPage.includes(".select('id, field_json, leaderboard_json')") &&
+  dashboardPage.includes('dashboardPools.forEach(pool => attachTournamentJson(pool, tournamentJsonById))'),
+  'dashboard page should fetch heavy tournament JSON once in a focused batch and attach it before rendering'
 )
 
 assert.ok(
-  poolView.includes('leaderboard={leaderboard.length ? leaderboard : field}') && poolView.includes('defaultOpen\n                pickedGolfers={myPicks}'),
-  'pool page should also open the full tournament leaderboard by default and fall back to field rows before scoring'
+  poolView.includes('leaderboard={leaderboard.length ? leaderboard : field}') && !poolView.includes('defaultOpen\n                pickedGolfers={myPicks}'),
+  'pool page should keep the full tournament leaderboard available with field fallback while defaulting it closed'
 )
 
 assert.ok(
@@ -63,7 +65,7 @@ for (const snippet of sharedParitySnippets) {
 }
 
 assert.ok(
-  dashboard.includes('mx-auto max-w-[66%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[76%] sm:text-3xl sm:tracking-[0.16em]') &&
+  dashboard.includes('mx-auto mt-5 max-w-[98%] truncate text-[19px] font-black uppercase leading-none tracking-[0.06em] text-[#111] sm:mt-0 sm:max-w-[76%] sm:text-3xl sm:tracking-[0.16em]') &&
   poolView.includes('mx-auto max-w-[84%] truncate text-xl font-black uppercase leading-none tracking-[0.1em] text-[#111] sm:max-w-[88%] sm:text-3xl sm:tracking-[0.16em]'),
   'dashboard and pool page should keep the accepted board title treatment with dashboard allowing room for entry-count badge'
 )
