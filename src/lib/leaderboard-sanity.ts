@@ -80,3 +80,16 @@ export function finalBoardHasEnoughEvidence(players: GolfPlayer[] | null | undef
     && activePlayersHaveScores(players)
     && !hasWeekendCutStatusErrors(players)
 }
+
+export function preferredStoredLeaderboard(
+  tournamentStatus: string | null | undefined,
+  leaderboard: GolfPlayer[] | null | undefined,
+  field: GolfPlayer[] | null | undefined,
+) {
+  const storedLeaderboard = Array.isArray(leaderboard) ? leaderboard : []
+  if (tournamentStatus !== 'completed') return storedLeaderboard
+  const storedField = Array.isArray(field) ? field : []
+  if (finalBoardHasEnoughEvidence(storedLeaderboard)) return storedLeaderboard
+  if (finalBoardHasEnoughEvidence(storedField)) return storedField
+  return storedLeaderboard
+}

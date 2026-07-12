@@ -5,6 +5,7 @@ import {
   hasPostCutRoundEvidence,
   hasWeekendCutStatusErrors,
   latestScorecardRound,
+  preferredStoredLeaderboard,
   repairWeekendCutStatuses,
   weekendCutStatusErrorNames,
 } from '../src/lib/leaderboard-sanity.ts'
@@ -97,6 +98,32 @@ assert(finalBoardLooksComplete(playoffBoard, 5), 'playoff board is complete when
 assert(!finalBoardLooksComplete(incompleteMondayBoard, 4), 'suspended/incomplete final round is not final')
 assert(!finalBoardHasEnoughEvidence([weekendPlayerMarkedCut, activeFinalPlayer], 4), 'bad weekend CUT final board fails evidence gate')
 assert(finalBoardHasEnoughEvidence(delayedSundayBoard, 5), 'clean final board passes evidence gate')
+
+const degradedHistoricalBoard = delayedSundayBoard.map((player, index) => ({
+  id: player.id,
+  name: 'Unknown',
+  firstName: 'Unknown',
+  lastName: '',
+  status: 'active',
+  score: '[object Object]',
+  scoreToPar: 0,
+  thru: '',
+  roundScore: '',
+  roundScores: [],
+  position: String(index + 1),
+}))
+assert(
+  preferredStoredLeaderboard('completed', degradedHistoricalBoard, delayedSundayBoard) === delayedSundayBoard,
+  'completed pool uses the valid final field snapshot when stored leaderboard rows are anonymous and scoreless',
+)
+assert(
+  preferredStoredLeaderboard('completed', delayedSundayBoard, degradedHistoricalBoard) === delayedSundayBoard,
+  'completed pool keeps the primary final leaderboard when it has enough evidence',
+)
+assert(
+  preferredStoredLeaderboard('live', degradedHistoricalBoard, delayedSundayBoard) === degradedHistoricalBoard,
+  'live pool never replaces its current leaderboard with a stored field snapshot',
+)
 
 const repairedBoard = repairWeekendCutStatuses([weekendPlayerMarkedCut, trueMissedCut, activeFinalPlayer])
 assert(repairedBoard[0].status === 'active', 'repairs a made-cut weekend player from CUT to active')

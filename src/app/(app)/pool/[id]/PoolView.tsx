@@ -14,6 +14,7 @@ import { formatDateOnlyWeekday, getDateOnly, todayDateOnly } from '@/lib/date-ut
 import { hasOnCourseScores } from '@/lib/golf-live'
 import { leaderboardBackedPickProgressLabel } from '@/lib/golfer-status'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
+import { preferredStoredLeaderboard } from '@/lib/leaderboard-sanity'
 import { buildPickGroups, groupForPick, groupPickCounts, validateGroupedPicks, type PickGroup } from '@/lib/pool-formats'
 import { GroupedPickGrid } from '@/components/GroupedPickGrid'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, normalizeEntryName } from '@/lib/entry-name'
@@ -448,7 +449,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [poolName, setPoolName] = useState(pool.name)
   const [poolLocked, setPoolLocked] = useState(pool.is_locked)
-  const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>(() => Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [])
+  const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>(() => preferredStoredLeaderboard(
+    tournament?.status,
+    Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [],
+    Array.isArray(tournament?.field_json) ? tournament.field_json as GolfPlayer[] : [],
+  ))
   const [leaderboardLastUpdated, setLeaderboardLastUpdated] = useState<string | null>(() => tournament?.last_scores_fetch || null)
   const [cutLine, setCutLine] = useState<GolfCutLine | null>(() => tournament?.cutLine || null)
   const [field, setField] = useState<GolfPlayer[]>(() => Array.isArray(tournament?.field_json) ? tournament.field_json as GolfPlayer[] : Array.isArray(tournament?.leaderboard_json) ? tournament.leaderboard_json as GolfPlayer[] : [])
