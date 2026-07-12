@@ -1,62 +1,65 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import DashboardActivePools, { DASHBOARD_ACTIVE_POOLS_CACHE_KEY } from '@/components/DashboardActivePools'
+import DashboardActivePools from '@/components/DashboardActivePools'
 import { createClient } from '@/lib/supabase/client'
-import { hasOnCourseScores } from '@/lib/golf-live'
-import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
+import {
+  clearAllDashboardActivePoolsCacheStorage,
+  clearDashboardActivePoolsCacheStorage,
+  dashboardActivePoolsCacheStorageKey,
+} from '@/lib/dashboard-cache'
+import {
+  cachedDashboardSnapshotIsUsableForUser,
+  cachedDashboardSnapshotNeedsScoreUpdate,
+  type DashboardCachedSnapshot,
+} from '@/lib/dashboard-performance'
 
 type DashboardActivePoolsProps = Parameters<typeof DashboardActivePools>[0]
 
-type CachedDashboard = {
-  version?: number
-  cachedAt?: number
-  userId?: string | null
+type CachedDashboard = DashboardCachedSnapshot<DashboardActivePoolsProps['cards'][number]> & {
   cards?: DashboardActivePoolsProps['cards']
   entriesByPool?: DashboardActivePoolsProps['entriesByPool']
 }
 
-const CACHE_MAX_AGE_MS = 5 * 60 * 1000
-
-function cachedTournamentStartHasArrived(startDate?: string | null) {
-  if (!startDate) return false
-  const dateOnlyMatch = startDate.match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (dateOnlyMatch) {
-    const today = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/New_York',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date())
-    return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}` <= today
-  }
-
-  const parsed = new Date(startDate)
-  return Number.isFinite(parsed.getTime()) && parsed.getTime() <= Date.now()
-}
-
-function cachedCardHasLiveOrBadScores(card: DashboardActivePoolsProps['cards'][number]) {
-  const tournament = card.tournament
-  const status = String(tournament?.status || '').toLowerCase()
-  return status === 'live'
-    || status === 'completed'
-    || cachedTournamentStartHasArrived(tournament?.start_date)
-    || hasOnCourseScores(tournament?.leaderboard_json)
-    || hasWeekendCutStatusErrors(tournament?.leaderboard_json)
-}
-
-function readCachedDashboard(): CachedDashboard | null {
+function parseCachedDashboard(raw: string | null): CachedDashboard | null {
+  if (!raw) return null
   try {
-    const raw = window.localStorage.getItem(`${DASHBOARD_ACTIVE_POOLS_CACHE_KEY}:player`)
-    if (!raw) return null
     const parsed = JSON.parse(raw) as CachedDashboard
-    if (parsed.version !== 1) return null
-    if (!parsed.cachedAt || Date.now() - parsed.cachedAt > CACHE_MAX_AGE_MS) return null
-    if (!Array.isArray(parsed.cards) || !parsed.entriesByPool || typeof parsed.entriesByPool !== 'object') return null
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
     return parsed
   } catch {
     return null
   }
+}
+
+function readCachedDashboardForUser(userId: string): CachedDashboard | null {
+  try {
+    const keyedStorageKey = dashboardActivePoolsCacheStorageKey('player', userId)
+    const keyed = parseCachedDashboard(window.localStorage.getItem(keyedStorageKey))
+    if (keyed) return keyed
+
+    // Migrate one older shared-key snapshot only after the local Supabase session proves the user id.
+    const legacyStorageKey = dashboardActivePoolsCacheStorageKey('player')
+    const legacy = parseCachedDashboard(window.localStorage.getItem(legacyStorageKey))
+    if (legacy?.userId === userId) {
+      window.localStorage.setItem(keyedStorageKey, JSON.stringify(legacy))
+      window.localStorage.removeItem(legacyStorageKey)
+      return legacy
+    }
+    if (legacy && legacy.userId !== userId) window.localStorage.removeItem(legacyStorageKey)
+    return null
+  } catch {
+    return null
+  }
+}
+
+function CachedDashboardNotice({ updatingScores }: { updatingScores: boolean }) {
+  return (
+    <section aria-live="polite" className="mb-3 border-2 border-[#b58a3a] bg-[#fff4cf] px-4 py-3 text-sm shadow-[4px_4px_0_#eadfca] sm:mb-4 sm:px-5">
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7a5a19]">{updatingScores ? 'Updating scores' : 'Refreshing dashboard'}</p>
+      <p className="mt-1 font-semibold text-[#1f2a24]">Showing your saved dashboard while fresh data loads.</p>
+    </section>
+  )
 }
 
 export default function DashboardCachedActivePools() {
@@ -64,28 +67,48 @@ export default function DashboardCachedActivePools() {
 
   useEffect(() => {
     let cancelled = false
+    const supabase = createClient()
+
     async function loadCacheForCurrentUser() {
-      const nextCached = readCachedDashboard()
-      if (!nextCached?.userId) {
+      // This is only a local identity check for an already user-keyed localStorage snapshot.
+      // The real dashboard page still performs server-side Supabase auth before private data renders.
+      const { data } = await supabase.auth.getSession()
+      const userId = data.session?.user?.id ?? null
+      if (!userId) {
+        clearAllDashboardActivePoolsCacheStorage()
         if (!cancelled) setCached(null)
         return
       }
 
-      const supabase = createClient()
-      const { data } = await supabase.auth.getUser()
-      if (!cancelled && data.user?.id === nextCached.userId) setCached(nextCached)
-      else if (!cancelled) setCached(null)
+      const nextCached = readCachedDashboardForUser(userId)
+      if (!nextCached || !cachedDashboardSnapshotIsUsableForUser(nextCached, userId)) {
+        clearDashboardActivePoolsCacheStorage('player', userId)
+        if (!cancelled) setCached(null)
+        return
+      }
+
+      if (!cancelled) setCached(nextCached)
     }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        clearAllDashboardActivePoolsCacheStorage()
+        setCached(null)
+        return
+      }
+      setCached(current => (current?.userId === session.user.id ? current : null))
+    })
 
     loadCacheForCurrentUser().catch(() => {
       if (!cancelled) setCached(null)
     })
     return () => {
       cancelled = true
+      subscription.unsubscribe()
     }
   }, [])
 
-  if (!cached?.cards?.length || !cached.entriesByPool || cached.cards.some(cachedCardHasLiveOrBadScores)) {
+  if (!cached?.cards?.length || !cached.entriesByPool) {
     return (
       <section className="border-2 border-[#123c2f] bg-white p-5 shadow-[7px_7px_0_#d8cab0] sm:p-7">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6724]">Loading dashboard</p>
@@ -94,5 +117,10 @@ export default function DashboardCachedActivePools() {
     )
   }
 
-  return <DashboardActivePools cards={cached.cards} entriesByPool={cached.entriesByPool} snapshot />
+  return (
+    <>
+      <CachedDashboardNotice updatingScores={cachedDashboardSnapshotNeedsScoreUpdate(cached)} />
+      <DashboardActivePools cards={cached.cards} entriesByPool={cached.entriesByPool} snapshot />
+    </>
+  )
 }

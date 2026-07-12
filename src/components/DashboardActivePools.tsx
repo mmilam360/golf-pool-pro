@@ -17,6 +17,15 @@ import { applySavedPoolOrder, movePoolId } from '@/lib/dashboard-pool-order'
 import { trackGppEvent } from '@/lib/posthog-events'
 import { frozenResultsForEntries, hasCompleteFrozenResults } from '@/lib/frozen-results'
 import { poolDashboardStatus, tournamentIsInProgress as sharedTournamentIsInProgress, tournamentHasScoringEvidence } from '@/lib/pool-state'
+import { DASHBOARD_ACTIVE_POOLS_CACHE_VERSION, dashboardActivePoolsCacheStorageKey } from '@/lib/dashboard-cache'
+import {
+  DASHBOARD_LIVE_SCORE_POLL_INTERVAL_MS,
+  DASHBOARD_METADATA_REFRESH_INTERVAL_MS,
+  dashboardLiveTournamentExternalIds,
+  shouldPollDashboardLiveScores,
+  shouldRefreshDashboardMetadata,
+  type DashboardVisibilityState,
+} from '@/lib/dashboard-performance'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
 
 type Tournament = {
@@ -75,6 +84,7 @@ type ActivePoolCard = {
 type LiveTournamentPayload = {
   leaderboard?: GolfPlayer[] | null
   cutLine?: GolfCutLine | null
+  lastScoresFetch?: string | null
 }
 
 type RankPreview = {
@@ -86,8 +96,6 @@ type RankPreview = {
 
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 const DASHBOARD_POOL_ORDER_STORAGE_KEY = 'gpp-dashboard-active-pool-order'
-export const DASHBOARD_ACTIVE_POOLS_CACHE_KEY = 'gpp-dashboard-active-pools-cache'
-const DASHBOARD_ACTIVE_POOLS_CACHE_VERSION = 1
 
 type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
 
@@ -1233,6 +1241,9 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   const [poolOrderHydrated, setPoolOrderHydrated] = useState(false)
   const [sortMode, setSortMode] = useState(false)
   const [sortAutoExpandSuppressed, setSortAutoExpandSuppressed] = useState(false)
+  const [pageVisibilityState, setPageVisibilityState] = useState<DashboardVisibilityState>(() => typeof document === 'undefined' ? 'visible' : document.visibilityState)
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine)
+  const lastMetadataRefreshRef = useRef(0)
 
   const storageKey = `${DASHBOARD_POOL_ORDER_STORAGE_KEY}:${mode}`
   const activeCardIds = useMemo(() => cards.map(card => card.pool.id), [cards])
@@ -1246,24 +1257,49 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     setPoolOrder(current => movePoolId(applySavedPoolOrder(current, activeCardIds), draggedId, targetId))
   }
 
-  const activeExternalIds = useMemo(() => Array.from(new Set(
-    cards
-      .filter(card => hasEventBegun(card.tournament))
-      .map(card => card.tournament?.external_id)
-      .filter((externalId): externalId is string => Boolean(externalId))
-  )), [cards])
+  useEffect(() => {
+    const updateBrowserState = () => {
+      setPageVisibilityState(typeof document === 'undefined' ? 'visible' : document.visibilityState)
+      setOnline(typeof navigator === 'undefined' ? true : navigator.onLine)
+    }
+
+    updateBrowserState()
+    document.addEventListener('visibilitychange', updateBrowserState)
+    window.addEventListener('online', updateBrowserState)
+    window.addEventListener('offline', updateBrowserState)
+    return () => {
+      document.removeEventListener('visibilitychange', updateBrowserState)
+      window.removeEventListener('online', updateBrowserState)
+      window.removeEventListener('offline', updateBrowserState)
+    }
+  }, [])
+
+  const activeExternalIds = useMemo(() => dashboardLiveTournamentExternalIds(cards), [cards])
+  const livePollingEnabled = shouldPollDashboardLiveScores({
+    snapshot,
+    visibilityState: pageVisibilityState,
+    online,
+    liveTournamentIds: activeExternalIds,
+  })
 
   useEffect(() => {
-    if (snapshot || activeExternalIds.length === 0) return
+    if (!livePollingEnabled) return
     let cancelled = false
 
     async function fetchLiveLeaderboards() {
+      if (!shouldPollDashboardLiveScores({
+        snapshot,
+        visibilityState: typeof document === 'undefined' ? 'visible' : document.visibilityState,
+        online: typeof navigator === 'undefined' ? true : navigator.onLine,
+        liveTournamentIds: activeExternalIds,
+      })) return
+
       const nextEntries = await Promise.all(activeExternalIds.map(async externalId => {
         try {
           const res = await fetch(`/api/tournaments/leaderboard?id=${encodeURIComponent(externalId)}`, { cache: 'no-store' })
           if (!res.ok) return [externalId, null] as const
           const data = await res.json()
-          return [externalId, { leaderboard: data.leaderboard || null, cutLine: data.cutLine || null }] as const
+          return [externalId, { leaderboard: data.leaderboard || null, cutLine: data.cutLine || null, lastScoresFetch: data.lastScoresFetch || null }] as const
         } catch {
           return [externalId, null] as const
         }
@@ -1279,12 +1315,12 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     }
 
     fetchLiveLeaderboards()
-    const intervalId = window.setInterval(fetchLiveLeaderboards, 30000)
+    const intervalId = window.setInterval(fetchLiveLeaderboards, DASHBOARD_LIVE_SCORE_POLL_INTERVAL_MS)
     return () => {
       cancelled = true
       window.clearInterval(intervalId)
     }
-  }, [activeExternalIds, snapshot])
+  }, [activeExternalIds, livePollingEnabled, snapshot])
 
   useEffect(() => {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -1298,16 +1334,44 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     return () => window.clearInterval(intervalId)
   }, [])
 
+  const metadataRefreshEnabled = shouldRefreshDashboardMetadata({
+    snapshot,
+    visibilityState: pageVisibilityState,
+    online,
+    hasDashboardCards: cards.length > 0,
+  })
+
   useEffect(() => {
-    if (snapshot) return
-    const refreshId = window.setInterval(() => {
+    if (!metadataRefreshEnabled) return
+
+    const refreshDashboardMetadata = () => {
+      if (!shouldRefreshDashboardMetadata({
+        snapshot,
+        visibilityState: typeof document === 'undefined' ? 'visible' : document.visibilityState,
+        online: typeof navigator === 'undefined' ? true : navigator.onLine,
+        hasDashboardCards: cards.length > 0,
+      })) return
+
+      const now = Date.now()
+      if (now - lastMetadataRefreshRef.current < 30 * 1000) return
+      lastMetadataRefreshRef.current = now
       const scrollPosition = saveDashboardScrollPosition(viewStateKey)
       router.refresh()
       scheduleDashboardScrollRestore(scrollPosition.scrollY, scrollPosition.scrollX, scrollPosition.anchorKey, scrollPosition.anchorOffset)
-    }, 30000)
+    }
 
-    return () => window.clearInterval(refreshId)
-  }, [router, snapshot, viewStateKey])
+    const intervalId = window.setInterval(refreshDashboardMetadata, DASHBOARD_METADATA_REFRESH_INTERVAL_MS)
+    const refreshOnVisible = () => {
+      if (document.visibilityState !== 'hidden') refreshDashboardMetadata()
+    }
+    window.addEventListener('online', refreshDashboardMetadata)
+    document.addEventListener('visibilitychange', refreshOnVisible)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('online', refreshDashboardMetadata)
+      document.removeEventListener('visibilitychange', refreshOnVisible)
+    }
+  }, [cards.length, metadataRefreshEnabled, router, snapshot, viewStateKey])
 
   useEffect(() => {
     if (snapshot) return
@@ -1363,20 +1427,49 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
     }
   }, [orderedPoolIds, poolOrderHydrated, storageKey])
 
+  const displayCards = useMemo(() => orderedCards.map(card => {
+    const { pool, tournament, entry } = card
+    const livePayload = tournament?.external_id ? liveLeaderboardsByExternalId[tournament.external_id] : null
+    const effectiveTournament = tournament && livePayload?.leaderboard?.length
+      ? { ...tournament, leaderboard_json: livePayload.leaderboard, cutLine: livePayload.cutLine ?? tournament.cutLine ?? null }
+      : tournament
+    const effectivePool = effectiveTournament ? { ...pool, gpp_tournaments: effectiveTournament } : pool
+    const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
+    const rankPreview = entry ? buildRankPreview(entry, effectivePool, poolEntries) : null
+    return {
+      ...card,
+      effectiveTournament,
+      effectivePool,
+      poolEntries,
+      rankPreview,
+      label: statusLabel(effectivePool, effectiveTournament),
+      eventBegun: hasEventBegun(effectiveTournament),
+      tournamentDisplayName: displayTournamentName(effectiveTournament?.name) || 'Tournament',
+    }
+  }), [entriesByPool, liveLeaderboardsByExternalId, orderedCards])
+
+  const cardsForCache = useMemo(() => displayCards.map(({ role, entry, effectivePool, effectiveTournament }) => ({
+    pool: effectivePool,
+    tournament: effectiveTournament,
+    role,
+    entry,
+  })), [displayCards])
+
   useEffect(() => {
-    if (snapshot || mode !== 'player' || cards.length === 0) return
+    if (snapshot || mode !== 'player' || cardsForCache.length === 0 || !userId) return
     try {
-      window.localStorage.setItem(`${DASHBOARD_ACTIVE_POOLS_CACHE_KEY}:${mode}`, JSON.stringify({
+      window.localStorage.setItem(dashboardActivePoolsCacheStorageKey(mode, userId), JSON.stringify({
         version: DASHBOARD_ACTIVE_POOLS_CACHE_VERSION,
         cachedAt: Date.now(),
         userId,
-        cards,
+        cards: cardsForCache,
         entriesByPool,
       }))
+      window.localStorage.removeItem(dashboardActivePoolsCacheStorageKey(mode))
     } catch {
       // Snapshot restore is best-effort. The live dashboard still works without local storage.
     }
-  }, [cards, entriesByPool, mode, snapshot, userId])
+  }, [cardsForCache, entriesByPool, mode, snapshot, userId])
 
   useEffect(() => {
     if (cards.length === 0) return
@@ -1443,19 +1536,9 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
         </div>
       </div>
       <div className={useSinglePoolMobileLayout ? 'sm:divide-y sm:divide-[#eadfca]' : 'divide-y divide-[#eadfca]'}>
-        {orderedCards.map(({ pool, tournament, role, entry }, index) => {
-          const livePayload = tournament?.external_id ? liveLeaderboardsByExternalId[tournament.external_id] : null
-          const effectiveTournament = tournament && livePayload?.leaderboard?.length
-            ? { ...tournament, leaderboard_json: livePayload.leaderboard, cutLine: livePayload.cutLine ?? tournament.cutLine ?? null }
-            : tournament
-          const effectivePool = effectiveTournament ? { ...pool, gpp_tournaments: effectiveTournament } : pool
-          const label = statusLabel(effectivePool, effectiveTournament)
-          const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
-          const rankPreview = entry ? buildRankPreview(entry, effectivePool, poolEntries) : null
+        {displayCards.map(({ pool, role, entry, effectiveTournament, effectivePool, poolEntries, rankPreview, label, eventBegun, tournamentDisplayName }, index) => {
           const openEntryIds = expandedEntryIds[pool.id] ?? null
-          const eventBegun = hasEventBegun(effectiveTournament)
           const scoresAreLive = hasRecentScores(effectiveTournament, nowMs)
-          const tournamentDisplayName = displayTournamentName(effectiveTournament?.name) || 'Tournament'
           const canReorderPools = canSortPools && sortMode
           const isPoolOpen = !canReorderPools && (useSinglePoolMobileLayout || expandedPoolIds.has(pool.id))
           return (
@@ -1493,7 +1576,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                             onClick={event => {
                               event.preventDefault()
                               event.stopPropagation()
-                              const previousPoolId = orderedCards[index - 1]?.pool.id
+                              const previousPoolId = displayCards[index - 1]?.pool.id
                               if (previousPoolId) reorderPool(pool.id, previousPoolId)
                             }}
                             disabled={index === 0}
@@ -1508,10 +1591,10 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
                             onClick={event => {
                               event.preventDefault()
                               event.stopPropagation()
-                              const nextPoolId = orderedCards[index + 1]?.pool.id
+                              const nextPoolId = displayCards[index + 1]?.pool.id
                               if (nextPoolId) reorderPool(nextPoolId, pool.id)
                             }}
-                            disabled={index === orderedCards.length - 1}
+                            disabled={index === displayCards.length - 1}
                             className="flex h-4 w-5 items-center justify-center disabled:cursor-not-allowed disabled:text-[#b7bdb6] disabled:opacity-50"
                             aria-label={`Move ${pool.name} down`}
                             title="Move down"

@@ -5,7 +5,7 @@ const source = readFileSync('src/components/DashboardActivePools.tsx', 'utf8')
 
 assert.ok(source.includes("import { applySavedPoolOrder, movePoolId } from '@/lib/dashboard-pool-order'"), 'dashboard should use shared pool-order helpers')
 assert.ok(source.includes('window.localStorage.setItem(storageKey, JSON.stringify(orderedPoolIds))'), 'dashboard pool order should persist in localStorage')
-assert.ok(source.includes('{orderedCards.map(({ pool, tournament, role, entry }, index) => {'), 'dashboard should render active pools in saved order')
+assert.ok(source.includes('const displayCards = useMemo(() => orderedCards.map') && source.includes('{displayCards.map(({ pool, role, entry, effectiveTournament, effectivePool, poolEntries, rankPreview, label, eventBegun, tournamentDisplayName }, index) => {'), 'dashboard should precompute and render active pools in saved order')
 assert.ok(!source.includes('draggable') && !source.includes('onDragStart') && !source.includes('Drag to reorder'), 'dashboard should not expose broken drag controls')
 assert.ok(source.includes('title="Move up"') && source.includes('title="Move down"'), 'arrow controls should describe their direction')
 assert.ok(source.includes("const canSortPools = mode === 'player' && orderedCards.length > 1"), 'sort button should only show for player dashboards with multiple active pools')

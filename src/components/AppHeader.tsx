@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { clearAllDashboardActivePoolsCacheStorage } from '@/lib/dashboard-cache'
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', match: ['/dashboard'] },
@@ -37,7 +38,7 @@ function activeClasses(active: boolean, link?: NavLink) {
 
 function SignOutButton({ className = '' }: { className?: string }) {
   return (
-    <form action="/api/auth/logout" method="POST">
+    <form action="/api/auth/logout" method="POST" onSubmit={() => clearAllDashboardActivePoolsCacheStorage()}>
       <button type="submit" className={className}>Sign Out</button>
     </form>
   )
