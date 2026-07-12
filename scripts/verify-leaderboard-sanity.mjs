@@ -3,12 +3,14 @@ import {
   finalBoardHasEnoughEvidence,
   finalBoardLooksComplete,
   hasPostCutRoundEvidence,
+  hasUsablePlayerIdentities,
   hasWeekendCutStatusErrors,
   latestScorecardRound,
   preferredStoredLeaderboard,
   repairWeekendCutStatuses,
   weekendCutStatusErrorNames,
 } from '../src/lib/leaderboard-sanity.ts'
+import { hydrateFinalLeaderboard } from '../src/lib/fresh-final-leaderboard.ts'
 import { scoreEntry, scoreEntriesForLeaderboard } from '../src/lib/scoring.ts'
 
 function assert(condition, message) {
@@ -112,6 +114,16 @@ const degradedHistoricalBoard = delayedSundayBoard.map((player, index) => ({
   roundScores: [],
   position: String(index + 1),
 }))
+const anonymousCompleteBoard = delayedSundayBoard.map(player => ({ ...player, name: 'Unknown' }))
+assert(!hasUsablePlayerIdentities(anonymousCompleteBoard), 'rejects a majority-anonymous leaderboard')
+assert(
+  !finalBoardHasEnoughEvidence(anonymousCompleteBoard, 5),
+  'complete score evidence does not make an anonymous final board usable',
+)
+assert(
+  preferredStoredLeaderboard('completed', anonymousCompleteBoard, delayedSundayBoard) === delayedSundayBoard,
+  'completed pool prefers the named final field when anonymous rows contain complete scorecards',
+)
 assert(
   preferredStoredLeaderboard('completed', degradedHistoricalBoard, delayedSundayBoard) === delayedSundayBoard,
   'completed pool uses the valid final field snapshot when stored leaderboard rows are anonymous and scoreless',
@@ -123,6 +135,56 @@ assert(
 assert(
   preferredStoredLeaderboard('live', degradedHistoricalBoard, delayedSundayBoard) === degradedHistoricalBoard,
   'live pool never replaces its current leaderboard with a stored field snapshot',
+)
+
+let hydrationCalls = 0
+const shouldNotHydrate = async () => {
+  hydrationCalls += 1
+  throw new Error('stored final board should avoid ESPN hydration')
+}
+const completedWithValidLeaderboard = {
+  external_id: 'stored-final',
+  status: 'completed',
+  leaderboard_json: delayedSundayBoard,
+  field_json: degradedHistoricalBoard,
+}
+const keptStoredFinal = await hydrateFinalLeaderboard(completedWithValidLeaderboard, shouldNotHydrate)
+assert(hydrationCalls === 0, 'valid stored final board does not fetch ESPN')
+assert(keptStoredFinal.leaderboard_json === delayedSundayBoard, 'valid stored final board remains primary')
+
+const completedWithValidField = {
+  external_id: 'stored-field',
+  status: 'completed',
+  leaderboard_json: degradedHistoricalBoard,
+  field_json: delayedSundayBoard,
+}
+const usedStoredField = await hydrateFinalLeaderboard(completedWithValidField, shouldNotHydrate)
+assert(hydrationCalls === 0, 'valid stored final field does not fetch ESPN')
+assert(usedStoredField.leaderboard_json === delayedSundayBoard, 'valid stored final field replaces degraded primary rows')
+
+let degradedHydrationCalls = 0
+const rejectedFreshBoard = await hydrateFinalLeaderboard({
+  external_id: 'degraded-fresh',
+  status: 'completed',
+  leaderboard_json: degradedHistoricalBoard,
+  field_json: degradedHistoricalBoard,
+}, async () => {
+  degradedHydrationCalls += 1
+  return { leaderboard: anonymousCompleteBoard }
+})
+assert(degradedHydrationCalls === 1, 'missing stored final evidence allows one fresh lookup')
+assert(rejectedFreshBoard.leaderboard_json === degradedHistoricalBoard, 'anonymous fresh final board is rejected')
+
+const acceptedFreshBoard = await hydrateFinalLeaderboard({
+  external_id: 'valid-fresh',
+  status: 'completed',
+  leaderboard_json: degradedHistoricalBoard,
+  field_json: degradedHistoricalBoard,
+}, async () => ({ leaderboard: delayedSundayBoard }))
+assert(
+  acceptedFreshBoard.leaderboard_json?.[0]?.name === delayedSundayBoard[0].name
+    && finalBoardHasEnoughEvidence(acceptedFreshBoard.leaderboard_json, 5),
+  'valid fresh final board is accepted',
 )
 
 const repairedBoard = repairWeekendCutStatuses([weekendPlayerMarkedCut, trueMissedCut, activeFinalPlayer])

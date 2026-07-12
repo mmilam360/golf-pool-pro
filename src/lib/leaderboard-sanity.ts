@@ -75,8 +75,18 @@ function activePlayersHaveScores(players: GolfPlayer[] | null | undefined) {
   )
 }
 
+export function hasUsablePlayerIdentities(players: GolfPlayer[] | null | undefined) {
+  if (!Array.isArray(players) || players.length === 0) return false
+  const namedPlayers = players.filter(player => {
+    const name = String(player?.name || '').trim().toLowerCase()
+    return name && name !== 'unknown'
+  }).length
+  return namedPlayers >= Math.max(1, Math.ceil(players.length * 0.5))
+}
+
 export function finalBoardHasEnoughEvidence(players: GolfPlayer[] | null | undefined, reportedRound?: number | null) {
-  return finalBoardLooksComplete(players, reportedRound)
+  return hasUsablePlayerIdentities(players)
+    && finalBoardLooksComplete(players, reportedRound)
     && activePlayersHaveScores(players)
     && !hasWeekendCutStatusErrors(players)
 }
