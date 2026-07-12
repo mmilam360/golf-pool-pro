@@ -18,7 +18,7 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
   const [poolResult, entriesResult] = await Promise.all([
     supabase
       .from('gpp_pools')
-      .select('id, tournament_id, name, pick_count, count_scores, is_locked, is_completed, results_finalized_at, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, amount_paid_cents')
+      .select('id, tournament_id, name, pick_count, count_scores, is_locked, is_completed, results_finalized_at, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, ob_rule_enabled, ob_penalty_strokes, payment_status, amount_paid_cents, gpp_tournaments(id, external_id, name, course, location, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch)')
       .eq('id', id)
       .maybeSingle(),
     supabase
@@ -34,14 +34,7 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
   const pool = poolResult.data as any
   if (!pool) notFound()
 
-  const { data: tournamentData, error: tournamentError } = await supabase
-    .from('gpp_tournaments')
-    .select('id, external_id, name, course, location, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch')
-    .eq('id', pool.tournament_id)
-    .maybeSingle()
-  if (tournamentError) throw tournamentError
-
-  const tournament = await hydrateFinalLeaderboard(tournamentData as any)
+  const tournament = await hydrateFinalLeaderboard(pool.gpp_tournaments as any)
   const publicPool = {
     id: pool.id,
     name: pool.name,

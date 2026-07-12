@@ -1,5 +1,5 @@
 'use client'
-import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { Fragment, useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { BackButton } from '@/components/BackButton'
 import { PoolInvitePrepPanel } from '@/components/PoolInvitePrepPanel'
@@ -408,8 +408,65 @@ function SquareTrustMark() {
 
 const REFRESH_SECONDS = 60
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
+const ENTRY_BOARD_DESKTOP_QUERY = '(min-width: 1024px)'
 
 type LeaderboardMode = { type: 'current' } | { type: 'thru'; round: number } | { type: 'day'; round: number }
+type EntryBoardMode = 'mobile' | 'desktop'
+
+function subscribeToEntryBoardMedia(callback: () => void) {
+  if (typeof window === 'undefined') return () => {}
+  const mediaQuery = window.matchMedia(ENTRY_BOARD_DESKTOP_QUERY)
+  if (typeof mediaQuery.addEventListener === 'function') {
+    mediaQuery.addEventListener('change', callback)
+    return () => mediaQuery.removeEventListener('change', callback)
+  }
+  mediaQuery.addListener(callback)
+  return () => mediaQuery.removeListener(callback)
+}
+
+function getEntryBoardMediaSnapshot() {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia(ENTRY_BOARD_DESKTOP_QUERY).matches
+}
+
+function getEntryBoardServerSnapshot() {
+  // Server/mobile-first snapshot keeps the desktop tree out of mobile HTML and hydration.
+  // Desktop CSS hides the temporary mobile tree until the media query swaps in the desktop board.
+  return false
+}
+
+function useEntryBoardMode(): EntryBoardMode {
+  return useSyncExternalStore(
+    subscribeToEntryBoardMedia,
+    getEntryBoardMediaSnapshot,
+    getEntryBoardServerSnapshot,
+  ) ? 'desktop' : 'mobile'
+}
+
+function RefreshCountdownBadge({ enabled, seconds = REFRESH_SECONDS }: { enabled: boolean; seconds?: number }) {
+  const [remaining, setRemaining] = useState(seconds)
+
+  useEffect(() => {
+    if (!enabled) return
+    setRemaining(seconds)
+    const countdown = window.setInterval(() => {
+      setRemaining(prev => (prev <= 1 ? seconds : prev - 1))
+    }, 1000)
+    return () => window.clearInterval(countdown)
+  }, [enabled, seconds])
+
+  if (!enabled) return null
+
+  return (
+    <div className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c]" title="Auto-refresh countdown">
+      <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M13 8a5 5 0 1 1-1.46-3.54" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />
+        <path d="M13 3v4H9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" strokeLinejoin="miter" />
+      </svg>
+      {remaining}s
+    </div>
+  )
+}
 
 function roundMenuLabel(round: number) {
   return `R${round}`
@@ -464,7 +521,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [notificationEmailValue, setNotificationEmailValue] = useState(initialMyEntry?.notification_email || '')
   const [entryNameSaving, setEntryNameSaving] = useState(false)
   const [fullNameSaving, setFullNameSaving] = useState(false)
-  const [refreshCountdown, setRefreshCountdown] = useState(REFRESH_SECONDS)
+  const entryBoardMode = useEntryBoardMode()
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [inviteUrl, setInviteUrl] = useState('')
@@ -668,6 +725,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const tournamentWithCurrentLeaderboard = { ...(tournament || {}), leaderboard_json: leaderboard }
   const effectivePoolState = { ...(pool || {}), is_locked: isLocked }
   const scoringIsLive = tournamentHasScoringEvidence(tournamentWithCurrentLeaderboard)
+  const shouldRefreshLiveScores = Boolean(tournament?.external_id && tournament?.status === 'live')
   const tournamentEndDate = getDateOnly(tournament?.end_date)
   const tournamentIsPastOrCompleted = Boolean(
     finalPool(effectivePoolState, tournamentWithCurrentLeaderboard) ||
@@ -1213,11 +1271,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
   }
 
-  // Fetch live leaderboard. Never refresh completed tournaments from ESPN here:
+  // Fetch live leaderboard. Never refresh completed/non-live tournaments from ESPN here:
   // ESPN's old-event payload can degrade to anonymous/partial rows, which would
   // overwrite the stored final board in the browser and make finished pools look broken.
   const fetchScores = useCallback(async () => {
-    if (!tournament?.external_id || tournament?.status === 'completed') return
+    if (!shouldRefreshLiveScores || !tournament?.external_id) return
     try {
       const res = await fetch(`/api/tournaments/leaderboard?id=${tournament.external_id}`)
       if (res.ok) {
@@ -1225,20 +1283,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         const liveLeaderboard = data.leaderboard || []
         if (liveLeaderboard.length > 0) {
           setLeaderboard(liveLeaderboard)
-          // Only overwrite field state when tournament is live, not upcoming.
-          // For upcoming events, field comes from server-rendered field_json and
-          // should not be replaced by empty or placeholder leaderboard data.
-          if (tournament?.status === 'live') {
-            setField(liveLeaderboard)
-          }
+          setField(liveLeaderboard)
           setLeaderboardLastUpdated(data.lastScoresFetch || null)
         }
         setCutLine(data.cutLine || null)
       }
       await refreshPoolEntries()
     } catch {}
-    setRefreshCountdown(REFRESH_SECONDS)
-  }, [refreshPoolEntries, tournament?.external_id, tournament?.status])
+  }, [refreshPoolEntries, shouldRefreshLiveScores, tournament?.external_id])
 
   useEffect(() => {
     // Load field from tournament data if available
@@ -1249,16 +1301,14 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setLeaderboard(tournament.leaderboard_json as GolfPlayer[])
       setLeaderboardLastUpdated(tournament?.last_scores_fetch || null)
     }
+  }, [leaderboard.length, scoringIsLive, tournament?.field_json, tournament?.last_scores_fetch, tournament?.leaderboard_json])
+
+  useEffect(() => {
+    if (!shouldRefreshLiveScores) return
     fetchScores()
-    const interval = setInterval(fetchScores, 60000) // refresh every minute
-    const countdown = setInterval(() => {
-      setRefreshCountdown(prev => (prev <= 1 ? REFRESH_SECONDS : prev - 1))
-    }, 1000)
-    return () => {
-      clearInterval(interval)
-      clearInterval(countdown)
-    }
-  }, [fetchScores, tournament, scoringIsLive, leaderboard.length])
+    const interval = window.setInterval(fetchScores, 60000) // refresh every minute while live
+    return () => window.clearInterval(interval)
+  }, [fetchScores, shouldRefreshLiveScores])
 
   // Save picks
   async function savePicks() {
@@ -2424,14 +2474,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     </details>
                   )}
                   {selectedBoardIsHistorical ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#657168]">{historicalBoardCaption(leaderboardMode, hasPlayoffScores)}</p> : null}
-                  {!selectedBoardIsHistorical && <div className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#005b3c]" title="Auto-refresh countdown">
-                    <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M13 8a5 5 0 1 1-1.46-3.54" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" />
-                      <path d="M13 3v4H9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" strokeLinejoin="miter" />
-                    </svg>
-                    {refreshCountdown}s
-                  </div>}
+                  {!selectedBoardIsHistorical ? <RefreshCountdownBadge enabled={shouldRefreshLiveScores} /> : null}
                 </div>
+                {entryBoardMode === 'mobile' ? (
                 <div className="bg-[#f7f7f2] lg:hidden">
                   {scoredEntries.map((entry) => {
                     const isMe = entry.entryId === myEntry?.id
@@ -2533,6 +2578,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     )
                   })}
                 </div>
+                ) : (
                 <div className="hidden bg-[#f7f7f2] lg:block">
                   <table className="w-full table-fixed border-collapse text-[12px] text-[#111]">
                     <thead>
@@ -2624,6 +2670,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     </tbody>
                   </table>
                 </div>
+                )}
               </div>
               {showLeverageLegend ? <LeverageMarkerLegend showTortoise={tortoisePickMap.size > 0} className="mt-1" /> : null}
               {!selectedScoringIsLive ? (
@@ -2640,7 +2687,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 leaderboard={leaderboard.length ? leaderboard : field}
                 tournamentName={tournament?.name}
                 lastUpdated={leaderboardLastUpdated}
-                defaultOpen
                 pickedGolfers={myPicks}
                 cutLine={cutLine}
                 pickGroups={groupedFormat ? pickGroups : undefined}

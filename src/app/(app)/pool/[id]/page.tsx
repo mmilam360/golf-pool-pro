@@ -184,7 +184,6 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
         picks_per_group: pool.picks_per_group,
         pick_groups_json: pool.pick_groups_json,
         groups_finalized_at: pool.groups_finalized_at,
-        gpp_tournaments: tournament,
       }}
       tournament={tournament}
       entries={safeEntries}

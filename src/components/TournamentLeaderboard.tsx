@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { teeTimeLabel, tournamentThruLabel } from '@/lib/golfer-status'
 import { sortTournamentLeaderboardRows, tournamentPositionLabel, tournamentScoreClass, tournamentScoreLabel } from '@/lib/tournament-leaderboard-display'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
@@ -59,7 +59,10 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const [now, setNow] = useState(HYDRATION_SAFE_NOW)
   const rows = Array.isArray(leaderboard) ? leaderboard : []
-  const displayRows = sortTournamentLeaderboardRows(rows, now)
+  const displayRows = useMemo(
+    () => isOpen ? sortTournamentLeaderboardRows(rows, now) : [],
+    [isOpen, now, rows],
+  )
   const hasOfficialCuts = displayRows.some(player => player.status === 'cut') && cutLine && !cutLine.projected
   const hasGroupBadges = pickGroups.length > 0
 
@@ -74,11 +77,12 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
   }, [])
 
   useEffect(() => {
+    if (!isOpen) return
     const updateNow = () => setNow(new Date())
     updateNow()
     const intervalId = window.setInterval(updateNow, 30000)
     return () => window.clearInterval(intervalId)
-  }, [])
+  }, [isOpen])
 
   if (rows.length === 0) return null
 
@@ -100,6 +104,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
           </span>
         </div>
       </summary>
+      {isOpen ? (
       <div className="border-t border-[#d8cab0] bg-white">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#eadfca] px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#657168] sm:px-4 sm:text-[11px]">
           <span>{hasPickedGolfers ? 'Full tournament field. Your picks are highlighted.' : 'Full tournament field. Pool standings are separate.'}</span>
@@ -161,6 +166,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
           </table>
         </div>
       </div>
+      ) : null}
     </details>
   )
 }
