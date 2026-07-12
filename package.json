@@ -15,6 +15,7 @@
     "test:tournament-seo-copy": "node scripts/verify-tournament-seo-copy.mjs",
     "test:app-navigation-responsiveness": "node scripts/verify-app-navigation-responsiveness.mjs",
     "test:accessibility-audit-fixes": "node scripts/verify-accessibility-audit-fixes.mjs",
+    "test:pwa-performance": "node scripts/verify-pwa-performance.mjs",
     "test:promo-exposure": "node scripts/verify-promo-exposure.mjs",
     "test:espn-leaderboard": "npx tsx scripts/verify-espn-leaderboard-source.mjs",
     "test:golfer-status": "npx tsx scripts/verify-golfer-status-labels.mjs",

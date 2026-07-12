@@ -4,6 +4,7 @@ import { PostHogAnalytics } from "@/components/PostHogAnalytics";
 import { MobileInstallPrompt } from "@/components/MobileInstallPrompt";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { NavigationHistoryTracker } from "@/components/NavigationHistoryTracker";
+import { WebVitalsReporter } from "@/components/WebVitalsReporter";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -72,6 +73,7 @@ export default function RootLayout({
         {children}
         <GoogleAnalytics />
         <PostHogAnalytics />
+        <WebVitalsReporter />
         <ServiceWorkerRegister />
         <MobileInstallPrompt />
       </body>

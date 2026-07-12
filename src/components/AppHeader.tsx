@@ -90,7 +90,7 @@ export default function AppHeader() {
     <nav className="relative z-[100] border-b border-[#d8cab0] bg-[#fbf7ed]/95 px-4 py-3 shadow-sm backdrop-blur-sm md:px-6">
       <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4">
         <Link href={logoHref} className="flex shrink-0 items-center" aria-label={logoLabel}>
-          <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} className="h-12 w-auto object-contain sm:h-14 md:h-16" />
+          <Image unoptimized src="/brand/golf-pools-pro-wordmark.d3f016dcc364.webp" alt="Golf Pools Pro" width={640} height={268} className="h-12 w-auto object-contain sm:h-14 md:h-16" />
         </Link>
 
         <div className="hidden min-w-0 items-center justify-end gap-2 text-sm font-bold text-[#123c2f] md:flex">

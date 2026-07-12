@@ -85,7 +85,7 @@ export default function FirstPoolFivePage() {
       <header className="border-b border-[#d8cab0] bg-[#fbf7ed]/95">
         <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 md:px-8">
           <Link href="/" aria-label="Golf Pools Pro home" className="flex items-center gap-3">
-            <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-14 w-auto object-contain sm:h-16" />
+            <Image unoptimized src="/brand/golf-pools-pro-wordmark.d3f016dcc364.webp" alt="Golf Pools Pro" width={640} height={268} preload className="h-14 w-auto object-contain sm:h-16" />
           </Link>
           <Link href="/login" className="border border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-sm font-semibold text-[#123c2f] hover:bg-[#f7f0df]">
             Sign in

@@ -233,7 +233,7 @@ export default function Home() {
       <header className="border-b border-[#d8cab0] bg-[#fbf7ed]/90 backdrop-blur-sm">
         <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 md:px-8">
           <Link href="/" className="flex items-center gap-3" aria-label="Golf Pools Pro home">
-            <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-14 w-auto object-contain sm:h-16 md:h-20" />
+            <Image unoptimized src="/brand/golf-pools-pro-wordmark.d3f016dcc364.webp" alt="Golf Pools Pro" width={640} height={268} preload className="h-14 w-auto object-contain sm:h-16 md:h-20" />
           </Link>
           <div className="flex shrink-0 items-center gap-2 text-xs font-semibold sm:text-sm">
             <Link href="/login" className="border border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-[#123c2f] transition-colors hover:bg-[#f7f0df] sm:px-4">
@@ -474,7 +474,7 @@ export default function Home() {
               <div className="border-2 border-[#f3df9c] bg-[#fbf7ed] p-3 shadow-[10px_10px_0_#001f17]">
                 <Image
                   unoptimized
-                  loading="eager"
+                  loading="lazy"
                   src="/share/final-result-preview.png"
                   alt="Golf Pools Pro final board share preview"
                   width={1080}

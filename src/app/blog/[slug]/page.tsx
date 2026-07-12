@@ -111,7 +111,7 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
         <header className="border-b border-[#d8cab0] bg-[#fbf7ed] px-5 py-4">
           <nav className="mx-auto flex max-w-4xl items-center justify-between gap-3">
             <Link href={logoHref} className="flex items-center" aria-label="Back to Golf Pools Pro pick guides">
-              <Image unoptimized src="/brand/golf-pools-pro-wordmark.png" alt="Golf Pools Pro" width={1660} height={695} priority className="h-11 w-auto object-contain sm:h-14" />
+              <Image unoptimized src="/brand/golf-pools-pro-wordmark.d3f016dcc364.webp" alt="Golf Pools Pro" width={640} height={268} preload className="h-11 w-auto object-contain sm:h-14" />
             </Link>
             <Link href={guideHref} className="border-2 border-[#123c2f] bg-[#fffdf8] px-3 py-2 text-sm font-extrabold text-[#123c2f] transition-colors hover:bg-white sm:px-4">All guides</Link>
           </nav>

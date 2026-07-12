@@ -1,6 +1,7 @@
 'use client'
 
 type EventProperties = Record<string, string | number | boolean | null | undefined>
+type TrackGppEventOptions = { includePageProperties?: boolean }
 
 const POSTHOG_KEY = 'phc_CkiRNbAVW5a2GJGn5RknbcShJGWRFr6M4S6tkB2YTMGz'
 const POSTHOG_HOST = 'https://us.i.posthog.com'
@@ -33,6 +34,7 @@ export type GppAnalyticsEvent =
   | 'payment_completed'
   | 'payment_failed'
   | 'final_share_downloaded'
+  | 'web_vital_reported'
 
 function currentPageProperties(): EventProperties {
   if (typeof window === 'undefined') return {}
@@ -62,14 +64,14 @@ function getDistinctId() {
   return next
 }
 
-export function buildGppAnalyticsProperties(properties: EventProperties = {}) {
+export function buildGppAnalyticsProperties(properties: EventProperties = {}, options: TrackGppEventOptions = {}) {
   return {
-    ...currentPageProperties(),
+    ...(options.includePageProperties === false ? {} : currentPageProperties()),
     ...properties,
   }
 }
 
-export function trackGppEvent(event: GppAnalyticsEvent, properties: EventProperties = {}) {
+export function trackGppEvent(event: GppAnalyticsEvent, properties: EventProperties = {}, options: TrackGppEventOptions = {}) {
   if (typeof window === 'undefined') return
 
   const distinctId = getDistinctId()
@@ -79,7 +81,7 @@ export function trackGppEvent(event: GppAnalyticsEvent, properties: EventPropert
     distinct_id: distinctId,
     properties: {
       distinct_id: distinctId,
-      ...buildGppAnalyticsProperties(properties),
+      ...buildGppAnalyticsProperties(properties, options),
     },
   }
 
