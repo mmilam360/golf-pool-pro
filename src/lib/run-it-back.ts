@@ -1,3 +1,5 @@
+import { normalizeGroupedPoolSettings, normalizeStandardPoolSettings } from './pool-rules'
+
 export type PoolCloneSettings = {
   id?: string | null
   name?: string | null
@@ -63,18 +65,25 @@ function todayEasternDateOnly(now = new Date()) {
 export function buildRunItBackDefaults(sourcePool: PoolCloneSettings): PoolCloneDefaults | null {
   if (!sourcePool.id) return null
   const poolName = sourcePool.name?.trim() || 'Golf Pool'
-  const pickCount = safeNumber(sourcePool.pick_count, 12)
-  const countScores = Math.min(safeNumber(sourcePool.count_scores, 8), pickCount)
   const gameFormat = sourcePool.game_format === 'ranked_groups' || sourcePool.game_format === 'random_groups' ? sourcePool.game_format : 'standard'
+  const standardSettings = normalizeStandardPoolSettings({
+    pickCount: sourcePool.pick_count,
+    countScores: sourcePool.count_scores,
+  })
+  const groupedSettings = normalizeGroupedPoolSettings({
+    groupCount: sourcePool.group_count,
+    picksPerGroup: sourcePool.picks_per_group,
+    countScores: sourcePool.count_scores,
+  })
   return {
     sourceId: sourcePool.id,
     sourceName: poolName,
     poolName,
-    pickCount,
-    countScores,
+    pickCount: gameFormat === 'standard' ? standardSettings.pickCount : groupedSettings.pickCount,
+    countScores: gameFormat === 'standard' ? standardSettings.countScores : groupedSettings.countScores,
     gameFormat,
-    groupCount: gameFormat === 'standard' ? 6 : safeNumber(sourcePool.group_count, 6),
-    picksPerGroup: gameFormat === 'standard' ? 2 : safeNumber(sourcePool.picks_per_group, 2),
+    groupCount: gameFormat === 'standard' ? 6 : groupedSettings.groupCount,
+    picksPerGroup: gameFormat === 'standard' ? 2 : groupedSettings.picksPerGroup,
     obEnabled: Boolean(sourcePool.ob_rule_enabled),
     obPenalty: safeNumber(sourcePool.ob_penalty_strokes, 2),
   }

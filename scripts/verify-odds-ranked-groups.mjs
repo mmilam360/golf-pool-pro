@@ -7,7 +7,7 @@ import {
   normalizeGolfName,
   selectTheOddsApiSportKey,
 } from '../src/lib/tournament-odds.ts'
-import { buildPickGroups, playerRanking } from '../src/lib/pool-formats.ts'
+import { buildPickGroups, playerRanking, progressiveRankedTierSizes } from '../src/lib/pool-formats.ts'
 import { ensureTournamentOddsSnapshot } from '../src/lib/grouped-pool-group-builder.ts'
 
 const player = (id, name, owgr = null, status = 'active') => ({
@@ -145,6 +145,46 @@ assert.deepEqual(
   'ranked groups sort quoted golfers favorite-first, then unquoted OWGR, then unranked name tie-breakers'
 )
 const rorySnapshot = rankedGroups.flatMap(group => group.players).find(player => player.name === 'Rory McIlroy')
+assert.deepEqual(
+  progressiveRankedTierSizes(156, 2, 6),
+  [30, 126],
+  'two-tier ranked pools keep the elite tier small and leave the field tail in the second tier'
+)
+assert.deepEqual(
+  progressiveRankedTierSizes(156, 6, 2),
+  [10, 10, 20, 30, 40, 46],
+  'six-tier ranked pools front-load contenders and leave the field tail in the final tier'
+)
+assert.deepEqual(
+  progressiveRankedTierSizes(156, 12, 1),
+  [5, 5, 5, 10, 10, 10, 10, 10, 15, 15, 15, 46],
+  'twelve-tier ranked pools use one-pick-sized elite tiers and leave the final field tail wide'
+)
+const majorField = Array.from({ length: 156 }, (_, index) => player(`major-${index + 1}`, `Golfer ${String(index + 1).padStart(3, '0')}`, index + 1))
+const progressiveGroups = buildPickGroups({
+  field: majorField,
+  format: 'ranked_groups',
+  groupCount: 6,
+  seed: 'major-ranked',
+  picksPerGroup: 2,
+})
+assert.deepEqual(
+  progressiveGroups.map(group => group.players.length),
+  [10, 10, 20, 30, 40, 46],
+  'new ranked groups use progressive tier sizes instead of equal 26-player tiers'
+)
+const evenRandomGroups = buildPickGroups({
+  field: majorField,
+  format: 'random_groups',
+  groupCount: 6,
+  seed: 'major-random',
+  picksPerGroup: 2,
+})
+assert.deepEqual(
+  evenRandomGroups.map(group => group.players.length),
+  [26, 26, 26, 26, 26, 26],
+  'Clubhouse Chaos keeps equal-sized random groups'
+)
 assert.equal(rorySnapshot?.rank, 2, 'rank remains OWGR for backward compatibility')
 assert.equal(rorySnapshot?.owgrRank, 2, 'OWGR is exposed explicitly for odds-backed display')
 assert.equal(rorySnapshot?.americanOdds, 625, 'American odds are copied into immutable pick_groups_json snapshots')

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 const groupedGrid = readFileSync(new URL('../src/components/GroupedPickGrid.tsx', import.meta.url), 'utf8')
 const poolView = readFileSync(new URL('../src/app/(app)/pool/[id]/PoolView.tsx', import.meta.url), 'utf8')
 const poolPage = readFileSync(new URL('../src/app/(app)/pool/[id]/page.tsx', import.meta.url), 'utf8')
+const createPage = readFileSync(new URL('../src/app/(app)/pool/create/page.tsx', import.meta.url), 'utf8')
 
 assert.match(groupedGrid, /rankSource/, 'new ranked snapshots identify their ranking source')
 assert.match(
@@ -31,8 +32,17 @@ assert.match(
 )
 assert.match(
   poolView,
+  /picksPerGroup:\s*Number\(pool\.picks_per_group \|\| 1\)/,
+  'ranked-pool previews pass picks-per-tier into progressive tier sizing'
+)
+assert.match(
+  poolView,
   /Tournament odds set the tiers/,
   'odds-backed ranked previews explain the ordering in plain language'
 )
+assert.match(createPage, /MAX_POOL_PICKS/, 'create form uses the shared 12-pick cap')
+assert.doesNotMatch(createPage, /max=\{30\}/, 'Open Picks cannot drift back to 30 picks')
+assert.match(createPage, /max=\{groupedMaxPicksPerGroup\}/, 'picks per tier/group is capped by the 12-pick entry maximum')
+assert.match(createPage, /Progressive tiers keep the top ranks tighter/, 'ranked-pool setup explains progressive tiers')
 
 console.log('odds-backed ranked group UI checks passed')

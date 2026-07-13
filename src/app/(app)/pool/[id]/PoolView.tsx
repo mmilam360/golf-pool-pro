@@ -691,8 +691,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       groupCount,
       seed: `${pool.id}:${tournament?.id || tournament?.external_id || tournament?.name || 'group-preview'}`,
       oddsSnapshot: tournament?.odds_snapshot_json,
+      picksPerGroup: Number(pool.picks_per_group || 1),
     })
-  }, [field, groupCount, groupedFormat, pool.game_format, pool.id, storedPickGroups, tournament?.external_id, tournament?.id, tournament?.name, tournament?.odds_snapshot_json])
+  }, [field, groupCount, groupedFormat, pool.game_format, pool.id, pool.picks_per_group, storedPickGroups, tournament?.external_id, tournament?.id, tournament?.name, tournament?.odds_snapshot_json])
   const rankedByTournamentOdds = pool.game_format === 'ranked_groups' && pickGroups.some(group =>
     group.players.some(player => player.rankSource === 'odds')
   )

@@ -28,6 +28,20 @@ export type GroupedPoolSettings = {
   picksPerGroup: number
 }
 
+const PROGRESSIVE_RANKED_TIER_HEAD_SIZES: Record<number, number[]> = {
+  2: [30],
+  3: [20, 40],
+  4: [15, 25, 40],
+  5: [10, 20, 30, 40],
+  6: [10, 10, 20, 30, 40],
+  7: [10, 10, 15, 20, 25, 30],
+  8: [10, 10, 15, 15, 20, 20, 20],
+  9: [5, 10, 10, 10, 15, 15, 20, 25],
+  10: [5, 5, 10, 10, 10, 15, 15, 20, 25],
+  11: [5, 5, 5, 10, 10, 10, 15, 15, 15, 20],
+  12: [5, 5, 5, 10, 10, 10, 10, 10, 15, 15, 15],
+}
+
 const RANK_KEYS = [
   'owgrRank',
   'owgr_rank',
@@ -112,6 +126,57 @@ function splitEvenly(players: PickGroupPlayer[], groupCount: number) {
   })
 }
 
+export function progressiveRankedTierSizes(playerCount: number, groupCount: number, picksPerGroup = 1) {
+  if (playerCount <= 0) return []
+  const safeGroupCount = Math.max(1, Math.min(Math.floor(groupCount || 1), playerCount))
+  if (safeGroupCount === 1) return [playerCount]
+
+  const step = 5
+  const minTierSize = Math.max(step, Math.ceil(Math.max(1, picksPerGroup) * step / step) * step)
+  const template = PROGRESSIVE_RANKED_TIER_HEAD_SIZES[safeGroupCount]
+    || Array.from({ length: safeGroupCount - 1 }, (_, index) => Math.max(step, (index + 1) * step))
+  const headSizes = template.map(size => Math.max(size, minTierSize))
+  const minimumNeeded = minTierSize * safeGroupCount
+
+  if (playerCount < minimumNeeded) {
+    const evenGroups = splitEvenly(
+      Array.from({ length: playerCount }, (_, index) => ({ id: String(index), name: String(index), rank: null })),
+      safeGroupCount
+    )
+    return evenGroups.map(group => group.players.length)
+  }
+
+  const maxHeadTotal = playerCount - minTierSize
+
+  while (headSizes.reduce((sum, size) => sum + size, 0) > maxHeadTotal) {
+    const targetIndex = headSizes
+      .map((size, index) => ({ size, index }))
+      .filter(({ size }) => size > minTierSize)
+      .sort((a, b) => b.size - a.size || b.index - a.index)[0]?.index
+
+    if (targetIndex === undefined) break
+    headSizes[targetIndex] -= step
+  }
+
+  const headTotal = headSizes.reduce((sum, size) => sum + size, 0)
+  return [...headSizes, playerCount - headTotal]
+}
+
+function splitProgressively(players: PickGroupPlayer[], groupCount: number, picksPerGroup = 1) {
+  const sizes = progressiveRankedTierSizes(players.length, groupCount, picksPerGroup)
+  let cursor = 0
+
+  return sizes.map((groupSize, index) => {
+    const groupPlayers = players.slice(cursor, cursor + groupSize)
+    cursor += groupSize
+    return {
+      id: `group-${index + 1}`,
+      label: `Group ${index + 1}`,
+      players: groupPlayers,
+    }
+  }).filter(group => group.players.length > 0)
+}
+
 function toGroupPlayer(
   player: GolfPlayer,
   index: number,
@@ -176,12 +241,14 @@ export function buildPickGroups({
   groupCount,
   seed,
   oddsSnapshot,
+  picksPerGroup = 1,
 }: {
   field: GolfPlayer[]
   format: PoolGameFormat
   groupCount: number
   seed: string
   oddsSnapshot?: TournamentOddsSnapshot | null
+  picksPerGroup?: number
 }): PickGroup[] {
   if (format === 'standard') return []
   const oddsIndex = format === 'ranked_groups' && isUsableTournamentOddsSnapshot(oddsSnapshot, field as any[])
@@ -193,9 +260,10 @@ export function buildPickGroups({
     .map((player, index) => toGroupPlayer(player, index, oddsIndex, format === 'ranked_groups'))
 
   if (format === 'ranked_groups') {
-    return splitEvenly(
+    return splitProgressively(
       [...players].sort(rankedGroupSort),
-      groupCount
+      groupCount,
+      picksPerGroup
     )
   }
 

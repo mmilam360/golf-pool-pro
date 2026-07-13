@@ -20,6 +20,7 @@ type PoolForGroups = {
   passcode?: string | null
   game_format: PoolGameFormat
   group_count?: number | null
+  picks_per_group?: number | null
 }
 
 export async function ensureTournamentOddsSnapshot({
@@ -118,6 +119,7 @@ export async function buildGroupedPickGroupsForLock({
     groupCount: Number(pool.group_count || 6),
     seed: `${pool.tournament_id || tournament.id}:${pool.passcode || ''}:${pool.game_format}`,
     oddsSnapshot,
+    picksPerGroup: Number(pool.picks_per_group || 1),
   })
 
   return { cleanField, groups, oddsSnapshot }

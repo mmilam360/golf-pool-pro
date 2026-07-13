@@ -8,6 +8,17 @@ import ShortUniqueId from 'short-unique-id'
 import { formatDateOnly, hasDateOnlyStarted } from '@/lib/date-utils'
 import { buildRunItBackDefaults, selectNextRunItBackTournament } from '@/lib/run-it-back'
 import type { PoolGameFormat } from '@/lib/pool-formats'
+import {
+  DEFAULT_COUNT_SCORES,
+  DEFAULT_GROUP_COUNT,
+  DEFAULT_PICKS_PER_GROUP,
+  DEFAULT_STANDARD_PICK_COUNT,
+  MAX_GROUP_COUNT,
+  MAX_POOL_PICKS,
+  maxPicksPerGroupForGroupCount,
+  normalizeGroupedPoolSettings,
+  normalizeStandardPoolSettings,
+} from '@/lib/pool-rules'
 import { displayTournamentName } from '@/lib/tournament-name'
 
 interface Tournament {
@@ -119,11 +130,11 @@ export default function CreatePoolPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [selectedTournament, setSelectedTournament] = useState('')
   const [poolName, setPoolName] = useState('')
-  const [pickCount, setPickCount] = useState<PoolNumber>(12)
-  const [countScores, setCountScores] = useState<PoolNumber>(8)
+  const [pickCount, setPickCount] = useState<PoolNumber>(DEFAULT_STANDARD_PICK_COUNT)
+  const [countScores, setCountScores] = useState<PoolNumber>(DEFAULT_COUNT_SCORES)
   const [gameFormat, setGameFormat] = useState<PoolGameFormat>('standard')
-  const [groupCount, setGroupCount] = useState<PoolNumber>(6)
-  const [picksPerGroup, setPicksPerGroup] = useState<PoolNumber>(2)
+  const [groupCount, setGroupCount] = useState<PoolNumber>(DEFAULT_GROUP_COUNT)
+  const [picksPerGroup, setPicksPerGroup] = useState<PoolNumber>(DEFAULT_PICKS_PER_GROUP)
   const [obEnabled, setObEnabled] = useState(true)
   const [obPenalty, setObPenalty] = useState<PoolNumber>(2)
   const [requireEntryEmail, setRequireEntryEmail] = useState(false)
@@ -134,21 +145,29 @@ export default function CreatePoolPage() {
   const router = useRouter()
   const supabase = createClient()
   const tournament = tournaments.find(t => t.id === selectedTournament)
+  const normalizedGroupCount = toNumber(groupCount, DEFAULT_GROUP_COUNT)
+  const groupedMaxPicksPerGroup = maxPicksPerGroupForGroupCount(normalizedGroupCount)
+  const groupedSettingsPreview = normalizeGroupedPoolSettings({ groupCount, picksPerGroup, countScores })
+  const groupedTotalPicks = groupedSettingsPreview.pickCount
 
   useEffect(() => {
     loadTournaments()
   }, [])
 
   useEffect(() => {
-    if (pickCount === '' || countScores === '') return
-    if (countScores > pickCount) setCountScores(pickCount)
-  }, [countScores, pickCount])
+    if (gameFormat !== 'standard') return
+    const settings = normalizeStandardPoolSettings({ pickCount, countScores })
+    if (pickCount !== '' && pickCount !== settings.pickCount) setPickCount(settings.pickCount)
+    if (countScores !== '' && countScores !== settings.countScores) setCountScores(settings.countScores)
+  }, [countScores, gameFormat, pickCount])
 
   useEffect(() => {
     if (gameFormat === 'standard') return
-    const totalPicks = toNumber(groupCount, 6) * toNumber(picksPerGroup, 2)
-    setPickCount(totalPicks)
-    if (countScores === '' || countScores > totalPicks) setCountScores(Math.min(8, totalPicks))
+    const settings = normalizeGroupedPoolSettings({ groupCount, picksPerGroup, countScores })
+    if (groupCount !== '' && groupCount !== settings.groupCount) setGroupCount(settings.groupCount)
+    if (picksPerGroup !== '' && picksPerGroup !== settings.picksPerGroup) setPicksPerGroup(settings.picksPerGroup)
+    setPickCount(settings.pickCount)
+    if (countScores === '' || countScores !== settings.countScores) setCountScores(settings.countScores)
   }, [countScores, gameFormat, groupCount, picksPerGroup])
 
   async function loadTournaments() {
@@ -246,11 +265,13 @@ export default function CreatePoolPage() {
       return
     }
 
-    const finalPickCount = toNumber(pickCount, 12)
-    const finalCountScores = toNumber(countScores, 8)
+    const standardSettings = normalizeStandardPoolSettings({ pickCount, countScores })
+    const groupedSettings = normalizeGroupedPoolSettings({ groupCount, picksPerGroup, countScores })
+    const finalPickCount = gameFormat === 'standard' ? standardSettings.pickCount : groupedSettings.pickCount
+    const finalCountScores = gameFormat === 'standard' ? standardSettings.countScores : groupedSettings.countScores
     const finalObPenalty = toNumber(obPenalty, 2)
-    const finalGroupCount = gameFormat === 'standard' ? 0 : toNumber(groupCount, 6)
-    const finalPicksPerGroup = gameFormat === 'standard' ? 0 : toNumber(picksPerGroup, 2)
+    const finalGroupCount = gameFormat === 'standard' ? 0 : groupedSettings.groupCount
+    const finalPicksPerGroup = gameFormat === 'standard' ? 0 : groupedSettings.picksPerGroup
     const finalGroupedPickCount = finalGroupCount * finalPicksPerGroup
 
     if (!selected) {
@@ -261,6 +282,12 @@ export default function CreatePoolPage() {
 
     if (hasTournamentStarted(selected)) {
       setError(eventClosedMessage(selected.name))
+      setLoading(false)
+      return
+    }
+
+    if (finalPickCount > MAX_POOL_PICKS) {
+      setError(`Pools can use up to ${MAX_POOL_PICKS} picks per entry.`)
       setLoading(false)
       return
     }
@@ -401,7 +428,7 @@ export default function CreatePoolPage() {
                 {
                   value: 'ranked_groups',
                   label: 'Tiered Picks',
-                  helperLines: ['Ranked tiers.', 'Divided into tiers you set.'],
+                  helperLines: ['Progressive tiers.', 'Top ranks stay tight.'],
                 },
                 {
                   value: 'random_groups',
@@ -433,11 +460,11 @@ export default function CreatePoolPage() {
                   <div className="space-y-3 border-t border-[#d8cab0] px-3 pb-3 pt-3">
                     {gameFormat === 'ranked_groups' ? (
                       <>
-                        <p>The field is ranked by World Golf Ranking, then split into the number of tiers you choose. Every entry picks the same number of golfers from each tier.</p>
+                        <p>The field is ranked by tournament odds when available, then OWGR. The top tiers stay smaller, and later tiers get wider so deep-field players land near the end. Every entry picks the same number of golfers from each tier.</p>
                         <div className="grid gap-2 sm:grid-cols-3">
-                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Tier 1</strong>Scheffler, McIlroy, Schauffele, Rahm</div>
-                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Tier 2</strong>Morikawa, Hovland, Fleetwood, Cantlay</div>
-                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Tier 3</strong>Lowry, Burns, Finau, Fowler</div>
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Tier 1</strong>Top 10 favorites</div>
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Middle tiers</strong>Contenders and mid-field names</div>
+                          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-2"><strong className="block text-[#0f2f25]">Final tier</strong>Deeper names and field tail</div>
                         </div>
                       </>
                     ) : (
@@ -460,20 +487,20 @@ export default function CreatePoolPage() {
           {gameFormat === 'standard' ? (
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <NumberStepper label="Golfers to Pick" value={pickCount} onChange={setPickCount} min={1} max={30} fallback={12} />
-                <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, 12)} fallback={8} />
+                <NumberStepper label="Golfers to Pick" value={pickCount} onChange={setPickCount} min={1} max={MAX_POOL_PICKS} fallback={DEFAULT_STANDARD_PICK_COUNT} />
+                <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, DEFAULT_STANDARD_PICK_COUNT)} fallback={DEFAULT_COUNT_SCORES} />
               </div>
               <p className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-xs font-semibold leading-5 text-stone-700">
-                Open Picks pools use the live tournament field until picks lock. If the official field changes before the first tee time, removed golfers drop off open entries and players can pick replacements. Picks lock automatically when the tournament starts.
+                Open Picks pools use the live tournament field until picks lock. If the official field changes before the first tee time, removed golfers drop off open entries and players can pick replacements. Picks lock automatically when the tournament starts. Max {MAX_POOL_PICKS} picks per entry.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <NumberStepper label={gameFormat === 'ranked_groups' ? 'Tiers' : 'Groups'} value={groupCount} onChange={setGroupCount} min={2} max={12} fallback={6} />
-              <NumberStepper label={gameFormat === 'ranked_groups' ? 'Picks per Tier' : 'Picks per Group'} value={picksPerGroup} onChange={setPicksPerGroup} min={1} max={6} fallback={2} />
-              <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={toNumber(pickCount, 12)} fallback={8} />
+              <NumberStepper label={gameFormat === 'ranked_groups' ? 'Tiers' : 'Groups'} value={groupCount} onChange={setGroupCount} min={2} max={MAX_GROUP_COUNT} fallback={DEFAULT_GROUP_COUNT} />
+              <NumberStepper label={gameFormat === 'ranked_groups' ? 'Picks per Tier' : 'Picks per Group'} value={picksPerGroup} onChange={setPicksPerGroup} min={1} max={groupedMaxPicksPerGroup} fallback={Math.min(DEFAULT_PICKS_PER_GROUP, groupedMaxPicksPerGroup)} />
+              <NumberStepper label="Scores to Count" value={countScores} onChange={setCountScores} min={1} max={groupedTotalPicks} fallback={Math.min(DEFAULT_COUNT_SCORES, groupedTotalPicks)} />
               <div className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-2 text-sm font-bold text-[#123c2f] sm:col-span-3">
-                Total picks: {toNumber(groupCount, 6) * toNumber(picksPerGroup, 2)} · default is 6 {gameFormat === 'ranked_groups' ? 'tiers' : 'groups'}, 2 per {gameFormat === 'ranked_groups' ? 'tier' : 'group'}, best 8 count.
+                Total picks: {groupedTotalPicks} / {MAX_POOL_PICKS} max · {gameFormat === 'ranked_groups' ? 'Progressive tiers keep the top ranks tighter and the final tier wider.' : `Default is ${DEFAULT_GROUP_COUNT} groups, ${DEFAULT_PICKS_PER_GROUP} per group, best ${DEFAULT_COUNT_SCORES} count.`}
               </div>
             </div>
           )}

@@ -25,7 +25,7 @@
     "test:pool-required-email": "node scripts/verify-pool-required-email.mjs",
     "predeploy:check": "node scripts/predeploy-check.mjs",
     "audit:prod-readiness": "npx tsx scripts/audit-prod-readiness.ts",
-    "test:run-it-back": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-run-it-back-defaults.mjs",
+    "test:run-it-back": "npx tsx scripts/verify-run-it-back-defaults.mjs",
     "test:grouped-auto-lock": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-grouped-auto-lock.mjs",
     "test:odds-ranked-groups": "npx tsx scripts/verify-odds-ranked-groups.mjs",
     "test:odds-ranked-group-ui": "node scripts/verify-odds-ranked-group-ui.mjs",

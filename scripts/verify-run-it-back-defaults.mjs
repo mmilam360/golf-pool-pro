@@ -98,6 +98,57 @@ assert.deepEqual(
   'run it back should preserve grouped pool settings'
 )
 
+assert.deepEqual(
+  buildRunItBackDefaults({
+    id: 'pool-5',
+    name: 'Oversized Old Pool',
+    pick_count: 24,
+    count_scores: 18,
+    game_format: 'ranked_groups',
+    group_count: 12,
+    picks_per_group: 2,
+    ob_rule_enabled: true,
+    ob_penalty_strokes: 2,
+  }),
+  {
+    sourceId: 'pool-5',
+    sourceName: 'Oversized Old Pool',
+    poolName: 'Oversized Old Pool',
+    pickCount: 12,
+    countScores: 12,
+    gameFormat: 'ranked_groups',
+    groupCount: 12,
+    picksPerGroup: 1,
+    obEnabled: true,
+    obPenalty: 2,
+  },
+  'run it back clamps grouped pools to 12 total picks, so 12 tiers can only pick 1 per tier'
+)
+
+assert.deepEqual(
+  buildRunItBackDefaults({
+    id: 'pool-6',
+    name: 'Oversized Open Picks',
+    pick_count: 30,
+    count_scores: 20,
+    ob_rule_enabled: false,
+    ob_penalty_strokes: 2,
+  }),
+  {
+    sourceId: 'pool-6',
+    sourceName: 'Oversized Open Picks',
+    poolName: 'Oversized Open Picks',
+    pickCount: 12,
+    countScores: 12,
+    gameFormat: 'standard',
+    groupCount: 6,
+    picksPerGroup: 2,
+    obEnabled: false,
+    obPenalty: 2,
+  },
+  'run it back clamps standard Open Picks pools to 12 picks'
+)
+
 assert.equal(buildRunItBackDefaults({ name: 'Missing id' }), null, 'missing source id is not cloneable')
 
 const now = new Date('2026-05-17T16:00:00-04:00')
