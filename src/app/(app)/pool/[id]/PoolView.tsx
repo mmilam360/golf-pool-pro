@@ -762,6 +762,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     if (leaderboardMode.type === 'day' && leaderboardMode.round === 1) setLeaderboardMode({ type: 'thru', round: 1 })
   }, [availableHistoricalRounds, leaderboardMode, leaderboardModeIsCurrent])
   const groupsNeedLock = groupedFormat && !groupsFinalized
+  const showGroupLockRunnerPrompt = Boolean(isOwner && !entryEditOnly && !publicView && groupsNeedLock)
   const picksAreLocked = lockedOrScoring(effectivePoolState, tournamentWithCurrentLeaderboard)
   const pickSelectionOpen = !picksAreLocked && !groupsNeedLock
   const baseAmountDueCents = paymentQuote?.amountDueCents ?? 0
@@ -2275,6 +2276,27 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   return (
     <div className={guestMode ? 'mx-auto max-w-4xl' : undefined}>
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
+      {/* Floating grouped-pool runner action */}
+      {showGroupLockRunnerPrompt && (
+        <aside
+          className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-4 right-4 z-40 mx-auto max-w-md border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[6px_6px_0_#d8cab0] sm:bottom-auto sm:left-auto sm:right-6 sm:top-24 sm:w-[22rem]"
+          aria-labelledby="group-lock-runner-title"
+          aria-busy={finalizingGroups}
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Runner action</p>
+          <h2 id="group-lock-runner-title" className="mt-1 text-xl font-black leading-tight text-[#123c2f]">Lock groups to open picks</h2>
+          <p className="mt-2 text-sm font-semibold leading-5 text-[#1f2a24]">Players cannot make picks until you lock the groups.</p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-[#657168]">Review the preview first, or wait for Tuesday morning auto-lock.</p>
+          <button
+            type="button"
+            onClick={finalizeGroups}
+            disabled={finalizingGroups}
+            className="mt-4 w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-wait disabled:opacity-60"
+          >
+            {finalizingGroups ? 'Locking...' : 'Lock groups'}
+          </button>
+        </aside>
+      )}
       {fullNamePromptOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-[#123c2f]/65 px-4 py-6">
           <div className="w-full max-w-md border-2 border-[#123c2f] bg-white p-5 shadow-[8px_8px_0_#d8cab0]">
@@ -2364,25 +2386,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
       {statusMessage && <div className="mb-4 rounded-none border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{statusMessage}</div>}
 
-      {!entryEditOnly && !publicView && isOwner && groupedFormat && !groupsFinalized && (
-        <div className="mb-6 rounded-none border-2 border-[#123c2f] bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-display text-lg font-bold text-emerald-950">Groups are not locked yet.</p>
-              <p className="mt-1 text-sm text-stone-700">Groups auto-lock Tuesday morning of tournament week. You can lock them sooner once the official field is posted.</p>
-            </div>
-            <button
-              type="button"
-              onClick={finalizeGroups}
-              disabled={finalizingGroups}
-              className="gpp-3d gpp-button-3d gpp-button-wrap text-sm disabled:opacity-50"
-            >
-              <span className="gpp-button-face px-4 py-2">{finalizingGroups ? 'Locking...' : 'Lock groups now'}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {!entryEditOnly && isOwner && showPaymentActions && (
         <div className="mb-6 rounded-none border-2 border-amber-300 bg-[#fbf7ed] p-4 shadow-[5px_5px_0_#d8cab0]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -2424,6 +2427,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           />
         </div>
       )}
+
+      {/* Tabs */}
       {!entryEditOnly && !publicView && !guestMode && (
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-none p-1 inline-flex border border-stone-200">
         {(['leaderboard', 'my-entry', ...(isOwner ? ['pool-settings'] as Tab[] : [])] as Tab[]).map(t => (

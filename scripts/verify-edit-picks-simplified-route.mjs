@@ -48,7 +48,7 @@ assert.ok(
   'edit-only route should hide the compact pool status/action row above the picker'
 )
 assert.ok(
-  poolView.includes('{!entryEditOnly && !publicView && isOwner && groupedFormat && !groupsFinalized && ('),
+  poolView.includes('const showGroupLockRunnerPrompt = Boolean(isOwner && !entryEditOnly && !publicView && groupsNeedLock)'),
   'edit-only route should hide owner group-lock admin prompt'
 )
 assert.ok(
