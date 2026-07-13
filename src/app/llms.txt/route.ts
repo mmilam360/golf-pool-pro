@@ -31,10 +31,12 @@ Important pages:
 - Masters golf pool: https://www.golfpoolspro.com/masters-golf-pool
 - PGA Championship pool: https://www.golfpoolspro.com/pga-championship-pool
 - U.S. Open golf pool: https://www.golfpoolspro.com/us-open-golf-pool
+- Open Championship pool: https://www.golfpoolspro.com/open-championship-pool
 - Genesis Scottish Open pool: https://www.golfpoolspro.com/genesis-scottish-open-pool
 - Travelers Championship pool: https://www.golfpoolspro.com/travelers-championship-pool
 - Tournament pick guides: https://www.golfpoolspro.com/blog
-- Current Genesis Scottish Open pool picks guide: https://www.golfpoolspro.com/blog/2026-genesis-scottish-open-pool-picks
+- Current Open Championship pool picks guide: https://www.golfpoolspro.com/blog/2026-the-open-pool-picks
+- Genesis Scottish Open pool picks guide: https://www.golfpoolspro.com/blog/2026-genesis-scottish-open-pool-picks
 - John Deere Classic pool picks guide: https://www.golfpoolspro.com/blog/2026-john-deere-classic-pool-picks
 - Travelers Championship pool picks guide: https://www.golfpoolspro.com/blog/2026-travelers-championship-pool-picks
 - U.S. Open pool picks guide: https://www.golfpoolspro.com/blog/2026-us-open-pool-picks
