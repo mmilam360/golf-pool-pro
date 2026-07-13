@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   const supabase = createServiceClient() as any
   const query = supabase
     .from('gpp_pools')
-    .select('id, name, passcode, is_locked, is_completed, results_finalized_at, gpp_tournaments(name, status, start_date, end_date, leaderboard_json)')
+    .select('id, name, passcode, is_locked, is_completed, results_finalized_at, require_entry_email, gpp_tournaments(name, status, start_date, end_date, leaderboard_json)')
 
   const { data: pool, error: poolError } = lookupByPoolId
     ? await query.eq('id', poolId).maybeSingle()
@@ -53,6 +53,7 @@ export async function GET(request: Request) {
     passcode: pool.passcode,
     tournamentName: tournament?.name || '',
     picksClosed,
+    requireEntryEmail: Boolean(pool.require_entry_email),
   })
 }
 
@@ -70,17 +71,18 @@ export async function POST(request: Request) {
     if (!displayName) return badRequest('Enter a leaderboard name.')
     if (!fullName) return badRequest('Enter your full name for the pool runner.')
     if (body.notificationEmail && typeof body.notificationEmail === 'string' && body.notificationEmail.trim() && !notificationEmail) {
-      return badRequest('Enter a valid email address or leave it blank.')
+      return badRequest('Enter a valid email address.')
     }
 
     const supabase = createServiceClient() as any
     const { data: pool, error: poolError } = await supabase
       .from('gpp_pools')
-      .select('id, is_locked, is_completed, results_finalized_at, gpp_tournaments(status, start_date, end_date, leaderboard_json)')
+      .select('id, is_locked, is_completed, results_finalized_at, require_entry_email, gpp_tournaments(status, start_date, end_date, leaderboard_json)')
       .eq('passcode', passcode)
       .maybeSingle()
 
     if (poolError || !pool) return NextResponse.json({ error: 'Invalid passcode. Check with the pool host.' }, { status: 404 })
+    if (pool.require_entry_email && !notificationEmail) return badRequest('The pool runner requires a valid email.')
     const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
     const picksClosed = entryProcessIsClosed(pool, tournament)
     if (picksClosed) return NextResponse.json({ error: 'This pool is locked. Picks have closed.' }, { status: 409 })
@@ -111,16 +113,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: message }, { status: isDuplicateEntryNameError(insertError) ? 409 : 500 })
     }
 
-    if (notificationEmail) {
-      const { error: emailUpdateError } = await supabase
-        .from('gpp_entries')
-        .update({ notification_email: notificationEmail } as any)
-        .eq('id', entry.id)
-      if (emailUpdateError) {
-        return NextResponse.json({ error: emailUpdateError.message || 'Could not save notification email.' }, { status: 500 })
-      }
-    }
-
     return NextResponse.json({ poolId: pool.id, entryId: entry.id, token, notificationEmailSaved: Boolean(notificationEmail) })
   } catch {
     return NextResponse.json({ error: 'Could not join this pool.' }, { status: 500 })
@@ -137,7 +129,7 @@ export async function PATCH(request: Request) {
     const supabase = createServiceClient() as any
     const { data: entry, error: entryError } = await supabase
       .from('gpp_entries')
-      .select('id, pool_id, user_id, guest_entry_token_hash, gpp_pools(is_locked, is_completed, results_finalized_at, pick_count, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, gpp_tournaments(status, start_date, end_date, field_json, leaderboard_json))')
+      .select('id, pool_id, user_id, guest_entry_token_hash, full_name, full_name_confirmed_at, notification_email, gpp_pools(is_locked, is_completed, results_finalized_at, require_entry_email, pick_count, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, gpp_tournaments(status, start_date, end_date, field_json, leaderboard_json))')
       .eq('id', entryId)
       .eq('is_removed', false)
       .is('user_id', null)
@@ -170,10 +162,20 @@ export async function PATCH(request: Request) {
     if (body.notificationEmail !== undefined) {
       const notificationEmail = normalizeGuestEmail(body.notificationEmail)
       if (typeof body.notificationEmail === 'string' && body.notificationEmail.trim() && !notificationEmail) {
-        return badRequest('Enter a valid email address or leave it blank.')
+        return badRequest(pool.require_entry_email ? 'The pool runner requires a valid email.' : 'Enter a valid email address or leave it blank.')
       }
       update.notification_email = notificationEmail
     }
+
+    const effectiveFullName = body.fullName !== undefined ? normalizeFullName(body.fullName) : normalizeFullName(entry.full_name)
+    if (!effectiveFullName) return badRequest('Enter your full name for the pool runner.')
+    const effectiveNotificationEmail = body.notificationEmail !== undefined
+      ? normalizeGuestEmail(body.notificationEmail)
+      : normalizeGuestEmail(entry.notification_email)
+    if (pool.require_entry_email && !effectiveNotificationEmail) {
+      return badRequest('The pool runner requires a valid email.')
+    }
+
     if (body.golferPicks !== undefined) {
       if (picksClosed) return NextResponse.json({ error: 'Picks are closed for this pool.' }, { status: 409 })
       const pickError = validatePickSubmission(pool, body.golferPicks)

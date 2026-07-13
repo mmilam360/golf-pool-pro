@@ -13,6 +13,9 @@ export default function JoinPoolPage() {
   const [passcode, setPasscode] = useState('')
   const [guestName, setGuestName] = useState('')
   const [fullName, setFullName] = useState('')
+  const [notificationEmail, setNotificationEmail] = useState('')
+  const [requireEntryEmail, setRequireEntryEmail] = useState(false)
+  const [accountEmail, setAccountEmail] = useState('')
   const [accountFullNameConfirmed, setAccountFullNameConfirmed] = useState(false)
   const [accountHasDisplayName, setAccountHasDisplayName] = useState(false)
   const [accountDefaultDisplayName, setAccountDefaultDisplayName] = useState('')
@@ -56,6 +59,7 @@ export default function JoinPoolPage() {
           if (nextPasscode.length !== 6) throw new Error('Could not open this pool.')
           setPasscode(nextPasscode)
           setDirectPoolName(typeof data.poolName === 'string' ? data.poolName : '')
+          setRequireEntryEmail(Boolean(data.requireEntryEmail))
         })
         .catch(error => {
           if (!cancelled) setError(error instanceof Error ? error.message : 'Could not open this pool.')
@@ -78,6 +82,7 @@ export default function JoinPoolPage() {
 
       if (!user) {
         setIsSignedIn(false)
+        setAccountEmail('')
         setAccountFullNameConfirmed(false)
         setAccountHasDisplayName(false)
         setAccountDefaultDisplayName('')
@@ -85,17 +90,19 @@ export default function JoinPoolPage() {
         return
       }
 
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from('gpp_profiles')
         .select('display_name, full_name, full_name_confirmed_at')
         .eq('id', user.id)
         .maybeSingle()
+      const profile = profileData as any
 
       if (cancelled) return
       const profileDisplayName = profile?.display_name?.trim() || ''
       const accountName = profileDisplayName || user.email?.split('@')[0] || ''
       const accountFullName = profile?.full_name_confirmed_at ? profile?.full_name?.trim() || '' : ''
       setIsSignedIn(true)
+      setAccountEmail((user.email || '').trim().toLowerCase())
       setAccountHasDisplayName(Boolean(profileDisplayName))
       setAccountDefaultDisplayName(accountName)
       setGuestName(current => current.trim() ? current : accountName)
@@ -116,6 +123,7 @@ export default function JoinPoolPage() {
     const normalizedPasscode = passcode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
     if (normalizedPasscode.length !== 6) {
       setResumeEntry(null)
+      setRequireEntryEmail(false)
       return
     }
 
@@ -123,8 +131,10 @@ export default function JoinPoolPage() {
     fetch(`/api/pool/guest-entry?passcode=${encodeURIComponent(normalizedPasscode)}`)
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (cancelled || !data?.poolId || data.picksClosed) {
-          if (!cancelled) setResumeEntry(null)
+        if (cancelled) return
+        setRequireEntryEmail(Boolean(data?.requireEntryEmail))
+        if (!data?.poolId || data.picksClosed) {
+          setResumeEntry(null)
           return
         }
         const stored = window.localStorage.getItem(`gpp_guest_entry:${data.poolId}`)
@@ -150,7 +160,10 @@ export default function JoinPoolPage() {
         }
       })
       .catch(() => {
-        if (!cancelled) setResumeEntry(null)
+        if (!cancelled) {
+          setResumeEntry(null)
+          setRequireEntryEmail(false)
+        }
       })
 
     return () => {
@@ -175,6 +188,7 @@ export default function JoinPoolPage() {
 
     const displayName = guestName.trim().replace(/\s+/g, ' ')
     const runnerName = fullName.trim().replace(/\s+/g, ' ')
+    const entrantEmail = notificationEmail.trim().toLowerCase()
     const needsFullName = !isSignedIn || !accountFullNameConfirmed
     if (!displayName) {
       setError('Enter the name you want on the leaderboard.')
@@ -191,6 +205,11 @@ export default function JoinPoolPage() {
       setLoading(false)
       return
     }
+    if (!isSignedIn && requireEntryEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entrantEmail)) {
+      setError('The pool runner requires a valid email.')
+      setLoading(false)
+      return
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -201,7 +220,7 @@ export default function JoinPoolPage() {
       const res = await fetch('/api/pool/guest-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode: normalizedPasscode, displayName, fullName: runnerName }),
+        body: JSON.stringify({ passcode: normalizedPasscode, displayName, fullName: runnerName, notificationEmail: entrantEmail || null }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -218,11 +237,12 @@ export default function JoinPoolPage() {
       return
     }
 
-    const { data: pool, error: poolError } = await supabase
+    const { data: poolData, error: poolError } = await supabase
       .from('gpp_pools')
-      .select('id, is_locked, is_completed, results_finalized_at, gpp_tournaments(status, start_date, end_date, leaderboard_json)')
+      .select('id, is_locked, is_completed, results_finalized_at, require_entry_email, gpp_tournaments(status, start_date, end_date, leaderboard_json)')
       .eq('passcode', normalizedPasscode)
       .single()
+    const pool = poolData as any
 
     if (poolError || !pool) {
       setError('Invalid passcode. Check with the pool host.')
@@ -239,6 +259,13 @@ export default function JoinPoolPage() {
       setLoading(false); return
     }
 
+    const signedInEmail = (user.email || accountEmail).trim().toLowerCase()
+    if (pool.require_entry_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signedInEmail)) {
+      setError('The pool runner requires an email. Add a valid email to your account before joining this pool.')
+      setLoading(false)
+      return
+    }
+
     const confirmedAt = new Date().toISOString()
     const profilePayload: Record<string, unknown> = {
       id: user.id,
@@ -250,7 +277,7 @@ export default function JoinPoolPage() {
       profilePayload.full_name_confirmed_at = confirmedAt
     }
 
-    const { error: profileError } = await supabase
+    const { error: profileError } = await (supabase as any)
       .from('gpp_profiles')
       .upsert(profilePayload)
 
@@ -267,25 +294,41 @@ export default function JoinPoolPage() {
       },
     }).catch(() => undefined)
 
-    const { data: existingEntries } = await supabase
+    const { data: existingEntryData } = await supabase
       .from('gpp_entries')
-      .select('id, user_id, display_name, is_removed')
+      .select('id, user_id, display_name, full_name, full_name_confirmed_at, notification_email, is_removed')
       .eq('pool_id', pool.id)
       .eq('is_removed', false)
+    const existingEntries = (existingEntryData || []) as any[]
 
-    const existing = (existingEntries || []).find(entry => entry.user_id === user.id)
+    const existing = existingEntries.find(entry => entry.user_id === user.id)
     if (existing) {
+      const missingIdentity = !existing.full_name?.trim() || !existing.full_name_confirmed_at
+      const missingRequiredEmail = pool.require_entry_email && !existing.notification_email?.trim()
+      if (missingIdentity || missingRequiredEmail) {
+        const repairRes = await fetch('/api/pool/account-entry', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entryId: existing.id, poolId: pool.id, ...(missingIdentity ? { fullName: runnerName } : {}) }),
+        })
+        const repairData = await repairRes.json().catch(() => ({}))
+        if (!repairRes.ok) {
+          setError(repairData.error || 'Could not update your entry details.')
+          setLoading(false)
+          return
+        }
+      }
       router.push(`/pool/${pool.id}`)
       return
     }
-    const duplicate = (existingEntries || []).find(entry => normalizeEntryName(entry.display_name) === normalizeEntryName(displayName))
+    const duplicate = existingEntries.find(entry => normalizeEntryName(entry.display_name) === normalizeEntryName(displayName))
     if (duplicate) {
       setError(DUPLICATE_ENTRY_NAME_MESSAGE)
       setLoading(false)
       return
     }
 
-    const { error: insertError } = await supabase
+    const { error: insertError } = await (supabase as any)
       .from('gpp_entries')
       .insert({
         pool_id: pool.id,
@@ -293,6 +336,7 @@ export default function JoinPoolPage() {
         display_name: displayName,
         full_name: runnerName,
         full_name_confirmed_at: confirmedAt,
+        notification_email: pool.require_entry_email ? signedInEmail : null,
         golfer_picks: [],
       })
 
@@ -384,11 +428,12 @@ export default function JoinPoolPage() {
           ) : null}
           {showFullNameInput && (
             <div>
-              <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
+              <label htmlFor="join-full-name" className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
                 <span>Full name</span>
                 {fullNameRequired && <span className="text-xs font-semibold text-amber-700">required</span>}
               </label>
               <input
+                id="join-full-name"
                 type="text"
                 value={fullName}
                 onChange={e => {
@@ -408,12 +453,40 @@ export default function JoinPoolPage() {
               <p className="mt-1 text-xs font-semibold text-stone-500">Only the pool runner sees this.</p>
             </div>
           )}
+          {authChecked && requireEntryEmail && (
+            isSignedIn ? (
+              <div className="border border-[#d8cab0] bg-[#fbf7ed] px-3 py-3">
+                <p className="text-sm font-bold text-[#123c2f]">Email required by pool runner</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-stone-600">The pool runner requires an email for winner follow-up and settling the pool. Your account email ({accountEmail}) will be shared with the runner. Golf Pools Pro will not use it for marketing.</p>
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="join-notification-email" className="mb-1 block text-sm font-bold text-stone-700">Email required by pool runner</label>
+                <input
+                  id="join-notification-email"
+                  type="email"
+                  value={notificationEmail}
+                  onChange={event => setNotificationEmail(event.target.value.slice(0, 254))}
+                  placeholder="you@example.com"
+                  maxLength={254}
+                  autoComplete="email"
+                  required
+                  aria-required="true"
+                  onInvalid={event => event.currentTarget.setCustomValidity('Enter a valid email for the pool runner.')}
+                  onInput={event => event.currentTarget.setCustomValidity('')}
+                  className="w-full rounded-none border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                />
+                <p className="mt-1 text-xs font-semibold leading-5 text-stone-500">The pool runner requires your email for winner follow-up and settling the pool. Golf Pools Pro will not use it for marketing.</p>
+              </div>
+            )
+          )}
           <div>
-            <label className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
+            <label htmlFor="join-leaderboard-name" className="mb-1 flex items-baseline gap-2 text-sm font-medium text-stone-700">
               <span>{nameLabel}</span>
               {showNameRequiredBadge && <span className="text-xs font-semibold text-amber-700">required</span>}
             </label>
             <input
+              id="join-leaderboard-name"
               type="text"
               value={guestName}
               onChange={e => {

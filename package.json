@@ -22,6 +22,7 @@
     "test:round-leaderboards": "npx tsx scripts/verify-round-leaderboards.mjs",
     "test:final-result-announcements": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-final-result-announcements.mjs",
     "test:early-field-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-early-field-import.mjs",
+    "test:pool-required-email": "node scripts/verify-pool-required-email.mjs",
     "predeploy:check": "node scripts/predeploy-check.mjs",
     "audit:prod-readiness": "npx tsx scripts/audit-prod-readiness.ts",
     "test:run-it-back": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-run-it-back-defaults.mjs",

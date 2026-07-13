@@ -15,6 +15,7 @@ type OwnerPool = {
   is_completed: boolean
   game_format: string | null
   groups_finalized_at: string | null
+  require_entry_email: boolean
   gpp_tournaments?: { status?: string | null } | { status?: string | null }[] | null
 }
 
@@ -26,7 +27,7 @@ async function loadOwnerPool(poolId: string) {
   const serviceSupabase = createServiceClient() as any
   const { data: pool, error } = await serviceSupabase
     .from('gpp_pools')
-    .select('id, owner_id, name, is_locked, is_completed, game_format, groups_finalized_at, gpp_tournaments(status)')
+    .select('id, owner_id, name, is_locked, is_completed, game_format, groups_finalized_at, require_entry_email, gpp_tournaments(status)')
     .eq('id', poolId)
     .maybeSingle()
 
@@ -63,6 +64,28 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       .maybeSingle()
 
     if (error) return NextResponse.json({ error: error.message || 'Could not update pool name.' }, { status: 500 })
+    if (!updatedPool?.id) return NextResponse.json({ error: 'Pool not found.' }, { status: 404 })
+    return NextResponse.json({ ok: true, pool: updatedPool })
+  }
+
+  if (action === 'set-entry-email-requirement') {
+    if (typeof body.required !== 'boolean') {
+      return NextResponse.json({ error: 'Choose whether entrant email is required.' }, { status: 400 })
+    }
+    const status = tournamentStatus(pool)
+    if (pool.is_locked || pool.is_completed || status === 'live' || status === 'completed') {
+      return NextResponse.json({ error: 'Entrant email settings are locked after picks close.' }, { status: 409 })
+    }
+
+    const { data: updatedPool, error } = await serviceSupabase
+      .from('gpp_pools')
+      .update({ require_entry_email: body.required })
+      .eq('id', pool.id)
+      .eq('owner_id', context.user!.id)
+      .select('id, require_entry_email')
+      .maybeSingle()
+
+    if (error) return NextResponse.json({ error: error.message || 'Could not update entrant email settings.' }, { status: 500 })
     if (!updatedPool?.id) return NextResponse.json({ error: 'Pool not found.' }, { status: 404 })
     return NextResponse.json({ ok: true, pool: updatedPool })
   }

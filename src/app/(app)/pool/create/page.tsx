@@ -126,6 +126,7 @@ export default function CreatePoolPage() {
   const [picksPerGroup, setPicksPerGroup] = useState<PoolNumber>(2)
   const [obEnabled, setObEnabled] = useState(true)
   const [obPenalty, setObPenalty] = useState<PoolNumber>(2)
+  const [requireEntryEmail, setRequireEntryEmail] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [cloneSourceId, setCloneSourceId] = useState('')
@@ -168,12 +169,13 @@ export default function CreatePoolPage() {
       if (cloneId) {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          const { data: sourcePool } = await supabase
+          const { data: sourcePoolData } = await supabase
             .from('gpp_pools')
-            .select('id, name, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group')
+            .select('id, name, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, game_format, group_count, picks_per_group, require_entry_email')
             .eq('id', cloneId)
             .eq('owner_id', user.id)
             .maybeSingle()
+          const sourcePool = sourcePoolData as any
           const cloneDefaults = sourcePool ? buildRunItBackDefaults(sourcePool) : null
           if (cloneDefaults) {
             setCloneSourceId(cloneDefaults.sourceId)
@@ -186,6 +188,7 @@ export default function CreatePoolPage() {
             setPicksPerGroup(cloneDefaults.picksPerGroup)
             setObEnabled(cloneDefaults.obEnabled)
             setObPenalty(cloneDefaults.obPenalty)
+            setRequireEntryEmail(Boolean(sourcePool.require_entry_email))
             const cloneTournament = selectNextRunItBackTournament(openTournaments, now)
             if (!requestedTournament && cloneTournament?.id) setSelectedTournament(cloneTournament.id)
           }
@@ -229,6 +232,19 @@ export default function CreatePoolPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('Not authenticated'); setLoading(false); return }
+
+    const { data: profileData, error: profileError } = await supabase
+      .from('gpp_profiles')
+      .select('display_name, full_name, full_name_confirmed_at, email')
+      .eq('id', user.id)
+      .maybeSingle()
+    const profile = profileData as any
+    const ownerFullName = profile?.full_name?.trim().replace(/\s+/g, ' ') || ''
+    if (profileError || !ownerFullName || !profile?.full_name_confirmed_at) {
+      setError('Add and confirm your full name in Account before creating a pool.')
+      setLoading(false)
+      return
+    }
 
     const finalPickCount = toNumber(pickCount, 12)
     const finalCountScores = toNumber(countScores, 8)
@@ -280,6 +296,7 @@ export default function CreatePoolPage() {
         groups_finalized_at: null,
         ob_rule_enabled: obEnabled,
         ob_penalty_strokes: finalObPenalty,
+        require_entry_email: requireEntryEmail,
         payment_status: 'active',
         paid_entry_limit: 5,
         activated_at: new Date().toISOString(),
@@ -291,18 +308,15 @@ export default function CreatePoolPage() {
       setError(insertError.message)
       setLoading(false)
     } else {
-      const { data: profile } = await supabase
-        .from('gpp_profiles')
-        .select('display_name')
-        .eq('id', user.id)
-        .single()
-
       const { error: entryError } = await supabase
         .from('gpp_entries')
         .insert({
           pool_id: data.id,
           user_id: user.id,
           display_name: profile?.display_name || user.email?.split('@')[0] || 'Player',
+          full_name: ownerFullName,
+          full_name_confirmed_at: profile.full_name_confirmed_at,
+          notification_email: requireEntryEmail ? (user.email || profile.email || '').trim().toLowerCase() : null,
           golfer_picks: [],
         })
 
@@ -484,6 +498,21 @@ export default function CreatePoolPage() {
             </p>
           </div>
 
+          <div className="border border-[#d8cab0] bg-[#fbf7ed] p-4">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={requireEntryEmail}
+                onChange={event => setRequireEntryEmail(event.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[#123c2f]"
+              />
+              <span>
+                <span className="block text-sm font-black text-[#123c2f]">Require entrant email</span>
+                <span className="mt-1 block text-xs font-semibold leading-5 text-[#657168]">Entrants will see that you require this for winner follow-up and settling the pool. Signed-in players use their account email; guests type one in. Golf Pools Pro will not use it for marketing.</span>
+              </span>
+            </label>
+          </div>
+
           <section className="border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
             <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6724]">Pool setup summary</p>
@@ -494,6 +523,7 @@ export default function CreatePoolPage() {
               <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Format</span>{gameFormat === 'standard' ? 'Open Picks' : gameFormat === 'ranked_groups' ? 'Tiered Picks' : 'Clubhouse Chaos'}</p>
               <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Picks</span>{gameFormat === 'standard' ? `${toNumber(pickCount, 12)} picks · best ${toNumber(countScores, 8)} count` : `${toNumber(groupCount, 6)} ${gameFormat === 'ranked_groups' ? 'tiers' : 'groups'} × ${toNumber(picksPerGroup, 2)} picks · best ${toNumber(countScores, 8)} count`}</p>
               <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">OB rule</span>{obEnabled ? `On · ${toNumber(obPenalty, 2)} penalty strokes` : 'Off · only made-cut scores count'}</p>
+              <p><span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8a6724]">Entrant email</span>{requireEntryEmail ? 'Required' : 'Optional'}</p>
             </div>
             <p className="border-t border-[#d8cab0] bg-[#fbf7ed] px-4 py-3 text-xs font-bold leading-5 text-[#657168]">
               After this, copy the invite link or make a signup poster. Players can join and make picks until entries lock before the first tee time.

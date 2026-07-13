@@ -6,6 +6,16 @@ import { createClient } from '@/lib/supabase/server'
 import { hasDateOnlyStarted } from '@/lib/date-utils'
 import { DUPLICATE_ENTRY_NAME_MESSAGE, isDuplicateEntryNameError, normalizeEntryName } from '@/lib/entry-name'
 
+function normalizeFullName(value: unknown) {
+  return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 80) : ''
+}
+
+function normalizeEmail(value: unknown) {
+  if (typeof value !== 'string') return ''
+  const email = value.trim().toLowerCase()
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : ''
+}
+
 function formValues(formData: FormData, key: string) {
   return formData.getAll(key).map(value => String(value)).filter(Boolean)
 }
@@ -67,7 +77,7 @@ export async function acceptPoolInvite(formData: FormData) {
 
   const { data: invite } = await supabase
     .from('gpp_pool_invites')
-    .select('id, pool_id, status, gpp_pools(id, name, is_locked, is_completed, gpp_tournaments(status, start_date))')
+    .select('id, pool_id, status, gpp_pools(id, name, is_locked, is_completed, require_entry_email, gpp_tournaments(status, start_date))')
     .eq('id', inviteId)
     .eq('invited_user_id', user.id)
     .single()
@@ -89,11 +99,22 @@ export async function acceptPoolInvite(formData: FormData) {
     .maybeSingle()
 
   if (!existing) {
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
       .from('gpp_profiles')
-      .select('display_name')
+      .select('display_name, full_name, full_name_confirmed_at, email')
       .eq('id', user.id)
       .single()
+
+    const profile = profileData as any
+    const fullName = normalizeFullName(profile?.full_name)
+    if (!fullName || !profile?.full_name_confirmed_at) {
+      redirect(`/account?error=${encodeURIComponent('Confirm your full name before joining this pool.')}`)
+    }
+
+    const requiredEmail = pool.require_entry_email ? normalizeEmail(user.email || profile?.email) : ''
+    if (pool.require_entry_email && !requiredEmail) {
+      redirect(`/account?error=${encodeURIComponent('Add an email before joining this pool.')}`)
+    }
 
     const entryName = profile?.display_name || user.email?.split('@')[0] || 'Player'
     const { data: poolEntries } = await supabase
@@ -114,6 +135,9 @@ export async function acceptPoolInvite(formData: FormData) {
         pool_id: invite.pool_id,
         user_id: user.id,
         display_name: entryName,
+        full_name: fullName,
+        full_name_confirmed_at: profile.full_name_confirmed_at,
+        notification_email: requiredEmail || null,
         golfer_picks: [],
       })
 

@@ -505,6 +505,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const entriesRef = useRef(initialEntries)
   const [myEntry, setMyEntry] = useState(initialMyEntry)
   const [poolName, setPoolName] = useState(pool.name)
+  const [requireEntryEmail, setRequireEntryEmail] = useState(Boolean(pool.require_entry_email))
   const [poolLocked, setPoolLocked] = useState(pool.is_locked)
   const [leaderboard, setLeaderboard] = useState<GolfPlayer[]>(() => preferredStoredLeaderboard(
     tournament?.status,
@@ -521,6 +522,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [notificationEmailValue, setNotificationEmailValue] = useState(initialMyEntry?.notification_email || '')
   const [entryNameSaving, setEntryNameSaving] = useState(false)
   const [fullNameSaving, setFullNameSaving] = useState(false)
+  const [emailRequirementSaving, setEmailRequirementSaving] = useState(false)
   const entryBoardMode = useEntryBoardMode()
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
@@ -853,7 +855,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     ? `${publicLeaderboardUrl || `/leaderboard/${pool.id}`}?entry=${encodeURIComponent(myEntry.id)}`
     : (publicLeaderboardUrl || `/leaderboard/${pool.id}`)
   const entryHasSavedFullName = Boolean(myEntry?.full_name_confirmed_at && typeof myEntry?.full_name === 'string' && myEntry.full_name.trim().length > 0)
+  const entryHasValidEmail = Boolean(typeof myEntry?.notification_email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(myEntry.notification_email.trim()))
   const fullNamePromptOpen = guestMode && !publicView && Boolean(myEntry && !entryHasSavedFullName)
+  const requiredEmailPromptOpen = guestMode && !publicView && requireEntryEmail && entryHasSavedFullName && Boolean(myEntry && !entryHasValidEmail)
   const entryDetailsDirty = entryNameValue.trim() !== (myEntry?.display_name || '') || fullNameValue.trim() !== runnerFullNameForEntry(myEntry)
 
   useEffect(() => {
@@ -1661,6 +1665,27 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     setTimeout(() => setStatusMessage(''), 2500)
   }
 
+  async function updateEmailRequirement(required: boolean) {
+    setEmailRequirementSaving(true)
+    const res = await fetch(`/api/pools/${pool.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'set-entry-email-requirement', required }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setStatusMessage(data.error || 'Could not update entrant email settings.')
+      showToast(data.error || 'Could not update entrant email settings.', 'error')
+      setEmailRequirementSaving(false)
+      return
+    }
+    setRequireEntryEmail(Boolean(data.pool?.require_entry_email))
+    setStatusMessage(required ? 'Entrant email is now required.' : 'Entrant email is now optional.')
+    showToast(required ? 'Entrant email is now required.' : 'Entrant email is now optional.', 'success')
+    setEmailRequirementSaving(false)
+    setTimeout(() => setStatusMessage(''), 2500)
+  }
+
   async function deletePool() {
     if (deleteConfirm !== 'DELETE') {
       setStatusMessage('Type DELETE to confirm.')
@@ -2279,6 +2304,36 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
           </div>
         </div>
       )}
+      {requiredEmailPromptOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-[#123c2f]/65 px-4 py-6">
+          <div className="w-full max-w-md border-2 border-[#123c2f] bg-white p-5 shadow-[8px_8px_0_#d8cab0]">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Email required by pool runner</p>
+            <h2 className="mt-1 text-2xl font-black text-[#123c2f]">Add your email</h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-[#657168]">The pool runner requires your email for winner follow-up and settling the pool. Golf Pools Pro will not use it for marketing.</p>
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-bold text-stone-700">Email</label>
+              <input
+                type="email"
+                value={notificationEmailValue}
+                onChange={event => setNotificationEmailValue(event.target.value.slice(0, 254))}
+                maxLength={254}
+                autoComplete="email"
+                autoFocus
+                placeholder="you@example.com"
+                className="w-full rounded-none border border-stone-300 bg-white px-4 py-3 text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0]"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={saveGuestEmailForUpdates}
+              disabled={guestEmailSaving || !notificationEmailValue.trim()}
+              className="mt-4 w-full border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#0f2f25] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {guestEmailSaving ? 'Saving...' : 'Save and continue'}
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       {!guestMode && (
       <div className="mb-6">
@@ -2821,7 +2876,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
 
                   {guestSaveStep === 'email' ? (
                     <div className="mt-5">
-                      <h4 className="text-lg font-black text-[#123c2f]">Want the leaderboard sent to you?</h4>
+                      <h4 className="text-lg font-black text-[#123c2f]">{requireEntryEmail ? 'Email required by pool runner' : 'Want the leaderboard sent to you?'}</h4>
+                      {requireEntryEmail && <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">The pool runner requires this for winner follow-up and settling the pool. Golf Pools Pro will not use it for marketing.</p>}
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <input
                           type="email"
@@ -2829,16 +2885,17 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                           onChange={event => setNotificationEmailValue(event.target.value)}
                           placeholder="you@example.com"
                           autoComplete="email"
-                          className="min-w-0 flex-1 border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0]"
+                          readOnly={requireEntryEmail}
+                          className="min-w-0 flex-1 border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0] read-only:bg-[#fbf7ed]"
                         />
-                        <button
+                        {!requireEntryEmail && <button
                           type="button"
                           onClick={saveGuestEmailForUpdates}
                           disabled={guestEmailSaving}
                           className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black text-white hover:bg-[#0f2f25] disabled:opacity-50"
                         >
                           {guestEmailSaving ? 'Saving...' : 'Email me'}
-                        </button>
+                        </button>}
                       </div>
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <a href={guestLeaderboardUrl} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-sm font-black text-[#123c2f] hover:bg-[#fbf7ed]">
@@ -3053,6 +3110,25 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 Copy link
               </button>
             </div>
+          </section>
+          <section className="border-2 border-[#123c2f] bg-white shadow-[5px_5px_0_#d8cab0]">
+            <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Entrant contact</p>
+              <h3 className="mt-1 text-lg font-black text-[#123c2f]">Email requirement</h3>
+            </div>
+            <label className={`flex items-start gap-3 p-4 ${picksAreLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+              <input
+                type="checkbox"
+                checked={requireEntryEmail}
+                onChange={event => void updateEmailRequirement(event.target.checked)}
+                disabled={emailRequirementSaving || picksAreLocked}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[#123c2f]"
+              />
+              <span>
+                <span className="block text-sm font-black text-[#123c2f]">Require entrant email</span>
+                <span className="mt-1 block text-xs font-semibold leading-5 text-[#657168]">Entrants will see that you require this for winner follow-up and settling the pool. Signed-in players use their account email; guests type one in. Golf Pools Pro will not use it for marketing.</span>
+              </span>
+            </label>
           </section>
           <section className="border border-stone-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
