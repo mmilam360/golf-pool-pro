@@ -1,4 +1,5 @@
 import type { GolfPlayer } from './golf-api'
+import { isUsableTournamentOddsSnapshot, type TournamentOddsSnapshot } from './tournament-odds'
 
 export type PoolGameFormat = 'standard' | 'ranked_groups' | 'random_groups'
 
@@ -6,6 +7,14 @@ export type PickGroupPlayer = {
   id: string
   name: string
   rank: number | null
+  rankSource?: 'odds' | 'owgr' | 'unranked'
+  owgrRank?: number | null
+  americanOdds?: number | null
+  decimalOdds?: number | null
+  impliedProbability?: number | null
+  consensusProbability?: number | null
+  oddsSource?: string | null
+  oddsCapturedAt?: string | null
 }
 
 export type PickGroup = {
@@ -36,12 +45,38 @@ function normalizePositiveInt(value: unknown) {
   return Number.isFinite(number) && number > 0 ? number : null
 }
 
-export function playerRanking(player: GolfPlayer | Record<string, unknown>, fallbackRank: number) {
+export function playerRanking(player: GolfPlayer | Record<string, unknown>) {
   for (const key of RANK_KEYS) {
     const rank = normalizePositiveInt((player as Record<string, unknown>)[key])
     if (rank !== null) return rank
   }
-  return fallbackRank
+  return null
+}
+
+function normalizeNameKey(value: unknown) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\b([a-z])\.\s*([a-z])\./g, '$1$2')
+    .replace(/[’'`]/g, '')
+    .replace(/[._/\\-]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function oddsByPlayer(snapshot?: TournamentOddsSnapshot | null) {
+  const byId = new Map<string, TournamentOddsSnapshot['odds'][number]>()
+  const byName = new Map<string, TournamentOddsSnapshot['odds'][number]>()
+  if (!isUsableTournamentOddsSnapshot(snapshot)) return { byId, byName }
+  for (const odd of snapshot?.odds || []) {
+    if (odd.playerId) byId.set(String(odd.playerId), odd)
+    const nameKey = normalizeNameKey(odd.playerName)
+    if (nameKey) byName.set(nameKey, odd)
+  }
+  return { byId, byName }
 }
 
 function seededRandom(seed: string) {
@@ -77,12 +112,62 @@ function splitEvenly(players: PickGroupPlayer[], groupCount: number) {
   })
 }
 
-function toGroupPlayer(player: GolfPlayer, index: number): PickGroupPlayer {
+function toGroupPlayer(
+  player: GolfPlayer,
+  index: number,
+  oddsIndex?: ReturnType<typeof oddsByPlayer>,
+  ranked = false
+): PickGroupPlayer {
+  const name = player.name || [player.firstName, player.lastName].filter(Boolean).join(' ') || `Golfer ${index + 1}`
+  const id = String(player.id || name || index)
+  const rank = playerRanking(player as unknown as Record<string, unknown>)
+  const odd = oddsIndex?.byId.get(id) || oddsIndex?.byName.get(normalizeNameKey(name)) || null
+
   return {
-    id: String(player.id || player.name || index),
-    name: player.name || [player.firstName, player.lastName].filter(Boolean).join(' ') || `Golfer ${index + 1}`,
-    rank: playerRanking(player as unknown as Record<string, unknown>, index + 1),
+    id,
+    name,
+    rank,
+    owgrRank: rank,
+    ...(ranked ? { rankSource: odd ? 'odds' as const : rank ? 'owgr' as const : 'unranked' as const } : {}),
+    ...(odd ? {
+      americanOdds: odd.americanOdds,
+      decimalOdds: odd.decimalOdds,
+      impliedProbability: odd.impliedProbability,
+      consensusProbability: odd.consensusProbability,
+      oddsSource: odd.source,
+      oddsCapturedAt: odd.capturedAt,
+    } : {}),
   }
+}
+
+function hasOdds(player: PickGroupPlayer) {
+  return Number.isFinite(player.consensusProbability) && Number(player.consensusProbability) > 0
+}
+
+function hasRank(player: PickGroupPlayer) {
+  return Number.isFinite(player.rank) && Number(player.rank) > 0
+}
+
+function rankedGroupSort(a: PickGroupPlayer, b: PickGroupPlayer) {
+  const aHasOdds = hasOdds(a)
+  const bHasOdds = hasOdds(b)
+  if (aHasOdds || bHasOdds) {
+    if (aHasOdds && !bHasOdds) return -1
+    if (!aHasOdds && bHasOdds) return 1
+    const oddsDelta = Number(b.consensusProbability) - Number(a.consensusProbability)
+    if (oddsDelta !== 0) return oddsDelta
+  }
+
+  const aHasRank = hasRank(a)
+  const bHasRank = hasRank(b)
+  if (aHasRank || bHasRank) {
+    if (aHasRank && !bHasRank) return -1
+    if (!aHasRank && bHasRank) return 1
+    const rankDelta = Number(a.rank) - Number(b.rank)
+    if (rankDelta !== 0) return rankDelta
+  }
+
+  return a.name.localeCompare(b.name)
 }
 
 export function buildPickGroups({
@@ -90,21 +175,26 @@ export function buildPickGroups({
   format,
   groupCount,
   seed,
+  oddsSnapshot,
 }: {
   field: GolfPlayer[]
   format: PoolGameFormat
   groupCount: number
   seed: string
+  oddsSnapshot?: TournamentOddsSnapshot | null
 }): PickGroup[] {
   if (format === 'standard') return []
+  const oddsIndex = format === 'ranked_groups' && isUsableTournamentOddsSnapshot(oddsSnapshot, field as any[])
+    ? oddsByPlayer(oddsSnapshot)
+    : undefined
   const players = (Array.isArray(field) ? field : [])
     .filter(player => player?.name)
     .filter(player => String(player?.status).toLowerCase() !== 'wd')
-    .map(toGroupPlayer)
+    .map((player, index) => toGroupPlayer(player, index, oddsIndex, format === 'ranked_groups'))
 
   if (format === 'ranked_groups') {
     return splitEvenly(
-      [...players].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999) || a.name.localeCompare(b.name)),
+      [...players].sort(rankedGroupSort),
       groupCount
     )
   }

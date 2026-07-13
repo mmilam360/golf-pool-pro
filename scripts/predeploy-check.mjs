@@ -32,6 +32,8 @@ const checks = [
   ['npm', ['run', 'test:public-leaderboard-states']],
   ['npm', ['run', 'test:run-it-back']],
   ['npm', ['run', 'test:grouped-auto-lock']],
+  ['npm', ['run', 'test:odds-ranked-groups']],
+  ['npm', ['run', 'test:odds-ranked-group-ui']],
   ['npm', ['run', 'test:group-lock-runner-prompt']],
   ['npm', ['run', 'test:pool-invites']],
   ['npm', ['run', 'test:pool-pricing']],

@@ -10,6 +10,7 @@ import { hasPostCutRoundEvidence, hasWeekendCutStatusErrors, repairWeekendCutSta
 import { sendWdPickAlertsForTournament } from './wd-pick-alerts'
 import { hasStoredLeaderboard, tournamentDateWindowIncludes } from './pool-state'
 import { APP_DATE_TIME_ZONE, todayDateOnly } from './date-utils'
+import { ensureTournamentOddsSnapshot } from './grouped-pool-group-builder'
 
 const ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'
 const ESPN_EVENT_URL = (eventId: string) => `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${eventId}`
@@ -391,7 +392,7 @@ export async function refreshPgaTourFields(supabase: any, season: number): Promi
 
   const { data: upcomingTournaments, error } = await supabase
     .from('gpp_tournaments')
-    .select('id, name, start_date, external_id, field_json, field_fingerprint, last_field_fetch, field_source')
+    .select('id, name, start_date, external_id, field_json, field_fingerprint, last_field_fetch, field_source, odds_snapshot_json')
     .eq('status', 'upcoming')
     .order('start_date', { ascending: true })
 
@@ -449,6 +450,19 @@ export async function refreshPgaTourFields(supabase: any, season: number): Promi
       field_source: 'pga_tour',
       last_field_fetch: fresh.lastUpdated || new Date().toISOString(),
     }).eq('id', t.id)
+
+    await ensureTournamentOddsSnapshot({
+      supabase,
+      tournament: {
+        id: t.id,
+        name: t.name,
+        start_date: t.start_date,
+        odds_snapshot_json: t.odds_snapshot_json,
+      },
+      field: fresh.players,
+    }).catch(error => {
+      console.error(`[refreshFields] Odds snapshot failed for ${t.name}: ${error instanceof Error ? error.message : 'unknown error'}`)
+    })
 
     await pruneOpenStandardPoolPicksForTournament(supabase, t.id, fresh.players)
     const wdAlerts = await sendWdPickAlertsForTournament(supabase, t.id, fresh.players)

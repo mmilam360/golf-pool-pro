@@ -678,6 +678,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   }, [currentEntryId, guestMode, userId])
   const storedPickGroups: PickGroup[] = Array.isArray(pool.pick_groups_json) ? pool.pick_groups_json : []
   const groupedFormat = pool.game_format === 'ranked_groups' || pool.game_format === 'random_groups'
+  const groupsFinalized = !groupedFormat || (storedPickGroups.length > 0 && Boolean(pool.groups_finalized_at))
+  const groupsNeedLock = groupedFormat && !groupsFinalized
+  const groupCount = Number(pool.group_count || 6)
   const pickGroups: PickGroup[] = useMemo(() => {
     if (!groupedFormat) return []
     if (storedPickGroups.length > 0) return storedPickGroups
@@ -685,11 +688,15 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     return buildPickGroups({
       field,
       format: pool.game_format,
-      groupCount: Number(pool.group_count || 6),
+      groupCount,
       seed: `${pool.id}:${tournament?.id || tournament?.external_id || tournament?.name || 'group-preview'}`,
+      oddsSnapshot: tournament?.odds_snapshot_json,
     })
-  }, [field, groupedFormat, pool.game_format, pool.group_count, pool.id, storedPickGroups, tournament?.external_id, tournament?.id, tournament?.name])
-  const groupsFinalized = !groupedFormat || (storedPickGroups.length > 0 && Boolean(pool.groups_finalized_at))
+  }, [field, groupCount, groupedFormat, pool.game_format, pool.id, storedPickGroups, tournament?.external_id, tournament?.id, tournament?.name, tournament?.odds_snapshot_json])
+  const rankedByTournamentOdds = pool.game_format === 'ranked_groups' && pickGroups.some(group =>
+    group.players.some(player => player.rankSource === 'odds')
+  )
+
   const picksPerGroup = groupedFormat ? Number(pool.picks_per_group || 1) : 0
   const groupedTotalPicks = groupedFormat ? pickGroups.length * picksPerGroup : 0
   const requiredPickCount = groupedFormat ? groupedTotalPicks : Number(pool.pick_count || 0)
@@ -761,7 +768,6 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
     }
     if (leaderboardMode.type === 'day' && leaderboardMode.round === 1) setLeaderboardMode({ type: 'thru', round: 1 })
   }, [availableHistoricalRounds, leaderboardMode, leaderboardModeIsCurrent])
-  const groupsNeedLock = groupedFormat && !groupsFinalized
   const showGroupLockRunnerPrompt = Boolean(isOwner && !entryEditOnly && !publicView && groupsNeedLock)
   const picksAreLocked = lockedOrScoring(effectivePoolState, tournamentWithCurrentLeaderboard)
   const pickSelectionOpen = !picksAreLocked && !groupsNeedLock
@@ -3002,6 +3008,9 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                     <p className="text-xs font-black uppercase tracking-[0.14em] text-[#123c2f]">{groupedFormat ? (groupsNeedLock ? 'Group preview' : `${pool.game_format === 'random_groups' ? 'Random' : 'Ranked'} groups`) : 'Tournament field'}</p>
                     {groupedFormat && (
                       <p className="mt-1 text-sm font-semibold text-stone-600">{groupsNeedLock ? 'Picks open after groups lock. Groups auto-lock Tuesday morning ET once the field is set.' : `Pick ${picksPerGroup} from each group.`}</p>
+                    )}
+                    {rankedByTournamentOdds && (
+                      <p className="mt-1 text-xs font-bold text-[#8a6724]">Tournament odds set the tiers. OWGR fills any missing lines.</p>
                     )}
                     {groupedFormat && (
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#d8cab0] pt-2">

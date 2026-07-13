@@ -23,7 +23,7 @@ export default async function PoolPage({ params, searchParams }: { params: Promi
   const [poolResult, entriesResult] = await Promise.all([
     dataSupabase
       .from('gpp_pools')
-      .select('id, tournament_id, name, passcode, owner_id, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, is_locked, lock_at, is_completed, payment_status, amount_paid_cents, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, gpp_tournaments(id, external_id, name, course, location, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch)')
+      .select('id, tournament_id, name, passcode, owner_id, pick_count, count_scores, ob_rule_enabled, ob_penalty_strokes, is_locked, lock_at, is_completed, payment_status, amount_paid_cents, game_format, group_count, picks_per_group, pick_groups_json, groups_finalized_at, gpp_tournaments(id, external_id, name, course, location, start_date, end_date, status, field_json, leaderboard_json, cut_score, last_scores_fetch, odds_snapshot_json)')
       .eq('id', id)
       .single(),
     dataSupabase

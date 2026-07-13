@@ -5,8 +5,8 @@ import { NextResponse } from 'next/server'
 import { createClient as createSupabaseServiceClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from '@/lib/pga-tour-field'
-import { buildPickGroups, type PoolGameFormat } from '@/lib/pool-formats'
-import { hydrateFieldWithOwgr } from '@/lib/owgr'
+import type { PoolGameFormat } from '@/lib/pool-formats'
+import { buildGroupedPickGroupsForLock } from '@/lib/grouped-pool-group-builder'
 import { isFieldAcceptableForLock, fieldFingerprint } from '@/lib/field-quality'
 
 export async function POST(request: Request) {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
     const { data: pool, error: poolError } = await supabase
       .from('gpp_pools')
-      .select('id, passcode, owner_id, tournament_id, game_format, group_count, is_locked, is_completed, groups_finalized_at, gpp_tournaments(id, name, start_date, status, field_json, leaderboard_json, external_id, field_source, last_field_fetch)')
+      .select('id, passcode, owner_id, tournament_id, game_format, group_count, is_locked, is_completed, groups_finalized_at, gpp_tournaments(id, name, start_date, status, field_json, leaderboard_json, external_id, field_source, last_field_fetch, odds_snapshot_json)')
       .eq('id', poolId)
       .maybeSingle()
 
@@ -127,21 +127,18 @@ export async function POST(request: Request) {
     }
 
     // Phase 4: Build groups
-    const hydrated = await hydrateFieldWithOwgr(fieldSnapshot)
-    const cleanField = hydrated.filter(p => String(p?.status).toLowerCase() !== 'wd')
-
-    const groups = buildPickGroups({
-      field: cleanField,
-      format: gameFormat,
-      groupCount: Number(pool.group_count || 6),
-      seed: `${pool.tournament_id || tournament.id}:${pool.passcode}:${gameFormat}`,
+    const { groups } = await buildGroupedPickGroupsForLock({
+      supabase,
+      tournament,
+      pool: { ...pool, game_format: gameFormat },
+      field: fieldSnapshot,
     })
 
     if (groups.length === 0) {
       return NextResponse.json({ ok: false, error: 'Could not build groups from this field' }, { status: 400 })
     }
 
-    const { error: updateError } = await supabase
+    const { data: updatedPool, error: updateError } = await supabase
       .from('gpp_pools')
       .update({
         pick_groups_json: groups,
@@ -150,9 +147,14 @@ export async function POST(request: Request) {
       })
       .eq('id', poolId)
       .is('groups_finalized_at', null)
+      .select('id')
+      .maybeSingle()
 
     if (updateError) {
       return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 })
+    }
+    if (!updatedPool) {
+      return NextResponse.json({ ok: false, error: 'Groups already finalized' }, { status: 409 })
     }
 
     return NextResponse.json({

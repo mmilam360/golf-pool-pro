@@ -27,6 +27,8 @@
     "audit:prod-readiness": "npx tsx scripts/audit-prod-readiness.ts",
     "test:run-it-back": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-run-it-back-defaults.mjs",
     "test:grouped-auto-lock": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-grouped-auto-lock.mjs",
+    "test:odds-ranked-groups": "npx tsx scripts/verify-odds-ranked-groups.mjs",
+    "test:odds-ranked-group-ui": "node scripts/verify-odds-ranked-group-ui.mjs",
     "test:group-lock-runner-prompt": "node scripts/verify-group-lock-runner-prompt.mjs",
     "test:pool-auto-lock": "npx tsx scripts/verify-pool-auto-lock.mjs",
     "test:live-scoring-health": "npx tsx scripts/verify-live-scoring-health.mjs",

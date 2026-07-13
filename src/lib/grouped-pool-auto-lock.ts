@@ -2,8 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { GolfPlayer } from './golf-api'
 import { easternNowParts, shouldAutoFinalizeGroups } from './grouped-pool-auto-lock-timing'
 import { findPgaTourTournament, getPgaTourFieldWithMeta, getPgaTourSchedule } from './pga-tour-field'
-import { buildPickGroups, type PoolGameFormat } from './pool-formats'
-import { hydrateFieldWithOwgr } from './owgr'
+import type { PoolGameFormat } from './pool-formats'
+import { buildGroupedPickGroupsForLock } from './grouped-pool-group-builder'
 import { isFieldAcceptableForLock, fieldFingerprint } from './field-quality'
 
 type AutoLockTournament = {
@@ -14,6 +14,7 @@ type AutoLockTournament = {
   field_json?: unknown
   leaderboard_json?: unknown
   last_field_fetch?: string | null
+  odds_snapshot_json?: unknown
 }
 
 type AutoLockPool = {
@@ -72,7 +73,7 @@ export async function autoFinalizeGroupedPools(supabase: SupabaseClient<any>, op
 
   const { data: pools, error } = await supabase
     .from('gpp_pools')
-    .select('id, passcode, tournament_id, game_format, group_count, pick_groups_json, groups_finalized_at, gpp_tournaments(id, external_id, name, start_date, field_json, leaderboard_json, last_field_fetch)')
+    .select('id, passcode, tournament_id, game_format, group_count, pick_groups_json, groups_finalized_at, gpp_tournaments(id, external_id, name, start_date, field_json, leaderboard_json, last_field_fetch, odds_snapshot_json)')
     .in('game_format', ['ranked_groups', 'random_groups'])
     .is('groups_finalized_at', null)
     .limit(500)
@@ -132,19 +133,16 @@ export async function autoFinalizeGroupedPools(supabase: SupabaseClient<any>, op
       continue
     }
 
-    const hydratedField = await hydrateFieldWithOwgr(fieldSnapshot)
-
-    // buildPickGroups already drops WD players, but double-filter here so the
-    // auto-lock result is never polluted by confirmed withdrawals.
-    const cleanField = hydratedField.filter(
-      (p) => String(p?.status).toLowerCase() !== 'wd'
-    )
-
-    const groups = buildPickGroups({
-      field: cleanField,
-      format: pool.game_format,
-      groupCount: Number(pool.group_count || 6),
-      seed: `${pool.tournament_id || tournament?.id || ''}:${pool.passcode || pool.id}:${pool.game_format}`,
+    const { groups } = await buildGroupedPickGroupsForLock({
+      supabase,
+      tournament: {
+        id: tournament?.id || '',
+        name: tournament?.name || '',
+        start_date: tournament?.start_date,
+        odds_snapshot_json: tournament?.odds_snapshot_json,
+      },
+      pool,
+      field: fieldSnapshot,
     })
 
     if (groups.length === 0) {
@@ -152,7 +150,7 @@ export async function autoFinalizeGroupedPools(supabase: SupabaseClient<any>, op
       continue
     }
 
-    const { error: updateError } = await supabase
+    const { data: updatedPool, error: updateError } = await supabase
       .from('gpp_pools')
       .update({
         pick_groups_json: groups,
@@ -161,8 +159,11 @@ export async function autoFinalizeGroupedPools(supabase: SupabaseClient<any>, op
       })
       .eq('id', pool.id)
       .is('groups_finalized_at', null)
+      .select('id')
+      .maybeSingle()
 
     if (updateError) throw updateError
+    if (!updatedPool) continue
     result.finalized++
   }
 
