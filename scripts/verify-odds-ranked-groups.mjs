@@ -360,4 +360,16 @@ for (const routePath of [
   assert.match(source, /\.select\('id'\)\s*\.maybeSingle\(\)/, `${routePath} must verify that its conditional finalization update won the race`)
 }
 
+const tournamentSyncSource = readFileSync(new URL('../src/lib/tournament-sync.ts', import.meta.url), 'utf8')
+assert.equal(
+  (tournamentSyncSource.match(/await ensureTournamentOddsSnapshot\(/g) || []).length,
+  3,
+  'PGA refresh, field refresh, and live sync all freeze an accepted major odds snapshot'
+)
+assert.match(
+  tournamentSyncSource,
+  /odds_snapshot_json: existing\.odds_snapshot_json/,
+  'field refresh uses the existing tournament snapshot to avoid repeat provider calls'
+)
+
 console.log('odds-backed ranked group checks passed')

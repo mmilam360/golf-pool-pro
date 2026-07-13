@@ -584,7 +584,7 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
 
     const { data: existing, error: existingError } = await supabase
       .from('gpp_tournaments')
-      .select('id, status, leaderboard_json, field_json, field_fingerprint, field_source, last_field_fetch')
+      .select('id, status, leaderboard_json, field_json, field_fingerprint, field_source, last_field_fetch, odds_snapshot_json')
       .eq('external_id', row.external_id)
       .maybeSingle()
 
@@ -724,6 +724,18 @@ async function syncLiveFromScoreboard(supabase: any, season: number): Promise<To
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
       if (Array.isArray(row.field_json)) {
+        await ensureTournamentOddsSnapshot({
+          supabase,
+          tournament: {
+            id: existing.id,
+            name: row.name,
+            start_date: row.start_date,
+            odds_snapshot_json: existing.odds_snapshot_json,
+          },
+          field: row.field_json,
+        }).catch(error => {
+          console.error(`[sync] Odds snapshot failed for ${row.name}: ${error instanceof Error ? error.message : 'unknown error'}`)
+        })
         await pruneOpenStandardPoolPicksForTournament(supabase, existing.id, row.field_json)
         const wdAlerts = await sendWdPickAlertsForTournament(supabase, existing.id, row.field_json)
         result.wdAlertsSent = (result.wdAlertsSent || 0) + wdAlerts.sent
@@ -843,7 +855,7 @@ export async function syncTournaments({
 
     const { data: existing, error: existingError } = await supabase
       .from('gpp_tournaments')
-      .select('id, status, leaderboard_json, field_json, field_fingerprint, field_source, last_field_fetch')
+      .select('id, status, leaderboard_json, field_json, field_fingerprint, field_source, last_field_fetch, odds_snapshot_json')
       .eq('external_id', externalId)
       .maybeSingle()
 
@@ -943,6 +955,18 @@ export async function syncTournaments({
       const { error } = await supabase.from('gpp_tournaments').update(row).eq('id', existing.id)
       if (error) throw error
       if (Array.isArray(row.field_json)) {
+        await ensureTournamentOddsSnapshot({
+          supabase,
+          tournament: {
+            id: existing.id,
+            name: row.name,
+            start_date: row.start_date,
+            odds_snapshot_json: existing.odds_snapshot_json,
+          },
+          field: row.field_json,
+        }).catch(error => {
+          console.error(`[sync] Odds snapshot failed for ${row.name}: ${error instanceof Error ? error.message : 'unknown error'}`)
+        })
         await pruneOpenStandardPoolPicksForTournament(supabase, existing.id, row.field_json)
         const wdAlerts = await sendWdPickAlertsForTournament(supabase, existing.id, row.field_json)
         result.wdAlertsSent = (result.wdAlertsSent || 0) + wdAlerts.sent
