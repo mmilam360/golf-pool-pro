@@ -19,6 +19,10 @@ assert.match(
 assert.match(groupedGrid, /rankingLabel/, 'grouped pick rows show odds and OWGR metadata')
 assert.match(groupedGrid, /americanOdds/, 'grouped pick rows can display frozen American odds')
 assert.match(groupedGrid, /OWGR/, 'grouped pick rows label the OWGR fallback')
+assert.doesNotMatch(groupedGrid, /mx-auto w-fit/, 'ranked tier cards are left-aligned instead of centered in a wide panel')
+assert.match(groupedGrid, /grid w-full overflow-hidden[^`]*sm:grid-cols-2/, 'ranked tier cards use the full panel width with two compact columns on desktop')
+assert.match(groupedGrid, /grid-cols-\[5\.75rem_minmax\(0,1fr\)_auto\]/, 'ranked tier rows reserve a left odds\/OWGR rail')
+assert.match(groupedGrid, /No rank/, 'unranked golfers get an explicit no-rank label in the odds\/rank rail')
 assert.match(poolPage, /odds_snapshot_json/, 'the pool page loads the tournament odds snapshot')
 assert.match(
   poolView,

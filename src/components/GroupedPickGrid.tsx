@@ -9,6 +9,7 @@ export type PickState = {
   selected: boolean
   disabled: boolean
   pickNumber: number | null
+  hasRankedMeta: boolean
 }
 
 function formatAmericanOdds(value: number | null | undefined) {
@@ -42,20 +43,20 @@ function GroupPickCard({
   const selectedCount = pickStates.filter(p => p.selected).length
 
   return (
-    <div className="mx-auto w-fit max-w-full bg-transparent">
-      <div className="mb-2 flex w-fit max-w-full items-center justify-between gap-3 border-b border-[#d8cab0] pb-1 pr-2 text-[11px] font-black uppercase tracking-[0.08em] text-[#0f2f25]">
+    <div className="w-full bg-transparent">
+      <div className="mb-2 flex w-full items-center justify-between gap-3 border-b border-[#d8cab0] pb-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#0f2f25]">
         <span className="truncate">{groupLabel}</span>
         <span className="ml-1 flex-shrink-0 text-[#8a6724]">{selectedCount}/{picksRequired}</span>
       </div>
 
-      <div className="inline-flex w-max max-w-full flex-col overflow-hidden border-y border-[#d8cab0] bg-white">
-        {pickStates.map(({ rawName, displayName, rankingLabel, selected, disabled, pickNumber }) => (
+      <div className="grid w-full overflow-hidden border-x border-t border-[#d8cab0] bg-white sm:grid-cols-2">
+        {pickStates.map(({ rawName, displayName, rankingLabel, selected, disabled, pickNumber, hasRankedMeta }) => (
           <button
             key={rawName}
             type="button"
             onClick={() => !disabled && onToggle(rawName)}
             disabled={disabled}
-            className={`flex w-full min-w-[14rem] max-w-full items-center justify-between gap-4 border-x border-b border-[#d8cab0] px-3 py-2 text-left text-sm font-bold leading-tight last:border-b-0 transition-colors sm:min-w-[17.5rem] ${
+            className={`grid w-full grid-cols-[5.75rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-[#d8cab0] px-3 py-2 text-left text-sm font-bold leading-tight transition-colors sm:grid-cols-[6.35rem_minmax(0,1fr)_auto] sm:[&:nth-child(odd)]:border-r ${
               selected
                 ? 'bg-[#123c2f] text-white'
                 : disabled
@@ -63,14 +64,18 @@ function GroupPickCard({
                   : 'text-stone-800 hover:bg-[#fbf7ed]'
             }`}
           >
-            <span className="min-w-0 flex-1 pr-2">
-              <span className="block truncate">{displayName}</span>
-              {rankingLabel && (
-                <span className={`mt-0.5 block truncate text-[10px] font-black uppercase tracking-[0.08em] tabular-nums ${selected ? 'text-[#f4dfaa]' : 'text-[#8a6724]'}`}>
-                  {rankingLabel}
-                </span>
-              )}
+            <span className={`min-w-0 border-r pr-3 text-[10px] font-black uppercase leading-[1.15] tracking-[0.08em] tabular-nums ${
+              selected
+                ? 'border-white/30 text-[#f4dfaa]'
+                : hasRankedMeta
+                  ? 'border-[#eadfca] text-[#8a6724]'
+                  : 'border-[#eadfca] text-stone-400'
+            }`}>
+              {rankingLabel ? rankingLabel.split(' / ').map(piece => (
+                <span key={piece} className="block truncate">{piece}</span>
+              )) : <span className="block truncate">No rank</span>}
             </span>
+            <span className="min-w-0 truncate">{displayName}</span>
             {selected && (
               <span className="shrink-0 border border-white/80 bg-white px-1.5 py-0.5 text-[10px] font-black text-[#123c2f]">
                 {pickNumber}/{totalPicksRequired}
@@ -126,6 +131,7 @@ export function GroupedPickGrid({
               selected,
               disabled,
               pickNumber: selected ? myPicks.indexOf(player.name) + 1 : null,
+              hasRankedMeta: Boolean(player.rankSource),
             }
           })
 
