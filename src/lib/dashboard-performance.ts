@@ -5,7 +5,7 @@ import { DASHBOARD_ACTIVE_POOLS_CACHE_VERSION } from './dashboard-cache'
 import { finalPool, poolDashboardStatus } from './pool-state'
 
 export const DASHBOARD_CACHE_MAX_AGE_MS = 5 * 60 * 1000
-export const DASHBOARD_LIVE_SCORE_POLL_INTERVAL_MS = 30 * 1000
+export const DASHBOARD_LIVE_SCORE_POLL_INTERVAL_MS = 60 * 1000
 export const DASHBOARD_METADATA_REFRESH_INTERVAL_MS = 5 * 60 * 1000
 
 export type DashboardPerformanceTournament = {

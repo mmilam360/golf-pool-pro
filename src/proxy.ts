@@ -3,6 +3,11 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  const protectedPaths = ['/dashboard', '/pool/create', '/manage-pools', '/account']
+  const isProtected = protectedPaths.some(p => pathname.startsWith(p))
+  if (!isProtected) return NextResponse.next()
+
   let response = NextResponse.next({ request })
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -18,30 +23,14 @@ export async function proxy(request: NextRequest) {
     }
   )
   const { data: { user } } = await supabase.auth.getUser()
-  const pathname = request.nextUrl.pathname
-  const protectedPaths = ['/dashboard', '/pool/create', '/manage-pools', '/account']
-  const isProtected = protectedPaths.some(p => pathname.startsWith(p))
-  if (!user && isProtected) {
+
+  if (!user) {
     const url = new URL('/login', request.url)
     const redirectTo = `${pathname}${request.nextUrl.search}`
     url.searchParams.set('redirect', redirectTo)
     return NextResponse.redirect(url)
   }
-  if (user && pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-  if (user && (pathname === '/login' || pathname === '/signup')) {
-    const redirectParam = request.nextUrl.searchParams.get('redirect')
-    if (redirectParam && !redirectParam.includes('\\')) {
-      try {
-        const redirectUrl = new URL(redirectParam, request.url)
-        if (redirectUrl.origin === request.nextUrl.origin && redirectUrl.pathname.startsWith('/')) {
-          return NextResponse.redirect(redirectUrl)
-        }
-      } catch {}
-    }
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+
   return response
 }
 
@@ -51,8 +40,5 @@ export const config = {
     '/manage-pools/:path*',
     '/account/:path*',
     '/pool/create/:path*',
-    '/',
-    '/login',
-    '/signup',
   ],
 }

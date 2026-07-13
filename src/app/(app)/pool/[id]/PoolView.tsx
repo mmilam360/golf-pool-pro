@@ -552,6 +552,8 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [paymentStatus, setPaymentStatus] = useState(getPoolPaymentStatus(pool.payment_status || 'draft', initialActiveEntryCount, Number(pool.amount_paid_cents || 0)))
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [teeTimeZone, setTeeTimeZone] = useState(DEFAULT_TEE_TIME_ZONE)
+  const [pageVisibilityState, setPageVisibilityState] = useState<DocumentVisibilityState | 'prerender' | string>('visible')
+  const [online, setOnline] = useState(true)
   const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>({ type: 'current' })
   const [leaderboardMenuOpen, setLeaderboardMenuOpen] = useState(false)
   const [defaultOpenedEntryId, setDefaultOpenedEntryId] = useState<string | null>(null)
@@ -571,6 +573,23 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   useEffect(() => {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
     if (detected) setTeeTimeZone(detected)
+  }, [])
+
+  useEffect(() => {
+    const updateBrowserState = () => {
+      setPageVisibilityState(typeof document === 'undefined' ? 'visible' : document.visibilityState)
+      setOnline(typeof navigator === 'undefined' ? true : navigator.onLine)
+    }
+
+    updateBrowserState()
+    document.addEventListener('visibilitychange', updateBrowserState)
+    window.addEventListener('online', updateBrowserState)
+    window.addEventListener('offline', updateBrowserState)
+    return () => {
+      document.removeEventListener('visibilitychange', updateBrowserState)
+      window.removeEventListener('online', updateBrowserState)
+      window.removeEventListener('offline', updateBrowserState)
+    }
   }, [])
 
   useEffect(() => {
@@ -735,7 +754,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const tournamentWithCurrentLeaderboard = { ...(tournament || {}), leaderboard_json: leaderboard }
   const effectivePoolState = { ...(pool || {}), is_locked: isLocked }
   const scoringIsLive = tournamentHasScoringEvidence(tournamentWithCurrentLeaderboard)
-  const shouldRefreshLiveScores = Boolean(tournament?.external_id && tournament?.status === 'live')
+  const shouldRefreshLiveScores = Boolean(
+    tournament?.external_id
+    && tournament?.status === 'live'
+    && online
+    && pageVisibilityState !== 'hidden'
+  )
   const tournamentEndDate = getDateOnly(tournament?.end_date)
   const tournamentIsPastOrCompleted = Boolean(
     finalPool(effectivePoolState, tournamentWithCurrentLeaderboard) ||

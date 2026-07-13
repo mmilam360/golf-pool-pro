@@ -2,6 +2,20 @@
 
 import { useEffect } from 'react'
 
+const SERVICE_WORKER_UPDATE_CHECK_KEY = 'gpp_sw_update_checked_at'
+const SERVICE_WORKER_UPDATE_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000
+
+function shouldCheckForServiceWorkerUpdate(now = Date.now()) {
+  try {
+    const lastChecked = Number(window.localStorage.getItem(SERVICE_WORKER_UPDATE_CHECK_KEY) || 0)
+    if (Number.isFinite(lastChecked) && now - lastChecked < SERVICE_WORKER_UPDATE_CHECK_INTERVAL_MS) return false
+    window.localStorage.setItem(SERVICE_WORKER_UPDATE_CHECK_KEY, String(now))
+  } catch {
+    // If storage is unavailable, do the normal update check.
+  }
+  return true
+}
+
 function activateWaitingWorker(registration: ServiceWorkerRegistration) {
   if (!registration.waiting) return
   registration.waiting.postMessage({ type: 'GPP_SKIP_WAITING' })
@@ -31,7 +45,7 @@ export function ServiceWorkerRegister() {
       .then(registration => {
         if (cancelled) return
         watchForServiceWorkerUpdates(registration)
-        registration.update().catch(() => undefined)
+        if (shouldCheckForServiceWorkerUpdate()) registration.update().catch(() => undefined)
       })
       .catch(() => undefined)
 

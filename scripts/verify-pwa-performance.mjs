@@ -18,7 +18,7 @@ assert.ok(sw.includes("event.data?.type === 'GPP_SKIP_WAITING'"), 'waiting worke
 assert.ok(sw.includes(wordmarkUrl), 'service worker should precache the versioned wordmark')
 assert.ok(manifest.includes("const icon192 = '/icons/icon-192.png?v=4'") && sw.includes("const ICON_192_URL = '/icons/icon-192.png?v=4'"), 'manifest and service worker icon URLs must match')
 assert.ok(nextConfig.includes(wordmarkUrl) && nextConfig.includes('max-age=31536000, immutable'), 'versioned wordmark must receive an immutable cache header')
-assert.ok(home.includes('loading="lazy"\n                  src="/share/final-result-preview.png"'), 'below-fold final-result preview should lazy-load')
+assert.ok(home.includes('loading="lazy"') && home.includes('src="/landing/final-board-iphone-story.webp"'), 'below-fold final-board preview should lazy-load')
 assert.ok(vitals.includes("routeForAnalytics(window.location.pathname)") && vitals.includes("{ includePageProperties: false }"), 'Web Vitals must report normalized routes without page URLs')
 assert.ok(vitals.includes("return '/pool/[id]'") && vitals.includes("return '/leaderboard/[id]'"), 'private route identifiers must be normalized')
 assert.ok(statSync(wordmarkPath).size < 30_000, 'right-sized wordmark should remain below 30 KB')
