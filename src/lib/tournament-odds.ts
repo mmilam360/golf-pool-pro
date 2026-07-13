@@ -130,6 +130,8 @@ type ProcessedBook = {
 export const DEFAULT_GOLFER_NAME_ALIASES: Record<string, string> = {
   'Bob MacIntyre': 'Robert MacIntyre',
   'Robert McIntyre': 'Robert MacIntyre',
+  'Matthew Fitzpatrick': 'Matt Fitzpatrick',
+  'Christopher Gotterup': 'Chris Gotterup',
   'Tom Kim': 'Tom Kim',
   'Joohyung Kim': 'Tom Kim',
   'Ben An': 'Byeong Hun An',
@@ -460,11 +462,10 @@ function processBookmakerMarket({
   if (outcomes.length === 0) return { book: null, duplicateMatches: [] }
 
   const bookKey = bookmaker.key || bookmaker.title || 'bookmaker'
-  const rawQuotes: Array<Omit<MatchedQuote, 'normalizedProbability' | 'bookKey'> & { bookKey?: string }> = []
+  type RawQuote = Omit<MatchedQuote, 'normalizedProbability' | 'bookKey'> & { bookKey?: string }
+  const rawQuotesByFieldId = new Map<string, RawQuote>()
   const unmatchedOutcomes: string[] = []
   const duplicateMatches: string[] = []
-  const seenFieldIds = new Set<string>()
-  let totalRawProbability = 0
 
   for (const outcome of outcomes) {
     const outcomeName = typeof outcome?.name === 'string' ? outcome.name.trim() : ''
@@ -475,7 +476,6 @@ function processBookmakerMarket({
     const decimalOdds = americanOddsToDecimal(price)
     if (!Number.isFinite(rawProbability) || rawProbability <= 0 || !Number.isFinite(decimalOdds) || decimalOdds <= 1) continue
 
-    totalRawProbability += rawProbability
     const match = matchOutcomeToField(outcomeName, fieldIndex)
     if (match.duplicate) {
       duplicateMatches.push(match.duplicate)
@@ -485,19 +485,22 @@ function processBookmakerMarket({
       unmatchedOutcomes.push(outcomeName)
       continue
     }
-    if (seenFieldIds.has(match.entry.id)) {
-      duplicateMatches.push(outcomeName)
-      continue
-    }
-    seenFieldIds.add(match.entry.id)
-    rawQuotes.push({
+
+    const quote = {
       player: match.entry,
       outcomeName,
       americanOdds: price,
       decimalOdds,
       rawProbability,
-    })
+    }
+    const existingQuote = rawQuotesByFieldId.get(match.entry.id)
+    if (!existingQuote || quote.rawProbability > existingQuote.rawProbability) {
+      rawQuotesByFieldId.set(match.entry.id, quote)
+    }
   }
+
+  const rawQuotes = Array.from(rawQuotesByFieldId.values())
+  const totalRawProbability = rawQuotes.reduce((sum, quote) => sum + quote.rawProbability, 0)
 
   if (duplicateMatches.length > 0) return { book: null, duplicateMatches }
   if (totalRawProbability <= 0 || rawQuotes.length === 0) return { book: null, duplicateMatches: [] }

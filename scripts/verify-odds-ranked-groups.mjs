@@ -239,13 +239,19 @@ const duplicateSnapshot = buildTournamentOddsSnapshot({
       outcome('Scottie Scheffler', 650),
       outcome('Rory McIlroy', 600),
       outcome('Ludvig Aberg', 1200),
+      outcome('Hideki Matsuyama', 1800),
       outcome('Robert MacIntyre', 4500),
     ])],
   })],
   capturedAt,
   now: capturedAt,
 })
-assert.match(duplicateSnapshot.fallbackReason || '', /duplicate/, 'duplicate provider participants fail closed')
+assert.equal(duplicateSnapshot.status, 'ok', 'duplicate provider rows for the same golfer are deduped, not market-fatal')
+assert.equal(
+  duplicateSnapshot.odds.find(odd => odd.playerName === 'Scottie Scheffler')?.americanOdds,
+  650,
+  'duplicate provider rows keep the strongest available line for that golfer within a book'
+)
 
 const randomWithOdds = buildPickGroups({ field, format: 'random_groups', groupCount: 3, seed: 'chaos', oddsSnapshot })
 const randomWithoutOdds = buildPickGroups({ field, format: 'random_groups', groupCount: 3, seed: 'chaos' })
