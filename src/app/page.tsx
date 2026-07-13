@@ -510,9 +510,9 @@ export default function Home() {
           </div>
           <div className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
             {pricingRows.map(([label, detail]) => (
-              <div key={label} className="grid grid-cols-[1fr_auto] items-center border-b-2 border-[#123c2f] px-5 py-5 last:border-b-0">
-                <span className="font-black uppercase tracking-[0.04em] text-[#1f2a24]">{label}</span>
-                <span className="font-display text-2xl font-black leading-none text-[#005b3c] sm:text-3xl">{detail}</span>
+              <div key={label} className="grid grid-cols-[1fr_auto] items-center gap-3 border-b-2 border-[#123c2f] px-5 py-5 last:border-b-0">
+                <span className="text-sm font-black uppercase tracking-[0.04em] text-[#1f2a24] sm:text-base">{label}</span>
+                <span className="font-display text-lg font-black leading-none text-[#005b3c] sm:text-3xl">{detail}</span>
               </div>
             ))}
             <div className="border-t-2 border-[#123c2f] bg-[#fbf7ed] px-5 py-4 text-sm font-semibold leading-6 text-[#4f5b52]">
