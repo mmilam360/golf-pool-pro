@@ -1,6 +1,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
+const qrSignupUrl = 'https://www.golfpoolspro.com/'
+
 const leaderboardRows = [
   {
     rank: '1',
@@ -426,19 +428,32 @@ export default function Home() {
               <p className="mt-4 max-w-xl leading-7 text-[#657168]">
                 Built for bars, clubs, offices, and weekend groups. Make a tournament poster with the join code, QR code, format, rules, and your own note.
               </p>
+              <a href={qrSignupUrl} className="mt-6 flex w-fit items-center gap-3 border-2 border-[#123c2f] bg-[#fffdf8] p-3 shadow-[4px_4px_0_#d8cab0]" aria-label="Open the Golf Pools Pro homepage">
+                <Image
+                  unoptimized
+                  src="/landing/homepage-qr.svg"
+                  alt="QR code linking to the Golf Pools Pro homepage"
+                  width={96}
+                  height={96}
+                  className="h-24 w-24"
+                />
+                <span className="max-w-40 text-left">
+                  <span className="block text-xs font-black uppercase tracking-[0.12em] text-[#123c2f]">Scan the sample code</span>
+                  <span className="mt-1 block text-xs leading-5 text-[#657168]">Opens golfpoolspro.com</span>
+                </span>
+              </a>
             </div>
-            <div className="border-2 border-[#123c2f] bg-[#fbf7ed] p-5">
-              <div className="border-2 border-[#123c2f] bg-white p-5 text-center shadow-[5px_5px_0_#d8cab0]">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a6724]">Scan to join</p>
-                <div className="mx-auto mt-4 grid h-36 w-36 grid-cols-5 gap-1 border-2 border-[#123c2f] bg-white p-2" aria-hidden="true">
-                  {Array.from({ length: 25 }).map((_, index) => (
-                    <span key={index} className={(index % 2 === 0 || [6, 8, 16, 18].includes(index)) ? 'bg-[#123c2f]' : 'bg-[#fbf7ed]'} />
-                  ))}
-                </div>
-                <p className="mx-auto mt-4 max-w-xs text-sm font-semibold leading-6 text-[#4f5b52]">
-                  Add the poster to the bar, clubhouse counter, office wall, or group email.
-                </p>
-              </div>
+            <div className="border-2 border-[#123c2f] bg-[#fbf7ed] p-3 shadow-[5px_5px_0_#d8cab0] sm:p-4">
+              <Image
+                unoptimized
+                src="/landing/sample-poster-on-wall.webp"
+                alt="Sample Golf Pools Pro signup poster taped to a clubhouse wall"
+                width={1536}
+                height={1024}
+                loading="lazy"
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="h-auto w-full border-2 border-[#123c2f]"
+              />
             </div>
           </div>
         </section>
@@ -470,18 +485,17 @@ export default function Home() {
                 When the tournament ends, the standings are ready to send back to the group. No rebuilding a recap from screenshots and scorecards.
               </p>
             </div>
-            <div className="mx-auto w-full max-w-[430px]">
-              <div className="border-2 border-[#f3df9c] bg-[#fbf7ed] p-3 shadow-[10px_10px_0_#001f17]">
-                <Image
-                  unoptimized
-                  loading="lazy"
-                  src="/share/final-result-preview.png"
-                  alt="Golf Pools Pro final board share preview"
-                  width={1080}
-                  height={1920}
-                  className="h-auto w-full"
-                />
-              </div>
+            <div className="mx-auto w-full max-w-[390px]">
+              <Image
+                unoptimized
+                loading="lazy"
+                src="/landing/final-board-iphone-story.webp"
+                alt="Golf Pools Pro final board shared as an Instagram Story on an iPhone 17 Pro"
+                width={1350}
+                height={2760}
+                sizes="(min-width: 768px) 390px, 90vw"
+                className="h-auto w-full drop-shadow-[10px_12px_0_#001f17]"
+              />
             </div>
           </div>
         </section>
