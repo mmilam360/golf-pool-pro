@@ -33,7 +33,42 @@ function compactValue(value: unknown, depth = 0): unknown {
   return String(value)
 }
 
-async function recordCronRun(params: {
+function dedupeKey(route: string, startedAt: Date) {
+  return `${route}:${startedAt.toISOString().slice(0, 16)}`
+}
+
+async function startCronRun(route: string, startedAt: Date): Promise<{ id?: string; duplicate: boolean }> {
+  try {
+    const supabase = createServiceClient() as any
+    const { data, error } = await supabase
+      .from('gpp_cron_runs')
+      .insert({
+        route,
+        started_at: startedAt.toISOString(),
+        finished_at: startedAt.toISOString(),
+        duration_ms: 0,
+        status: 'running',
+        response: { ok: true, status: 'running' },
+        dedupe_key: dedupeKey(route, startedAt),
+      })
+      .select('id')
+      .single()
+
+    if (error) {
+      if (error.code === '23505') return { duplicate: true }
+      console.warn('[cron] failed to start cron run', error.message)
+      return { duplicate: false }
+    }
+
+    return { id: data?.id, duplicate: false }
+  } catch (error) {
+    console.warn('[cron] failed to start cron run', errorMessage(error))
+    return { duplicate: false }
+  }
+}
+
+async function finishCronRun(params: {
+  id?: string
   route: string
   startedAt: Date
   finishedAt: Date
@@ -43,7 +78,7 @@ async function recordCronRun(params: {
 }) {
   try {
     const supabase = createServiceClient() as any
-    const { error } = await supabase.from('gpp_cron_runs').insert({
+    const row = {
       route: params.route,
       started_at: params.startedAt.toISOString(),
       finished_at: params.finishedAt.toISOString(),
@@ -51,10 +86,15 @@ async function recordCronRun(params: {
       status: params.status,
       response: compactValue(params.response),
       error: params.error || null,
-    })
-    if (error) console.warn('[cron] failed to record cron run', error.message)
+    }
+
+    const { error } = params.id
+      ? await supabase.from('gpp_cron_runs').update(row).eq('id', params.id)
+      : await supabase.from('gpp_cron_runs').insert(row)
+
+    if (error) console.warn('[cron] failed to finish cron run', error.message)
   } catch (error) {
-    console.warn('[cron] failed to record cron run', errorMessage(error))
+    console.warn('[cron] failed to finish cron run', errorMessage(error))
   }
 }
 
@@ -64,11 +104,16 @@ export async function runCronRoute(request: Request, handler: () => Promise<Cron
 
   const route = routeFromRequest(request)
   const startedAt = new Date()
+  const run = await startCronRun(route, startedAt)
+  if (run.duplicate) {
+    return NextResponse.json({ ok: true, skipped: true, reason: 'duplicate cron run' })
+  }
 
   try {
     const result = await handler()
     const body = { ok: true, ...result }
-    await recordCronRun({
+    await finishCronRun({
+      id: run.id,
       route,
       startedAt,
       finishedAt: new Date(),
@@ -79,7 +124,8 @@ export async function runCronRoute(request: Request, handler: () => Promise<Cron
   } catch (error) {
     const message = errorMessage(error)
     const body = { ok: false, error: message }
-    await recordCronRun({
+    await finishCronRun({
+      id: run.id,
       route,
       startedAt,
       finishedAt: new Date(),
