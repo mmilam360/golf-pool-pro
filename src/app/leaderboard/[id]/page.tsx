@@ -65,11 +65,11 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
     <main className="min-h-screen bg-[#fbf7ed] px-4 py-6 text-[#1f2a24] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         {preLockJoinOpen && (
-          <section className="mb-6 border-2 border-[#123c2f] bg-white p-4 shadow-[5px_5px_0_#d8cab0] sm:flex sm:items-center sm:justify-between sm:gap-4">
-            <p className="font-display text-2xl font-black uppercase leading-tight text-[#123c2f]">Trying to join this pool?</p>
-            <div className="mt-4 flex flex-col gap-2 sm:mt-0 sm:min-w-[180px]">
-              <Link href={joinHref} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]">Join pool</Link>
-              <Link href={signInHref} className="border border-[#d8cab0] bg-[#fbf7ed] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.08em] text-[#123c2f] hover:border-[#123c2f] hover:bg-white">Sign in</Link>
+          <section className="mb-4 border border-[#d8cab0] bg-white px-3 py-2.5 shadow-[3px_3px_0_#e7dbc3] sm:flex sm:items-center sm:justify-between sm:gap-3">
+            <p className="text-sm font-black uppercase tracking-[0.08em] text-[#123c2f]">Trying to join this pool?</p>
+            <div className="mt-2 flex flex-col items-stretch sm:mt-0 sm:min-w-[150px] sm:items-center">
+              <Link href={joinHref} className="inline-flex justify-center border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]">Join pool</Link>
+              <Link href={signInHref} className="mt-1 text-center text-xs font-semibold text-[#657168] underline-offset-2 hover:text-[#123c2f] hover:underline">or log in</Link>
             </div>
           </section>
         )}
