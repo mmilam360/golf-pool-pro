@@ -65,10 +65,16 @@ export default async function PublicLeaderboardPage({ params, searchParams }: { 
     <main className="min-h-screen bg-[#fbf7ed] px-4 py-6 text-[#1f2a24] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         {preLockJoinOpen && (
-          <section className="mb-4 border border-[#d8cab0] bg-white px-3 py-2.5 shadow-[3px_3px_0_#e7dbc3] sm:flex sm:items-center sm:justify-between sm:gap-3">
-            <p className="text-sm font-black uppercase tracking-[0.08em] text-[#123c2f]">Trying to join this pool?</p>
-            <div className="mt-2 flex flex-col items-stretch sm:mt-0 sm:min-w-[150px] sm:items-center">
-              <Link href={joinHref} className="inline-flex justify-center border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-white hover:bg-[#0f2f25]">Join pool</Link>
+          <section className="mb-4 overflow-hidden border-2 border-[#123c2f] bg-[#fbf7ed] shadow-[4px_4px_0_#d8cab0] sm:inline-flex sm:items-stretch">
+            <div className="flex min-w-0 items-stretch">
+              <div className="w-2 bg-[#123c2f]" aria-hidden="true" />
+              <div className="px-3 py-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#b58a3a]">Pool open</p>
+                <p className="text-sm font-black uppercase tracking-[0.08em] text-[#123c2f]">Trying to join this pool?</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-stretch border-t border-[#d8cab0] bg-white px-3 py-2 sm:min-w-[160px] sm:items-center sm:justify-center sm:border-l sm:border-t-0">
+              <Link href={joinHref} className="inline-flex justify-center border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-white shadow-[2px_2px_0_#b58a3a] hover:bg-[#0f2f25]">Join pool</Link>
               <Link href={signInHref} className="mt-1 text-center text-xs font-semibold text-[#657168] underline-offset-2 hover:text-[#123c2f] hover:underline">or log in</Link>
             </div>
           </section>
