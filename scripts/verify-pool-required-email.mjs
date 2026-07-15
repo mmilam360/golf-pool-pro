@@ -13,7 +13,10 @@ function expect(source, snippet, label) {
 const schemaMigration = read('supabase/migrations/20260713_01_require_pool_entry_email.sql')
 const enforcementMigration = read('supabase/migrations/20260713_02_enforce_entry_identity_and_email.sql')
 const databaseTypes = read('src/types/database.ts')
-const createPage = read('src/app/(app)/pool/create/page.tsx')
+const createPagePath = fs.existsSync('src/app/(app)/pool/create/CreatePoolClient.tsx')
+  ? 'src/app/(app)/pool/create/CreatePoolClient.tsx'
+  : 'src/app/(app)/pool/create/page.tsx'
+const createPage = read(createPagePath)
 const joinPage = read('src/app/(app)/pool/join/page.tsx')
 const poolView = read('src/app/(app)/pool/[id]/PoolView.tsx')
 const inviteActions = read('src/app/(app)/pool-invites/actions.ts')

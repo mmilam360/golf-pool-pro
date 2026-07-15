@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 const groupedGrid = readFileSync(new URL('../src/components/GroupedPickGrid.tsx', import.meta.url), 'utf8')
 const poolView = readFileSync(new URL('../src/app/(app)/pool/[id]/PoolView.tsx', import.meta.url), 'utf8')
 const poolPage = readFileSync(new URL('../src/app/(app)/pool/[id]/page.tsx', import.meta.url), 'utf8')
-const createPage = readFileSync(new URL('../src/app/(app)/pool/create/page.tsx', import.meta.url), 'utf8')
+const createPageUrl = existsSync(new URL('../src/app/(app)/pool/create/CreatePoolClient.tsx', import.meta.url))
+  ? new URL('../src/app/(app)/pool/create/CreatePoolClient.tsx', import.meta.url)
+  : new URL('../src/app/(app)/pool/create/page.tsx', import.meta.url)
+const createPage = readFileSync(createPageUrl, 'utf8')
 
 assert.match(groupedGrid, /rankSource/, 'new ranked snapshots identify their ranking source')
 assert.match(

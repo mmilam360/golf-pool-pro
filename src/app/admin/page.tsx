@@ -1,5 +1,7 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import AppHeader from '@/components/AppHeader'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isGppAdminUser } from '@/lib/admin-access'
@@ -189,26 +191,47 @@ export default async function AdminPage() {
   const data = await getAdminDashboardData(createServiceClient())
 
   return (
-    <div className="space-y-8">
-      <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
-        <div className="border-b border-[#d8cab0] bg-[#123c2f] px-4 py-5 text-white sm:px-5">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Private admin</p>
-          <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h1 className="font-display text-3xl font-bold uppercase sm:text-4xl">GPP admin board</h1>
-              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#f2ead7]">Pools, runners, tournament totals, entries, and payment status in one place.</p>
+    <div className="min-h-screen scorecard-paper text-[#1f2a24]">
+      <Suspense fallback={<AppHeader />}>
+        <AppHeader showAdmin />
+      </Suspense>
+      <main className="mx-auto max-w-7xl flex-1 px-4 py-8 sm:px-5 md:px-8 md:py-10">
+        <div className="space-y-8">
+          <section className="border-2 border-[#123c2f] bg-white shadow-[7px_7px_0_#d8cab0]">
+            <div className="border-b border-[#d8cab0] bg-[#123c2f] px-4 py-5 text-white sm:px-5">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#d7c99f]">Private admin</p>
+              <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h1 className="font-display text-3xl font-bold uppercase sm:text-4xl">GPP admin board</h1>
+                  <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#f2ead7]">Pools, runners, tournament totals, entries, and payment status in one place.</p>
+                </div>
+                <Link href="/dashboard" className="w-fit border border-[#d8cab0] bg-[#f3df9c] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-[#0f2f25]">Back to dashboard</Link>
+              </div>
             </div>
-            <Link href="/dashboard" className="w-fit border border-[#d8cab0] bg-[#f3df9c] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-[#0f2f25]">Back to dashboard</Link>
-          </div>
-        </div>
-        <div className="grid gap-4 bg-[#fbf7ed] p-4 sm:grid-cols-2 lg:grid-cols-4">
-          {data.stats.map(stat => <StatCard key={stat.label} {...stat} />)}
-        </div>
-      </section>
+            <div className="grid gap-4 bg-[#fbf7ed] p-4 sm:grid-cols-2 lg:grid-cols-4">
+              {data.stats.map(stat => <StatCard key={stat.label} {...stat} />)}
+            </div>
+          </section>
 
-      <TournamentTable rows={data.tournaments} />
-      <RunnerTable rows={data.runners} />
-      <PoolTable rows={data.pools} />
+          <TournamentTable rows={data.tournaments} />
+          <RunnerTable rows={data.runners} />
+          <PoolTable rows={data.pools} />
+        </div>
+      </main>
+      <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-5 text-center text-sm text-[#657168]">
+        <div>
+          <Link href="/rules" className="font-semibold hover:text-[#123c2f]">Rules</Link>
+          <span className="mx-3">/</span>
+          <Link href="/blog?from=dashboard" className="font-semibold hover:text-[#123c2f]">Pick Guides</Link>
+          <span className="mx-3">/</span>
+          <Link href="/help" className="font-semibold hover:text-[#123c2f]">Help</Link>
+          <span className="mx-3">/</span>
+          <Link href="/privacy" className="font-semibold hover:text-[#123c2f]">Privacy Policy</Link>
+          <span className="mx-3">/</span>
+          <Link href="/terms" className="font-semibold hover:text-[#123c2f]">Terms</Link>
+        </div>
+        <p className="mt-3 text-xs">© {new Date().getFullYear()} Golf Pools Pro. All rights reserved.</p>
+      </footer>
     </div>
   )
 }

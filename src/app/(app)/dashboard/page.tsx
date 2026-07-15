@@ -1,4 +1,4 @@
-export const runtime = 'edge';
+export const runtime = 'nodejs'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'

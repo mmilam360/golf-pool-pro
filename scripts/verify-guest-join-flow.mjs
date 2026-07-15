@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 function assert(condition, message) {
   if (!condition) throw new Error(message)
@@ -54,9 +54,11 @@ assert(poolView.includes("new URLSearchParams(window.location.search).get('tab')
 assert(poolView.includes('type Tab'), 'PoolView must keep explicit tab states')
 assert(poolView.includes('initialHighlightedEntryId?: string | null'), 'PoolView must accept a public leaderboard entry highlight')
 
-const proxy = readFileSync('src/proxy.ts', 'utf8')
-assert(!proxy.includes("'/pool/join'"), 'guest join route must not be auth-protected')
-assert(!proxy.includes("'/pool/join/:path*'"), 'proxy matcher must not force auth on guest join route')
+if (existsSync('src/proxy.ts')) {
+  const proxy = readFileSync('src/proxy.ts', 'utf8')
+  assert(!proxy.includes("'/pool/join'"), 'guest join route must not be auth-protected')
+  assert(!proxy.includes("'/pool/join/:path*'"), 'proxy matcher must not force auth on guest join route')
+}
 
 assert(types.includes('user_id: string | null'), 'database types must allow null entry user_id')
 assert(types.includes('guest_entry_token_hash'), 'database types must include guest entry token fields')

@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 const migration = readFileSync('supabase/migrations/20260617_harden_client_rls_surface.sql', 'utf8')
-const createPool = readFileSync('src/app/(app)/pool/create/page.tsx', 'utf8')
+const createPoolPath = existsSync('src/app/(app)/pool/create/CreatePoolClient.tsx')
+  ? 'src/app/(app)/pool/create/CreatePoolClient.tsx'
+  : 'src/app/(app)/pool/create/page.tsx'
+const createPool = readFileSync(createPoolPath, 'utf8')
 
 assert.ok(
   migration.includes('revoke insert, update, delete on table public.gpp_entries from anon;'),

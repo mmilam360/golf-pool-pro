@@ -1,4 +1,4 @@
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
