@@ -4,11 +4,14 @@ import { createServerClient } from '@supabase/ssr'
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
-  const protectedPaths = ['/dashboard', '/pool/create', '/manage-pools', '/account']
+  const protectedPaths = ['/dashboard', '/pool/create', '/manage-pools', '/account', '/admin']
   const isProtected = protectedPaths.some(p => pathname.startsWith(p))
   if (!isProtected) return NextResponse.next()
 
-  let response = NextResponse.next({ request })
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-gpp-pathname', pathname)
+
+  let response = NextResponse.next({ request: { headers: requestHeaders } })
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -16,7 +19,7 @@ export async function proxy(request: NextRequest) {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
+          response = NextResponse.next({ request: { headers: requestHeaders } })
           cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
         },
       },
@@ -39,6 +42,7 @@ export const config = {
     '/dashboard/:path*',
     '/manage-pools/:path*',
     '/account/:path*',
+    '/admin/:path*',
     '/pool/create/:path*',
   ],
 }

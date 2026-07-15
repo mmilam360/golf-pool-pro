@@ -1,9 +1,11 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import AppHeader from '@/components/AppHeader'
 import RunnerIncompletePicksReminder from '@/components/RunnerIncompletePicksReminder'
 import FullNameConfirmationPrompt from '@/components/FullNameConfirmationPrompt'
 import { createClient } from '@/lib/supabase/server'
+import { isGppAdminUser } from '@/lib/admin-access'
 import { totalPicksRequired } from '@/lib/pick-counts'
 import { entryNeedsConfirmedFullName, hasConfirmedFullName } from '@/lib/full-name-confirmation'
 import { poolIsPastMissingPicksReminderGracePeriod } from '@/lib/incomplete-picks-reminder'
@@ -187,13 +189,29 @@ async function AppShellPrompts() {
   )
 }
 
+async function AppHeaderWithAdmin() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return <AppHeader showAdmin={isGppAdminUser(user)} />
+}
+
+async function AppShellPromptsForRoute() {
+  const headerStore = await headers()
+  const pathname = headerStore.get('x-gpp-pathname') || ''
+
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) return null
+  return <AppShellPrompts />
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen scorecard-paper text-[#1f2a24]">
-      <AppHeader />
+      <Suspense fallback={<AppHeader />}>
+        <AppHeaderWithAdmin />
+      </Suspense>
       <main className="mx-auto max-w-7xl flex-1 px-4 py-8 sm:px-5 md:px-8 md:py-10">{children}</main>
       <Suspense fallback={null}>
-        <AppShellPrompts />
+        <AppShellPromptsForRoute />
       </Suspense>
       <footer className="border-t border-[#d8cab0] bg-[#fbf7ed] px-5 py-5 text-center text-sm text-[#657168]">
         <div>

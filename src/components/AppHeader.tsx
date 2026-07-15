@@ -7,14 +7,24 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { clearAllDashboardActivePoolsCacheStorage } from '@/lib/dashboard-cache'
 
-const navLinks = [
+type NavLink = {
+  href: string
+  label: string
+  match: string[]
+  secondary?: boolean
+}
+
+const primaryNavLinks: NavLink[] = [
   { href: '/dashboard', label: 'Dashboard', match: ['/dashboard'] },
   { href: '/manage-pools', label: 'Manage Pools', match: ['/manage-pools'] },
   { href: '/account', label: 'Account', match: ['/account'] },
-  { href: '/blog?from=dashboard', label: 'Pick Guides', match: ['/blog'], secondary: true },
 ]
 
-type NavLink = typeof navLinks[number]
+const adminNavLink: NavLink = { href: '/admin', label: 'Admin', match: ['/admin'] }
+
+const secondaryNavLinks: NavLink[] = [
+  { href: '/blog?from=dashboard', label: 'Pick Guides', match: ['/blog'], secondary: true },
+]
 
 function isActive(pathname: string, matches: string[]) {
   return matches.some(match => pathname === match || pathname.startsWith(`${match}/`))
@@ -44,9 +54,12 @@ function SignOutButton({ className = '' }: { className?: string }) {
   )
 }
 
-export default function AppHeader() {
+export default function AppHeader({ showAdmin = false }: { showAdmin?: boolean }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const visibleNavLinks = showAdmin
+    ? [...primaryNavLinks, adminNavLink, ...secondaryNavLinks]
+    : [...primaryNavLinks, ...secondaryNavLinks]
   const searchKey = searchParams.toString()
   const [clientHash, setClientHash] = useState('')
   const currentPath = `${pathname || '/dashboard'}${searchKey ? `?${searchKey}` : ''}${clientHash}`
@@ -96,7 +109,7 @@ export default function AppHeader() {
         <div className="hidden min-w-0 items-center justify-end gap-2 text-sm font-bold text-[#123c2f] md:flex">
           {signedIn ? (
             <>
-              {navLinks.map(link => {
+              {visibleNavLinks.map(link => {
                 const active = isActive(pathname, link.match)
 
                 return (
@@ -126,7 +139,7 @@ export default function AppHeader() {
             </summary>
             <div className="absolute left-0 right-0 top-[calc(100%+12px)] z-[200] border-2 border-[#123c2f] bg-[#fffdf8] p-3 shadow-[5px_5px_0_#d8cab0]">
               <div className="grid text-sm font-bold text-[#123c2f]">
-                {navLinks.map(link => {
+                {visibleNavLinks.map(link => {
                   const active = isActive(pathname, link.match)
 
                   return (
