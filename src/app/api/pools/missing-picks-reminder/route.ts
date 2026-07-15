@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const supabase = createServiceClient() as any
   const { data: pool, error: poolError } = await supabase
     .from('gpp_pools')
-    .select('id, name, owner_id, is_locked, is_completed, pick_count, game_format, group_count, picks_per_group, pick_groups_json, gpp_tournaments(name, status, start_date)')
+    .select('id, name, owner_id, is_locked, is_completed, lock_at, pick_count, game_format, group_count, picks_per_group, pick_groups_json, gpp_tournaments(name, status, start_date)')
     .eq('id', poolId)
     .maybeSingle()
 

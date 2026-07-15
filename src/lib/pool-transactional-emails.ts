@@ -13,6 +13,7 @@ type EntryLike = {
 type PoolLike = {
   id: string
   name?: string | null
+  lock_at?: string | null
 }
 
 type TournamentLike = {
@@ -46,6 +47,36 @@ function rankLabel(value: unknown) {
   const rank = Number(value)
   if (!Number.isFinite(rank) || rank <= 0) return '—'
   return `#${rank}`
+}
+
+function pickDeadlineLabel(pool: PoolLike, tournament: TournamentLike) {
+  const deadline = pool.lock_at ? new Date(pool.lock_at) : null
+  if (deadline && Number.isFinite(deadline.getTime())) {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+      timeZone: 'America/New_York',
+    }).format(deadline)
+  }
+
+  if (tournament.start_date) {
+    const [year, month, day] = tournament.start_date.split('-').map(Number)
+    if (year && month && day) {
+      const startDate = new Date(Date.UTC(year, month - 1, day, 12))
+      return new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'America/New_York',
+      }).format(startDate)
+    }
+  }
+
+  return 'the first tee time'
 }
 
 function emailShell({ preheader, title, bodyHtml, ctaHref, ctaLabel, secondaryHref, secondaryLabel }: {
@@ -102,15 +133,17 @@ export async function sendMissingPicksReminderEmail(params: {
 }) {
   const poolName = params.pool.name || 'your pool'
   const tournamentName = params.tournament.name || 'the tournament'
+  const deadline = pickDeadlineLabel(params.pool, params.tournament)
   const editUrl = await entryEditUrl(params.supabase, params.origin, params.pool.id, params.entry, 'missing_picks_reminder')
-  const subject = `Picks still needed for ${poolName}`
+  const subject = `Get your picks in for ${poolName}`
   const text = [
     `${params.entry.display_name || 'Your entry'}, your picks are not finished yet for ${poolName}.`,
     '',
     `Tournament: ${tournamentName}`,
     `Picks made: ${params.pickCount}/${params.requiredPickCount}`,
+    `Picks are due before the first tee time: ${deadline}.`,
     '',
-    `Finish picks: ${editUrl}`,
+    `Make picks here: ${editUrl}`,
     '',
     'Golf Pools Pro',
   ].join('\n')
@@ -121,12 +154,13 @@ export async function sendMissingPicksReminderEmail(params: {
       <p style="margin:0 0 14px;font-size:16px;"><strong>${escapeHtml(params.entry.display_name || 'Your entry')}</strong>, your picks are not finished yet for <strong>${escapeHtml(poolName)}</strong>.</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 0 18px;border:1px solid #d8cab0;background:#fbf7ed;">
         <tr><td style="padding:12px 14px;border-bottom:1px solid #d8cab0;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Tournament</div><div style="font-size:16px;font-weight:800;color:#123c2f;">${escapeHtml(tournamentName)}</div></td></tr>
-        <tr><td style="padding:12px 14px;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Picks made</div><div style="font-size:16px;font-weight:800;color:#123c2f;">${params.pickCount}/${params.requiredPickCount}</div></td></tr>
+        <tr><td style="padding:12px 14px;border-bottom:1px solid #d8cab0;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Picks made</div><div style="font-size:16px;font-weight:800;color:#123c2f;">${params.pickCount}/${params.requiredPickCount}</div></td></tr>
+        <tr><td style="padding:12px 14px;"><div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a6724;font-weight:800;">Due</div><div style="font-size:16px;font-weight:800;color:#123c2f;">Before the first tee time: ${escapeHtml(deadline)}</div></td></tr>
       </table>
-      <p style="margin:0;color:#657168;font-size:14px;">Finish your card before entries lock.</p>
+      <p style="margin:0;color:#657168;font-size:14px;">Make the rest of your picks before entries lock.</p>
     `,
     ctaHref: editUrl,
-    ctaLabel: 'Finish picks',
+    ctaLabel: 'Make picks here',
   })
   return sendEmail({ to: params.recipient, subject, text, html })
 }

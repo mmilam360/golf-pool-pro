@@ -6,6 +6,9 @@ import { runCronRoute } from '@/lib/cron-run-log'
 import type { GolfPlayer } from '@/lib/golf-api'
 import { hasWeekendCutStatusErrors } from '@/lib/leaderboard-sanity'
 import { totalPicksRequired } from '@/lib/pick-counts'
+import { reserveEmailEvent, finishEmailEvent } from '@/lib/email-events'
+import { entryRecipientEmail, siteOrigin } from '@/lib/pool-email-recipients'
+import { sendMissingPicksReminderEmail } from '@/lib/pool-transactional-emails'
 
 export const runtime = 'nodejs'
 
@@ -21,6 +24,29 @@ function hoursUntil(value?: string | null) {
   const ms = new Date(value).getTime() - Date.now()
   if (!Number.isFinite(ms)) return null
   return ms / (60 * 60 * 1000)
+}
+
+function hoursUntilDate(value: Date) {
+  const ms = value.getTime() - Date.now()
+  if (!Number.isFinite(ms)) return null
+  return ms / (60 * 60 * 1000)
+}
+
+function pickDeadlineAt(pool: any) {
+  if (!pool?.lock_at) return null
+  const deadline = new Date(pool.lock_at)
+  return Number.isFinite(deadline.getTime()) ? deadline : null
+}
+
+function shouldSendMissingPicksEmailNow(pool: any) {
+  const deadline = pickDeadlineAt(pool)
+  if (!deadline) return false
+  const until = hoursUntilDate(deadline)
+  return until !== null && until > 23 && until <= 24
+}
+
+function emailDateKey(value?: Date | null) {
+  return value ? value.toISOString().slice(0, 10) : dateKey()
 }
 
 function hasRecentScores(tournament: any) {
@@ -94,45 +120,103 @@ async function sendOnce(params: {
 async function sendPickDeadlineReminders(supabase: any, prefsByUser: Map<string, Prefs>) {
   const { data: pools, error } = await supabase
     .from('gpp_pools')
-    .select('id, name, is_locked, owner_id, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, gpp_tournaments(name, start_date, status)')
+    .select('id, name, is_locked, owner_id, lock_at, pick_count, count_scores, game_format, group_count, picks_per_group, pick_groups_json, gpp_tournaments(name, start_date, status)')
     .eq('is_completed', false)
   if (error) throw error
 
   let sent = 0
   let candidates = 0
+  let emailSent = 0
+  let emailCandidates = 0
+  let emailSkipped = 0
+  let emailDuplicate = 0
+  let emailNoRecipient = 0
+  const origin = siteOrigin()
+
   for (const pool of pools || []) {
     const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
     if (!tournament || pool.is_locked || tournament.status === 'live' || tournament.status === 'completed') continue
-    const until = hoursUntil(tournament.start_date)
-    if (until === null || until < 0 || until > 36) continue
+
+    const pushUntil = hoursUntil(tournament.start_date)
+    const shouldSendPush = pushUntil !== null && pushUntil >= 0 && pushUntil <= 36
+    const deadline = pickDeadlineAt(pool)
+    const shouldSendEmail = shouldSendMissingPicksEmailNow(pool)
+    if (!shouldSendPush && !shouldSendEmail) continue
 
     const { data: entries } = await supabase
       .from('gpp_entries')
-      .select('id, user_id, display_name, golfer_picks, is_removed')
+      .select('id, user_id, display_name, notification_email, golfer_picks, is_removed')
       .eq('pool_id', pool.id)
       .eq('is_removed', false)
 
     const requiredPickCount = totalPicksRequired(pool)
     for (const entry of entries || []) {
-      if (!entry.user_id) continue
       const pickCount = Array.isArray(entry.golfer_picks) ? entry.golfer_picks.length : 0
       if (pickCount >= requiredPickCount) continue
-      const prefs = prefsByUser.get(entry.user_id)
-      if (!notificationPrefsAllow(prefs, 'pick_deadline')) continue
-      candidates += 1
-      const result = await sendOnce({
-        supabase,
-        userId: entry.user_id,
+
+      if (entry.user_id && shouldSendPush) {
+        const prefs = prefsByUser.get(entry.user_id)
+        if (notificationPrefsAllow(prefs, 'pick_deadline')) {
+          candidates += 1
+          const result = await sendOnce({
+            supabase,
+            userId: entry.user_id,
+            poolId: pool.id,
+            type: 'pick_deadline',
+            dedupeKey: `pick_deadline:${pool.id}:${entry.user_id}:${dateKey(tournament.start_date)}`,
+            title: 'Picks are due soon',
+            body: `${pool.name}: get your golfers in before the first tee time.`,
+          })
+          sent += result.sent
+        }
+      }
+
+      if (!shouldSendEmail) continue
+      emailCandidates += 1
+      const recipient = await entryRecipientEmail(supabase, entry)
+      if (!recipient) {
+        emailNoRecipient += 1
+        continue
+      }
+
+      const event = await reserveEmailEvent(supabase, {
         poolId: pool.id,
-        type: 'pick_deadline',
-        dedupeKey: `pick_deadline:${pool.id}:${entry.user_id}:${dateKey(tournament.start_date)}`,
-        title: 'Picks are due soon',
-        body: `${pool.name}: get your golfers in before the first tee time.`,
+        entryId: entry.id,
+        emailType: 'missing_picks_reminder',
+        dedupeKey: `missing_picks:${pool.id}:${entry.id}:${emailDateKey(deadline)}`,
+        recipient,
+        payload: { poolName: pool.name, entryName: entry.display_name, pickCount, requiredPickCount },
       })
-      sent += result.sent
+      if (!event.reserved) {
+        emailDuplicate += 1
+        continue
+      }
+
+      try {
+        const result = await sendMissingPicksReminderEmail({
+          supabase,
+          origin,
+          recipient,
+          pool,
+          tournament,
+          entry,
+          pickCount,
+          requiredPickCount,
+        })
+        if ((result as any)?.sent === false || (result as any)?.skipped) {
+          emailSkipped += 1
+          await finishEmailEvent(supabase, event.id, 'skipped', JSON.stringify(result).slice(0, 300))
+        } else {
+          emailSent += 1
+          await finishEmailEvent(supabase, event.id, 'sent')
+        }
+      } catch (error: any) {
+        emailSkipped += 1
+        await finishEmailEvent(supabase, event.id, 'failed', error?.message || 'Email failed')
+      }
     }
   }
-  return { candidates, sent }
+  return { candidates, sent, emailCandidates, emailSent, emailSkipped, emailDuplicate, emailNoRecipient }
 }
 
 async function sendLeaderboardLiveAlerts(supabase: any, prefsByUser: Map<string, Prefs>, liveTournaments: Map<string, NotificationTournament>) {
