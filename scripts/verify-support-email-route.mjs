@@ -5,7 +5,7 @@ const route = readFileSync('src/app/api/support/request/route.ts', 'utf8')
 const emailHelper = readFileSync('src/lib/email.ts', 'utf8')
 
 assert.ok(route.includes("import { sendEmail } from '@/lib/email'"), 'support requests should use the shared Resend-backed email helper')
-assert.ok(route.includes("process.env.SUPPORT_EMAIL_TO || 'mmilam360@gmail.com'"), 'support requests should default to Michael’s verified support recipient')
+assert.ok(route.includes("process.env.SUPPORT_EMAIL_TO || 'support@golfpoolspro.com'"), 'support requests should default to the support inbox')
 assert.ok(route.includes('replyTo: email'), 'support request notifications should reply to the customer email')
 assert.ok(!route.includes('SUPPORT_TELEGRAM_BOT_TOKEN'), 'support route should no longer depend on Telegram bot env')
 assert.ok(!route.includes('SUPPORT_TELEGRAM_CHAT_ID'), 'support route should no longer depend on Telegram chat env')

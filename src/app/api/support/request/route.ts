@@ -52,7 +52,7 @@ async function notifySupportEmail({
   forwardedFor: string
   userAgent: string
 }) {
-  const supportTo = process.env.SUPPORT_EMAIL_TO || 'mmilam360@gmail.com'
+  const supportTo = process.env.SUPPORT_EMAIL_TO || 'support@golfpoolspro.com'
   const label = supportTypeLabel(type)
   const subject = `Golf Pools Pro ${label} from ${email}`
   const text = [
