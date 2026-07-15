@@ -45,6 +45,7 @@ const checks = [
   ['npm', ['run', 'test:promo-exposure']],
   ['npm', ['run', 'test:golfer-status']],
   ['npm', ['run', 'test:round-leaderboards']],
+  ['npm', ['run', 'test:vercel-request-throttles']],
   ['npm', ['run', 'build']],
 ]
 

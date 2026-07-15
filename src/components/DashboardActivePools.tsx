@@ -1296,7 +1296,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
 
       const nextEntries = await Promise.all(activeExternalIds.map(async externalId => {
         try {
-          const res = await fetch(`/api/tournaments/leaderboard?id=${encodeURIComponent(externalId)}`, { cache: 'no-store' })
+          const res = await fetch(`/api/tournaments/leaderboard?id=${encodeURIComponent(externalId)}`)
           if (!res.ok) return [externalId, null] as const
           const data = await res.json()
           return [externalId, { leaderboard: data.leaderboard || null, cutLine: data.cutLine || null, lastScoresFetch: data.lastScoresFetch || null }] as const
@@ -1314,7 +1314,6 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
       })
     }
 
-    fetchLiveLeaderboards()
     const intervalId = window.setInterval(fetchLiveLeaderboards, DASHBOARD_LIVE_SCORE_POLL_INTERVAL_MS)
     return () => {
       cancelled = true
