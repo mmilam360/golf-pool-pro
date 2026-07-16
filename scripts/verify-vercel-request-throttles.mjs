@@ -9,10 +9,16 @@ const leaderboardApi = readFileSync('src/app/api/tournaments/leaderboard/route.t
 const cronRunLog = readFileSync('src/lib/cron-run-log.ts', 'utf8')
 const vercelConfig = JSON.parse(readFileSync('vercel.json', 'utf8'))
 
-function cronRunsMoreThanHourly(schedule) {
+function isLiveScoreCron(cron) {
+  return cron.path === '/api/cron/sync-tournaments?live=1'
+}
+
+function cronRunsMoreOftenThanAllowed(cron) {
+  const schedule = cron.schedule
   const parts = schedule.trim().split(/\s+/)
   if (parts.length !== 5) return true
   const [minute] = parts
+  if (isLiveScoreCron(cron)) return minute !== '*/5'
   return !/^(?:[0-5]?\d)$/.test(minute)
 }
 
@@ -65,15 +71,25 @@ assert.equal(existsSync('src/proxy.ts'), false, 'proxy middleware should stay re
 
 for (const cron of vercelConfig.crons || []) {
   assert.equal(
-    cronRunsMoreThanHourly(cron.schedule),
+    cronRunsMoreOftenThanAllowed(cron),
     false,
-    `${cron.path} should not be scheduled more often than hourly`
+    `${cron.path} has an unsafe schedule`
   )
 }
 assert.match(
   cronRunLog,
-  /startedAt\.toISOString\(\)\.slice\(0, 13\)/,
-  'cron route dedupe should be hourly so accidental high-frequency callers skip heavy work'
+  /return canonicalDedupeRoute\(route\) === '\/api\/cron\/sync-tournaments\?live=1' \? 5 : 60/,
+  'live score cron should dedupe to five-minute buckets while other cron routes stay hourly'
+)
+assert.match(
+  cronRunLog,
+  /return '\/api\/cron\/sync-tournaments\?live=1'/,
+  'live score cron dedupe should canonicalize query params so cache-busting params cannot bypass the five-minute bucket'
+)
+assert.match(
+  cronRunLog,
+  /bucket\.setUTCMinutes\(Math\.floor\(bucket\.getUTCMinutes\(\) \/ windowMinutes\) \* windowMinutes\)/,
+  'cron route dedupe should bucket executions by the configured safety window'
 )
 
 console.log('Vercel request throttle contracts verified')

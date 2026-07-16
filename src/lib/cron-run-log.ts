@@ -33,8 +33,30 @@ function compactValue(value: unknown, depth = 0): unknown {
   return String(value)
 }
 
+function canonicalDedupeRoute(route: string) {
+  try {
+    const url = new URL(route, 'https://cron.local')
+    if (url.pathname === '/api/cron/sync-tournaments') {
+      const live = url.searchParams.get('live')
+      if (live === '1' || live === 'true') return '/api/cron/sync-tournaments?live=1'
+    }
+  } catch {
+    // Fall back to the raw route below.
+  }
+  return route
+}
+
+function dedupeWindowMinutes(route: string) {
+  return canonicalDedupeRoute(route) === '/api/cron/sync-tournaments?live=1' ? 5 : 60
+}
+
 function dedupeKey(route: string, startedAt: Date) {
-  return `${route}:${startedAt.toISOString().slice(0, 13)}`
+  const canonicalRoute = canonicalDedupeRoute(route)
+  const windowMinutes = dedupeWindowMinutes(canonicalRoute)
+  const bucket = new Date(startedAt)
+  bucket.setUTCSeconds(0, 0)
+  bucket.setUTCMinutes(Math.floor(bucket.getUTCMinutes() / windowMinutes) * windowMinutes)
+  return `${canonicalRoute}:${bucket.toISOString().slice(0, 16)}`
 }
 
 async function startCronRun(route: string, startedAt: Date): Promise<{ id?: string; duplicate: boolean }> {
