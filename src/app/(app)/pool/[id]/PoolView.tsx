@@ -496,6 +496,20 @@ function historicalBoardCaption(mode: LeaderboardMode, hasPlayoffScores: boolean
   return isFinalRound(mode.round, hasPlayoffScores) ? 'Final standings' : `Standings through ${roundMenuLabel(mode.round)}`
 }
 
+function tournamentDateWindowIncludesToday(tournament?: any | null) {
+  const startDate = getDateOnly(tournament?.start_date)
+  if (!startDate) return false
+  const today = todayDateOnly()
+  const endDate = getDateOnly(tournament?.end_date)
+  return startDate <= today && (!endDate || today <= endDate)
+}
+
+function tournamentShouldRefreshLiveScores(tournament?: any | null) {
+  const status = String(tournament?.status || '').toLowerCase()
+  if (status === 'completed') return false
+  return status === 'live' || tournamentDateWindowIncludesToday(tournament)
+}
+
 export default function PoolView({ pool, tournament, entries: initialEntries, myEntry: initialMyEntry, isOwner, userId, previousPlayerCandidates, inviteSummary, publicView = false, guestEntryToken = '', initialHighlightedEntryId = null }: Props) {
   const router = useRouter()
   const guestMode = Boolean(guestEntryToken)
@@ -756,7 +770,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const scoringIsLive = tournamentHasScoringEvidence(tournamentWithCurrentLeaderboard)
   const shouldRefreshLiveScores = Boolean(
     tournament?.external_id
-    && tournament?.status === 'live'
+    && tournamentShouldRefreshLiveScores(tournament)
     && online
     && pageVisibilityState !== 'hidden'
   )

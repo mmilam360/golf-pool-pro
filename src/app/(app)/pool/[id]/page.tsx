@@ -8,6 +8,8 @@ import { buildPreviousPlayerCandidates, summarizeInviteStatuses } from '@/lib/po
 import { hydrateFinalLeaderboard } from '@/lib/fresh-final-leaderboard'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default async function PoolPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ inviteFrom?: string; guest?: string }> }) {
   const { id } = await params

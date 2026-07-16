@@ -54,6 +54,20 @@ export function cachedTournamentStartHasArrived(startDate?: string | null, now =
   return Number.isFinite(parsed.getTime()) && parsed.getTime() <= now.getTime()
 }
 
+export function cachedTournamentDateWindowIncludes(startDate?: string | null, endDate?: string | null, now = new Date()) {
+  if (!startDate) return false
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+  const startOnly = startDate.match(/^(\d{4})-(\d{2})-(\d{2})/)?.[0]
+  const endOnly = endDate?.match(/^(\d{4})-(\d{2})-(\d{2})/)?.[0]
+  if (!startOnly) return false
+  return startOnly <= today && (!endOnly || today <= endOnly)
+}
+
 export function cachedDashboardCardHasScoreSanityRisk(card: DashboardPerformanceCard) {
   return hasWeekendCutStatusErrors(card.tournament?.leaderboard_json)
 }
@@ -88,6 +102,22 @@ export function dashboardLiveTournamentExternalIds<Card extends DashboardPerform
         if (!card.tournament?.external_id) return false
         if (finalPool(card.pool, card.tournament)) return false
         return poolDashboardStatus(card.pool, card.tournament, now) === 'Live'
+          || cachedTournamentDateWindowIncludes(card.tournament.start_date, card.tournament.end_date, now)
+      })
+      .map(card => card.tournament?.external_id)
+      .filter((externalId): externalId is string => Boolean(externalId))
+  ))
+}
+
+export function dashboardMissingLiveTournamentExternalIds<Card extends DashboardPerformanceCard>(cards: Card[], now = new Date()) {
+  return Array.from(new Set(
+    cards
+      .filter(card => {
+        if (!card.tournament?.external_id) return false
+        if (finalPool(card.pool, card.tournament)) return false
+        if (!cachedTournamentDateWindowIncludes(card.tournament.start_date, card.tournament.end_date, now)) return false
+        const leaderboard = Array.isArray(card.tournament.leaderboard_json) ? card.tournament.leaderboard_json : []
+        return leaderboard.length === 0 || !hasOnCourseScores(leaderboard)
       })
       .map(card => card.tournament?.external_id)
       .filter((externalId): externalId is string => Boolean(externalId))

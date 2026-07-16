@@ -34,8 +34,8 @@ assert.doesNotMatch(
 )
 assert.doesNotMatch(
   dashboardActivePools,
-  /fetchLiveLeaderboards\(\)\s*\n\s*const intervalId = window\.setInterval/,
-  'dashboard should not immediately fire an extra live-score request on mount'
+  /\n\s*fetchLiveLeaderboards\(\)\s*\n\s*const intervalId = window\.setInterval/,
+  'dashboard should not unconditionally fire an extra live-score request on mount'
 )
 assert.match(
   poolView,
@@ -51,6 +51,21 @@ assert.match(
   poolView,
   /&& online\s+&& pageVisibilityState !== 'hidden'/,
   'pool live-score polling should stop in hidden or offline tabs'
+)
+assert.match(
+  poolView,
+  /tournamentShouldRefreshLiveScores\(tournament\)/,
+  'pool pages should refresh scores during the tournament date window even if cached server status is stale'
+)
+assert.match(
+  dashboardPerformance,
+  /cachedTournamentDateWindowIncludes\(card\.tournament\.start_date, card\.tournament\.end_date, now\)/,
+  'dashboard live polling should recover when cached server data still says upcoming on tournament morning'
+)
+assert.match(
+  dashboardActivePools,
+  /if \(liveBootstrapExternalIds\.length > 0\) fetchLiveLeaderboards\(\)/,
+  'dashboard may do one bootstrap live-score fetch only for tournament-day cards missing scores'
 )
 assert.match(
   serviceWorkerRegister,

@@ -21,6 +21,7 @@ import { DASHBOARD_ACTIVE_POOLS_CACHE_VERSION, dashboardActivePoolsCacheStorageK
 import {
   DASHBOARD_LIVE_SCORE_POLL_INTERVAL_MS,
   DASHBOARD_METADATA_REFRESH_INTERVAL_MS,
+  dashboardMissingLiveTournamentExternalIds,
   dashboardLiveTournamentExternalIds,
   shouldPollDashboardLiveScores,
   shouldRefreshDashboardMetadata,
@@ -1286,6 +1287,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
   }, [])
 
   const activeExternalIds = useMemo(() => dashboardLiveTournamentExternalIds(cards), [cards])
+  const liveBootstrapExternalIds = useMemo(() => dashboardMissingLiveTournamentExternalIds(cards), [cards])
   const livePollingEnabled = shouldPollDashboardLiveScores({
     snapshot,
     visibilityState: pageVisibilityState,
@@ -1325,12 +1327,13 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
       })
     }
 
+    if (liveBootstrapExternalIds.length > 0) fetchLiveLeaderboards()
     const intervalId = window.setInterval(fetchLiveLeaderboards, DASHBOARD_LIVE_SCORE_POLL_INTERVAL_MS)
     return () => {
       cancelled = true
       window.clearInterval(intervalId)
     }
-  }, [activeExternalIds, livePollingEnabled, snapshot])
+  }, [activeExternalIds, liveBootstrapExternalIds, livePollingEnabled, snapshot])
 
   useEffect(() => {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
