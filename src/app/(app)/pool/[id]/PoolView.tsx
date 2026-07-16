@@ -576,6 +576,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
   const [guestAccountPassword, setGuestAccountPassword] = useState('')
   const [guestAccountLoading, setGuestAccountLoading] = useState(false)
   const [guestAccountError, setGuestAccountError] = useState('')
+  const [guestExistingAccountEmail, setGuestExistingAccountEmail] = useState('')
   const [guestEmailSaving, setGuestEmailSaving] = useState(false)
   const [finalizingGroups, setFinalizingGroups] = useState(false)
   const [missingReminderSending, setMissingReminderSending] = useState(false)
@@ -1048,7 +1049,11 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       body: JSON.stringify({ entryId: myEntry.id, token: guestEntryToken, ...payload }),
     })
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || 'Could not update guest entry.')
+    if (!res.ok) {
+      const error = new Error(data.error || 'Could not update guest entry.') as Error & { data?: any }
+      error.data = data
+      throw error
+    }
     return data.entry
   }, [guestEntryToken, myEntry?.id])
 
@@ -1929,6 +1934,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setMyEntry(updatedEntry)
       setEntries(current => current.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setNotificationEmailValue(email)
+      setGuestExistingAccountEmail('')
       if (!hadNotificationEmail) {
         await fetch('/api/pools/entry-saved-email', {
           method: 'POST',
@@ -1939,6 +1945,12 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       showToast(hadNotificationEmail ? 'Email updated.' : 'Email saved. We sent your entry link.', 'success')
       setGuestSaveStep('account')
     } catch (error: any) {
+      if (error?.data?.accountExists) {
+        setGuestExistingAccountEmail(email)
+        setGuestSaveStep('account')
+        showToast('Sign in to link this entry to your account.', 'info')
+        return
+      }
       showToast(error?.message || 'Could not save email.', 'error')
     } finally {
       setGuestEmailSaving(false)
@@ -1974,7 +1986,13 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
         }),
       })
       const signupData = await signupRes.json().catch(() => ({}))
-      if (!signupRes.ok) throw new Error(signupData.error || 'Could not create account.')
+      if (!signupRes.ok) {
+        if (signupRes.status === 409) {
+          setGuestExistingAccountEmail(email)
+          throw new Error('Sign in to link this entry to your account.')
+        }
+        throw new Error(signupData.error || 'Could not create account.')
+      }
 
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) throw signInError
@@ -2960,26 +2978,39 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                   ) : (
                     <div className="mt-5 border-2 border-[#d8cab0] bg-[#fbf7ed] p-4">
                       <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Optional account</p>
-                      <h4 className="mt-1 text-lg font-black text-[#123c2f]">Add a password</h4>
-                      <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">An account links this entry, gives you a quick My Entry view, lets you edit picks before lock, and makes the next pool faster.</p>
-                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                        <input
-                          type="password"
-                          value={guestAccountPassword}
-                          onChange={event => setGuestAccountPassword(event.target.value)}
-                          placeholder="Create password"
-                          minLength={6}
-                          className="min-w-0 flex-1 border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0]"
-                        />
-                        <button
-                          type="button"
-                          onClick={createGuestAccount}
-                          disabled={guestAccountLoading}
-                          className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black text-white hover:bg-[#0f2f25] disabled:opacity-50"
-                        >
-                          {guestAccountLoading ? 'Creating...' : 'Create account'}
-                        </button>
-                      </div>
+                      {guestExistingAccountEmail ? (
+                        <>
+                          <h4 className="mt-1 text-lg font-black text-[#123c2f]">Sign in to link your entry</h4>
+                          <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">
+                            You already have an account for <span className="font-black text-[#123c2f]">{guestExistingAccountEmail}</span>. Sign in and this entry will land on your profile.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <h4 className="mt-1 text-lg font-black text-[#123c2f]">Add a password</h4>
+                          <p className="mt-1 text-sm font-semibold leading-6 text-stone-600">An account links this entry, gives you a quick My Entry view, lets you edit picks before lock, and makes the next pool faster.</p>
+                        </>
+                      )}
+                      {!guestExistingAccountEmail && (
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                          <input
+                            type="password"
+                            value={guestAccountPassword}
+                            onChange={event => setGuestAccountPassword(event.target.value)}
+                            placeholder="Create password"
+                            minLength={6}
+                            className="min-w-0 flex-1 border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-900 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#d8cab0]"
+                          />
+                          <button
+                            type="button"
+                            onClick={createGuestAccount}
+                            disabled={guestAccountLoading}
+                            className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-sm font-black text-white hover:bg-[#0f2f25] disabled:opacity-50"
+                          >
+                            {guestAccountLoading ? 'Creating...' : 'Create account'}
+                          </button>
+                        </div>
+                      )}
                       {guestAccountError && <p className="mt-2 border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{guestAccountError}</p>}
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <a href={guestLeaderboardUrl} className="border-2 border-[#123c2f] bg-white px-4 py-2 text-center text-sm font-black text-[#123c2f] hover:bg-white">

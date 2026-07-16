@@ -137,7 +137,7 @@ export default function CreatePoolClient() {
   const [picksPerGroup, setPicksPerGroup] = useState<PoolNumber>(DEFAULT_PICKS_PER_GROUP)
   const [obEnabled, setObEnabled] = useState(true)
   const [obPenalty, setObPenalty] = useState<PoolNumber>(2)
-  const [requireEntryEmail, setRequireEntryEmail] = useState(false)
+  const [requireEntryEmail, setRequireEntryEmail] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [cloneSourceId, setCloneSourceId] = useState('')

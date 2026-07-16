@@ -27,6 +27,37 @@ function badRequest(error: string) {
   return NextResponse.json({ error }, { status: 400 })
 }
 
+async function accountExistsForEmail(supabase: any, email: string) {
+  if (!email) return false
+
+  const { data: profile } = await supabase
+    .from('gpp_profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle()
+  if (profile?.id) return true
+
+  try {
+    const { data: authUsers } = await supabase
+      .schema('auth')
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .limit(1)
+    return Boolean(authUsers?.[0]?.id)
+  } catch {
+    return false
+  }
+}
+
+function existingAccountResponse(poolId?: string) {
+  return NextResponse.json({
+    error: 'You already have an account. Sign in to link this entry to your profile.',
+    accountExists: true,
+    poolId: poolId || null,
+  }, { status: 409 })
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const poolId = url.searchParams.get('poolId') || ''
@@ -86,6 +117,10 @@ export async function POST(request: Request) {
     const tournament = Array.isArray(pool.gpp_tournaments) ? pool.gpp_tournaments[0] : pool.gpp_tournaments
     const picksClosed = entryProcessIsClosed(pool, tournament)
     if (picksClosed) return NextResponse.json({ error: 'This pool is locked. Picks have closed.' }, { status: 409 })
+
+    if (notificationEmail && await accountExistsForEmail(supabase, notificationEmail)) {
+      return existingAccountResponse(pool.id)
+    }
 
     const nameTaken = await entryNameTaken(supabase, pool.id, displayName)
     if (nameTaken) return NextResponse.json({ error: DUPLICATE_ENTRY_NAME_MESSAGE }, { status: 409 })
@@ -163,6 +198,9 @@ export async function PATCH(request: Request) {
       const notificationEmail = normalizeGuestEmail(body.notificationEmail)
       if (typeof body.notificationEmail === 'string' && body.notificationEmail.trim() && !notificationEmail) {
         return badRequest(pool.require_entry_email ? 'The pool runner requires a valid email.' : 'Enter a valid email address or leave it blank.')
+      }
+      if (notificationEmail && await accountExistsForEmail(supabase, notificationEmail)) {
+        return existingAccountResponse(entry.pool_id)
       }
       update.notification_email = notificationEmail
     }

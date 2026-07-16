@@ -8,6 +8,7 @@ import { DUPLICATE_ENTRY_NAME_MESSAGE, normalizeEntryName } from '@/lib/entry-na
 import { entryProcessIsClosed } from '@/lib/entry-process-state'
 
 type ResumeEntry = { poolId: string; token: string; poolName: string; tournamentName: string; displayName: string }
+type ExistingAccountPrompt = { email: string; passcode: string }
 
 export default function JoinPoolPage() {
   const [passcode, setPasscode] = useState('')
@@ -23,6 +24,7 @@ export default function JoinPoolPage() {
   const [resumeEntry, setResumeEntry] = useState<ResumeEntry | null>(null)
   const [directPoolLink, setDirectPoolLink] = useState(false)
   const [directPoolName, setDirectPoolName] = useState('')
+  const [existingAccountPrompt, setExistingAccountPrompt] = useState<ExistingAccountPrompt | null>(null)
   const [showBackButton, setShowBackButton] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const [isSignedIn, setIsSignedIn] = useState(false)
@@ -224,6 +226,12 @@ export default function JoinPoolPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
+        if (data?.accountExists) {
+          setExistingAccountPrompt({ email: entrantEmail, passcode: normalizedPasscode })
+          setError('')
+          setLoading(false)
+          return
+        }
         setError(data.error || 'Could not join this pool.')
         setLoading(false)
         return
@@ -363,6 +371,11 @@ export default function JoinPoolPage() {
     return `/login?redirect=${encodeURIComponent(redirect)}`
   }
 
+  function existingAccountLoginHref(prompt: ExistingAccountPrompt) {
+    const redirect = `/pool/join?code=${prompt.passcode}`
+    return `/login?redirect=${encodeURIComponent(redirect)}`
+  }
+
   const showAccountSignIn = authChecked && !isSignedIn
   const showFullNameInput = authChecked && (!isSignedIn || !accountFullNameConfirmed)
   const showPasscodeInput = !directPoolLink
@@ -373,6 +386,29 @@ export default function JoinPoolPage() {
 
   return (
     <div className="mx-auto max-w-xl">
+      {existingAccountPrompt && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0f2f25]/70 px-4" role="dialog" aria-modal="true" aria-labelledby="existing-account-title">
+          <div className="w-full max-w-md border-2 border-[#123c2f] bg-white shadow-[8px_8px_0_#d8cab0]">
+            <div className="border-b border-[#d8cab0] bg-[#fbf7ed] px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8a6724]">Account found</p>
+              <h2 id="existing-account-title" className="mt-1 text-xl font-black text-[#123c2f]">Sign in to link your entry</h2>
+            </div>
+            <div className="space-y-4 p-4">
+              <p className="text-sm font-semibold leading-6 text-stone-700">
+                You already have a Golf Pools Pro account for <span className="font-black text-[#123c2f]">{existingAccountPrompt.email}</span>. Sign in first so this pool entry lands on your profile.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <a href={existingAccountLoginHref(existingAccountPrompt)} className="border-2 border-[#123c2f] bg-[#123c2f] px-4 py-2 text-center text-sm font-black text-white hover:bg-[#0f2f25]">
+                  Sign in
+                </a>
+                <button type="button" onClick={() => setExistingAccountPrompt(null)} className="border border-[#d8cab0] bg-white px-4 py-2 text-sm font-black text-[#123c2f] hover:border-[#123c2f] hover:bg-[#fbf7ed]">
+                  Use different email
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div>
         {showBackButton && <BackButton />}
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Player entry</p>

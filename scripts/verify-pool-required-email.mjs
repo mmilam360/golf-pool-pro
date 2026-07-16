@@ -12,6 +12,7 @@ function expect(source, snippet, label) {
 
 const schemaMigration = read('supabase/migrations/20260713_01_require_pool_entry_email.sql')
 const enforcementMigration = read('supabase/migrations/20260713_02_enforce_entry_identity_and_email.sql')
+const defaultRequiredMigration = read('supabase/migrations/20260716_01_default_pool_entry_email_required.sql')
 const databaseTypes = read('src/types/database.ts')
 const createPagePath = fs.existsSync('src/app/(app)/pool/create/CreatePoolClient.tsx')
   ? 'src/app/(app)/pool/create/CreatePoolClient.tsx'
@@ -25,6 +26,7 @@ const accountRoute = read('src/app/api/pool/account-entry/route.ts')
 const poolRoute = read('src/app/api/pools/[id]/route.ts')
 
 expect(schemaMigration, 'add column if not exists require_entry_email boolean not null default false', 'pool email requirement column')
+expect(defaultRequiredMigration, 'alter column require_entry_email set default true', 'pool email requirement default')
 expect(schemaMigration, 'update public.gpp_entries e', 'confirmed-profile full-name backfill')
 expect(schemaMigration, 'revoke execute on function public.gpp_create_guest_entry(text, text, text[], text) from public, anon, authenticated', 'legacy guest RPC revocation')
 expect(enforcementMigration, 'gpp_enforce_entry_identity_and_email', 'database entry invariant trigger')
@@ -32,16 +34,21 @@ expect(databaseTypes, 'require_entry_email: boolean', 'database pool row type')
 expect(databaseTypes, 'require_entry_email?: boolean', 'database pool write type')
 
 expect(createPage, 'require_entry_email: requireEntryEmail', 'create-pool setting persistence')
+expect(createPage, 'const [requireEntryEmail, setRequireEntryEmail] = useState(true)', 'create-pool default required email')
 expect(createPage, 'full_name: ownerFullName', 'owner entry full name')
 expect(createPage, 'full_name_confirmed_at: profile.full_name_confirmed_at', 'owner entry full-name confirmation')
 expect(createPage, 'Entrants will see that you require this for winner follow-up and settling the pool.', 'runner toggle purpose copy')
 
 expect(joinPage, 'notificationEmail: entrantEmail || null', 'guest email submission')
+expect(joinPage, 'existingAccountPrompt', 'guest join existing-account prompt')
+expect(joinPage, 'Sign in to link your entry', 'guest join sign-in prompt copy')
 expect(joinPage, 'notification_email: pool.require_entry_email ? signedInEmail : null', 'signed-in required email persistence')
 expect(joinPage, 'Email required by pool runner', 'dynamic required-email label')
 expect(joinPage, 'Golf Pools Pro will not use it for marketing.', 'required-email privacy copy')
 
 expect(guestRoute, 'requireEntryEmail: Boolean(pool.require_entry_email)', 'guest lookup requirement response')
+expect(guestRoute, 'accountExistsForEmail', 'guest route existing-account email lookup')
+expect(guestRoute, 'accountExists: true', 'guest route existing-account response flag')
 expect(guestRoute, "if (pool.require_entry_email && !notificationEmail) return badRequest('The pool runner requires a valid email.')", 'guest create enforcement')
 expect(guestRoute, 'if (pool.require_entry_email && !effectiveNotificationEmail)', 'guest update enforcement')
 expect(accountRoute, 'if (pool.require_entry_email)', 'account update enforcement')
@@ -53,6 +60,7 @@ expect(inviteActions, 'full_name_confirmed_at: profile.full_name_confirmed_at', 
 expect(inviteActions, 'notification_email: requiredEmail || null', 'invite required email')
 
 expect(poolView, "action: 'set-entry-email-requirement'", 'runner setting request')
+expect(poolView, 'guestExistingAccountEmail', 'guest saved-email existing-account prompt')
 expect(poolView, 'Email required by pool runner', 'existing guest required-email copy')
 expect(poolView, "Want the leaderboard sent to you?", 'optional email copy')
 expect(poolRoute, "if (action === 'set-entry-email-requirement')", 'owner-only email setting action')
