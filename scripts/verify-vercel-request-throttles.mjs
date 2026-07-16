@@ -6,6 +6,7 @@ const dashboardActivePools = readFileSync('src/components/DashboardActivePools.t
 const poolView = readFileSync('src/app/(app)/pool/[id]/PoolView.tsx', 'utf8')
 const serviceWorkerRegister = readFileSync('src/components/ServiceWorkerRegister.tsx', 'utf8')
 const leaderboardApi = readFileSync('src/app/api/tournaments/leaderboard/route.ts', 'utf8')
+const cronRunLog = readFileSync('src/lib/cron-run-log.ts', 'utf8')
 const vercelConfig = JSON.parse(readFileSync('vercel.json', 'utf8'))
 
 function cronRunsMoreThanHourly(schedule) {
@@ -69,5 +70,10 @@ for (const cron of vercelConfig.crons || []) {
     `${cron.path} should not be scheduled more often than hourly`
   )
 }
+assert.match(
+  cronRunLog,
+  /startedAt\.toISOString\(\)\.slice\(0, 13\)/,
+  'cron route dedupe should be hourly so accidental high-frequency callers skip heavy work'
+)
 
 console.log('Vercel request throttle contracts verified')

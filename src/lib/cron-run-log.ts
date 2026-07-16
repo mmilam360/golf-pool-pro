@@ -34,7 +34,7 @@ function compactValue(value: unknown, depth = 0): unknown {
 }
 
 function dedupeKey(route: string, startedAt: Date) {
-  return `${route}:${startedAt.toISOString().slice(0, 16)}`
+  return `${route}:${startedAt.toISOString().slice(0, 13)}`
 }
 
 async function startCronRun(route: string, startedAt: Date): Promise<{ id?: string; duplicate: boolean }> {
