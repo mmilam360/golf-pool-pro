@@ -18,7 +18,7 @@ function cronRunsMoreOftenThanAllowed(cron) {
   const parts = schedule.trim().split(/\s+/)
   if (parts.length !== 5) return true
   const [minute] = parts
-  if (isLiveScoreCron(cron)) return minute !== '*/5'
+  if (isLiveScoreCron(cron)) return minute !== '*'
   return !/^(?:[0-5]?\d)$/.test(minute)
 }
 
@@ -78,8 +78,8 @@ for (const cron of vercelConfig.crons || []) {
 }
 assert.match(
   cronRunLog,
-  /return canonicalDedupeRoute\(route\) === '\/api\/cron\/sync-tournaments\?live=1' \? 5 : 60/,
-  'live score cron should dedupe to five-minute buckets while other cron routes stay hourly'
+  /return canonicalDedupeRoute\(route\) === '\/api\/cron\/sync-tournaments\?live=1' \? 1 : 60/,
+  'live score cron should dedupe to one-minute buckets while other cron routes stay hourly'
 )
 assert.match(
   cronRunLog,

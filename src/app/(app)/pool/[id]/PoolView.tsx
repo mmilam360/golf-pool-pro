@@ -125,7 +125,7 @@ function formatScore(score: number | null) {
 
 function formatPickScore(pick?: PickScore | null) {
   if (!pick) return ''
-  if (pick.scoreToPar === null) return ''
+  if (pick.scoreToPar === null) return '—'
   return formatScore(pick.scoreToPar)
 }
 
@@ -2778,6 +2778,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
                 leaderboard={leaderboard.length ? leaderboard : field}
                 tournamentName={tournament?.name}
                 lastUpdated={leaderboardLastUpdated}
+                defaultOpen={selectedScoringIsLive}
                 pickedGolfers={myPicks}
                 cutLine={cutLine}
                 pickGroups={groupedFormat ? pickGroups : undefined}

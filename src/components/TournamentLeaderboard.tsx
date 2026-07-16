@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { teeTimeLabel, tournamentThruLabel } from '@/lib/golfer-status'
 import { sortTournamentLeaderboardRows, tournamentPositionLabel, tournamentScoreClass, tournamentScoreLabel } from '@/lib/tournament-leaderboard-display'
 import type { GolfCutLine, GolfPlayer } from '@/lib/golf-api'
+import { normalizePickName } from '@/lib/scoring'
 
 import { groupForPick, type PickGroup } from '@/lib/pool-formats'
 
@@ -20,10 +21,6 @@ type Props = {
 
 const DEFAULT_TEE_TIME_ZONE = 'America/New_York'
 const HYDRATION_SAFE_NOW = new Date(0)
-
-function normalizedName(name?: string | null) {
-  return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ')
-}
 
 function statusLabel(player: GolfPlayer, timeZone: string) {
   return tournamentThruLabel(player, timeZone)
@@ -87,7 +84,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
   if (rows.length === 0) return null
 
   const updated = updatedLabel(lastUpdated, teeTimeZone)
-  const pickedNames = new Set(pickedGolfers.map(normalizedName).filter(Boolean))
+  const pickedNames = new Set(pickedGolfers.map(normalizePickName).filter(Boolean))
   const hasPickedGolfers = pickedNames.size > 0
 
   return (
@@ -124,7 +121,7 @@ export function TournamentLeaderboard({ leaderboard, tournamentName, lastUpdated
             </thead>
             <tbody>
               {displayRows.map((player, index) => {
-                const isPicked = pickedNames.has(normalizedName(player.name))
+                const isPicked = pickedNames.has(normalizePickName(player.name))
                 const showCutLine = !hasOfficialCuts && shouldShowCutLineAfter(displayRows, index, cutLine)
                 const groupLabel = hasGroupBadges ? groupLabelFor(player.name) : null
                 return (

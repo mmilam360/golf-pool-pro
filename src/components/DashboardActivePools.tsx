@@ -404,7 +404,7 @@ function formatScore(score: number | null) {
 
 function formatPickScore(pick?: PickScore | null) {
   if (!pick) return ''
-  if (pick.scoreToPar === null) return ''
+  if (pick.scoreToPar === null) return '—'
   return formatScore(pick.scoreToPar)
 }
 
@@ -1173,6 +1173,17 @@ function buildRankPreview(entry: EntryRecord, pool: PoolRecord, allEntries: Entr
   }
 }
 
+function buildLeaderPreview(pool: PoolRecord, allEntries: EntryRecord[]): RankPreview | null {
+  const leader = buildScoredEntries(pool, allEntries).find(entry => entry.rank === 1 && entry.totalScore !== null)
+  if (!leader) return null
+  return {
+    rank: leader.rank,
+    totalScore: leader.totalScore,
+    todayScore: leader.todayScore,
+    movementToday: null,
+  }
+}
+
 function entryPicks(entry?: EntryRecord | null) {
   if (entry?.picks_hidden) return []
   return Array.isArray(entry?.golfer_picks) ? entry.golfer_picks as string[] : []
@@ -1434,7 +1445,7 @@ export default function DashboardActivePools({ cards, entriesByPool, mode = 'pla
       : tournament
     const effectivePool = effectiveTournament ? { ...pool, gpp_tournaments: effectiveTournament } : pool
     const poolEntries = entriesByPool[pool.id] || (entry ? [entry] : [])
-    const rankPreview = entry ? buildRankPreview(entry, effectivePool, poolEntries) : null
+    const rankPreview = entry ? buildRankPreview(entry, effectivePool, poolEntries) : buildLeaderPreview(effectivePool, poolEntries)
     return {
       ...card,
       effectiveTournament,

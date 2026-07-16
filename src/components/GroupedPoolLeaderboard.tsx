@@ -83,7 +83,7 @@ export function GroupedPoolLeaderboard({
         const isEntryOpen = (openEntryIds?.has(entry.entryId) ?? false) || forceOpenEntryId === entry.entryId
         const groupRows = pickGroups.map(group => {
           const inGroup = entry.pickScores.filter(ps =>
-            group.players.some(p => p.name.trim().toLowerCase() === ps.name.trim().toLowerCase())
+            group.players.some(p => normalizePickName(p.name) === normalizePickName(ps.name))
           )
           return { group, picks: inGroup }
         })
@@ -198,7 +198,7 @@ export function GroupedPoolLeaderboard({
                 </td>
               ) : pickGroups.map(group => {
                 const inGroup = entry.pickScores.filter(ps =>
-                  group.players.some(p => p.name.trim().toLowerCase() === ps.name.trim().toLowerCase())
+                  group.players.some(p => normalizePickName(p.name) === normalizePickName(ps.name))
                 )
                 const cells: (PickScore | null)[] = []
                 for (let i = 0; i < picksPerGroup; i++) cells.push(inGroup[i] ?? null)

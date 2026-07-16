@@ -47,7 +47,7 @@ function canonicalDedupeRoute(route: string) {
 }
 
 function dedupeWindowMinutes(route: string) {
-  return canonicalDedupeRoute(route) === '/api/cron/sync-tournaments?live=1' ? 5 : 60
+  return canonicalDedupeRoute(route) === '/api/cron/sync-tournaments?live=1' ? 1 : 60
 }
 
 function dedupeKey(route: string, startedAt: Date) {
