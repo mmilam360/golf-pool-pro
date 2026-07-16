@@ -96,7 +96,26 @@ export type LeveragePickMap = Map<string, Set<string>>
 export type HorsePickMap = LeveragePickMap
 
 export function normalizePickName(name: string) {
-  return name.trim().toLowerCase()
+  const normalized = name
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/æ/g, 'ae')
+    .replace(/ø/g, 'o')
+    .replace(/å/g, 'a')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const aliases: Record<string, string> = {
+    'dan brown': 'daniel brown',
+    'jose luis ballester': 'josele ballester',
+    'liv grinberg': 'lev grinberg',
+    'bard bjoernevikl skogen': 'bard bjornevik skogen',
+    'bard bjoernevik skogen': 'bard bjornevik skogen',
+  }
+
+  return aliases[normalized] || normalized
 }
 
 export function scoreEntry(
@@ -106,9 +125,10 @@ export function scoreEntry(
   const { countScores, obRuleEnabled, obPenaltyStrokes } = options
   const safeLeaderboard = repairWeekendCutStatuses(leaderboard)
   const pickScores: PickScore[] = picks.map(name => {
+    const normalizedName = normalizePickName(name)
     const player = safeLeaderboard.find(p =>
-      p.name.toLowerCase() === name.toLowerCase() ||
-      `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase()
+      normalizePickName(p.name) === normalizedName ||
+      normalizePickName(`${p.firstName} ${p.lastName}`) === normalizedName
     )
     if (!player) return { name, scoreToPar: null, strokes: null, thru: '', status: 'dnq' as const, counted: false, isObStandIn: false, finalNineScore: null, tiebreakScores: [] }
     const playerTiebreakScores = tiebreakScores(player)
