@@ -23,6 +23,7 @@
     "test:final-result-announcements": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-final-result-announcements.mjs",
     "test:early-field-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-early-field-import.mjs",
     "test:pool-required-email": "node scripts/verify-pool-required-email.mjs",
+    "test:auth-session-persistence": "node scripts/verify-auth-session-persistence.mjs",
     "predeploy:check": "node scripts/predeploy-check.mjs",
     "audit:prod-readiness": "npx tsx scripts/audit-prod-readiness.ts",
     "test:run-it-back": "npx tsx scripts/verify-run-it-back-defaults.mjs",
