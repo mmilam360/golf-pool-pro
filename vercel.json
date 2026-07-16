@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/sync-tournaments?live=1",
-      "schedule": "* * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/sync-tournaments",
@@ -10,11 +10,11 @@
     },
     {
       "path": "/api/cron/refresh-fields",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 */12 * * *"
     },
     {
       "path": "/api/cron/finalize-results",
-      "schedule": "*/10 * * * *"
+      "schedule": "10 * * * *"
     },
     {
       "path": "/api/cron/finalize-grouped-pools",
@@ -26,11 +26,11 @@
     },
     {
       "path": "/api/cron/archive-unpaid-pools",
-      "schedule": "*/30 * * * *"
+      "schedule": "30 * * * *"
     },
     {
       "path": "/api/cron/send-notifications",
-      "schedule": "*/15 * * * *"
+      "schedule": "15 * * * *"
     },
     {
       "path": "/api/cron/send-payment-reminders",

@@ -6,6 +6,14 @@ const dashboardActivePools = readFileSync('src/components/DashboardActivePools.t
 const poolView = readFileSync('src/app/(app)/pool/[id]/PoolView.tsx', 'utf8')
 const serviceWorkerRegister = readFileSync('src/components/ServiceWorkerRegister.tsx', 'utf8')
 const leaderboardApi = readFileSync('src/app/api/tournaments/leaderboard/route.ts', 'utf8')
+const vercelConfig = JSON.parse(readFileSync('vercel.json', 'utf8'))
+
+function cronRunsMoreThanHourly(schedule) {
+  const parts = schedule.trim().split(/\s+/)
+  if (parts.length !== 5) return true
+  const [minute] = parts
+  return !/^(?:[0-5]?\d)$/.test(minute)
+}
 
 assert.match(
   dashboardPerformance,
@@ -53,5 +61,13 @@ assert.match(
   'live leaderboard API should keep a short CDN cache window for many users watching the same tournament'
 )
 assert.equal(existsSync('src/proxy.ts'), false, 'proxy middleware should stay removed; protected routes use server-page auth checks')
+
+for (const cron of vercelConfig.crons || []) {
+  assert.equal(
+    cronRunsMoreThanHourly(cron.schedule),
+    false,
+    `${cron.path} should not be scheduled more often than hourly`
+  )
+}
 
 console.log('Vercel request throttle contracts verified')
