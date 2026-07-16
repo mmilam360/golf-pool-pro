@@ -24,8 +24,8 @@ function cronRunsMoreOftenThanAllowed(cron) {
 
 assert.match(
   dashboardPerformance,
-  /DASHBOARD_LIVE_SCORE_POLL_INTERVAL_MS\s*=\s*5 \* 60 \* 1000/,
-  'dashboard live-score polling should be slower than pool pages because it is not the primary live board'
+  /DASHBOARD_LIVE_SCORE_POLL_INTERVAL_MS\s*=\s*60 \* 1000/,
+  'visible dashboard live-score polling should stay at one minute; hidden/offline tabs remain paused'
 )
 assert.doesNotMatch(
   `${dashboardActivePools}\n${poolView}`,
