@@ -7,6 +7,7 @@ const poolView = readFileSync('src/app/(app)/pool/[id]/PoolView.tsx', 'utf8')
 const serviceWorkerRegister = readFileSync('src/components/ServiceWorkerRegister.tsx', 'utf8')
 const leaderboardApi = readFileSync('src/app/api/tournaments/leaderboard/route.ts', 'utf8')
 const cronRunLog = readFileSync('src/lib/cron-run-log.ts', 'utf8')
+const proxy = existsSync('src/proxy.ts') ? readFileSync('src/proxy.ts', 'utf8') : ''
 const vercelConfig = JSON.parse(readFileSync('vercel.json', 'utf8'))
 
 function isLiveScoreCron(cron) {
@@ -82,7 +83,15 @@ assert.match(
   /s-maxage=45, stale-while-revalidate=90/,
   'live leaderboard API should keep a short CDN cache window for many users watching the same tournament'
 )
-assert.equal(existsSync('src/proxy.ts'), false, 'proxy middleware should stay removed; protected routes use server-page auth checks')
+assert.match(proxy, /await supabase\.auth\.getUser\(\)/, 'auth proxy should refresh Supabase sessions without adding custom polling')
+assert.match(proxy, /'\/dashboard\/:path\*'/, 'auth proxy may run for dashboard pages')
+assert.match(proxy, /'\/account\/:path\*'/, 'auth proxy may run for account pages')
+assert.match(proxy, /'\/manage-pools\/:path\*'/, 'auth proxy may run for manage-pools pages')
+assert.match(proxy, /'\/pool\/:path\*'/, 'auth proxy may run for protected pool pages')
+assert.match(proxy, /'\/admin\/:path\*'/, 'auth proxy may run for admin pages')
+assert.doesNotMatch(proxy, /'\/api\/:path\*'|"\/api\/:path\*"|\/api\//, 'auth proxy must not run for API routes, including live-score polling and crons')
+assert.doesNotMatch(proxy, /'\/leaderboard\/:path\*'|"\/leaderboard\/:path\*"|\/leaderboard\//, 'auth proxy must not run for public leaderboard pages')
+assert.doesNotMatch(proxy, /'\/:path\*'|"\/:path\*"/, 'auth proxy must not become a catch-all edge request hook')
 
 for (const cron of vercelConfig.crons || []) {
   assert.equal(
