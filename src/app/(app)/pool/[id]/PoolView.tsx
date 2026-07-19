@@ -1935,14 +1935,7 @@ export default function PoolView({ pool, tournament, entries: initialEntries, my
       setEntries(current => current.map(entry => entry.id === myEntry.id ? updatedEntry : entry))
       setNotificationEmailValue(email)
       setGuestExistingAccountEmail('')
-      if (!hadNotificationEmail) {
-        await fetch('/api/pools/entry-saved-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ poolId: pool.id, entryId: myEntry.id, token: guestEntryToken }),
-        }).catch(() => {})
-      }
-      showToast(hadNotificationEmail ? 'Email updated.' : 'Email saved. We sent your entry link.', 'success')
+      showToast(hadNotificationEmail ? 'Email updated.' : 'Email saved.', 'success')
       setGuestSaveStep('account')
     } catch (error: any) {
       if (error?.data?.accountExists) {
