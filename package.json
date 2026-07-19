@@ -21,6 +21,7 @@
     "test:golfer-status": "npx tsx scripts/verify-golfer-status-labels.mjs",
     "test:round-leaderboards": "npx tsx scripts/verify-round-leaderboards.mjs",
     "test:final-result-announcements": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-final-result-announcements.mjs",
+    "test:final-result-email-digest": "node scripts/verify-final-result-email-digest.mjs",
     "test:early-field-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-early-field-import.mjs",
     "test:pool-required-email": "node scripts/verify-pool-required-email.mjs",
     "test:auth-session-persistence": "node scripts/verify-auth-session-persistence.mjs",

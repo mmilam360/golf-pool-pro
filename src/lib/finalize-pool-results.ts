@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { GolfPlayer } from './golf-api'
 import { scoreEntriesForLeaderboard } from './scoring'
 import { finalBoardHasEnoughEvidence } from './leaderboard-sanity'
-import { sendFinalResultsEmailsForPool } from './final-results-email'
+import { sendFinalResultsEmailsForPools } from './final-results-email'
 
 export type FinalizeResult = {
   tournamentsChecked: number
@@ -41,6 +41,7 @@ type EntryRow = {
 }
 
 const FINALIZE_LOCK_TIMEOUT_MS = 30 * 60 * 1000
+const FINAL_EMAIL_RETRY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
 function finalizingLockMs(source: string | null | undefined, nowMs: number) {
   if (!String(source || '').startsWith('finalizing:')) return null
@@ -54,13 +55,21 @@ function hasActiveFinalizeLock(pool: PoolRow, nowMs: number) {
   return ageMs !== null && ageMs >= 0 && ageMs < FINALIZE_LOCK_TIMEOUT_MS
 }
 
+function finalizedRecently(value: string | null | undefined, nowMs: number) {
+  if (!value) return false
+  const finalizedAtMs = new Date(value).getTime()
+  if (!Number.isFinite(finalizedAtMs)) return false
+  const ageMs = nowMs - finalizedAtMs
+  return ageMs >= 0 && ageMs <= FINAL_EMAIL_RETRY_WINDOW_MS
+}
+
 function usableLeaderboard(leaderboard: unknown): leaderboard is GolfPlayer[] {
   return Array.isArray(leaderboard) && leaderboard.some(player =>
     player && typeof player === 'object' && typeof (player as GolfPlayer).name === 'string'
   )
 }
 
-async function addFinalEmailResult(result: FinalizeResult, promise: ReturnType<typeof sendFinalResultsEmailsForPool>) {
+async function addFinalEmailResult(result: FinalizeResult, promise: ReturnType<typeof sendFinalResultsEmailsForPools>) {
   const finalEmailResult = await promise
   result.finalEmailsSent += finalEmailResult.sent
   result.finalEmailsNoEmail += finalEmailResult.noEmail
@@ -106,9 +115,12 @@ export async function finalizeCompletedPoolResults(
 
     if (poolsError) throw poolsError
 
+    const emailPoolsById = new Map<string, PoolRow>()
+
     for (const pool of (pools || []) as PoolRow[]) {
       result.poolsChecked++
       if (pool.results_finalized_at) {
+        if (finalizedRecently(pool.results_finalized_at, nowMs)) emailPoolsById.set(pool.id, pool)
         result.skipped++
         continue
       }
@@ -202,10 +214,9 @@ export async function finalizeCompletedPoolResults(
         if (poolUpdateError) throw poolUpdateError
         if (!finalizedPools?.length) throw new Error(`Finalizer lock lost for pool ${pool.id}`)
 
-        await addFinalEmailResult(result, sendFinalResultsEmailsForPool(supabase, { pool, tournament }))
-
         result.entriesUpdated += scoredEntries.length
         result.poolsFinalized++
+        emailPoolsById.set(pool.id, pool)
       } catch (error) {
         if (lockClaimed) {
           await supabase
@@ -218,6 +229,11 @@ export async function finalizeCompletedPoolResults(
         throw error
       }
     }
+
+    await addFinalEmailResult(result, sendFinalResultsEmailsForPools(supabase, {
+      pools: Array.from(emailPoolsById.values()),
+      tournament,
+    }))
   }
 
   return result

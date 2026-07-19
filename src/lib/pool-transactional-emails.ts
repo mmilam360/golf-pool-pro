@@ -358,3 +358,64 @@ export async function sendFinalResultsEmail(params: {
   })
   return sendEmail({ to: params.recipient, subject, text, html })
 }
+
+export async function sendFinalResultsDigestEmail(params: {
+  origin: string
+  recipient: string
+  tournament: TournamentLike
+  results: { pool: PoolLike; entry: EntryLike; topEntries: TopEntry[] }[]
+}) {
+  const results = params.results.filter(item => item.pool?.id && item.entry?.id)
+  if (results.length === 0) return { skipped: true, reason: 'no_final_results' }
+  if (results.length === 1) {
+    const only = results[0]
+    return sendFinalResultsEmail({
+      origin: params.origin,
+      recipient: params.recipient,
+      tournament: params.tournament,
+      pool: only.pool,
+      entry: only.entry,
+      topEntries: only.topEntries,
+    })
+  }
+
+  const tournamentName = params.tournament.name || 'the tournament'
+  const resultRows = results.map(item => {
+    const leaderboardUrl = publicLeaderboardUrl(params.origin, item.pool.id, item.entry.id)
+    return `
+      <tr>
+        <td style="border-bottom:1px solid #d8cab0;padding:10px 10px 10px 0;color:#1f2a24;font-weight:800;">${escapeHtml(item.pool.name || 'Pool')}</td>
+        <td style="border-bottom:1px solid #d8cab0;padding:10px;color:#1f2a24;font-weight:700;">${escapeHtml(item.entry.display_name || 'Entry')}</td>
+        <td style="border-bottom:1px solid #d8cab0;padding:10px;color:#123c2f;font-weight:900;text-align:right;white-space:nowrap;">${escapeHtml(rankLabel(item.entry.rank))} · ${escapeHtml(scoreLabel(item.entry.total_score))}</td>
+        <td style="border-bottom:1px solid #d8cab0;padding:10px 0 10px 10px;text-align:right;white-space:nowrap;"><a href="${escapeHtml(leaderboardUrl)}" style="color:#123c2f;font-weight:800;text-decoration:underline;">Leaderboard</a></td>
+      </tr>
+    `
+  }).join('')
+  const textRows = results.map(item => {
+    const leaderboardUrl = publicLeaderboardUrl(params.origin, item.pool.id, item.entry.id)
+    return `${item.pool.name || 'Pool'}: ${item.entry.display_name || 'Entry'} finished ${rankLabel(item.entry.rank)} (${scoreLabel(item.entry.total_score)}). ${leaderboardUrl}`
+  })
+  const subject = `Final results for ${tournamentName}`
+  const text = [
+    `${tournamentName} is final.`,
+    '',
+    'Your results:',
+    ...textRows,
+    '',
+    'Golf Pools Pro',
+  ].join('\n')
+  const html = emailShell({
+    preheader: `${results.length} results from ${tournamentName}.`,
+    title: 'Final results',
+    bodyHtml: `
+      <p style="margin:0 0 14px;font-size:16px;"><strong>${escapeHtml(tournamentName)}</strong> is final.</p>
+      <div style="border:2px solid #123c2f;background:#fbf7ed;margin:0 0 18px;">
+        <div style="background:#123c2f;color:#f3df9c;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;padding:8px 12px;">Your results</div>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#fffdf8;">
+          ${resultRows}
+        </table>
+      </div>
+    `,
+  })
+  return sendEmail({ to: params.recipient, subject, text, html })
+}
