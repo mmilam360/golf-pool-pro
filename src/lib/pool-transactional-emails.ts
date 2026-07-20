@@ -384,10 +384,10 @@ export async function sendFinalResultsDigestEmail(params: {
     const leaderboardUrl = publicLeaderboardUrl(params.origin, item.pool.id, item.entry.id)
     return `
       <tr>
-        <td style="border-bottom:1px solid #d8cab0;padding:10px 10px 10px 0;color:#1f2a24;font-weight:800;">${escapeHtml(item.pool.name || 'Pool')}</td>
-        <td style="border-bottom:1px solid #d8cab0;padding:10px;color:#1f2a24;font-weight:700;">${escapeHtml(item.entry.display_name || 'Entry')}</td>
-        <td style="border-bottom:1px solid #d8cab0;padding:10px;color:#123c2f;font-weight:900;text-align:right;white-space:nowrap;">${escapeHtml(rankLabel(item.entry.rank))} · ${escapeHtml(scoreLabel(item.entry.total_score))}</td>
-        <td style="border-bottom:1px solid #d8cab0;padding:10px 0 10px 10px;text-align:right;white-space:nowrap;"><a href="${escapeHtml(leaderboardUrl)}" style="color:#123c2f;font-weight:800;text-decoration:underline;">Leaderboard</a></td>
+        <td style="border-bottom:1px solid #d8cab0;padding:12px 12px 12px 14px;color:#1f2a24;font-size:15px;line-height:1.25;font-weight:800;">${escapeHtml(item.pool.name || 'Pool')}</td>
+        <td style="border-bottom:1px solid #d8cab0;padding:12px 10px;color:#1f2a24;font-size:15px;line-height:1.25;font-weight:700;">${escapeHtml(item.entry.display_name || 'Entry')}</td>
+        <td style="border-bottom:1px solid #d8cab0;padding:12px 10px;color:#123c2f;font-size:15px;line-height:1.25;font-weight:900;text-align:right;white-space:nowrap;">${escapeHtml(rankLabel(item.entry.rank))} · ${escapeHtml(scoreLabel(item.entry.total_score))}</td>
+        <td style="border-bottom:1px solid #d8cab0;padding:12px 14px 12px 10px;text-align:right;white-space:nowrap;"><a href="${escapeHtml(leaderboardUrl)}" style="color:#123c2f;font-size:14px;line-height:1.2;font-weight:800;text-decoration:underline;">View board</a></td>
       </tr>
     `
   }).join('')

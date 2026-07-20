@@ -64,5 +64,13 @@ assert.ok(
   transactionalEmails.includes('Your results:'),
   'multi-result digest text should list all results',
 )
+assert.ok(
+  transactionalEmails.includes('padding:12px 12px 12px 14px'),
+  'multi-result digest rows should keep left padding in email clients',
+)
+assert.ok(
+  transactionalEmails.includes('View board'),
+  'multi-result digest should use a short leaderboard link label',
+)
 
 console.log('final-result email digest verified')
