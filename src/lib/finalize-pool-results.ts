@@ -10,6 +10,7 @@ export type FinalizeResult = {
   poolsFinalized: number
   entriesUpdated: number
   finalEmailsSent: number
+  finalEmailsQueued: number
   finalEmailsNoEmail: number
   skipped: number
 }
@@ -72,6 +73,7 @@ function usableLeaderboard(leaderboard: unknown): leaderboard is GolfPlayer[] {
 async function addFinalEmailResult(result: FinalizeResult, promise: ReturnType<typeof sendFinalResultsEmailsForPools>) {
   const finalEmailResult = await promise
   result.finalEmailsSent += finalEmailResult.sent
+  result.finalEmailsQueued += finalEmailResult.queued
   result.finalEmailsNoEmail += finalEmailResult.noEmail
 }
 
@@ -87,6 +89,7 @@ export async function finalizeCompletedPoolResults(
     poolsFinalized: 0,
     entriesUpdated: 0,
     finalEmailsSent: 0,
+    finalEmailsQueued: 0,
     finalEmailsNoEmail: 0,
     skipped: 0,
   }

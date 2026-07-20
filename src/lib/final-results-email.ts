@@ -7,6 +7,7 @@ type FinalResultsEmailResult = {
   candidates: number
   sent: number
   skipped: number
+  queued: number
   noEmail: number
   duplicate: number
 }
@@ -28,12 +29,56 @@ type EntryLike = {
   is_removed?: boolean | null
 }
 
+const FINAL_RESULTS_FORWARD_EMAIL_HARD_LIMIT = 250
+const FINAL_RESULTS_FORWARD_EMAIL_WINDOW_MS = 24 * 60 * 60 * 1000
+
 function normalizedRecipient(email: string) {
   return email.trim().toLowerCase()
 }
 
+function finalResultsForwardEmailLimit() {
+  const configured = Number(process.env.FINAL_RESULTS_FORWARD_EMAIL_DAILY_LIMIT || FINAL_RESULTS_FORWARD_EMAIL_HARD_LIMIT)
+  if (!Number.isFinite(configured) || configured <= 0) return FINAL_RESULTS_FORWARD_EMAIL_HARD_LIMIT
+  return Math.min(Math.floor(configured), FINAL_RESULTS_FORWARD_EMAIL_HARD_LIMIT)
+}
+
+function tournamentDigestId(tournament: any) {
+  return String(tournament?.id || tournament?.name || 'tournament')
+}
+
+function finalResultsDigestKey(tournament: any, recipient: string) {
+  return `final_results_digest:${tournamentDigestId(tournament)}:${normalizedRecipient(recipient)}`
+}
+
+function digestKeyFromEvent(row: { recipient?: string | null; payload?: any }) {
+  const payload = row.payload && typeof row.payload === 'object' ? row.payload : {}
+  const digestKey = typeof payload.digestKey === 'string' ? payload.digestKey.trim() : ''
+  if (digestKey) return digestKey
+  return row.recipient ? `legacy:${normalizedRecipient(row.recipient)}` : ''
+}
+
+async function finalResultsForwardEmailQuotaRemaining(supabase: any, now = new Date()) {
+  const limit = finalResultsForwardEmailLimit()
+  const since = new Date(now.getTime() - FINAL_RESULTS_FORWARD_EMAIL_WINDOW_MS).toISOString()
+  const { data, error } = await supabase
+    .from('gpp_email_events')
+    .select('recipient, payload')
+    .eq('email_type', 'final_results')
+    .eq('status', 'sent')
+    .gte('sent_at', since)
+
+  if (error) throw error
+
+  const sentDigests = new Set<string>()
+  for (const row of data || []) {
+    const key = digestKeyFromEvent(row as { recipient?: string | null; payload?: any })
+    if (key) sentDigests.add(key)
+  }
+  return Math.max(0, limit - sentDigests.size)
+}
+
 export async function sendFinalResultsEmailsForPools(supabase: any, params: { pools: PoolLike[]; tournament: any }): Promise<FinalResultsEmailResult> {
-  const result: FinalResultsEmailResult = { candidates: 0, sent: 0, skipped: 0, noEmail: 0, duplicate: 0 }
+  const result: FinalResultsEmailResult = { candidates: 0, sent: 0, skipped: 0, queued: 0, noEmail: 0, duplicate: 0 }
   const pools = params.pools.filter(pool => pool?.id)
   if (!pools.length) return result
 
@@ -70,6 +115,7 @@ export async function sendFinalResultsEmailsForPools(supabase: any, params: { po
       continue
     }
 
+    const digestKey = finalResultsDigestKey(params.tournament, recipient)
     const event = await reserveEmailEvent(supabase, {
       poolId: pool.id,
       entryId: entry.id,
@@ -82,6 +128,8 @@ export async function sendFinalResultsEmailsForPools(supabase: any, params: { po
         rank: entry.rank,
         totalScore: entry.total_score,
         delivery: 'digest',
+        provider: 'forward_email',
+        digestKey,
       },
     })
     if (!event.reserved) {
@@ -100,7 +148,14 @@ export async function sendFinalResultsEmailsForPools(supabase: any, params: { po
     groups.set(key, group)
   }
 
+  let remainingForwardEmailSends = await finalResultsForwardEmailQuotaRemaining(supabase)
+
   for (const group of Array.from(groups.values())) {
+    if (remainingForwardEmailSends <= 0) {
+      result.queued++
+      continue
+    }
+
     try {
       const sendResult = await sendFinalResultsDigestEmail({
         origin,
@@ -109,11 +164,17 @@ export async function sendFinalResultsEmailsForPools(supabase: any, params: { po
         results: group.events.map(item => ({ pool: item.pool, entry: item.entry, topEntries: item.topEntries })),
       })
 
+      if ((sendResult as any)?.queued) {
+        result.queued++
+        continue
+      }
+
       if ((sendResult as any)?.sent === false || (sendResult as any)?.skipped) {
         result.skipped += group.events.length
         await Promise.all(group.events.map(item => finishEmailEvent(supabase, item.id, 'skipped', JSON.stringify(sendResult).slice(0, 300))))
       } else {
         result.sent++
+        remainingForwardEmailSends--
         await Promise.all(group.events.map(item => finishEmailEvent(supabase, item.id, 'sent')))
       }
     } catch (error: any) {

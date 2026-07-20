@@ -1,4 +1,4 @@
-import { sendEmail } from '@/lib/email'
+import { sendEmail, sendFinalResultsEmailViaForwardEmail } from '@/lib/email'
 import { entryEditUrl, publicLeaderboardUrl } from '@/lib/pool-email-recipients'
 
 type EntryLike = {
@@ -356,7 +356,7 @@ export async function sendFinalResultsEmail(params: {
     ctaHref: leaderboardUrl,
     ctaLabel: 'View final leaderboard',
   })
-  return sendEmail({ to: params.recipient, subject, text, html })
+  return sendFinalResultsEmailViaForwardEmail({ to: params.recipient, subject, text, html })
 }
 
 export async function sendFinalResultsDigestEmail(params: {
@@ -417,5 +417,5 @@ export async function sendFinalResultsDigestEmail(params: {
       </div>
     `,
   })
-  return sendEmail({ to: params.recipient, subject, text, html })
+  return sendFinalResultsEmailViaForwardEmail({ to: params.recipient, subject, text, html })
 }

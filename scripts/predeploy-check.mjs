@@ -4,6 +4,7 @@ const checks = [
   ['npm', ['run', 'lint']],
   ['npm', ['run', 'test:final-result-announcements']],
   ['npm', ['run', 'test:final-result-email-digest']],
+  ['npm', ['run', 'test:final-results-forward-email-queue']],
   ['npm', ['run', 'test:pick-submission-validation']],
   ['npm', ['run', 'test:dashboard-edit-picks-cta']],
   ['npm', ['run', 'test:dashboard-pool-name-width']],
