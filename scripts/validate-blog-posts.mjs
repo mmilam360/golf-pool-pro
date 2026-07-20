@@ -22,6 +22,16 @@ if (!fs.existsSync(contentDir)) {
 
 const files = fs.readdirSync(contentDir).filter(file => file.endsWith('.json'))
 const slugs = new Set()
+const internalBlogLinks = []
+
+function collectBlogLinksFromText(label, text) {
+  const links = []
+  const blogLinkPattern = /(?:https:\/\/www\.golfpoolspro\.com)?\/blog\/([a-z0-9-]+)/g
+  for (const match of text.matchAll(blogLinkPattern)) {
+    links.push({ label, slug: match[1] })
+  }
+  return links
+}
 
 for (const file of files) {
   const filePath = path.join(contentDir, file)
@@ -67,11 +77,21 @@ for (const file of files) {
 
   for (const link of post.internalLinks || []) {
     if (!link.href?.startsWith('/')) fail(`${file} internal link must be local: ${link.href}`)
+    if (link.href?.startsWith('/blog/')) internalBlogLinks.push({ label: `${file} internalLinks`, slug: link.href.replace('/blog/', '') })
   }
 
   if (post.description && (post.description.length < 80 || post.description.length > 180)) {
     fail(`${file} description should be 80-180 chars`)
   }
+}
+
+const llmsRoutePath = path.join(root, 'src/app/llms.txt/route.ts')
+if (fs.existsSync(llmsRoutePath)) {
+  internalBlogLinks.push(...collectBlogLinksFromText('src/app/llms.txt/route.ts', fs.readFileSync(llmsRoutePath, 'utf8')))
+}
+
+for (const link of internalBlogLinks) {
+  if (!slugs.has(link.slug)) fail(`${link.label} links to missing blog slug: ${link.slug}`)
 }
 
 if (!process.exitCode) {
