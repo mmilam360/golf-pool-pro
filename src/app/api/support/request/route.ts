@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { sendEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
 
@@ -9,6 +8,22 @@ type SupportRequestBody = {
   message?: unknown
   poolInfo?: unknown
   website?: unknown
+}
+
+type SupportDetails = {
+  type: string
+  email: string
+  message: string
+  poolInfo: string
+  submittedAt: string
+  referer: string
+  forwardedFor: string
+  userAgent: string
+}
+
+type DraftResult = {
+  text: string
+  source: 'llm' | 'fallback'
 }
 
 function cleanText(value: unknown, maxLength: number) {
@@ -24,90 +39,167 @@ function supportTypeLabel(type: string) {
   return type === 'feature' ? 'Feature request' : 'Support request'
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
+function truncate(value: string, maxLength: number) {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value
 }
 
-async function notifySupportEmail({
-  type,
-  email,
-  message,
-  poolInfo,
-  submittedAt,
-  referer,
-  forwardedFor,
-  userAgent,
-}: {
-  type: string
-  email: string
-  message: string
-  poolInfo: string
-  submittedAt: string
-  referer: string
-  forwardedFor: string
-  userAgent: string
-}) {
+function fallbackDraft(details: SupportDetails) {
+  const lower = `${details.message} ${details.poolInfo}`.toLowerCase()
+
+  if (lower.includes('password') || lower.includes('login') || lower.includes('sign in')) {
+    return 'Hi — thanks for reaching out. Try resetting your password from the login page first. If the reset link does not arrive or still does not work, send me the email on the account and I will check it from my side.'
+  }
+
+  if (lower.includes('payment') || lower.includes('square') || lower.includes('card') || lower.includes('charge')) {
+    return 'Hi — thanks for reaching out. I am checking the payment record now. If you can send the pool name and the email used at checkout, I can match it up and make sure the pool is in the right state.'
+  }
+
+  if (lower.includes('pick') || lower.includes('entry') || lower.includes('player') || lower.includes('join')) {
+    return 'Hi — thanks for reaching out. Send me the pool name or join link plus the email on the entry, and I will check what is happening with the picks/entry from my side.'
+  }
+
+  if (lower.includes('leaderboard') || lower.includes('score') || lower.includes('cut') || lower.includes('wd')) {
+    return 'Hi — thanks for reaching out. I will check the tournament scoring feed and that pool’s leaderboard state. If you can send the pool name or link, I can look at the exact board.'
+  }
+
+  return 'Hi — thanks for reaching out. I am checking this now. If you can send the pool name or link and any screenshot that shows the issue, I can track it down faster.'
+}
+
+async function draftSupportReply(details: SupportDetails): Promise<DraftResult> {
+  const fallback = fallbackDraft(details)
+  const apiKey = process.env.OPENAI_API_KEY
+
+  if (!apiKey) {
+    return { text: fallback, source: 'fallback' }
+  }
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      signal: AbortSignal.timeout(8000),
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.GPP_SUPPORT_LLM_MODEL || 'gpt-4o-mini',
+        temperature: 0.2,
+        max_tokens: 420,
+        messages: [
+          {
+            role: 'system',
+            content: 'You draft concise customer-support replies for Golf Pools Pro, a golf pool app. Write in Michael\'s voice: casual, factual, helpful, no corporate fluff. Do not claim work is finished, do not promise refunds, and do not mention wagering/buy-ins/payouts. Give the most likely resolution or next step. The draft is for Michael to approve, not to send automatically.',
+          },
+          {
+            role: 'user',
+            content: JSON.stringify({
+              requestType: supportTypeLabel(details.type),
+              customerEmail: details.email,
+              poolInfo: details.poolInfo,
+              page: details.referer,
+              message: details.message,
+            }),
+          },
+        ],
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Support draft LLM request failed')
+    }
+
+    const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const text = data.choices?.[0]?.message?.content?.trim()
+    return { text: text || fallback, source: text ? 'llm' : 'fallback' }
+  } catch (error) {
+    console.error('support_request_draft_failed', error)
+    return { text: fallback, source: 'fallback' }
+  }
+}
+
+async function notifySupportEmail(details: SupportDetails, draft: DraftResult) {
+  const apiKey = process.env.RESEND_API_KEY
   const supportTo = process.env.SUPPORT_EMAIL_TO || 'support@golfpoolspro.com'
-  const label = supportTypeLabel(type)
-  const subject = `Golf Pools Pro ${label} from ${email}`
+  const supportFrom = process.env.SUPPORT_EMAIL_FROM || 'Golf Pools Pro <no-reply@golfpoolspro.com>'
+
+  if (!apiKey) {
+    throw new Error('Support email is not configured')
+  }
+
+  const label = supportTypeLabel(details.type)
+  const subject = `Golf Pools Pro ${label} from ${details.email}`
   const text = [
     label,
-    `From: ${email}`,
-    poolInfo ? `Pool/tournament: ${poolInfo}` : null,
-    `Submitted: ${submittedAt}`,
-    `Page: ${referer}`,
+    `From: ${details.email}`,
+    details.poolInfo ? `Pool/tournament: ${details.poolInfo}` : null,
+    `Submitted: ${details.submittedAt}`,
+    `Page: ${details.referer}`,
     '',
-    message,
+    details.message,
     '',
-    `IP: ${forwardedFor}`,
-    `UA: ${userAgent.slice(0, 220)}`,
+    `Draft reply (${draft.source === 'llm' ? 'AI' : 'fallback'}, not sent):`,
+    draft.text,
+    '',
+    `IP: ${details.forwardedFor}`,
+    `UA: ${details.userAgent.slice(0, 220)}`,
   ].filter(Boolean).join('\n')
 
-  const html = `
-    <div style="margin:0;padding:0;background:#f6f0e3;font-family:Arial,Helvetica,sans-serif;color:#1f2a24;line-height:1.5;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#f6f0e3;margin:0;padding:0;">
-        <tr>
-          <td align="center" style="padding:28px 14px;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;max-width:640px;background:#fbf7ed;border:2px solid #123c2f;">
-              <tr>
-                <td style="background:#123c2f;border-bottom:2px solid #b58a3a;padding:22px 24px;color:#ffffff;">
-                  <div style="font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#f3df9c;font-weight:800;">Golf Pools Pro</div>
-                  <h1 style="margin:6px 0 0;font-family:Arial Black,Impact,Arial,Helvetica,sans-serif;font-size:26px;line-height:1.05;letter-spacing:-0.04em;text-transform:uppercase;color:#ffffff;">${escapeHtml(label)}</h1>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:22px 24px;background:#fffdf8;">
-                  <p style="margin:0 0 12px;font-size:16px;"><strong>From:</strong> <a href="mailto:${escapeHtml(email)}" style="color:#123c2f;font-weight:800;">${escapeHtml(email)}</a></p>
-                  ${poolInfo ? `<p style="margin:0 0 12px;"><strong>Pool/tournament:</strong> ${escapeHtml(poolInfo)}</p>` : ''}
-                  <p style="margin:0 0 12px;"><strong>Submitted:</strong> ${escapeHtml(submittedAt)}</p>
-                  <p style="margin:0 0 18px;"><strong>Page:</strong> ${escapeHtml(referer)}</p>
-                  <div style="border:1px solid #d8cab0;background:#fbf7ed;padding:14px 16px;white-space:pre-wrap;">${escapeHtml(message)}</div>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:16px 24px 22px;border-top:1px solid #d8cab0;background:#fbf7ed;color:#657168;font-size:12px;">
-                  IP: ${escapeHtml(forwardedFor)}<br />UA: ${escapeHtml(userAgent.slice(0, 220))}
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </div>
-  `
-
-  return sendEmail({
-    to: supportTo,
-    subject,
-    text,
-    html,
-    replyTo: email,
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    signal: AbortSignal.timeout(10000),
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: supportFrom,
+      to: supportTo,
+      reply_to: details.email,
+      subject,
+      text,
+    }),
   })
+
+  if (!response.ok) {
+    throw new Error('Support email failed')
+  }
+}
+
+async function notifySupportTelegram(details: SupportDetails, draft: DraftResult) {
+  const token = process.env.SUPPORT_TELEGRAM_BOT_TOKEN
+  const chatId = process.env.SUPPORT_TELEGRAM_CHAT_ID
+
+  if (!token || !chatId) return
+
+  const label = supportTypeLabel(details.type)
+  const text = truncate([
+    `New Golf Pools Pro ${label}`,
+    `From: ${details.email}`,
+    details.poolInfo ? `Pool/tournament: ${details.poolInfo}` : null,
+    `Page: ${details.referer}`,
+    `Submitted: ${details.submittedAt}`,
+    '',
+    'Customer message:',
+    details.message,
+    '',
+    `Draft reply for approval (${draft.source === 'llm' ? 'AI' : 'fallback'}):`,
+    draft.text,
+  ].filter(Boolean).join('\n'), 3900)
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(10000),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      disable_web_page_preview: true,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Support Telegram notification failed')
+  }
 }
 
 export async function POST(request: Request) {
@@ -136,28 +228,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Add a little more detail.' }, { status: 400 })
   }
 
-  const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-  const userAgent = request.headers.get('user-agent') || 'unknown'
-  const referer = request.headers.get('referer') || 'unknown'
-  const submittedAt = new Date().toISOString()
+  const details: SupportDetails = {
+    type,
+    email,
+    message,
+    poolInfo,
+    forwardedFor: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown',
+    userAgent: request.headers.get('user-agent') || 'unknown',
+    referer: request.headers.get('referer') || 'unknown',
+    submittedAt: new Date().toISOString(),
+  }
+
+  const draft = await draftSupportReply(details)
 
   try {
-    const result = await notifySupportEmail({
-      type,
-      email,
-      message,
-      poolInfo,
-      submittedAt,
-      referer,
-      forwardedFor,
-      userAgent,
-    })
-    if ((result as any)?.sent === false || (result as any)?.skipped) {
-      return NextResponse.json({ error: 'Support request could not be sent right now.' }, { status: 500 })
-    }
+    await notifySupportEmail(details, draft)
   } catch (error) {
     console.error('support_request_email_failed', error)
     return NextResponse.json({ error: 'Support request could not be sent right now.' }, { status: 500 })
+  }
+
+  try {
+    await notifySupportTelegram(details, draft)
+  } catch (error) {
+    console.error('support_request_telegram_failed', error)
   }
 
   return NextResponse.json({ ok: true })
