@@ -4,6 +4,11 @@ import { createServiceClient } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 
+function squareWebhookUrl(request: Request) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
+  return siteUrl ? `${siteUrl}/api/payments/square/webhook` : request.url
+}
+
 function isValidSquareSignature(requestUrl: string, body: string, signature: string | null) {
   const key = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
   if (!key || !signature) return false
@@ -24,7 +29,7 @@ export async function POST(request: Request) {
   const body = await request.text()
   const signature = request.headers.get('x-square-hmacsha256-signature')
 
-  if (!isValidSquareSignature(request.url, body, signature)) {
+  if (!isValidSquareSignature(squareWebhookUrl(request), body, signature)) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
