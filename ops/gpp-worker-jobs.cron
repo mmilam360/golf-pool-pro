@@ -1,0 +1,32 @@
+# Golf Pools Pro production worker jobs on Netcup.
+# Calls the local Next.js production app on 127.0.0.1:3400 and authenticates with CRON_SECRET from .env.production.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+GPP_APP_DIR=/opt/golf-pool-pro-staging
+GPP_ENV_FILE=/opt/golf-pool-pro-staging/.env.production
+GPP_CRON_BASE_URL=http://127.0.0.1:3400
+GPP_CRON_TIMEOUT_SECONDS=55
+
+# Live tournament scoring, grouped-pool auto-finalization/locking, and completed-pool result finalization.
+* * * * * deploy /opt/golf-pool-pro-staging/ops/cron-call.sh '/api/cron/sync-tournaments?live=1' >> /opt/golf-pool-pro-staging/ops/logs/sync-live.log 2>&1
+
+# Daily schedule/tournament metadata sync.
+0 8 * * * deploy /opt/golf-pool-pro-staging/ops/cron-call.sh '/api/cron/sync-tournaments' >> /opt/golf-pool-pro-staging/ops/logs/sync-daily.log 2>&1
+
+# PGA Tour field refresh/scrape for upcoming tournaments.
+0 */4 * * * deploy /opt/golf-pool-pro-staging/ops/cron-call.sh '/api/cron/refresh-fields' >> /opt/golf-pool-pro-staging/ops/logs/refresh-fields.log 2>&1
+
+# Freeze completed pool results after final leaderboards are complete.
+*/10 * * * * deploy /opt/golf-pool-pro-staging/ops/cron-call.sh '/api/cron/finalize-results' >> /opt/golf-pool-pro-staging/ops/logs/finalize-results.log 2>&1
+
+# Payment-state maintenance. Square payments/webhooks remain external.
+*/30 * * * * deploy /opt/golf-pool-pro-staging/ops/cron-call.sh '/api/cron/archive-unpaid-pools' >> /opt/golf-pool-pro-staging/ops/logs/archive-unpaid.log 2>&1
+
+# Push notifications; endpoint dedupes notification events.
+*/15 * * * * deploy /opt/golf-pool-pro-staging/ops/cron-call.sh '/api/cron/send-notifications' >> /opt/golf-pool-pro-staging/ops/logs/send-notifications.log 2>&1
+
+# Grouped-pool group lock/finalization. Public /api/cron/* is intentionally hidden by Caddy.
+10 8 * * 2 deploy /opt/golf-pool-pro-staging/ops/cron-call.sh '/api/cron/finalize-grouped-pools' >> /opt/golf-pool-pro-staging/ops/logs/finalize-grouped-pools.log 2>&1
+
+# Thursday pick-lock watchdog during the morning start window.
+*/15 6-12 * * 4 deploy /opt/golf-pool-pro-staging/ops/cron-call.sh '/api/cron/lock-pools' >> /opt/golf-pool-pro-staging/ops/logs/lock-pools.log 2>&1
